@@ -32,7 +32,7 @@
 // sokol headers
 #include "sokol/sokol_app.h"
 #include "sokol/sokol_gfx.h"
-#include "sokol/sokol_gl.h"
+#include "sokol/sokol_gl_tc.h"
 
 // stb_truetype
 #include "stb/stb_truetype.h"

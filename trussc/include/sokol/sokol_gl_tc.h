@@ -856,25 +856,25 @@ SOKOL_GL_API_DECL void sgl_context_draw_layer(sgl_context ctx, int layer_id);
 /* [TrussC] flush all layers then reset command/vertex/uniform buffers.
    Matrix stack and current state are preserved. Call between passes
    when you need to emit vertices again in the same frame (e.g. FBO suspend/resume). */
-SOKOL_GL_API_DECL void sgl_draw_rewind(void);
-SOKOL_GL_API_DECL void sgl_context_draw_rewind(sgl_context ctx);
+SOKOL_GL_API_DECL void sgl_tc_draw_rewind(void);
+SOKOL_GL_API_DECL void sgl_tc_context_draw_rewind(sgl_context ctx);
 
 /* [TrussC] Reset command/vertex/uniform counters to zero without freeing memory.
    Buffers and GPU resources are preserved at their current (possibly grown) size.
    Call after sgl_context_draw() to prepare for the next user of a shared context.
    This is the fast path for FBO end() — no allocation or deallocation. */
-SOKOL_GL_API_DECL void sgl_context_reset(sgl_context ctx);
+SOKOL_GL_API_DECL void sgl_tc_context_reset(sgl_context ctx);
 
 /* [TrussC] Release CPU buffers and GPU vertex buffer to free memory.
    Context shell, pipelines, and commit listener are preserved.
    Call after sgl_context_draw() when the context won't be used for a while.
-   Next drawing call will auto-allocate via sgl_context_ensure_buffers(). */
-SOKOL_GL_API_DECL void sgl_context_release_buffers(sgl_context ctx);
+   Next drawing call will auto-allocate via sgl_tc_context_ensure_buffers(). */
+SOKOL_GL_API_DECL void sgl_tc_context_release_buffers(sgl_context ctx);
 
 /* [TrussC] Ensure CPU buffers and GPU vertex buffer are allocated.
    If already allocated, this is a no-op. Call before drawing if
    buffers may have been released. */
-SOKOL_GL_API_DECL void sgl_context_ensure_buffers(sgl_context ctx);
+SOKOL_GL_API_DECL void sgl_tc_context_ensure_buffers(sgl_context ctx);
 
 /* create and destroy pipeline objects */
 SOKOL_GL_API_DECL sgl_pipeline sgl_make_pipeline(const sg_pipeline_desc* desc);
@@ -3031,7 +3031,7 @@ typedef struct {
    FBO contexts are shared per sample count (not per FBO), so these are
    allocated only once per distinct sample count. Auto-grow on overflow
    (realloc to 2x, amortized O(1)) means no rendering is lost — buffers
-   stay at peak size and are reused via sgl_context_reset(). */
+   stay at peak size and are reused via sgl_tc_context_reset(). */
 #define _SGL_DEFAULT_MAX_VERTICES (128)
 #define _SGL_DEFAULT_MAX_COMMANDS (64)
 #define _SGL_SLOT_SHIFT (16)
@@ -3670,7 +3670,7 @@ static sg_commit_listener _sgl_make_commit_listener(_sgl_context_t* ctx) {
 }
 
 /* [TrussC fork] Auto-grow CPU vertex buffer when full (realloc to 2x capacity).
-   Handles cap=0 (after sgl_context_release_buffers) by allocating default capacity. */
+   Handles cap=0 (after sgl_tc_context_release_buffers) by allocating default capacity. */
 static _sgl_vertex_t* _sgl_next_vertex(_sgl_context_t* ctx) {
     if (ctx->vertices.next >= ctx->vertices.cap) {
         int new_cap = (ctx->vertices.cap > 0) ? ctx->vertices.cap * 2 : _SGL_DEFAULT_MAX_VERTICES;
@@ -5169,7 +5169,7 @@ static void _sgl_draw_rewind(_sgl_context_t* ctx) {
     ctx->matrix_dirty = true;
 }
 
-SOKOL_API_IMPL void sgl_draw_rewind(void) {
+SOKOL_API_IMPL void sgl_tc_draw_rewind(void) {
     SOKOL_ASSERT(_SGL_INIT_COOKIE == _sgl.init_cookie);
     _sgl_context_t* ctx = _sgl.cur_ctx;
     if (ctx) {
@@ -5177,7 +5177,7 @@ SOKOL_API_IMPL void sgl_draw_rewind(void) {
     }
 }
 
-SOKOL_API_IMPL void sgl_context_draw_rewind(sgl_context ctx_id) {
+SOKOL_API_IMPL void sgl_tc_context_draw_rewind(sgl_context ctx_id) {
     SOKOL_ASSERT(_SGL_INIT_COOKIE == _sgl.init_cookie);
     _sgl_context_t* ctx = _sgl_lookup_context(ctx_id.id);
     if (ctx) {
@@ -5197,7 +5197,7 @@ static void _sgl_reset_buffers(_sgl_context_t* ctx) {
     ctx->matrix_dirty = true;
 }
 
-SOKOL_API_IMPL void sgl_context_reset(sgl_context ctx_id) {
+SOKOL_API_IMPL void sgl_tc_context_reset(sgl_context ctx_id) {
     SOKOL_ASSERT(_SGL_INIT_COOKIE == _sgl.init_cookie);
     _sgl_context_t* ctx = _sgl_lookup_context(ctx_id.id);
     if (ctx) {
@@ -5279,7 +5279,7 @@ static void _sgl_ensure_buffers(_sgl_context_t* ctx) {
     sg_pop_debug_group();
 }
 
-SOKOL_API_IMPL void sgl_context_release_buffers(sgl_context ctx_id) {
+SOKOL_API_IMPL void sgl_tc_context_release_buffers(sgl_context ctx_id) {
     SOKOL_ASSERT(_SGL_INIT_COOKIE == _sgl.init_cookie);
     _sgl_context_t* ctx = _sgl_lookup_context(ctx_id.id);
     if (ctx) {
@@ -5287,7 +5287,7 @@ SOKOL_API_IMPL void sgl_context_release_buffers(sgl_context ctx_id) {
     }
 }
 
-SOKOL_API_IMPL void sgl_context_ensure_buffers(sgl_context ctx_id) {
+SOKOL_API_IMPL void sgl_tc_context_ensure_buffers(sgl_context ctx_id) {
     SOKOL_ASSERT(_SGL_INIT_COOKIE == _sgl.init_cookie);
     _sgl_context_t* ctx = _sgl_lookup_context(ctx_id.id);
     if (ctx) {

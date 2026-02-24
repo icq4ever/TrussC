@@ -17,7 +17,7 @@
 #include "sokol/sokol_app.h"
 #include "sokol/sokol_gfx.h"
 #include "sokol/sokol_glue.h"
-#include "sokol/sokol_gl.h"
+#include "sokol/sokol_gl_tc.h"
 
 // Dear ImGui + sokol_imgui
 #include "imgui/imgui.h"
@@ -405,7 +405,7 @@ inline void suspendSwapchainPass() {
 
 // Resume swapchain pass (for FBO)
 // Start a new pass with LOAD action to preserve prior content.
-// sgl_draw_rewind() preserves the matrix stack, so no need to reset state.
+// sgl_tc_draw_rewind() preserves the matrix stack, so no need to reset state.
 inline void resumeSwapchainPass() {
     if (!internal::inSwapchainPass) {
         sg_pass pass = {};
