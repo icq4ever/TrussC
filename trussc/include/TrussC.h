@@ -2250,12 +2250,12 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
     // Set pixel perfect mode
     internal::pixelPerfectMode = settings.pixelPerfect;
 
-    // Create app instance
-    static AppClass* app = nullptr;
+    // Create app instance (shared_ptrで管理してNodeのweak_from_thisを有効にする)
+    static std::shared_ptr<AppClass> app = nullptr;
 
     // Set callbacks
     internal::appSetupFunc = []() {
-        app = new AppClass();
+        app = std::make_shared<AppClass>();
         // Note: Size is set in _setup_cb after this callback
         // setup() is called automatically in updateTree() via setupCalled_ flag
     };
@@ -2275,8 +2275,7 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
             events().exit.notify();
             app->exit();
             app->cleanup();
-            delete app;
-            app = nullptr;
+            app.reset();
         }
     };
     // NOTE: events().xxx.notify() is already called in the sokol event handler
