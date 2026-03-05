@@ -2279,49 +2279,34 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
             app = nullptr;
         }
     };
+    // NOTE: events().xxx.notify() is already called in the sokol event handler
+    // above (with full modifier info). These legacy callbacks only forward to
+    // the App subclass methods — do NOT re-notify events here.
     internal::appKeyPressedFunc = [](int key) {
-        KeyEventArgs args; args.key = key;
-        events().keyPressed.notify(args);
         if (app) app->handleKeyPressed(key);
     };
     internal::appKeyReleasedFunc = [](int key) {
-        KeyEventArgs args; args.key = key;
-        events().keyReleased.notify(args);
         if (app) app->handleKeyReleased(key);
     };
     internal::appMousePressedFunc = [](int x, int y, int button) {
-        MouseEventArgs args; args.x = (float)x; args.y = (float)y; args.button = button;
-        events().mousePressed.notify(args);
         if (app) app->handleMousePressed(x, y, button);
     };
     internal::appMouseReleasedFunc = [](int x, int y, int button) {
-        MouseEventArgs args; args.x = (float)x; args.y = (float)y; args.button = button;
-        events().mouseReleased.notify(args);
         if (app) app->handleMouseReleased(x, y, button);
     };
     internal::appMouseMovedFunc = [](int x, int y) {
-        MouseMoveEventArgs args; args.x = (float)x; args.y = (float)y;
-        events().mouseMoved.notify(args);
         if (app) app->handleMouseMoved(x, y);
     };
     internal::appMouseDraggedFunc = [](int x, int y, int button) {
-        MouseDragEventArgs args; args.x = (float)x; args.y = (float)y; args.button = button;
-        events().mouseDragged.notify(args);
         if (app) app->handleMouseDragged(x, y, button);
     };
     internal::appMouseScrolledFunc = [](float dx, float dy) {
-        ScrollEventArgs args; args.scrollX = dx; args.scrollY = dy;
-        events().mouseScrolled.notify(args);
         if (app) app->handleMouseScrolled(dx, dy, internal::mouseX, internal::mouseY);
     };
     internal::appWindowResizedFunc = [](int w, int h) {
-        ResizeEventArgs args; args.width = w; args.height = h;
-        events().windowResized.notify(args);
         if (app) app->handleWindowResized(w, h);
     };
     internal::appFilesDroppedFunc = [](const std::vector<std::string>& files) {
-        DragDropEventArgs args; args.files = files;
-        events().filesDropped.notify(args);
         if (app) app->filesDropped(files);
     };
 
