@@ -15,25 +15,20 @@ If you only need plain **HTTP**, you can use `httplib::Client` directly from `<i
 
 ## Platform Setup
 
-tcxCurl requires libcurl to be installed on your system.
+| Platform | libcurl | 備考 |
+|----------|---------|------|
+| **macOS** | システム同梱 | 追加インストール不要 |
+| **Linux** | `sudo apt install libcurl4-openssl-dev` | |
+| **Windows** | **自動ダウンロード** | CMake の FetchContent で curl をソースからビルド（Schannel 使用） |
 
-| Platform | Install command |
-|----------|----------------|
-| **macOS** | Already included in the system. Nothing to do. |
-| **Linux** | `sudo apt install libcurl4-openssl-dev` |
-| **Windows** | `vcpkg install curl:x64-windows` (see below) |
+### Windows での動作
 
-### Windows (vcpkg)
+Windows では `find_package(CURL)` が失敗した場合、CMake が自動的に libcurl 8.12.1 をダウンロードしてスタティックライブラリとしてビルドします。TLS には Windows ネイティブの **Schannel** を使用するため、OpenSSL のインストールは不要です。
+
+手動で curl をインストールする場合は vcpkg も使えます:
 
 ```bash
-# Install vcpkg if you haven't
-git clone https://github.com/microsoft/vcpkg.git
-cd vcpkg && bootstrap-vcpkg.bat
-
-# Install curl
 vcpkg install curl:x64-windows
-
-# Configure your project with vcpkg toolchain
 cmake -DCMAKE_TOOLCHAIN_FILE=[vcpkg root]/scripts/buildsystems/vcpkg.cmake ..
 ```
 

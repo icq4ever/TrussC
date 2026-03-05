@@ -15,20 +15,30 @@ if(EMSCRIPTEN)
     target_compile_definitions(tcxCurl INTERFACE TCX_HTTP_EMSCRIPTEN=1)
     target_link_options(tcxCurl INTERFACE -sFETCH=1)
 else()
-    # Native: use libcurl
+    # Native: use libcurl (find system install, or fetch from source)
     find_package(CURL QUIET)
     if(NOT CURL_FOUND)
-        message(FATAL_ERROR
-            "[tcxCurl] libcurl not found!\n"
-            "\n"
-            "  tcxCurl requires libcurl for HTTPS support.\n"
-            "\n"
-            "  macOS:    brew install curl  (or use system curl)\n"
-            "  Linux:    sudo apt install libcurl4-openssl-dev\n"
-            "  Windows:  vcpkg install curl:x64-windows\n"
-            "            then configure with:\n"
-            "            cmake -DCMAKE_TOOLCHAIN_FILE=[vcpkg root]/scripts/buildsystems/vcpkg.cmake ..\n"
+        message(STATUS "[tcxCurl] System libcurl not found, fetching from source...")
+        include(FetchContent)
+        set(BUILD_CURL_EXE OFF CACHE BOOL "" FORCE)
+        set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+        set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+        set(CURL_USE_SCHANNEL ON CACHE BOOL "" FORCE)  # Windows native TLS
+        set(CURL_USE_OPENSSL OFF CACHE BOOL "" FORCE)
+        set(CURL_ZLIB OFF CACHE BOOL "" FORCE)
+        set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
+        set(HTTP_ONLY ON CACHE BOOL "" FORCE)
+        FetchContent_Declare(
+            curl
+            URL https://github.com/curl/curl/releases/download/curl-8_12_1/curl-8.12.1.tar.xz
+            URL_HASH SHA256=0341f1ed97a26c811abaebd37d62b833956792b7607ea3f15d001613c76de202
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         )
+        FetchContent_MakeAvailable(curl)
+        # Create CURL::libcurl alias if not defined
+        if(NOT TARGET CURL::libcurl)
+            add_library(CURL::libcurl ALIAS libcurl_static)
+        endif()
     endif()
     target_compile_definitions(tcxCurl INTERFACE TCX_HTTP_CURL=1)
     target_link_libraries(tcxCurl INTERFACE CURL::libcurl)
