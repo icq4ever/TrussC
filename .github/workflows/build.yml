@@ -35,9 +35,9 @@ jobs:
           path: |
             trussc/build-${{ matrix.preset }}
             projectGenerator/tools/projectGenerator/build
-          key: ${{ runner.os }}-build-${{ hashFiles('trussc/**/*.h', 'trussc/**/*.cpp', 'trussc/**/*.mm') }}
+          key: ${{ runner.os }}-build-v2-${{ hashFiles('trussc/**/*.h', 'trussc/**/*.cpp', 'trussc/**/*.mm') }}
           restore-keys: |
-            ${{ runner.os }}-build-
+            ${{ runner.os }}-build-v2-
 
       # Linux: Install dependencies
       - name: Install Linux dependencies
