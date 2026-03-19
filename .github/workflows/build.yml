@@ -39,29 +39,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-v2-
 
-      # Linux: Install dependencies
+      # Linux: Install dependencies using shared script
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libx11-dev \
-            libxcursor-dev \
-            libxi-dev \
-            libxrandr-dev \
-            libgl1-mesa-dev \
-            libasound2-dev \
-            libgtk-3-dev \
-            libavcodec-dev \
-            libavformat-dev \
-            libswscale-dev \
-            libavutil-dev \
-            libgstreamer1.0-dev \
-            libgstreamer-plugins-base1.0-dev \
-            gstreamer1.0-plugins-good \
-            gstreamer1.0-plugins-bad \
-            pkg-config \
-            libcurl4-openssl-dev
+          chmod +x projectGenerator/install_dependencies_linux.sh
+          ./projectGenerator/install_dependencies_linux.sh -y
 
       # Windows: Setup MSVC environment (provides cl.exe, ninja, etc. in PATH)
       - name: Setup MSVC (Windows)
@@ -125,13 +108,8 @@ jobs:
 
       - name: Install Linux dependencies (for ProjectGenerator)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libx11-dev libxcursor-dev libxi-dev libxrandr-dev libgl1-mesa-dev \
-            libasound2-dev libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
-            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-            gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-            pkg-config
+          chmod +x projectGenerator/install_dependencies_linux.sh
+          ./projectGenerator/install_dependencies_linux.sh -y
 
       - name: Build ProjectGenerator
         run: |
