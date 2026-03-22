@@ -41,18 +41,19 @@ sudo apt install cmake
 
 ### Linux Dependencies
 
-Linux requires additional development packages:
+Linux requires additional development packages. A helper script is provided to check and install them:
 
 ```bash
-# Required: Core build dependencies
-sudo apt install build-essential libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev libasound2-dev libgtk-3-dev pkg-config
-
-# Required: Video playback (FFmpeg)
-sudo apt install libavcodec-dev libavformat-dev libswscale-dev libavutil-dev
-
-# Required: AAC audio decoding (GStreamer)
-sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
+./projectGenerator/install_dependencies_linux.sh
 ```
+
+This will list any missing packages and ask to install them. Use `-y` to skip the prompt:
+
+```bash
+./projectGenerator/install_dependencies_linux.sh -y
+```
+
+> **Note:** The build script (`buildProjectGenerator_linux.sh`) also runs this check automatically.
 
 ### Editor Setup
 
@@ -81,6 +82,8 @@ Build the project creation tool (first time only).
 **macOS:** Double-click `projectGenerator/buildProjectGenerator_mac.command`
 
 **Windows:** Double-click `projectGenerator/buildProjectGenerator_win.bat`
+
+**Linux:** Run `./projectGenerator/buildProjectGenerator_linux.sh` (dependencies are installed automatically)
 
 ---
 

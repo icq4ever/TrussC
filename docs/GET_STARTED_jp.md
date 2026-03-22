@@ -41,18 +41,19 @@ sudo apt install cmake
 
 ### Linux の依存パッケージ
 
-Linux では追加の開発パッケージが必要です:
+Linux では追加の開発パッケージが必要です。ヘルパースクリプトでチェック＆インストールできます:
 
 ```bash
-# 必須: コアビルド依存
-sudo apt install build-essential libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev libasound2-dev libgtk-3-dev pkg-config
-
-# 必須: 動画再生 (FFmpeg)
-sudo apt install libavcodec-dev libavformat-dev libswscale-dev libavutil-dev
-
-# 必須: AAC 音声デコード (GStreamer)
-sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
+./projectGenerator/install_dependencies_linux.sh
 ```
+
+不足パッケージを一覧表示し、インストールするか確認します。`-y` でプロンプトをスキップ:
+
+```bash
+./projectGenerator/install_dependencies_linux.sh -y
+```
+
+> **注意:** ビルドスクリプト（`buildProjectGenerator_linux.sh`）実行時にも自動でこのチェックが走ります。
 
 ### エディタのセットアップ
 
@@ -81,6 +82,8 @@ sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1
 **macOS:** `projectGenerator/buildProjectGenerator_mac.command` をダブルクリック
 
 **Windows:** `projectGenerator/buildProjectGenerator_win.bat` をダブルクリック
+
+**Linux:** `./projectGenerator/buildProjectGenerator_linux.sh` を実行（依存パッケージは自動でチェック・インストール）
 
 ---
 
