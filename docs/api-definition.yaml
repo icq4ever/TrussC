@@ -1509,17 +1509,6 @@ categories:
     name: "Math - Interpolation"
     name_ja: "数学 - 補間"
     functions:
-      - name: lerp
-        return: "float"
-        signatures:
-          - params: "float a, float b, float t"
-            params_simple: "a, b, t"
-        description: "Linear interpolation"
-        description_ja: "線形補間"
-        of_equivalent: "ofLerp"
-        sketch: true
-        snippet: "lerp(${1:a}, ${2:b}, ${3:t})"
-
       - name: clamp
         return: "float"
         signatures:

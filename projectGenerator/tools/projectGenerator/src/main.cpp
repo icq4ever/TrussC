@@ -60,7 +60,7 @@ static void parseAddonsMake(const string& projectPath, const vector<string>& ava
 static string autoDetectTcRoot() {
     // 1. Try environment variable
     const char* envRoot = std::getenv("TRUSSC_DIR");
-    if (envRoot && fs::exists(string(envRoot) + "/trussc/CMakeLists.txt")) {
+    if (envRoot && fs::exists(string(envRoot) + "/trussc/cmake/trussc_app.cmake")) {
         return string(envRoot);
     }
 
@@ -81,7 +81,7 @@ static string autoDetectTcRoot() {
     #endif
 
     for (int i = 0; i < 5 && searchPath.has_parent_path(); i++) {
-        fs::path checkPath = searchPath / "trussc" / "CMakeLists.txt";
+        fs::path checkPath = searchPath / "trussc" / "cmake" / "trussc_app.cmake";
         if (fs::exists(checkPath)) {
             return searchPath.string();
         }

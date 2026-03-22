@@ -365,14 +365,11 @@ inline void clear(const Color& c) {
 // Forward declaration (implemented in tcShader.h after Shader class)
 void flushDeferredShaderDraws();
 
-// End pass and commit (call at end of draw)
-inline void present() {
-    // Skip in headless mode (no graphics context)
-    if (headless::isActive()) return;
-
-    // Start swapchain pass now (deferred from clear()).
-    // All sgl commands recorded during draw() will be submitted in this single pass.
-    if (!internal::inSwapchainPass) {
+// Ensure swapchain pass is active (starts if needed)
+// Safe to call multiple times — only starts once.
+// Used by FullscreenShader/LutShader which call sg_draw() directly.
+inline void ensureSwapchainPass() {
+    if (!internal::inSwapchainPass && !internal::inFboPass) {
         sg_pass pass = {};
         pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
         pass.action.colors[0].clear_value = internal::swapchainClearValue;
@@ -382,6 +379,15 @@ inline void present() {
         sg_begin_pass(&pass);
         internal::inSwapchainPass = true;
     }
+}
+
+// End pass and commit (call at end of draw)
+inline void present() {
+    // Skip in headless mode (no graphics context)
+    if (headless::isActive()) return;
+
+    // Start swapchain pass if not yet started
+    ensureSwapchainPass();
 
     // Flush sokol_gl layers and deferred shader draws
     flushDeferredShaderDraws();
@@ -1831,6 +1837,7 @@ struct WindowSettings {
     int sampleCount = 4;  // MSAA (default 4x, 8x not supported on some devices)
     bool fullscreen = false;
     int clipboardSize = 65536;  // Clipboard buffer size (default 64KB)
+    int swapInterval = 1;  // VSync: 1 = on (default), 0 = off
     // bool headless = false;  // For future use
 
     WindowSettings& setSize(int w, int h) {
@@ -2325,6 +2332,7 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
     desc.high_dpi = settings.highDpi;
     desc.sample_count = settings.sampleCount;
     desc.fullscreen = settings.fullscreen;
+    desc.swap_interval = settings.swapInterval;
     desc.init_cb = internal::_setup_cb;
     desc.frame_cb = internal::_frame_cb;
     desc.cleanup_cb = internal::_cleanup_cb;

@@ -175,7 +175,7 @@ public:
     // -------------------------------------------------------------------------
 
     // Active state (false: update/draw are skipped)
-    bool getActive() const { return isActive_; }
+    bool isActive() const { return isActive_; }
     void setActive(bool active) {
         if (isActive_ != active) {
             isActive_ = active;
@@ -184,7 +184,7 @@ public:
     }
 
     // Visible state (false: only draw is skipped)
-    bool getVisible() const { return isVisible_; }
+    bool isVisible() const { return isVisible_; }
     void setVisible(bool visible) {
         if (isVisible_ != visible) {
             isVisible_ = visible;
@@ -192,10 +192,14 @@ public:
         }
     }
 
-    // Legacy public access (deprecated, use setActive/setVisible)
-    [[deprecated("Use setActive() instead")]]
+    // Deprecated aliases — will be removed in v1.0.0
+    [[deprecated("Use isActive() instead. Will be removed in v1.0.0")]]
+    bool getActive() const { return isActive_; }
+    [[deprecated("Use isVisible() instead. Will be removed in v1.0.0")]]
+    bool getVisible() const { return isVisible_; }
+    [[deprecated("Use setActive() instead. Will be removed in v1.0.0")]]
     void setIsActive(bool active) { setActive(active); }
-    [[deprecated("Use setVisible() instead")]]
+    [[deprecated("Use setVisible() instead. Will be removed in v1.0.0")]]
     void setIsVisible(bool visible) { setVisible(visible); }
 
     // Destroy node (marks as dead, removed from tree on next update cycle)

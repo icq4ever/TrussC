@@ -24,7 +24,7 @@ void tcApp::setup() {
     loadConfig();
 
     // Validate TC_ROOT - clear if invalid (triggers auto-detection)
-    if (!tcRoot.empty() && !fs::exists(tcRoot + "/trussc/CMakeLists.txt")) {
+    if (!tcRoot.empty() && !fs::exists(tcRoot + "/trussc/cmake/trussc_app.cmake")) {
         logNotice("tcApp") << "TC_ROOT is invalid, clearing: " << tcRoot;
         tcRoot.clear();
         tcRootBuf[0] = '\0';
@@ -46,7 +46,7 @@ void tcApp::setup() {
 
         // Search up to 5 parent directories
         for (int i = 0; i < 5 && searchPath.has_parent_path(); i++) {
-            fs::path checkPath = searchPath / "trussc" / "CMakeLists.txt";
+            fs::path checkPath = searchPath / "trussc" / "cmake" / "trussc_app.cmake";
             if (fs::exists(checkPath)) {
                 tcRoot = searchPath.string();
                 strncpy(tcRootBuf, tcRoot.c_str(), sizeof(tcRootBuf) - 1);
@@ -198,7 +198,7 @@ void tcApp::draw() {
         if (ImGui::Button("OK", ImVec2(120, 30))) {
             tcRoot = tcRootBuf;
             // Verify tc_vX.Y.Z folder (check if CMakeLists.txt exists)
-            if (!tcRoot.empty() && fs::exists(tcRoot + "/trussc") && fs::exists(tcRoot + "/trussc/CMakeLists.txt")) {
+            if (!tcRoot.empty() && fs::exists(tcRoot + "/trussc/cmake/trussc_app.cmake")) {
                 showSetupDialog = false;
                 saveConfig();
                 scanAddons();
@@ -668,8 +668,8 @@ void tcApp::importProject(const string& path) {
                     }
                 }
 
-                // Update tcRoot if valid path (check trussc/CMakeLists.txt)
-                if (!importedTcRoot.empty() && fs::exists(importedTcRoot + "/trussc/CMakeLists.txt")) {
+                // Update tcRoot if valid path
+                if (!importedTcRoot.empty() && fs::exists(importedTcRoot + "/trussc/cmake/trussc_app.cmake")) {
                     tcRoot = importedTcRoot;
                     strncpy(tcRootBuf, tcRoot.c_str(), sizeof(tcRootBuf) - 1);
                     saveConfig();

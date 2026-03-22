@@ -131,11 +131,11 @@ void tcApp::setup() {
     // Note: update() will be called in draw() to ensure it's within a render pass
     
     // Create all 6 primitives with texture coordinates
-    plane_ = createPlane(200, 200, 4, 4);
-    box_ = createBox(150);
+    plane_ = createPlane(150, 150, 4, 4);
+    box_ = createBox(120);
     sphere_ = createSphere(80, 16);
     cylinder_ = createCylinder(60, 180, 16);
-    cone_ = createCone(80, 180, 16);
+    cone_ = createCone(50, 150, 16);
     torus_ = createTorus(60, 25, 24, 16);
 }
 
@@ -159,25 +159,22 @@ void tcApp::draw() {
         texturesUpdated = true;
     }
     
-    // Enable 3D drawing mode
-    setupScreenPerspective(45.0f);
-    
     float time = (float)getElapsedTime();
-    
-    // Camera rotation (like 3DPrimitivesExample)
     float spinX = sin(time * 0.35f);
     float spinY = cos(time * 0.075f);
-    
+
     // Select texture
     Image& currentTex = (currentTexture_ == 0) ? checkerTexture_ : gradientTexture_;
 
-    // Helper to draw a mesh at position
+    float cx = getWidth() / 2.0f;
+    float cy = getHeight() / 2.0f;
+    float spacing = 200;
+
     auto drawMesh = [&](Mesh& mesh, float x, float y) {
         pushMatrix();
-        translate(x, y, -8.0f);
+        translate(x, y, 0);
         rotateY(spinX);
         rotateX(spinY);
-        scale(0.01f, 0.01f, 0.01f);
         if (showWireframe_) {
             mesh.drawWireframe();
         } else {
@@ -187,17 +184,14 @@ void tcApp::draw() {
     };
 
     // Top row: Plane, Box, Sphere
-    drawMesh(plane_,    -3.0f,  1.5f);
-    drawMesh(box_,       0.0f,  1.5f);
-    drawMesh(sphere_,    3.0f,  1.5f);
+    drawMesh(plane_,    cx - spacing,  cy - spacing * 0.6f);
+    drawMesh(box_,      cx,            cy - spacing * 0.6f);
+    drawMesh(sphere_,   cx + spacing,  cy - spacing * 0.6f);
 
     // Bottom row: Cylinder, Cone, Torus
-    drawMesh(cylinder_, -3.0f, -1.5f);
-    drawMesh(cone_,      0.0f, -1.5f);
-    drawMesh(torus_,     3.0f, -1.5f);
-    
-    // Return to 2D mode
-    setupScreenOrtho();
+    drawMesh(cylinder_, cx - spacing,  cy + spacing * 0.6f);
+    drawMesh(cone_,     cx,            cy + spacing * 0.6f);
+    drawMesh(torus_,    cx + spacing,  cy + spacing * 0.6f);
     
     // Draw info text
     setColor(1.0f, 1.0f, 1.0f);

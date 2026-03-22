@@ -174,6 +174,25 @@ The `trussc_app()` CMake macro (in `trussc/cmake/trussc_app.cmake`) handles:
 
 The **Project Generator** ensures that `CMakePresets.json` is correctly configured with the absolute path to your TrussC installation (`TRUSSC_DIR`), so you can move your project folder anywhere without breaking the build.
 
+### Build Type
+
+TrussC defaults to **RelWithDebInfo** (Release with Debug Info). This provides optimized performance (`-O2`) while keeping debug symbols for stack traces and breakpoint debugging. We believe this is the best default for creative coding — you get near-Release speed without losing the ability to debug.
+
+| Build Type | Optimization | Debug Symbols | assert() | Use Case |
+|---|---|---|---|---|
+| **Debug** | None (`-O0`) | Yes | Enabled | Step-through debugging of optimized-out variables |
+| **RelWithDebInfo** | `-O2` | Yes | Enabled | **Default.** Development, debugging, installations |
+| **Release** | `-O2`/`-O3` | No | Disabled | Minimal binary size for distribution |
+
+For most users, the default RelWithDebInfo is sufficient. If you need a full Debug build (e.g., when variables are optimized out during step-through debugging):
+
+```bash
+cmake -DCMAKE_BUILD_TYPE=Debug --preset macos
+cmake --build --preset macos
+```
+
+> **Note:** Xcode and Visual Studio are multi-config generators and support switching between Debug/Release directly in the IDE without reconfiguring.
+
 ---
 
 ## 6. Project-Local CMake Config (`local.cmake`)

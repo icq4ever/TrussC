@@ -130,7 +130,7 @@ public:
     // -------------------------------------------------------------------------
 
     HitResult findHitNodeRecursive(const Ray& globalRay, const Mat4& parentInverseMatrix) override {
-        if (!getActive() || !getVisible()) return HitResult{};
+        if (!isActive() || !isVisible()) return HitResult{};
 
         if (clipping_) {
             // Pre-check: ray must hit this rect before we check children
