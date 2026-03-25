@@ -109,6 +109,18 @@ These functions do NOT exist in upstream sokol_gl. They are TrussC additions.
 | `sgl_tc_context_release_buffers(ctx)` | Release CPU + GPU buffers to free idle memory (context shell and pipelines preserved) |
 | `sgl_tc_context_ensure_buffers(ctx)` | Ensure buffers are allocated (no-op if already allocated, call before drawing after release) |
 
+### 8. Float Vertex Colors (UBYTE4N → FLOAT4)
+
+**Purpose:** Replace 8-bit packed vertex colors with full float precision. The original UBYTE4N format caused visible artifacts in FBO accumulation techniques (trail/afterimage effects) because colors were quantized to 1/255 precision, preventing smooth fade-to-zero.
+
+**Changes:**
+- `_sgl_vertex_t.rgba`: `uint32_t` → `float[4]`
+- `_sgl_context_t.rgba`: `uint32_t` → `float[4]`
+- Vertex attribute format: `SG_VERTEXFORMAT_UBYTE4N` → `SG_VERTEXFORMAT_FLOAT4`
+- Removed `_sgl_pack_rgbab()` and `_sgl_pack_rgbaf()` (no longer needed)
+- All `sgl_c*f/c*b/c1i` functions store floats directly
+- Vertex size increased from 28 to 40 bytes (~1.4x)
+
 ---
 
 ## sokol_gfx.h
@@ -128,7 +140,7 @@ These functions do NOT exist in upstream sokol_gl. They are TrussC additions.
 3. **sokol_app.h** — overwrite, then re-apply patches #1–#3 (search `tettou771`)
 4. **sokol_glue.h** — overwrite, then re-apply patch #4
 5. **util/sokol_imgui.h** — overwrite directly from upstream `util/sokol_imgui.h`
-6. **util/sokol_gl_tc.h** — copy upstream `util/sokol_gl.h`, rename, then re-apply patches #5–#7 (search `[TrussC`)
+6. **util/sokol_gl_tc.h** — copy upstream `util/sokol_gl.h`, rename, then re-apply patches #5–#8 (search `[TrussC`)
 7. **Other headers** (sokol_log.h, sokol_time.h, etc.) — overwrite directly
 8. Test on all platforms (macOS, Windows D3D11, Emscripten Web)
 
