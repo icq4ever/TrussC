@@ -10,6 +10,8 @@
 
 #ifdef __ANDROID__
 
+#pragma message("STUB: tcFileDialog_android.cpp — needs JNI Intent implementation")
+
 #include <android/log.h>
 
 namespace trussc {

@@ -8,6 +8,8 @@
 
 #include "TrussC.h"
 
+#pragma message("STUB: tcVideoPlayer_android.cpp — needs MediaCodec NDK implementation")
+
 namespace trussc {
 
 bool VideoPlayer::loadPlatform(const std::string& path) {

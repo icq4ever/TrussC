@@ -9,6 +9,8 @@
 
 #ifdef __ANDROID__
 
+#pragma message("STUB: tcSound_android.cpp — needs MediaCodec or FFmpeg AAC decoding")
+
 namespace trussc {
 
 bool SoundBuffer::loadAac(const std::string& path) {
