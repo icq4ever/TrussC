@@ -2257,8 +2257,10 @@ namespace internal {
 // Application execution
 // ---------------------------------------------------------------------------
 
+// Build sapp_desc without starting the event loop.
+// Used by runApp() on desktop and by sokol_main() on Android.
 template<typename AppClass>
-int runApp(const WindowSettings& settings = WindowSettings()) {
+sapp_desc buildAppDescriptor(const WindowSettings& settings = WindowSettings()) {
     // Set pixel perfect mode
     internal::pixelPerfectMode = settings.pixelPerfect;
 
@@ -2353,9 +2355,16 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
     desc.enable_clipboard = true;
     desc.clipboard_size = settings.clipboardSize;
     internal::clipboardSize = settings.clipboardSize;
-    // Run the app
-    sapp_run(&desc);
 
+    return desc;
+}
+
+// Desktop entry point: build descriptor and run the event loop.
+// On Android, use buildAppDescriptor() from sokol_main() instead.
+template<typename AppClass>
+int runApp(const WindowSettings& settings = WindowSettings()) {
+    sapp_desc desc = buildAppDescriptor<AppClass>(settings);
+    sapp_run(&desc);
     return 0;
 }
 
