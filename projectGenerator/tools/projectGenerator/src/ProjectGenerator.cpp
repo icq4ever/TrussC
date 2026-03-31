@@ -369,7 +369,7 @@ void ProjectGenerator::writeCMakePresets(const string& destPath) {
         androidPreset["cacheVariables"]["ANDROID_ABI"] = "arm64-v8a";
         androidPreset["cacheVariables"]["ANDROID_PLATFORM"] = "android-26";
 
-        // Detect NDK toolchain
+        // NDK toolchain: try to resolve at generation time, fallback to $env{}
         string ndkHome;
         if (getenv("ANDROID_NDK_HOME")) {
             ndkHome = getenv("ANDROID_NDK_HOME");
@@ -391,7 +391,10 @@ void ProjectGenerator::writeCMakePresets(const string& destPath) {
             androidPreset["toolchainFile"] = ndkHome + "/build/cmake/android.toolchain.cmake";
             log("Android NDK: " + ndkHome);
         } else {
-            log("WARNING: Android NDK not found. Set ANDROID_HOME or ANDROID_NDK_HOME.");
+            // Use CMake env expansion — resolved at build time, not generation time
+            // Works when ANDROID_NDK_HOME is set in the terminal but not in GUI app
+            androidPreset["toolchainFile"] = "$env{ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake";
+            log("Android NDK not found at generation time. Using $env{ANDROID_NDK_HOME} (resolved at build time).");
         }
 
         if (!trusscDir.empty()) {
@@ -405,6 +408,28 @@ void ProjectGenerator::writeCMakePresets(const string& destPath) {
         androidBuildPreset["jobs"] = 4;
         presets["buildPresets"].push_back(androidBuildPreset);
     }
+
+    // Add iOS preset if enabled (macOS host only)
+#ifdef __APPLE__
+    if (settings_.generateIosBuild) {
+        Json iosPreset;
+        iosPreset["name"] = "ios";
+        iosPreset["displayName"] = "iOS";
+        iosPreset["binaryDir"] = "${sourceDir}/xcode-ios";
+        iosPreset["generator"] = "Xcode";
+        iosPreset["cacheVariables"]["CMAKE_SYSTEM_NAME"] = "iOS";
+        iosPreset["cacheVariables"]["CMAKE_OSX_DEPLOYMENT_TARGET"] = "15.0";
+        if (!trusscDir.empty()) {
+            iosPreset["cacheVariables"]["TRUSSC_DIR"] = trusscDir;
+        }
+        presets["configurePresets"].push_back(iosPreset);
+
+        Json iosBuildPreset;
+        iosBuildPreset["name"] = "ios";
+        iosBuildPreset["configurePreset"] = "ios";
+        presets["buildPresets"].push_back(iosBuildPreset);
+    }
+#endif
 
     // Add web preset if web build is enabled
     if (settings_.generateWebBuild) {
@@ -509,6 +534,9 @@ string ProjectGenerator::generate() {
             generateWebBuildFiles(destPath);
         }
 
+        // Configure cross-compile presets
+        runCrossCompilePresets(destPath);
+
         log("Done!");
         return "";  // Success
 
@@ -569,6 +597,9 @@ string ProjectGenerator::update(const string& projectPath_) {
             log("Updating Web build files...");
             generateWebBuildFiles(projectPath);
         }
+
+        // Configure cross-compile presets
+        runCrossCompilePresets(projectPath);
 
         log("Update complete!");
         return "";
@@ -871,6 +902,26 @@ void ProjectGenerator::generateWebBuildFiles(const string& path) {
 //
 // Unix Makefiles (macOS/Linux) and Ninja both support CMAKE_EXPORT_COMPILE_COMMANDS.
 // Visual Studio generator does NOT support compile_commands.json.
+void ProjectGenerator::runCrossCompilePresets(const string& path) {
+    // Collect presets to configure
+    vector<string> presets;
+
+#ifdef __APPLE__
+    if (settings_.generateIosBuild) presets.push_back("ios");
+#endif
+    if (settings_.generateAndroidBuild) presets.push_back("android");
+
+    for (auto& preset : presets) {
+        log("Running CMake configure (preset: " + preset + ")...");
+        string cmd = "cd \"" + path + "\" && " + getCmakePath() + " --preset " + preset;
+        auto [result, output] = executeCommand(cmd);
+        if (!output.empty()) log(output);
+        if (result != 0) {
+            log("WARNING: cmake --preset " + preset + " failed (non-fatal)");
+        }
+    }
+}
+
 void ProjectGenerator::runCMakeConfigure(const string& path) {
 #ifdef _WIN32
     string preset = "windows";
