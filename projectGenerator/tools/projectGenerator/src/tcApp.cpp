@@ -398,7 +398,7 @@ void tcApp::draw() {
         ImGui::Indent(8);
 
         // Android
-        if (ImGui::Checkbox("Android", &generateAndroidBuild)) {
+        if (ImGui::Checkbox("Android (beta)", &generateAndroidBuild)) {
             saveConfig();
         }
         if (generateAndroidBuild) {
@@ -420,7 +420,7 @@ void tcApp::draw() {
 
         // iOS (macOS only)
 #ifdef __APPLE__
-        if (ImGui::Checkbox("iOS", &generateIosBuild)) {
+        if (ImGui::Checkbox("iOS (beta)", &generateIosBuild)) {
             saveConfig();
         }
 #endif
