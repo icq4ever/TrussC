@@ -83,7 +83,7 @@ cmake --preset web
 cmake --build --preset web
 ```
 
-**Android Build:**
+**Android Build (beta):**
 
 Requires:
 - Android SDK (`ANDROID_HOME` environment variable)
@@ -106,8 +106,9 @@ Notes:
 - APK signing uses `~/.android/debug.keystore`. If missing, APK packaging is skipped and only the .so is built.
 - Touch input: On Android, touch events are delivered via `touchPressed()`/`touchMoved()`/`touchReleased()`. To also receive them as mouse events, call `setTouchAsMouse(true)` in `setup()`.
 - Data files: Use `adb push` to transfer assets to the app's internal storage.
+- **If `cmake --preset android` fails after Project Generator**, try running the command manually from the terminal. The Project Generator may not fully configure the Android preset in some environments.
 
-**iOS Build:**
+**iOS Build (beta):**
 
 Requires:
 - Xcode (full installation, not just Command Line Tools)
