@@ -60,7 +60,7 @@ static void parseAddonsMake(const string& projectPath, const vector<string>& ava
 static string autoDetectTcRoot() {
     // 1. Try environment variable
     const char* envRoot = std::getenv("TRUSSC_DIR");
-    if (envRoot && fs::exists(string(envRoot) + "/trussc/CMakeLists.txt")) {
+    if (envRoot && fs::exists(string(envRoot) + "/trussc/cmake/trussc_app.cmake")) {
         return string(envRoot);
     }
 
@@ -81,7 +81,7 @@ static string autoDetectTcRoot() {
     #endif
 
     for (int i = 0; i < 5 && searchPath.has_parent_path(); i++) {
-        fs::path checkPath = searchPath / "trussc" / "CMakeLists.txt";
+        fs::path checkPath = searchPath / "trussc" / "cmake" / "trussc_app.cmake";
         if (fs::exists(checkPath)) {
             return searchPath.string();
         }
@@ -100,6 +100,7 @@ void printHelp() {
     cout << "  --dir <path>             Project parent directory (for --generate)" << endl;
     cout << "  --tc-root <path>         Path to TrussC root directory" << endl;
     cout << "  --web                    Enable Web build (Emscripten)" << endl;
+    cout << "  --android                Enable Android build (requires ANDROID_HOME)" << endl;
     cout << "  --ide <type>             IDE type (vscode, cursor, xcode, vs, cmake)" << endl;
     cout << "  --help                   Show this help" << endl;
 }
@@ -114,6 +115,7 @@ int main(int argc, char* argv[]) {
     string projectName;
     string tcRoot;
     bool web = false;
+    bool android = false;
     string ideStr = "vscode";
 
     // Helper to check if next arg is a valid value (not another flag)
@@ -157,6 +159,8 @@ int main(int argc, char* argv[]) {
             }
         } else if (args[i] == "--web") {
             web = true;
+        } else if (args[i] == "--android") {
+            android = true;
         } else if (args[i] == "--ide") {
             string next = getNextArg(i);
             if (!next.empty()) {
@@ -191,6 +195,8 @@ int main(int argc, char* argv[]) {
         ProjectSettings settings;
         settings.tcRoot = tcRoot;
         settings.generateWebBuild = web;
+        settings.generateAndroidBuild = android;
+        settings.detectBuildEnvironment();
         
         // Parse IDE type
         if (ideStr == "vscode") settings.ideType = IdeType::VSCode;
@@ -215,7 +221,10 @@ int main(int argc, char* argv[]) {
                 cerr << "Error: Project path '" << targetPath << "' does not exist." << endl;
                 return 1;
             }
-            
+
+            // Derive project name from folder name
+            settings.projectName = fs::canonical(targetPath).filename().string();
+
             // Parse existing addons.make
             parseAddonsMake(targetPath, availableAddons, settings.addonSelected);
             settings.addons = availableAddons; // Pass all available, selection is in addonSelected

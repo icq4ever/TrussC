@@ -17,11 +17,11 @@
 #include "sokol/sokol_app.h"
 #include "sokol/sokol_gfx.h"
 #include "sokol/sokol_glue.h"
-#include "sokol/sokol_gl.h"
+#include "sokol/util/sokol_gl_tc.h"
 
 // Dear ImGui + sokol_imgui
 #include "imgui/imgui.h"
-#include "sokol/sokol_imgui.h"
+#include "sokol/util/sokol_imgui.h"
 
 // Standard libraries
 #include <cstdint>
@@ -263,6 +263,14 @@ namespace internal {
     inline int mouseButton = -1;  // Currently pressed button (-1 = none)
     inline bool mousePressed = false;
 
+    // Touch-as-mouse mapping (default: ON)
+    inline bool touchAsMouse = true;
+
+    // Touch event listeners (must persist to keep subscriptions alive)
+    inline EventListener touchPressedListener;
+    inline EventListener touchMovedListener;
+    inline EventListener touchReleasedListener;
+
     // Keyboard state
     inline std::unordered_set<int> keysPressed;
 
@@ -280,6 +288,11 @@ namespace internal {
 
     // Pass state (for suspending swapchain pass for FBO)
     inline bool inSwapchainPass = false;
+
+    // ImGui deferred render flag (set by imguiEnd, consumed by present)
+    inline bool imguiRenderPending = false;
+    // Saved clear color for resume after FBO suspend (set by clear())
+    inline sg_color swapchainClearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     // inFboPass and currentFboBlendPipeline are declared earlier (before tcRenderContext.h)
 
@@ -347,6 +360,11 @@ inline void beginFrame() {
 // (Implementation in tc/app/tcGlobal.cpp)
 void clear(float r, float g, float b, float a = 1.0f);
 
+// Clear screen (transparent black)
+inline void clear() {
+    clear(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
 // Clear screen (grayscale)
 inline void clear(float gray, float a = 1.0f) {
     clear(gray, gray, gray, a);
@@ -360,13 +378,38 @@ inline void clear(const Color& c) {
 // Forward declaration (implemented in tcShader.h after Shader class)
 void flushDeferredShaderDraws();
 
+// Ensure swapchain pass is active (starts if needed)
+// Safe to call multiple times — only starts once.
+// Used by FullscreenShader/LutShader which call sg_draw() directly.
+inline void ensureSwapchainPass() {
+    if (!internal::inSwapchainPass && !internal::inFboPass) {
+        sg_pass pass = {};
+        pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+        pass.action.colors[0].clear_value = internal::swapchainClearValue;
+        pass.action.depth.load_action = SG_LOADACTION_CLEAR;
+        pass.action.depth.clear_value = 1.0f;
+        pass.swapchain = sglue_swapchain();
+        sg_begin_pass(&pass);
+        internal::inSwapchainPass = true;
+    }
+}
+
 // End pass and commit (call at end of draw)
 inline void present() {
     // Skip in headless mode (no graphics context)
     if (headless::isActive()) return;
 
+    // Start swapchain pass if not yet started
+    ensureSwapchainPass();
+
     // Flush sokol_gl layers and deferred shader draws
     flushDeferredShaderDraws();
+
+    // Render ImGui on top of all sokol_gl content (deferred from imguiEnd)
+    if (internal::imguiRenderPending) {
+        simgui_render();
+        internal::imguiRenderPending = false;
+    }
 
     // Check for vertex buffer overflow before sg_commit resets errors
     sgl_error_t err = sgl_error();
@@ -393,29 +436,30 @@ inline bool isInSwapchainPass() {
     return internal::inSwapchainPass;
 }
 
-// Suspend swapchain pass (for FBO)
-// Call before FBO drawing to flush default context content and end pass
+// Suspend swapchain pass (for FBO begin/end during draw)
+// The pass is simply ended. All sgl commands (pre- and post-FBO) remain in the
+// command buffer and will be drawn together by present() after resume.
 inline void suspendSwapchainPass() {
     if (internal::inSwapchainPass) {
-        sgl_draw();  // Flush drawing commands from default context
         sg_end_pass();
         internal::inSwapchainPass = false;
     }
 }
 
 // Resume swapchain pass (for FBO)
-// Call after FBO drawing to continue drawing to swapchain
+// Start a fresh pass with CLEAR action. present() → sgl_draw_layer() will
+// redraw ALL sgl commands (including pre-suspend ones), so no content is lost.
+// This avoids LOADACTION_LOAD on Metal swapchain drawables which can flicker.
 inline void resumeSwapchainPass() {
     if (!internal::inSwapchainPass) {
         sg_pass pass = {};
-        pass.action.colors[0].load_action = SG_LOADACTION_LOAD;  // Preserve existing content
-        pass.action.depth.load_action = SG_LOADACTION_LOAD;
+        pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+        pass.action.colors[0].clear_value = internal::swapchainClearValue;
+        pass.action.depth.load_action = SG_LOADACTION_CLEAR;
+        pass.action.depth.clear_value = 1.0f;
         pass.swapchain = sglue_swapchain();
         sg_begin_pass(&pass);
         internal::inSwapchainPass = true;
-        // Reset sokol_gl state
-        sgl_defaults();
-        beginFrame();  // Reset projection matrix
     }
 }
 
@@ -443,7 +487,7 @@ inline Color getColor() {
     return getDefaultContext().getColor();
 }
 
-// Set using HSB (H: 0-TAU, S: 0-1, B: 0-1)
+// Set using HSB (H: 0-1, S: 0-1, B: 0-1)
 inline void setColorHSB(float h, float s, float b, float a = 1.0f) {
     getDefaultContext().setColorHSB(h, s, b, a);
 }
@@ -453,7 +497,7 @@ inline void setColorOKLab(float L, float a_lab, float b_lab, float alpha = 1.0f)
     getDefaultContext().setColorOKLab(L, a_lab, b_lab, alpha);
 }
 
-// Set using OKLCH (L: 0-1, C: 0-0.4, H: 0-TAU) - most perceptually natural
+// Set using OKLCH (L: 0-1, C: 0-0.4, H: 0-1) - most perceptually natural
 inline void setColorOKLCH(float L, float C, float H, float alpha = 1.0f) {
     getDefaultContext().setColorOKLCH(L, C, H, alpha);
 }
@@ -1061,6 +1105,10 @@ inline void drawLine(float x1, float y1, float x2, float y2) {
     getDefaultContext().drawLine(x1, y1, x2, y2);
 }
 
+inline void drawLine(float x1, float y1, float z1, float x2, float y2, float z2) {
+    getDefaultContext().drawLine(x1, y1, z1, x2, y2, z2);
+}
+
 // Triangle
 inline void drawTriangle(Vec3 p1, Vec3 p2, Vec3 p3) {
     getDefaultContext().drawTriangle(p1, p2, p3);
@@ -1311,6 +1359,83 @@ inline void setWindowTitle(const std::string& title) {
 }
 
 // ---------------------------------------------------------------------------
+// Cursor
+// ---------------------------------------------------------------------------
+
+enum class Cursor {
+    Default     = SAPP_MOUSECURSOR_DEFAULT,
+    Arrow       = SAPP_MOUSECURSOR_ARROW,
+    IBeam       = SAPP_MOUSECURSOR_IBEAM,
+    Crosshair   = SAPP_MOUSECURSOR_CROSSHAIR,
+    Hand        = SAPP_MOUSECURSOR_POINTING_HAND,
+    ResizeEW    = SAPP_MOUSECURSOR_RESIZE_EW,
+    ResizeNS    = SAPP_MOUSECURSOR_RESIZE_NS,
+    ResizeNWSE  = SAPP_MOUSECURSOR_RESIZE_NWSE,
+    ResizeNESW  = SAPP_MOUSECURSOR_RESIZE_NESW,
+    ResizeAll   = SAPP_MOUSECURSOR_RESIZE_ALL,
+    NotAllowed  = SAPP_MOUSECURSOR_NOT_ALLOWED,
+    // Custom cursor slots (must call bindCursorImage first)
+    Custom0     = SAPP_MOUSECURSOR_CUSTOM_0,
+    Custom1     = SAPP_MOUSECURSOR_CUSTOM_1,
+    Custom2     = SAPP_MOUSECURSOR_CUSTOM_2,
+    Custom3     = SAPP_MOUSECURSOR_CUSTOM_3,
+    Custom4     = SAPP_MOUSECURSOR_CUSTOM_4,
+    Custom5     = SAPP_MOUSECURSOR_CUSTOM_5,
+    Custom6     = SAPP_MOUSECURSOR_CUSTOM_6,
+    Custom7     = SAPP_MOUSECURSOR_CUSTOM_7,
+    Custom8     = SAPP_MOUSECURSOR_CUSTOM_8,
+    Custom9     = SAPP_MOUSECURSOR_CUSTOM_9,
+    Custom10    = SAPP_MOUSECURSOR_CUSTOM_10,
+    Custom11    = SAPP_MOUSECURSOR_CUSTOM_11,
+    Custom12    = SAPP_MOUSECURSOR_CUSTOM_12,
+    Custom13    = SAPP_MOUSECURSOR_CUSTOM_13,
+    Custom14    = SAPP_MOUSECURSOR_CUSTOM_14,
+    Custom15    = SAPP_MOUSECURSOR_CUSTOM_15,
+};
+
+// Show the mouse cursor (default)
+inline void showCursor() {
+    sapp_show_mouse(true);
+}
+
+// Hide the mouse cursor
+inline void hideCursor() {
+    sapp_show_mouse(false);
+}
+
+// Set mouse cursor shape (uses OS system cursors or custom cursors)
+inline void setCursor(Cursor cursor) {
+    sapp_set_mouse_cursor((sapp_mouse_cursor)cursor);
+}
+
+// Get current mouse cursor shape
+inline Cursor getCursor() {
+    return (Cursor)sapp_get_mouse_cursor();
+}
+
+// Bind a custom RGBA image to a cursor slot
+// pixels: RGBA 8-bit data (width * height * 4 bytes)
+inline void bindCursorImage(Cursor cursor, int width, int height,
+                            const unsigned char* pixels,
+                            int hotspotX = 0, int hotspotY = 0) {
+    sapp_image_desc desc = {};
+    desc.width = width;
+    desc.height = height;
+    desc.pixels.ptr = pixels;
+    desc.pixels.size = (size_t)(width * height * 4);
+    desc.cursor_hotspot_x = hotspotX;
+    desc.cursor_hotspot_y = hotspotY;
+    sapp_bind_mouse_cursor_image((sapp_mouse_cursor)cursor, &desc);
+}
+
+// Image overload of bindCursorImage is defined after tcImage.h include (see below)
+
+// Unbind a custom cursor image, restoring the default system cursor for that slot
+inline void unbindCursorImage(Cursor cursor) {
+    sapp_unbind_mouse_cursor_image((sapp_mouse_cursor)cursor);
+}
+
+// ---------------------------------------------------------------------------
 // Clipboard
 // ---------------------------------------------------------------------------
 
@@ -1517,6 +1642,14 @@ inline float getMouseX() { return internal::mouseX; }
 inline float getMouseY() { return internal::mouseY; }
 inline Vec2 getMousePos() { return Vec2(internal::mouseX, internal::mouseY); }
 inline Vec2 getGlobalMousePos() { return Vec2(getGlobalMouseX(), getGlobalMouseY()); }
+
+// ---------------------------------------------------------------------------
+// Touch-as-mouse mapping
+// When enabled (default), the first touch point is also delivered as mouse events.
+// Disable with setTouchAsMouse(false) for apps that handle touch separately.
+// ---------------------------------------------------------------------------
+inline void setTouchAsMouse(bool enabled) { internal::touchAsMouse = enabled; }
+inline bool getTouchAsMouse() { return internal::touchAsMouse; }
 
 // ---------------------------------------------------------------------------
 // System Information
@@ -1751,6 +1884,7 @@ struct WindowSettings {
     int sampleCount = 4;  // MSAA (default 4x, 8x not supported on some devices)
     bool fullscreen = false;
     int clipboardSize = 65536;  // Clipboard buffer size (default 64KB)
+    int swapInterval = 1;  // VSync: 1 = on (default), 0 = off
     // bool headless = false;  // For future use
 
     WindowSettings& setSize(int w, int h) {
@@ -1819,7 +1953,8 @@ namespace internal {
 } // namespace internal
 
 namespace mcp {
-    void registerStandardTools();
+    void registerInspectionTools();
+    void registerDebuggerTools();
 }
 
 namespace internal {
@@ -1839,26 +1974,27 @@ namespace internal {
         // To disable, call console::stop() in setup()
         // Note: Console is not available on web platform (no stdin/threads)
         #ifndef __EMSCRIPTEN__
-        
+
+        console::start();
+
         // Check for MCP mode via environment variable
         const char* envMcp = std::getenv("TRUSSC_MCP");
         if (envMcp && std::string(envMcp) == "1") {
-            // Enable MCP mode (redirects logs to stderr, JSON notifications to stdout)
-            tcSetMcpMode(true);
-            logNotice("System") << "MCP Mode Enabled";
+            // Register inspection tools (screenshot etc.)
+            mcp::registerInspectionTools();
+
+            // Get port from environment (0 = OS auto-assign)
+            int mcpPort = 0;
+            const char* envPort = std::getenv("TRUSSC_MCP_PORT");
+            if (envPort) {
+                mcpPort = std::atoi(envPort);
+            }
+
+            // Start HTTP server for MCP transport
+            mcp::startHttpServer(mcpPort);
+
+            logNotice("System") << "MCP HTTP server started";
         }
-
-        console::start();
-        
-        // Register standard MCP tools (mouse, key, screenshot, etc.)
-        mcp::registerStandardTools();
-
-        // Register built-in command handler (hold listener in static)
-        static EventListener consoleListener;
-        consoleListener = events().console.listen([](ConsoleEventArgs& e) {
-            // Pass raw input to MCP processor (always active)
-            mcp::processInput(e.raw);
-        });
         #endif
 
         if (appSetupFunc) appSetupFunc();
@@ -1888,6 +2024,11 @@ namespace internal {
 
         // Process console input (fire events)
         console::processQueue();
+
+        // Process MCP HTTP requests on main thread
+        #ifndef __EMSCRIPTEN__
+        mcp::processHttpQueue();
+        #endif
 
         // --- Update Loop processing ---
         if (updateSyncedToDraw) {
@@ -1966,6 +2107,11 @@ namespace internal {
     }
 
     inline void _cleanup_cb() {
+        // Stop MCP HTTP server
+        #ifndef __EMSCRIPTEN__
+        mcp::stopHttpServer();
+        #endif
+
         // Stop console input thread
         console::stop();
 
@@ -2104,6 +2250,72 @@ namespace internal {
                 if (appMouseScrolledFunc) appMouseScrolledFunc(ev->scroll_x, ev->scroll_y);
                 break;
             }
+            // Touch events (Android/iOS)
+            case SAPP_EVENTTYPE_TOUCHES_BEGAN:
+            case SAPP_EVENTTYPE_TOUCHES_MOVED:
+            case SAPP_EVENTTYPE_TOUCHES_ENDED:
+            case SAPP_EVENTTYPE_TOUCHES_CANCELLED: {
+                // Build TouchEventArgs from sokol touchpoints
+                TouchEventArgs touchArgs;
+                touchArgs.numTouches = ev->num_touches;
+                if (touchArgs.numTouches > TouchEventArgs::MAX_TOUCHES)
+                    touchArgs.numTouches = TouchEventArgs::MAX_TOUCHES;
+                for (int i = 0; i < touchArgs.numTouches; i++) {
+                    touchArgs.touches[i].id = (int)ev->touches[i].identifier;
+                    touchArgs.touches[i].x = ev->touches[i].pos_x * scale;
+                    touchArgs.touches[i].y = ev->touches[i].pos_y * scale;
+                    touchArgs.touches[i].changed = ev->touches[i].changed;
+                }
+
+                // Fire touch events
+                if (ev->type == SAPP_EVENTTYPE_TOUCHES_BEGAN) {
+                    events().touchPressed.notify(touchArgs);
+                } else if (ev->type == SAPP_EVENTTYPE_TOUCHES_MOVED) {
+                    events().touchMoved.notify(touchArgs);
+                } else {
+                    touchArgs.cancelled = (ev->type == SAPP_EVENTTYPE_TOUCHES_CANCELLED);
+                    events().touchReleased.notify(touchArgs);
+                }
+
+                // Touch-as-mouse: map first touch to mouse events
+                if (touchAsMouse && touchArgs.numTouches > 0) {
+                    float tx = touchArgs.touches[0].x;
+                    float ty = touchArgs.touches[0].y;
+
+                    if (ev->type == SAPP_EVENTTYPE_TOUCHES_BEGAN) {
+                        currentMouseButton = 0;
+                        mouseX = tx; mouseY = ty;
+                        mouseButton = 0;
+                        mousePressed = true;
+
+                        MouseEventArgs margs;
+                        margs.x = tx; margs.y = ty; margs.button = 0;
+                        events().mousePressed.notify(margs);
+                        if (appMousePressedFunc) appMousePressedFunc((int)tx, (int)ty, 0);
+                    } else if (ev->type == SAPP_EVENTTYPE_TOUCHES_MOVED) {
+                        float prevX = mouseX, prevY = mouseY;
+                        mouseX = tx; mouseY = ty;
+
+                        MouseDragEventArgs margs;
+                        margs.x = tx; margs.y = ty;
+                        margs.deltaX = tx - prevX; margs.deltaY = ty - prevY;
+                        margs.button = 0;
+                        events().mouseDragged.notify(margs);
+                        if (appMouseDraggedFunc) appMouseDraggedFunc((int)tx, (int)ty, 0);
+                    } else {
+                        currentMouseButton = -1;
+                        mouseX = tx; mouseY = ty;
+                        mouseButton = -1;
+                        mousePressed = false;
+
+                        MouseEventArgs margs;
+                        margs.x = tx; margs.y = ty; margs.button = 0;
+                        events().mouseReleased.notify(margs);
+                        if (appMouseReleasedFunc) appMouseReleasedFunc((int)tx, (int)ty, 0);
+                    }
+                }
+                break;
+            }
             case SAPP_EVENTTYPE_RESIZED: {
                 // Use sapp_width() (framebuffer size) instead of ev->window_width
                 // because event data might be logical size on some platforms, causing double scaling.
@@ -2143,105 +2355,6 @@ namespace internal {
                 }
                 break;
             }
-            // Touch events (iOS) - also map first touch to mouse events
-            case SAPP_EVENTTYPE_TOUCHES_BEGAN: {
-                for (int i = 0; i < ev->num_touches; i++) {
-                    if (ev->touches[i].changed) {
-                        TouchEventArgs args;
-                        args.id = ev->touches[i].identifier;
-                        args.x = ev->touches[i].pos_x * scale;
-                        args.y = ev->touches[i].pos_y * scale;
-                        events().touchBegan.notify(args);
-                    }
-                }
-                // Map first touch to mouse press
-                if (ev->num_touches > 0) {
-                    mouseX = ev->touches[0].pos_x * scale;
-                    mouseY = ev->touches[0].pos_y * scale;
-                    mouseButton = 0;
-                    mousePressed = true;
-                    currentMouseButton = 0;
-
-                    MouseEventArgs margs;
-                    margs.x = mouseX;
-                    margs.y = mouseY;
-                    margs.button = 0;
-                    events().mousePressed.notify(margs);
-                    if (appMousePressedFunc) appMousePressedFunc((int)mouseX, (int)mouseY, 0);
-                }
-                break;
-            }
-            case SAPP_EVENTTYPE_TOUCHES_MOVED: {
-                for (int i = 0; i < ev->num_touches; i++) {
-                    if (ev->touches[i].changed) {
-                        TouchEventArgs args;
-                        args.id = ev->touches[i].identifier;
-                        args.x = ev->touches[i].pos_x * scale;
-                        args.y = ev->touches[i].pos_y * scale;
-                        events().touchMoved.notify(args);
-                    }
-                }
-                // Map first touch to mouse drag
-                if (ev->num_touches > 0) {
-                    float prevX = mouseX;
-                    float prevY = mouseY;
-                    mouseX = ev->touches[0].pos_x * scale;
-                    mouseY = ev->touches[0].pos_y * scale;
-
-                    MouseDragEventArgs dargs;
-                    dargs.x = mouseX;
-                    dargs.y = mouseY;
-                    dargs.deltaX = mouseX - prevX;
-                    dargs.deltaY = mouseY - prevY;
-                    dargs.button = 0;
-                    events().mouseDragged.notify(dargs);
-                    if (appMouseDraggedFunc) appMouseDraggedFunc((int)mouseX, (int)mouseY, 0);
-                }
-                break;
-            }
-            case SAPP_EVENTTYPE_TOUCHES_ENDED: {
-                for (int i = 0; i < ev->num_touches; i++) {
-                    if (ev->touches[i].changed) {
-                        TouchEventArgs args;
-                        args.id = ev->touches[i].identifier;
-                        args.x = ev->touches[i].pos_x * scale;
-                        args.y = ev->touches[i].pos_y * scale;
-                        events().touchEnded.notify(args);
-                    }
-                }
-                // Map first touch to mouse release
-                if (ev->num_touches > 0) {
-                    mouseX = ev->touches[0].pos_x * scale;
-                    mouseY = ev->touches[0].pos_y * scale;
-                    mouseButton = -1;
-                    mousePressed = false;
-                    currentMouseButton = -1;
-
-                    MouseEventArgs margs;
-                    margs.x = mouseX;
-                    margs.y = mouseY;
-                    margs.button = 0;
-                    events().mouseReleased.notify(margs);
-                    if (appMouseReleasedFunc) appMouseReleasedFunc((int)mouseX, (int)mouseY, 0);
-                }
-                break;
-            }
-            case SAPP_EVENTTYPE_TOUCHES_CANCELLED: {
-                for (int i = 0; i < ev->num_touches; i++) {
-                    if (ev->touches[i].changed) {
-                        TouchEventArgs args;
-                        args.id = ev->touches[i].identifier;
-                        args.x = ev->touches[i].pos_x * scale;
-                        args.y = ev->touches[i].pos_y * scale;
-                        events().touchCancelled.notify(args);
-                    }
-                }
-                // Reset mouse state on cancel
-                mouseButton = -1;
-                mousePressed = false;
-                currentMouseButton = -1;
-                break;
-            }
             default:
                 break;
         }
@@ -2252,37 +2365,44 @@ namespace internal {
 // Application execution
 // ---------------------------------------------------------------------------
 
+// Build sapp_desc without starting the event loop.
+// Used by runApp() on desktop and by sokol_main() on Android.
 template<typename AppClass>
-int runApp(const WindowSettings& settings = WindowSettings()) {
+sapp_desc buildAppDescriptor(const WindowSettings& settings = WindowSettings()) {
     // Set pixel perfect mode
     internal::pixelPerfectMode = settings.pixelPerfect;
 
-    // Create app instance
-    static AppClass* app = nullptr;
+    // Create app instance (shared_ptrで管理してNodeのweak_from_thisを有効にする)
+    static std::shared_ptr<AppClass> app = nullptr;
 
     // Set callbacks
     internal::appSetupFunc = []() {
-        app = new AppClass();
+        app = std::make_shared<AppClass>();
         // Note: Size is set in _setup_cb after this callback
         // setup() is called automatically in updateTree() via setupCalled_ flag
     };
     internal::appUpdateFunc = []() {
         internal::updateFrameCount++;  // Update frame count
+        events().update.notify();
         if (app) {
             app->handleUpdate(internal::mouseX, internal::mouseY);
         }
     };
     internal::appDrawFunc = []() {
+        events().draw.notify();
         if (app) app->handleDraw();
     };
     internal::appCleanupFunc = []() {
         if (app) {
+            events().exit.notify();
             app->exit();
             app->cleanup();
-            delete app;
-            app = nullptr;
+            app.reset();
         }
     };
+    // NOTE: events().xxx.notify() is already called in the sokol event handler
+    // above (with full modifier info). These legacy callbacks only forward to
+    // the App subclass methods — do NOT re-notify events here.
     internal::appKeyPressedFunc = [](int key) {
         if (app) app->handleKeyPressed(key);
     };
@@ -2311,6 +2431,17 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
         if (app) app->filesDropped(files);
     };
 
+    // Touch events — delivered via events() system, forwarded to App virtual methods
+    internal::touchPressedListener = events().touchPressed.listen([](TouchEventArgs& args) {
+        if (app) app->touchPressed(args);
+    });
+    internal::touchMovedListener = events().touchMoved.listen([](TouchEventArgs& args) {
+        if (app) app->touchMoved(args);
+    });
+    internal::touchReleasedListener = events().touchReleased.listen([](TouchEventArgs& args) {
+        if (app) app->touchReleased(args);
+    });
+
     // Build sapp_desc
     sapp_desc desc = {};
     if (settings.pixelPerfect) {
@@ -2327,6 +2458,7 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
     desc.high_dpi = settings.highDpi;
     desc.sample_count = settings.sampleCount;
     desc.fullscreen = settings.fullscreen;
+    desc.swap_interval = settings.swapInterval;
     desc.init_cb = internal::_setup_cb;
     desc.frame_cb = internal::_frame_cb;
     desc.cleanup_cb = internal::_cleanup_cb;
@@ -2342,11 +2474,33 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
     desc.enable_clipboard = true;
     desc.clipboard_size = settings.clipboardSize;
     internal::clipboardSize = settings.clipboardSize;
-    // Run the app
-    sapp_run(&desc);
 
+    return desc;
+}
+
+// Desktop: build descriptor and run the event loop.
+// Android: sokol handles the event loop via ANativeActivity_onCreate → sokol_main().
+//          runApp() just stores the descriptor for sokol_main() to retrieve.
+#ifdef __ANDROID__
+namespace internal {
+    inline sapp_desc g_androidDesc = {};
+}
+
+template<typename AppClass>
+int runApp(const WindowSettings& settings = WindowSettings()) {
+    internal::g_androidDesc = buildAppDescriptor<AppClass>(settings);
+    // On Android, sokol_main() will return g_androidDesc.
+    // runApp() is called from sokol_main() context, so just return.
     return 0;
 }
+#else
+template<typename AppClass>
+int runApp(const WindowSettings& settings = WindowSettings()) {
+    sapp_desc desc = buildAppDescriptor<AppClass>(settings);
+    sapp_run(&desc);
+    return 0;
+}
+#endif
 
 } // namespace trussc
 
@@ -2372,6 +2526,15 @@ int runApp(const WindowSettings& settings = WindowSettings()) {
 
 // TrussC image (needed before tcMesh.h)
 #include "tc/graphics/tcImage.h"
+
+// Bind an Image to a cursor slot (convenience overload, after tcImage.h)
+namespace trussc {
+inline void bindCursorImage(Cursor cursor, const Image& image,
+                            int hotspotX = 0, int hotspotY = 0) {
+    bindCursorImage(cursor, image.getWidth(), image.getHeight(),
+                    image.getPixelsData(), hotspotX, hotspotY);
+}
+} // namespace trussc
 
 // TrussC mesh
 #include "tc/graphics/tcMesh.h"

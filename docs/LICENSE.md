@@ -49,6 +49,7 @@ TrussC includes or depends on the following third-party libraries. All use permi
 | **miniaudio** | 0.11.21 | Public Domain or MIT-0 | David Reid | [LICENSE (in README)](https://github.com/mackron/miniaudio?tab=readme-ov-file#license) |
 | **nlohmann/json** | 3.11.3 | MIT | Niels Lohmann | [LICENSE.MIT](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT) |
 | **pugixml** | 1.15 | MIT | Arseny Kapoulkine | [LICENSE.md](https://github.com/zeux/pugixml/blob/master/LICENSE.md) |
+| **cpp-httplib** | 0.18.3 | MIT | Yuji Hirose | [LICENSE](https://github.com/yhirose/cpp-httplib/blob/master/LICENSE) |
 
 ### Addon Dependencies (Optional)
 
@@ -96,7 +97,7 @@ freely, subject to the following restrictions:
     3. This notice may not be removed or altered from any source distribution.
 ```
 
-### MIT License (Dear ImGui, nlohmann/json, pugixml, Box2D)
+### MIT License (Dear ImGui, nlohmann/json, pugixml, cpp-httplib, Box2D)
 
 ```
 MIT License

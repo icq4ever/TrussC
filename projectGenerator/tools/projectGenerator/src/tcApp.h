@@ -1,8 +1,7 @@
 #pragma once
 
 #include <TrussC.h>
-#include "IdeHelper.h"
-#include "VsDetector.h"
+#include "ProjectGenerator.h"
 #include <atomic>
 using namespace std;
 using namespace tc;
@@ -44,6 +43,8 @@ private:
     vector<int> addonSelected;          // Addon selection state (0/1)
     IdeType ideType = IdeType::VSCode;  // Default is VSCode
     bool generateWebBuild = false;      // Generate Web (Emscripten) build
+    bool generateAndroidBuild = false;  // Generate Android build
+    int webBackend = 0;                 // 0: WebGPU, 1: WebGL
 
     // Visual Studio versions (Windows only)
     vector<VsVersionInfo> installedVsVersions;
@@ -85,4 +86,5 @@ private:
     string getTemplatePath();
     void setStatus(const string& msg, bool isError = false);
     void resetToNewProject();
+    ProjectSettings buildProjectSettings(); // 現在のUI状態からProjectSettingsを構築
 };

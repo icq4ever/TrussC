@@ -41,9 +41,11 @@ public:
         return *this;
     }
 
-    // Allocate FBO (MSAA supported)
+    // Allocate FBO (MSAA supported, custom pixel format)
     // sampleCount: 1, 2, 4, 8, etc. (1 = no MSAA)
-    void allocate(int w, int h, int sampleCount = 1) {
+    // format: pixel format (default RGBA8 for backward compatibility)
+    void allocate(int w, int h, int sampleCount = 1,
+                  TextureFormat format = TextureFormat::RGBA8) {
         // Skip in headless mode (no graphics context)
         if (headless::isActive()) return;
 
@@ -52,6 +54,8 @@ public:
         width_ = w;
         height_ = h;
         sampleCount_ = sampleCount;
+        format_ = format;
+        sg_pixel_format sgFormat = toSokolFormat(format);
 
         // MSAA case
         if (sampleCount_ > 1) {
@@ -60,7 +64,7 @@ public:
             msaa_desc.usage.color_attachment = true;
             msaa_desc.width = w;
             msaa_desc.height = h;
-            msaa_desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+            msaa_desc.pixel_format = sgFormat;
             msaa_desc.sample_count = sampleCount_;
             msaaColorImage_ = sg_make_image(&msaa_desc);
 
@@ -70,7 +74,7 @@ public:
             msaaColorAttView_ = sg_make_view(&msaa_att_desc);
 
             // Resolve color texture (non-MSAA, for reading/display)
-            colorTexture_.allocate(w, h, 4, TextureUsage::RenderTarget, 1);
+            colorTexture_.allocate(w, h, format, TextureUsage::RenderTarget, 1);
 
             // Resolve view (must be created as resolve_attachment)
             sg_view_desc resolve_view_desc = {};
@@ -86,8 +90,8 @@ public:
             depth_desc.sample_count = sampleCount_;
             depthImage_ = sg_make_image(&depth_desc);
         } else {
-            // Non-MSAA case (same as before)
-            colorTexture_.allocate(w, h, 4, TextureUsage::RenderTarget, 1);
+            // Non-MSAA case
+            colorTexture_.allocate(w, h, format, TextureUsage::RenderTarget, 1);
 
             // Depth buffer
             sg_image_desc depth_desc = {};
@@ -104,8 +108,8 @@ public:
         depth_att_desc.depth_stencil_attachment.image = depthImage_;
         depthAttView_ = sg_make_view(&depth_att_desc);
 
-        // Ensure shared rendering resources exist for this sample count
-        ensureShared(sampleCount_);
+        // Ensure shared rendering resources exist for this (sampleCount, format) combo
+        ensureShared(sampleCount_, format_);
 
         // FBO color texture stores premultiplied alpha (due to alpha blending + MSAA resolve)
         colorTexture_.setPremultipliedAlpha(true);
@@ -132,6 +136,7 @@ public:
         width_ = 0;
         height_ = 0;
         sampleCount_ = 1;
+        format_ = TextureFormat::RGBA8;
         active_ = false;
         msaaColorImage_ = {};
         msaaColorAttView_ = {};
@@ -140,18 +145,18 @@ public:
         depthAttView_ = {};
     }
 
-    // Begin rendering to FBO
+    // Begin rendering to FBO (preserves previous content)
     void begin() {
         // Skip in headless mode (no graphics context)
         if (headless::isActive()) return;
-        beginInternal(0.0f, 0.0f, 0.0f, 0.0f);  // Clear with transparent
+        beginInternal(0.0f, 0.0f, 0.0f, 0.0f, false);  // LOAD: keep previous content
     }
 
-    // Begin with specified background color
+    // Begin with specified background color (clears FBO)
     void begin(float r, float g, float b, float a = 1.0f) {
         // Skip in headless mode (no graphics context)
         if (headless::isActive()) return;
-        beginInternal(r, g, b, a);
+        beginInternal(r, g, b, a, true);  // CLEAR: fill with specified color
     }
 
     // Change background color during FBO rendering (restart pass)
@@ -159,7 +164,7 @@ public:
     void clearColor(float r, float g, float b, float a) {
         if (!active_) return;
 
-        auto& shared = getShared(sampleCount_);
+        auto& shared = getShared(sampleCount_, format_);
 
         // End current pass
         sgl_context_draw(shared.context);
@@ -193,11 +198,16 @@ public:
     void end() {
         if (!active_) return;
 
-        auto& shared = getShared(sampleCount_);
+        auto& shared = getShared(sampleCount_, format_);
 
         // Draw FBO context contents
         sgl_context_draw(shared.context);
         sg_end_pass();
+
+        // Reset counters so the next FBO using this shared context starts clean.
+        // Buffers stay allocated at their current (possibly grown) size — no
+        // allocation or deallocation overhead between sequential FBO draws.
+        sgl_tc_context_reset(shared.context);
 
         // Switch back to default context
         sgl_set_context(sgl_default_context());
@@ -214,7 +224,7 @@ public:
         }
     }
 
-    // Read pixel data
+    // Read pixel data (RGBA8 only, for backward compatibility)
     // Note: Call after rendering is complete (after end())
     // For MSAA, reads from resolved texture
     bool readPixels(unsigned char* pixels) const {
@@ -224,6 +234,13 @@ public:
         // Platform-specific implementation required
         // colorTexture_ is always non-MSAA (resolved) so read from there
         return readPixelsPlatform(pixels);
+    }
+
+    // Read pixel data as float (for float pixel formats: R16F, R32F, RGBA16F, RGBA32F, etc.)
+    // Buffer must be large enough: width * height * channelCount(format) floats
+    bool readPixelsFloat(float* pixels) const {
+        if (!allocated_ || !pixels) return false;
+        return readPixelsFloatPlatform(pixels);
     }
 
     // Copy to Image
@@ -243,6 +260,7 @@ public:
     int getWidth() const { return width_; }
     int getHeight() const { return height_; }
     int getSampleCount() const { return sampleCount_; }
+    TextureFormat getTextureFormat() const { return format_; }
     bool isAllocated() const { return allocated_; }
     bool isActive() const { return active_; }
 
@@ -272,6 +290,7 @@ private:
     int width_ = 0;
     int height_ = 0;
     int sampleCount_ = 1;
+    TextureFormat format_ = TextureFormat::RGBA8;
     bool allocated_ = false;
     bool active_ = false;
     bool wasInSwapchainPass_ = false;  // Was in swapchain pass when begin() called
@@ -289,8 +308,11 @@ private:
     sg_view depthAttView_ = {};
 
     // =========================================================================
-    // Shared rendering resources (sgl_context + pipelines)
-    // One set per sample count, shared across all FBOs.
+    // Shared rendering resources (sgl_context + pipelines) per (sampleCount, format).
+    // One context per combination, shared across all FBOs with matching params.
+    // Command leaking between FBOs is prevented by context_reset:
+    //   end()   -> sgl_context_draw() then context_reset (clears command counters)
+    //   begin() -> ensure_buffers (allocates if needed)
     // Nested FBO begin/end is NOT supported (sokol doesn't support nested passes).
     // =========================================================================
 
@@ -301,28 +323,31 @@ private:
         bool initialized = false;
     };
 
-    // Map sampleCount to index: 1->0, 2->1, 4->2, 8->3
-    static int sharedIndex(int sc) {
-        switch (sc) {
-            case 2: return 1;
-            case 4: return 2;
-            case 8: return 3;
-            default: return 0;
-        }
+    // Pack (sampleCount, format) into a uint64_t key
+    static uint64_t sharedKey(int sampleCount, TextureFormat format) {
+        return ((uint64_t)sampleCount << 32) | (uint64_t)format;
     }
 
-    static SharedResources& getShared(int sampleCount) {
-        static SharedResources resources[4];
-        return resources[sharedIndex(sampleCount)];
+    static std::unordered_map<uint64_t, SharedResources>& sharedMap() {
+        static std::unordered_map<uint64_t, SharedResources> map;
+        return map;
     }
 
-    static void ensureShared(int sampleCount) {
-        auto& s = getShared(sampleCount);
+    static SharedResources& getShared(int sampleCount, TextureFormat format) {
+        return sharedMap()[sharedKey(sampleCount, format)];
+    }
+
+    static void ensureShared(int sampleCount, TextureFormat format) {
+        auto& s = getShared(sampleCount, format);
         if (s.initialized) return;
 
-        // Create sgl context
+        sg_pixel_format sgFormat = toSokolFormat(format);
+
+        // Create sgl context (match main context buffer sizes)
         sgl_context_desc_t ctx_desc = {};
-        ctx_desc.color_format = SG_PIXELFORMAT_RGBA8;
+        ctx_desc.max_vertices = internal::sglMaxVertices;
+        ctx_desc.max_commands = internal::sglMaxCommands;
+        ctx_desc.color_format = sgFormat;
         ctx_desc.depth_format = SG_PIXELFORMAT_DEPTH_STENCIL;
         ctx_desc.sample_count = sampleCount;
         s.context = sgl_make_context(&ctx_desc);
@@ -332,6 +357,7 @@ private:
             sg_pipeline_desc pip_desc = {};
             pip_desc.sample_count = sampleCount;
             pip_desc.depth.pixel_format = SG_PIXELFORMAT_DEPTH_STENCIL;
+            pip_desc.colors[0].pixel_format = sgFormat;
             pip_desc.colors[0].blend.enabled = true;
             pip_desc.colors[0].blend.src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA;
             pip_desc.colors[0].blend.dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
@@ -346,6 +372,7 @@ private:
             sg_pipeline_desc pip_desc = {};
             pip_desc.sample_count = sampleCount;
             pip_desc.depth.pixel_format = SG_PIXELFORMAT_DEPTH_STENCIL;
+            pip_desc.colors[0].pixel_format = sgFormat;
             pip_desc.colors[0].blend.enabled = false;
             pip_desc.colors[0].write_mask = SG_COLORMASK_RGBA;
             s.pipelineClear = sgl_context_make_pipeline(s.context, &pip_desc);
@@ -354,7 +381,7 @@ private:
         s.initialized = true;
     }
 
-    void beginInternal(float r, float g, float b, float a) {
+    void beginInternal(float r, float g, float b, float a, bool doClear) {
         if (!allocated_) return;
 
         // Guard: nested FBO begin is not supported
@@ -364,7 +391,7 @@ private:
             return;
         }
 
-        auto& shared = getShared(sampleCount_);
+        auto& shared = getShared(sampleCount_, format_);
 
         // Suspend if in swapchain pass
         wasInSwapchainPass_ = isInSwapchainPass();
@@ -385,16 +412,21 @@ private:
         }
         pass.attachments.depth_stencil = depthAttView_;
 
-        pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
-        pass.action.colors[0].clear_value = { r, g, b, a };
+        if (doClear) {
+            pass.action.colors[0].load_action = SG_LOADACTION_CLEAR;
+            pass.action.colors[0].clear_value = { r, g, b, a };
+        } else {
+            pass.action.colors[0].load_action = SG_LOADACTION_LOAD;
+        }
         pass.action.depth.load_action = SG_LOADACTION_CLEAR;
         pass.action.depth.clear_value = 1.0f;
 
         // For MSAA, resolve is automatic (store_action defaults to STORE)
         sg_begin_pass(&pass);
 
-        // Switch to shared FBO context
+        // Switch to shared FBO context and ensure buffers are allocated
         sgl_set_context(shared.context);
+        sgl_tc_context_ensure_buffers(shared.context);
         sgl_defaults();
 
         // Setup screen projection using defaultScreenFov (like main screen)
@@ -418,6 +450,7 @@ private:
         width_ = other.width_;
         height_ = other.height_;
         sampleCount_ = other.sampleCount_;
+        format_ = other.format_;
         allocated_ = other.allocated_;
         active_ = other.active_;
         wasInSwapchainPass_ = other.wasInSwapchainPass_;
@@ -434,6 +467,7 @@ private:
         other.width_ = 0;
         other.height_ = 0;
         other.sampleCount_ = 1;
+        other.format_ = TextureFormat::RGBA8;
         other.msaaColorImage_ = {};
         other.msaaColorAttView_ = {};
         other.resolveAttView_ = {};
@@ -441,8 +475,9 @@ private:
         other.depthAttView_ = {};
     }
 
-    // Platform-specific pixel reading (implemented in tcFbo_platform.h)
+    // Platform-specific pixel reading (implemented in platform files)
     bool readPixelsPlatform(unsigned char* pixels) const;
+    bool readPixelsFloatPlatform(float* pixels) const;
 };
 
 // ---------------------------------------------------------------------------

@@ -31,7 +31,9 @@
     #define CLOSE_SOCKET ::close
     #define SOCKET_ERROR_CODE errno
     #define WOULD_BLOCK_ERROR EWOULDBLOCK
+    #ifndef INVALID_SOCKET
     #define INVALID_SOCKET -1
+    #endif
     #define SOCKET_ERROR -1
 #endif
 

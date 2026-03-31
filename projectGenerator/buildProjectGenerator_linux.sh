@@ -15,6 +15,14 @@ echo "  TrussC Project Generator Build Script"
 echo "=========================================="
 echo ""
 
+# Check and install dependencies
+"$SCRIPT_DIR/install_dependencies_linux.sh"
+if [ $? -ne 0 ]; then
+    echo "ERROR: Dependency check failed. Please install required packages."
+    exit 1
+fi
+echo ""
+
 # Source directory
 SOURCE_DIR="$SCRIPT_DIR/tools/projectGenerator"
 

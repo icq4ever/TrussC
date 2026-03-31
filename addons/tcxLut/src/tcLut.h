@@ -701,18 +701,22 @@ public:
                         float sx, float sy, float sw, float sh) {
         if (!loaded || !currentLut || !sourceView.id) return;
 
+        // Ensure render pass is active
+        ensureSwapchainPass();
+
         // Flush sokol_gl before custom drawing
         sgl_draw();
 
         // Apply pipeline
         sg_apply_pipeline(pipeline);
 
+        float dpi = sapp_dpi_scale();
         float winW = (float)sapp_width();
         float winH = (float)sapp_height();
 
-        // Set viewport and scissor for destination
-        sg_apply_viewportf(x, y, w, h, true);
-        sg_apply_scissor_rectf(x, y, w, h, true);
+        // Set viewport and scissor for destination (convert logical coords to framebuffer pixels)
+        sg_apply_viewportf(x * dpi, y * dpi, w * dpi, h * dpi, true);
+        sg_apply_scissor_rectf(x * dpi, y * dpi, w * dpi, h * dpi, true);
 
         // Setup bindings
         sg_bindings bind = {};
@@ -747,10 +751,11 @@ public:
         sg_apply_viewportf(0, 0, winW, winH, true);
         sg_apply_scissor_rectf(0, 0, winW, winH, true);
 
-        // Restore sokol_gl state
+        // Restore sokol_gl state (use logical coordinates, not framebuffer pixels)
+        sg_reset_state_cache();
         sgl_defaults();
         sgl_matrix_mode_projection();
-        sgl_ortho(0.0f, winW, winH, 0.0f, -10000.0f, 10000.0f);
+        sgl_ortho(0.0f, winW / dpi, winH / dpi, 0.0f, -10000.0f, 10000.0f);
         sgl_matrix_mode_modelview();
         sgl_load_identity();
     }

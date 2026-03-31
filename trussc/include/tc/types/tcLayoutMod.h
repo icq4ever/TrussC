@@ -138,7 +138,7 @@ public:
 
         for (const auto& child : children) {
             auto* rectChild = dynamic_cast<RectNode*>(child.get());
-            if (!rectChild || !child->getActive()) continue;
+            if (!rectChild || !child->isActive()) continue;
 
             activeCount++;
 
@@ -187,7 +187,7 @@ public:
 
         for (const auto& child : children) {
             auto* rectChild = dynamic_cast<RectNode*>(child.get());
-            if (!rectChild || !child->getActive()) continue;
+            if (!rectChild || !child->isActive()) continue;
 
             child->setPos(x, y);
 

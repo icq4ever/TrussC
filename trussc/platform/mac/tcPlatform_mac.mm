@@ -97,25 +97,45 @@ bool captureWindow(Pixels& outPixels) {
 
     NSUInteger width = texture.width;
     NSUInteger height = texture.height;
+    MTLPixelFormat pixelFormat = texture.pixelFormat;
 
-    // Pixels を確保
-    outPixels.allocate((int)width, (int)height, 4);
-
-    // Metal テクスチャからピクセルを読み取る
+    // Read raw pixel data from Metal texture
     MTLRegion region = MTLRegionMake2D(0, 0, width, height);
     NSUInteger bytesPerRow = width * 4;
+    std::vector<uint8_t> rawData(bytesPerRow * height);
 
-    [texture getBytes:outPixels.getData()
+    [texture getBytes:rawData.data()
           bytesPerRow:bytesPerRow
            fromRegion:region
           mipmapLevel:0];
 
-    // BGRA -> RGBA に変換（Metal は通常 BGRA フォーマット）
-    unsigned char* data = outPixels.getData();
-    for (NSUInteger i = 0; i < width * height; i++) {
-        unsigned char temp = data[i * 4 + 0];  // B
-        data[i * 4 + 0] = data[i * 4 + 2];     // R -> B位置
-        data[i * 4 + 2] = temp;                 // B -> R位置
+    // Allocate output pixels (always RGBA8)
+    outPixels.allocate((int)width, (int)height, 4);
+    unsigned char* dst = outPixels.getData();
+
+    if (pixelFormat == MTLPixelFormatRGB10A2Unorm) {
+        // RGB10A2 bit layout: [A:2 (31-30)][B:10 (29-20)][G:10 (19-10)][R:10 (9-0)]
+        const uint32_t* src = (const uint32_t*)rawData.data();
+        for (NSUInteger i = 0; i < width * height; i++) {
+            uint32_t pixel = src[i];
+            uint32_t r10 = (pixel >>  0) & 0x3FF;  // bits 0-9
+            uint32_t g10 = (pixel >> 10) & 0x3FF;  // bits 10-19
+            uint32_t b10 = (pixel >> 20) & 0x3FF;  // bits 20-29
+            uint32_t a2  = (pixel >> 30) & 0x3;    // bits 30-31
+            // Convert 10-bit (0-1023) to 8-bit, 2-bit (0-3) to 8-bit
+            dst[i * 4 + 0] = (uint8_t)(r10 >> 2);
+            dst[i * 4 + 1] = (uint8_t)(g10 >> 2);
+            dst[i * 4 + 2] = (uint8_t)(b10 >> 2);
+            dst[i * 4 + 3] = (uint8_t)(a2 * 85);   // 0→0, 1→85, 2→170, 3→255
+        }
+    } else {
+        // BGRA8 fallback
+        memcpy(dst, rawData.data(), bytesPerRow * height);
+        for (NSUInteger i = 0; i < width * height; i++) {
+            unsigned char temp = dst[i * 4 + 0];  // B
+            dst[i * 4 + 0] = dst[i * 4 + 2];     // R
+            dst[i * 4 + 2] = temp;                // B
+        }
     }
 
     return true;

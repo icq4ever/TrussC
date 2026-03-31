@@ -277,6 +277,8 @@ Reference for oF users finding equivalent features in TrussC.
 | `ofGetMouseY` | `getMouseY()` |  |
 | `ofGetMousePressed` | `isMousePressed()` |  |
 | `ofGetKeyPressed` | `isKeyPressed(key)` |  |
+| `ofShowCursor` | `showCursor()` |  |
+| `ofHideCursor` | `hideCursor()` |  |
 
 ### **Graphics**
 
@@ -326,7 +328,7 @@ Reference for oF users finding equivalent features in TrussC.
 | `ofSignedNoise` | `signedNoise(x)` |  |
 | `ofLerp` | `lerp(a, b, t)` |  |
 | `ofClamp` | `clamp(v, min, max)` |  |
-| `ofMap` | `map(v, inMin, inMax, outMin, outMax)` |  |
+| `ofMap` | `remap(v, inMin, inMax, outMin, outMax)` |  |
 | `ofDegToRad` | `deg2rad(degrees)` |  |
 | `ofRadToDeg` | `rad2deg(radians)` |  |
 | `ofSign` | `sign(x)` |  |

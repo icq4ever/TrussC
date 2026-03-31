@@ -65,6 +65,8 @@ macro(trussc_app)
         set(_TC_BUILD_DIR "${TRUSSC_DIR}/build-web")
     elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         set(_TC_BUILD_DIR "${TRUSSC_DIR}/build-ios")
+    elseif(ANDROID)
+        set(_TC_BUILD_DIR "${TRUSSC_DIR}/build-android")
     elseif(APPLE)
         set(_TC_BUILD_DIR "${TRUSSC_DIR}/build-macos")
     elseif(WIN32)
@@ -89,15 +91,24 @@ macro(trussc_app)
             "${CMAKE_CURRENT_SOURCE_DIR}/src/*.mm"
             "${CMAKE_CURRENT_SOURCE_DIR}/src/*.m"
         )
+        # Exclude Objective-C/C++ files on non-Apple platforms
+        if(NOT APPLE)
+            list(FILTER _TC_SOURCES EXCLUDE REGEX ".*\\.mm$")
+            list(FILTER _TC_SOURCES EXCLUDE REGEX ".*\\.m$")
+        endif()
     endif()
 
     # Preserve directory structure in Xcode / Visual Studio
     source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${_TC_SOURCES})
 
-    # Create executable
-    # Note: Windows console hiding is handled via #pragma in TrussC.h
-    # (hidden in Release, shown in Debug or when TRUSSC_SHOW_CONSOLE is defined)
-    add_executable(${PROJECT_NAME} ${_TC_SOURCES})
+    # Create target
+    # Android: shared library (.so) loaded by NativeActivity
+    # Others: executable
+    if(ANDROID)
+        add_library(${PROJECT_NAME} SHARED ${_TC_SOURCES})
+    else()
+        add_executable(${PROJECT_NAME} ${_TC_SOURCES})
+    endif()
 
     # Link TrussC
     target_link_libraries(${PROJECT_NAME} PRIVATE tc::TrussC)
@@ -184,7 +195,64 @@ macro(trussc_app)
     endif()
 
     # Output settings
-    if(EMSCRIPTEN)
+    if(ANDROID)
+        # Android: build .so, then package into APK via post-build script
+        set(_TC_APK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bin/android")
+        set(_TC_APK_STAGING "${CMAKE_CURRENT_BINARY_DIR}/apk_staging")
+        set(_TC_LIB_DIR "${_TC_APK_STAGING}/lib/arm64-v8a")
+
+        # Generate AndroidManifest.xml from template
+        set(TC_APP_PACKAGE "com.trussc.${PROJECT_NAME}")
+        set(TC_APP_LIB_NAME "${PROJECT_NAME}")
+        set(_TC_MANIFEST_TEMPLATE "${TRUSSC_DIR}/resources/android/AndroidManifest.xml.in")
+        set(_TC_MANIFEST_OUT "${CMAKE_CURRENT_BINARY_DIR}/AndroidManifest.xml")
+        configure_file("${_TC_MANIFEST_TEMPLATE}" "${_TC_MANIFEST_OUT}" @ONLY)
+
+        # Output .so directly into staging
+        file(MAKE_DIRECTORY "${_TC_LIB_DIR}")
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            LIBRARY_OUTPUT_DIRECTORY "${_TC_LIB_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY_DEBUG "${_TC_LIB_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY_RELEASE "${_TC_LIB_DIR}"
+            LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${_TC_LIB_DIR}"
+        )
+
+        # Post-build: package APK (if Android SDK build-tools available)
+        find_program(_TC_AAPT aapt HINTS "$ENV{ANDROID_HOME}/build-tools/35.0.0" "$ENV{ANDROID_HOME}/build-tools/34.0.0")
+        find_program(_TC_ZIPALIGN zipalign HINTS "$ENV{ANDROID_HOME}/build-tools/35.0.0" "$ENV{ANDROID_HOME}/build-tools/34.0.0")
+        find_program(_TC_APKSIGNER apksigner HINTS "$ENV{ANDROID_HOME}/build-tools/35.0.0" "$ENV{ANDROID_HOME}/build-tools/34.0.0")
+
+        if(_TC_AAPT AND _TC_ZIPALIGN AND _TC_APKSIGNER)
+            # Find android.jar
+            set(_TC_ANDROID_JAR "$ENV{ANDROID_HOME}/platforms/android-35/android.jar")
+            if(NOT EXISTS "${_TC_ANDROID_JAR}")
+                set(_TC_ANDROID_JAR "$ENV{ANDROID_HOME}/platforms/android-34/android.jar")
+            endif()
+
+            file(MAKE_DIRECTORY "${_TC_APK_DIR}")
+            set(_TC_UNSIGNED "${CMAKE_CURRENT_BINARY_DIR}/unsigned.apk")
+            set(_TC_ALIGNED "${CMAKE_CURRENT_BINARY_DIR}/aligned.apk")
+            set(_TC_APK_OUT "${_TC_APK_DIR}/${PROJECT_NAME}.apk")
+
+            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                COMMAND ${_TC_AAPT} package -f
+                    -M "${_TC_MANIFEST_OUT}"
+                    -I "${_TC_ANDROID_JAR}"
+                    -F "${_TC_UNSIGNED}"
+                    "${_TC_APK_STAGING}"
+                COMMAND ${_TC_ZIPALIGN} -f 4 "${_TC_UNSIGNED}" "${_TC_ALIGNED}"
+                COMMAND ${_TC_APKSIGNER} sign
+                    --ks "$ENV{HOME}/.android/debug.keystore"
+                    --ks-pass pass:android --key-pass pass:android
+                    --out "${_TC_APK_OUT}" "${_TC_ALIGNED}"
+                COMMENT "[${PROJECT_NAME}] Packaging APK → ${_TC_APK_OUT}"
+            )
+            message(STATUS "[${PROJECT_NAME}] APK auto-packaging enabled")
+        else()
+            message(STATUS "[${PROJECT_NAME}] Android SDK build-tools not found — APK packaging disabled (build .so only)")
+        endif()
+
+    elseif(EMSCRIPTEN)
         # Emscripten: HTML output
         set_target_properties(${PROJECT_NAME} PROPERTIES
             SUFFIX ".html"
@@ -192,15 +260,23 @@ macro(trussc_app)
         )
         # Custom shell HTML path
         set(_TC_SHELL_FILE "${TC_ROOT}/trussc/platform/web/shell.html")
-        # WebGPU link options
+        # Common Emscripten link options
         target_link_options(${PROJECT_NAME} PRIVATE
-            --use-port=emdawnwebgpu
             -sALLOW_MEMORY_GROWTH=1
             -sALLOW_TABLE_GROWTH=1
             -sFETCH=1
             -sASYNCIFY=1
             --shell-file=${_TC_SHELL_FILE}
         )
+        # Backend-specific link options
+        if(TC_GRAPHICS_BACKEND STREQUAL "WGPU")
+            target_link_options(${PROJECT_NAME} PRIVATE --use-port=emdawnwebgpu)
+        else()
+            target_link_options(${PROJECT_NAME} PRIVATE
+                -sMIN_WEBGL_VERSION=2
+                -sMAX_WEBGL_VERSION=2
+            )
+        endif()
         # Auto-preload bin/data folder if it exists
         if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/bin/data")
             target_link_options(${PROJECT_NAME} PRIVATE

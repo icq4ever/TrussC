@@ -210,14 +210,15 @@ public:
 
     // === File I/O ===
 
-    // Load from file
+    // Load from file (stb_image first, then platform-specific fallback for HEIC etc.)
     bool load(const fs::path& path) {
         clear();
 
         int w, h, channels;
         unsigned char* loaded = stbi_load(path.string().c_str(), &w, &h, &channels, 4);
         if (!loaded) {
-            return false;
+            // Fallback to platform-specific loader (ImageIO on macOS)
+            return loadPlatform(path);
         }
 
         width_ = w;
@@ -233,6 +234,9 @@ public:
         allocated_ = true;
         return true;
     }
+
+    // Platform-specific image loader (implemented per platform)
+    bool loadPlatform(const fs::path& path);
 
     // Load from memory
     bool loadFromMemory(const unsigned char* buffer, int len) {

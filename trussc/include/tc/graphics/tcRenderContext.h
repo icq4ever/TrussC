@@ -103,7 +103,7 @@ public:
         setColor(c.r, c.g, c.b, c.a);
     }
 
-    // Set with HSB (H: 0-TAU, S: 0-1, B: 0-1)
+    // Set with HSB (H: 0-1, S: 0-1, B: 0-1)
     void setColorHSB(float h, float s, float b, float a = 1.0f) {
         Color c = ColorHSB(h, s, b, a).toRGB();
         setColor(c.r, c.g, c.b, c.a);
@@ -238,7 +238,9 @@ public:
     void rotate(const Quaternion& quat) {
         Mat4 rotMat = quat.toMatrix();
         currentMatrix_ = currentMatrix_ * rotMat;
-        sgl_mult_matrix(rotMat.m);
+        // Mat4 is row-major, sokol_gl expects column-major — transpose
+        Mat4 t = rotMat.transposed();
+        sgl_mult_matrix(t.m);
     }
 
     void scale(float s) {
@@ -430,6 +432,10 @@ public:
 
     void drawLine(float x1, float y1, float x2, float y2) {
         drawLine(Vec3(x1, y1, 0), Vec3(x2, y2, 0));
+    }
+
+    void drawLine(float x1, float y1, float z1, float x2, float y2, float z2) {
+        drawLine(Vec3(x1, y1, z1), Vec3(x2, y2, z2));
     }
 
     // Main implementation (Vec3)

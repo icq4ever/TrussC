@@ -13,9 +13,9 @@
 //
 // - Color:       sRGB (0-1), for display
 // - ColorLinear: Linear RGB, for calculations/compositing/HDR
-// - ColorHSB:    HSB (H: 0-TAU, S: 0-1, B: 0-1)
+// - ColorHSB:    HSB (H: 0-1, S: 0-1, B: 0-1)
 // - ColorOKLab:  OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
-// - ColorOKLCH:  OKLCH (L: 0-1, C: 0-0.4, H: 0-TAU)
+// - ColorOKLCH:  OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
 // =============================================================================
 
 #include <cmath>
@@ -103,10 +103,10 @@ struct Color {
         }
     }
 
-    // From HSB (H: 0-TAU, S: 0-1, B: 0-1)
+    // From HSB (H: 0-1, S: 0-1, B: 0-1)
     static Color fromHSB(float h, float s, float b, float a = 1.0f);
 
-    // From OKLCH (L: 0-1, C: 0-0.4, H: 0-TAU)
+    // From OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
     static Color fromOKLCH(float L, float C, float H, float a = 1.0f);
 
     // From OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
@@ -248,7 +248,7 @@ struct ColorLinear {
 // ColorHSB
 // =============================================================================
 struct ColorHSB {
-    float h = 0.0f;  // Hue (0 - TAU)
+    float h = 0.0f;  // Hue (0 - 1)
     float s = 0.0f;  // Saturation (0 - 1)
     float b = 1.0f;  // Brightness (0 - 1)
     float a = 1.0f;  // Alpha
@@ -260,8 +260,7 @@ struct ColorHSB {
     // Conversion
     Color toRGB() const {
         // Normalize h (0-1)
-        float hNorm = h / TAU;
-        hNorm = hNorm - std::floor(hNorm);
+        float hNorm = h - std::floor(h);
 
         float r, g, bl;
         int i = (int)(hNorm * 6);
@@ -292,11 +291,11 @@ struct ColorHSB {
         if (shortestPath) {
             // Interpolate hue via shortest path
             float diff = target.h - h;
-            if (diff > HALF_TAU) diff -= TAU;
-            if (diff < -HALF_TAU) diff += TAU;
+            if (diff > 0.5f) diff -= 1.0f;
+            if (diff < -0.5f) diff += 1.0f;
             newH = h + diff * t;
-            if (newH < 0) newH += TAU;
-            if (newH >= TAU) newH -= TAU;
+            if (newH < 0) newH += 1.0f;
+            if (newH >= 1.0f) newH -= 1.0f;
         } else {
             newH = h + (target.h - h) * t;
         }
@@ -361,7 +360,7 @@ struct ColorOKLab {
 struct ColorOKLCH {
     float L = 0.0f;  // Lightness (0 - 1)
     float C = 0.0f;  // Chroma (0 - ~0.4)
-    float H = 0.0f;  // Hue (0 - TAU)
+    float H = 0.0f;  // Hue (0 - 1)
     float alpha = 1.0f;
 
     ColorOKLCH() = default;
@@ -370,10 +369,11 @@ struct ColorOKLCH {
 
     // Convert to OKLab
     ColorOKLab toOKLab() const {
+        float hRad = H * TAU;
         return ColorOKLab(
             L,
-            C * std::cos(H),
-            C * std::sin(H),
+            C * std::cos(hRad),
+            C * std::sin(hRad),
             alpha
         );
     }
@@ -387,11 +387,11 @@ struct ColorOKLCH {
         float newH;
         if (shortestPath) {
             float diff = target.H - H;
-            if (diff > HALF_TAU) diff -= TAU;
-            if (diff < -HALF_TAU) diff += TAU;
+            if (diff > 0.5f) diff -= 1.0f;
+            if (diff < -0.5f) diff += 1.0f;
             newH = H + diff * t;
-            if (newH < 0) newH += TAU;
-            if (newH >= TAU) newH -= TAU;
+            if (newH < 0) newH += 1.0f;
+            if (newH >= 1.0f) newH -= 1.0f;
         } else {
             newH = H + (target.H - H) * t;
         }
@@ -445,7 +445,6 @@ inline ColorHSB Color::toHSB() const {
             h = (r - g) / delta + 4;
         }
         h /= 6.0f;  // Normalize to 0-1
-        h *= TAU;   // Scale to TAU
     }
 
     return ColorHSB(h, s, bri, a);
@@ -534,8 +533,8 @@ inline ColorHSB ColorOKLab::toHSB() const {
 
 inline ColorOKLCH ColorOKLab::toOKLCH() const {
     float C = std::sqrt(a * a + b * b);
-    float H = std::atan2(b, a);
-    if (H < 0) H += TAU;
+    float H = std::atan2(b, a) / TAU;
+    if (H < 0) H += 1.0f;
     return ColorOKLCH(L, C, H, alpha);
 }
 

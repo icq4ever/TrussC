@@ -928,16 +928,13 @@ inline float deg2rad(float deg) { return deg * TAU / 360.0f; }
 // Radians to degrees
 inline float rad2deg(float rad) { return rad * 360.0f / TAU; }
 
-// Linear interpolation
-inline float lerp(float a, float b, float t) { return a + (b - a) * t; }
-
 // Clamp
 inline float clamp(float value, float min, float max) {
     return std::max(min, std::min(max, value));
 }
 
-// Map
-inline float map(float value, float inMin, float inMax, float outMin, float outMax) {
+// Remap value from one range to another
+inline float remap(float value, float inMin, float inMax, float outMin, float outMax) {
     return outMin + (outMax - outMin) * ((value - inMin) / (inMax - inMin));
 }
 

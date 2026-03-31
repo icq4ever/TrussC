@@ -52,11 +52,12 @@ public:
 
     // === File I/O ===
 
-    // Load image from file
+    // Load image from file (relative paths resolved via getDataPath)
     bool load(const fs::path& path) {
         clear();
 
-        if (!pixels_.load(path)) {
+        fs::path resolved = path.is_absolute() ? path : fs::path(getDataPath(path.string()));
+        if (!pixels_.load(resolved)) {
             return false;
         }
 

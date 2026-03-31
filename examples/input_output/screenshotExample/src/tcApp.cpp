@@ -32,7 +32,7 @@ void tcApp::draw() {
         float y = centerY + sin(angle) * radius;
 
         // Change hue
-        float hue = float(i) / numCircles * TAU;
+        float hue = float(i) / numCircles;
         Color c = colorFromHSB(hue, 0.8f, 1.0f);
         setColor(c);
 

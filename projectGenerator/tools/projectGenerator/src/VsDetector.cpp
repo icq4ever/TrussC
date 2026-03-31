@@ -15,7 +15,24 @@ vector<VsVersionInfo> VsDetector::detectInstalledVersions() {
 
 #ifdef _WIN32
     // Use vswhere to detect installed Visual Studio versions with JSON output
-    string vswhereCmd = R"("C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -all -format json)";
+    // vswhere.exe の場所を検索
+    string vswherePath;
+    const char* vswhereLocations[] = {
+        R"(C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe)",
+        R"(C:\Program Files\Microsoft Visual Studio\Installer\vswhere.exe)",
+    };
+    for (const char* loc : vswhereLocations) {
+        if (fs::exists(loc)) {
+            vswherePath = loc;
+            break;
+        }
+    }
+    // vswhere が見つからない場合はPATHから探す
+    if (vswherePath.empty()) {
+        vswherePath = "vswhere.exe";
+    }
+
+    string vswhereCmd = "\"" + vswherePath + "\" -all -format json";
 
     FILE* pipe = _popen(vswhereCmd.c_str(), "r");
     if (pipe) {
@@ -79,19 +96,26 @@ vector<VsVersionInfo> VsDetector::detectInstalledVersions() {
                     VsVersionInfo info;
                     info.version = majorVersion;
 
-                    if (majorVersion == 17) {
-                        info.displayName = "Visual Studio 2022";
-                        info.generator = "Visual Studio 17 2022";
-                    } else if (majorVersion == 18) {
-                        info.displayName = "Visual Studio 2026";
-                        info.generator = "Visual Studio 18 2026";
-                    } else if (majorVersion == 16) {
-                        info.displayName = "Visual Studio 2019";
-                        info.generator = "Visual Studio 16 2019";
-                    } else {
-                        pos = quoteEnd;
-                        continue;
+                    // バージョン番号からVS年号とCMakeジェネレータ名を決定
+                    // 既知のバージョンはマッピング、未知のバージョンもバージョン番号から推定
+                    struct VsMapping { int ver; const char* year; };
+                    const VsMapping knownVersions[] = {
+                        {16, "2019"}, {17, "2022"}, {18, "2026"},
+                    };
+                    string yearStr;
+                    for (const auto& m : knownVersions) {
+                        if (m.ver == majorVersion) { yearStr = m.year; break; }
                     }
+                    if (yearStr.empty()) {
+                        // 未知のバージョン: VS19→2028, VS20→2030 ... と推定
+                        if (majorVersion < 16) {
+                            pos = quoteEnd;
+                            continue; // VS2019より古いものはスキップ
+                        }
+                        yearStr = to_string(2019 + (majorVersion - 16) * 2);
+                    }
+                    info.displayName = "Visual Studio " + yearStr;
+                    info.generator = "Visual Studio " + to_string(majorVersion) + " " + yearStr;
 
                     // Store install path
                     info.installPath = installPath;
@@ -132,8 +156,12 @@ vector<VsVersionInfo> VsDetector::detectInstalledVersions() {
                         info.windowsSdkVersion = latestSdk;
                     }
 
-                    // Verify required files exist
-                    if (fs::exists(info.cmakePath) && fs::exists(info.vcvarsallPath) && fs::exists(info.ninjaPath) &&
+                    // 存在しないパスはクリアする（部分的に有効な情報も保持）
+                    if (!fs::exists(info.cmakePath)) info.cmakePath.clear();
+                    if (!fs::exists(info.ninjaPath)) info.ninjaPath.clear();
+
+                    // vcvarsallとVC Toolsがあれば使える（cmake/ninjaはPATHのものを使える）
+                    if (fs::exists(info.vcvarsallPath) &&
                         !info.vcToolsVersion.empty() && !info.windowsSdkVersion.empty()) {
                         versions.push_back(info);
                     }

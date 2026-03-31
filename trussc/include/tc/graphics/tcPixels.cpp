@@ -33,4 +33,11 @@ bool Pixels::save(const fs::path& path) const {
     return result != 0;
 }
 
+// Platform-specific image loader fallback (non-Apple stub)
+#ifndef __APPLE__
+bool Pixels::loadPlatform(const fs::path& /*path*/) {
+    return false;
+}
+#endif
+
 } // namespace trussc

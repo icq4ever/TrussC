@@ -262,16 +262,34 @@ bool captureWindow(Pixels& outPixels) {
     outPixels.allocate(width, height, 4);
     unsigned char* dst = outPixels.getData();
 
-    // ピクセルをコピー（BGRA -> RGBA 変換）
+    bool isRGB10A2 = (desc.Format == DXGI_FORMAT_R10G10B10A2_UNORM);
+
     unsigned char* src = (unsigned char*)mapped.pData;
     for (int y = 0; y < height; y++) {
         unsigned char* srcRow = src + y * mapped.RowPitch;
         unsigned char* dstRow = dst + y * width * 4;
-        for (int x = 0; x < width; x++) {
-            dstRow[x * 4 + 0] = srcRow[x * 4 + 2];  // R <- B
-            dstRow[x * 4 + 1] = srcRow[x * 4 + 1];  // G <- G
-            dstRow[x * 4 + 2] = srcRow[x * 4 + 0];  // B <- R
-            dstRow[x * 4 + 3] = srcRow[x * 4 + 3];  // A <- A
+        if (isRGB10A2) {
+            // R10G10B10A2: [A:2 (31-30)][B:10 (29-20)][G:10 (19-10)][R:10 (9-0)]
+            const uint32_t* srcPixels = (const uint32_t*)srcRow;
+            for (int x = 0; x < width; x++) {
+                uint32_t pixel = srcPixels[x];
+                uint32_t r10 = (pixel >>  0) & 0x3FF;
+                uint32_t g10 = (pixel >> 10) & 0x3FF;
+                uint32_t b10 = (pixel >> 20) & 0x3FF;
+                uint32_t a2  = (pixel >> 30) & 0x3;
+                dstRow[x * 4 + 0] = (uint8_t)(r10 >> 2);
+                dstRow[x * 4 + 1] = (uint8_t)(g10 >> 2);
+                dstRow[x * 4 + 2] = (uint8_t)(b10 >> 2);
+                dstRow[x * 4 + 3] = (uint8_t)(a2 * 85);
+            }
+        } else {
+            // BGRA8 fallback
+            for (int x = 0; x < width; x++) {
+                dstRow[x * 4 + 0] = srcRow[x * 4 + 2];  // R <- B
+                dstRow[x * 4 + 1] = srcRow[x * 4 + 1];  // G <- G
+                dstRow[x * 4 + 2] = srcRow[x * 4 + 0];  // B <- R
+                dstRow[x * 4 + 3] = srcRow[x * 4 + 3];  // A <- A
+            }
         }
     }
 

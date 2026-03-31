@@ -25,6 +25,10 @@ if not exist "%SOURCE_DIR%\build" (
 
 cd /d "%SOURCE_DIR%\build"
 
+REM Setup Visual Studio environment
+for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set VS_PATH=%%i
+if defined VS_PATH call "%VS_PATH%\VC\Auxiliary\Build\vcvarsall.bat" x64
+
 REM CMake configuration
 echo Running CMake...
 cmake ..

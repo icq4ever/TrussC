@@ -19,7 +19,7 @@ void mousePressed(float x, float y, int button) // Mouse button pressed
 void mouseReleased(float x, float y, int button) // Mouse button released
 void mouseMoved(float x, float y)        // Mouse moved
 void mouseDragged(float x, float y, int button) // Mouse dragged
-void keyPressed(int key)                 // Key pressed
+void keyPressed(int key)                 // Key pressed. Use KEY_* constants for special keys, or uppercase char literals for printable keys (e.g. key == 'A', key == '1')
 void keyReleased(int key)                // Key released
 void windowResized(int width, int height) // Window resized
 ```
@@ -32,7 +32,7 @@ void clear(float r, float g, float b)    // Clear screen
 void setColor(float gray)                // Set drawing color (0.0-1.0)
 void setColor(float r, float g, float b) // Set drawing color (0.0-1.0)
 void setColor(float r, float g, float b, float a) // Set drawing color (0.0-1.0)
-void setColorHSB(float h, float s, float b) // Set color from HSB (H: 0-TAU)
+void setColorHSB(float h, float s, float b) // Set color from HSB (H: 0-1)
 void setColorOKLCH(float L, float C, float H) // Set color from OKLCH
 void setColorOKLab(float L, float a, float b) // Set color from OKLab
 ```
@@ -54,8 +54,9 @@ void drawEllipse(Vec3 center, float rx, float ry) // Draw ellipse
 void drawEllipse(Vec3 center, Vec2 radii) // Draw ellipse
 void drawPoint(float x, float y)         // Draw a single point
 void drawPoint(Vec3 pos)                 // Draw a single point
-void drawLine(float x1, float y1, float x2, float y2) // Draw line
-void drawLine(Vec3 p1, Vec3 p2)          // Draw line
+void drawLine(float x1, float y1, float x2, float y2) // Draw line (2D or 3D)
+void drawLine(float x1, float y1, float z1, float x2, float y2, float z2) // Draw line (2D or 3D)
+void drawLine(Vec3 p1, Vec3 p2)          // Draw line (2D or 3D)
 void drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3) // Draw triangle
 void drawTriangle(Vec3 p1, Vec3 p2, Vec3 p3) // Draw triangle
 void drawBox(float size)                 // Draw 3D box (respects fill/noFill)
@@ -78,6 +79,8 @@ void vertex(const Vec3& v)               // Add a vertex
 void endShape(bool close = false)        // End drawing a shape
 void beginStroke()                       // Begin drawing a stroke (uses StrokeMesh internally)
 void endStroke(bool close = false)       // End drawing a stroke
+void beginLines()                        // Begin batch line drawing. Add vertex pairs with vertex(), then call endLines(). Each pair of vertices draws one independent line segment. Use setColor() between vertices for per-line colors.
+void endLines()                          // End batch line drawing and render all accumulated line segments
 void drawStroke(float x1, float y1, float x2, float y2) // Draw a single stroke segment (thick line with cap/join)
 void drawStroke(const Vec2& p1, const Vec2& p2) // Draw a single stroke segment (thick line with cap/join)
 void drawBitmapString(const string& text, float x, float y) // Draw text
@@ -154,6 +157,13 @@ Vec2 getMousePos()                       // Get mouse position as Vec2
 Vec2 getGlobalMousePos()                 // Get global mouse position as Vec2
 bool isMousePressed()                    // Is mouse button pressed
 bool isKeyPressed(int key)               // Is specific key currently pressed
+void showCursor()                        // Show the mouse cursor (default)
+void hideCursor()                        // Hide the mouse cursor
+void setCursor(Cursor cursor)            // Set the mouse cursor shape
+Cursor getCursor()                       // Get the current mouse cursor shape
+void bindCursorImage(Cursor cursor, int width, int height, const unsigned char* pixels, int hotspotX = 0, int hotspotY = 0) // Bind a custom image to a cursor slot (RGBA pixels or Image)
+void bindCursorImage(Cursor cursor, const Image& image, int hotspotX = 0, int hotspotY = 0) // Bind a custom image to a cursor slot (RGBA pixels or Image)
+void unbindCursorImage(Cursor cursor)    // Unbind a custom cursor image, restoring the system default
 ```
 
 ## Time - Frame
@@ -221,7 +231,7 @@ float fbm(float x, float y, float z, int octaves = 4, float lacunarity = 2.0, fl
 ```cpp
 float lerp(float a, float b, float t)    // Linear interpolation
 float clamp(float v, float min, float max) // Clamp value to range
-float map(float v, float inMin, float inMax, float outMin, float outMax) // Map value between ranges
+float remap(float v, float inMin, float inMax, float outMin, float outMax) // Remap value from one range to another
 ```
 
 ## Math - Trigonometry
@@ -391,14 +401,35 @@ Vec2 Vec2_fromAngle(float radians, float length) // Create Vec2 from angle
 ## Types - Color
 
 ```cpp
-Color Color_fromHSB(float h, float s, float b) // Create Color from HSB
-Color Color_fromHSB(float h, float s, float b, float a) // Create Color from HSB
+ColorHSB toHSB()                         // Convert to HSB color space (H: 0-1, S: 0-1, B: 0-1)
+ColorOKLab toOKLab()                     // Convert to OKLab color space (perceptually uniform)
+ColorOKLCH toOKLCH()                     // Convert to OKLCH color space (L: 0-1, C: 0-0.4, H: 0-1)
+Color Color_fromHSB(float h, float s, float b) // Create Color from HSB (H: 0-1, S: 0-1, B: 0-1)
+Color Color_fromHSB(float h, float s, float b, float a) // Create Color from HSB (H: 0-1, S: 0-1, B: 0-1)
 Color colorFromHSB(float h, float s, float b) // Create Color from HSB (alias for Color_fromHSB)
 Color colorFromHSB(float h, float s, float b, float a) // Create Color from HSB (alias for Color_fromHSB)
 Color Color_fromOKLCH(float L, float C, float H) // Create Color from OKLCH
 Color Color_fromOKLCH(float L, float C, float H, float a) // Create Color from OKLCH
 Color Color_fromOKLab(float L, float a, float b) // Create Color from OKLab
 Color Color_fromOKLab(float L, float a, float b, float alpha) // Create Color from OKLab
+```
+
+## Types - ColorHSB
+
+```cpp
+ColorHSB(float h, float s, float b)      // HSB color type (H: 0-1, S: 0-1, B: 0-1). Use toRGB() to convert to Color
+ColorHSB(float h, float s, float b, float a) // HSB color type (H: 0-1, S: 0-1, B: 0-1). Use toRGB() to convert to Color
+Color toRGB()                            // Convert ColorHSB to Color (RGB)
+ColorHSB lerp(ColorHSB target, float t)  // Interpolate in HSB space (shortest hue path)
+```
+
+## Types - ColorOKLCH
+
+```cpp
+ColorOKLCH(float L, float C, float H)    // OKLCH color type (L: 0-1, C: 0-0.4, H: 0-1). Perceptually uniform
+ColorOKLCH(float L, float C, float H, float a) // OKLCH color type (L: 0-1, C: 0-0.4, H: 0-1). Perceptually uniform
+Color toRGB()                            // Convert ColorOKLCH to Color (RGB)
+ColorOKLCH lerp(ColorOKLCH target, float t) // Interpolate in OKLCH space (shortest hue path, perceptually uniform)
 ```
 
 ## 3D Setup
@@ -581,6 +612,42 @@ Wave::Sawtooth               // 3 (Sawtooth wave (bright, buzzy))
 Wave::Noise                  // 4 (White noise)
 Wave::PinkNoise              // 5 (Pink noise (1/f noise, more natural))
 Wave::Silent                 // 6 (Silent (no sound))
+Cursor::Default              // 0 (System default cursor)
+Cursor::Arrow                // 1 (Arrow cursor)
+Cursor::IBeam                // 2 (Text input cursor)
+Cursor::Crosshair            // 3 (Crosshair cursor)
+Cursor::Hand                 // 4 (Pointing hand cursor)
+Cursor::ResizeEW             // 5 (East-west resize cursor)
+Cursor::ResizeNS             // 6 (North-south resize cursor)
+Cursor::ResizeNWSE           // 7 (NW-SE diagonal resize cursor)
+Cursor::ResizeNESW           // 8 (NE-SW diagonal resize cursor)
+Cursor::ResizeAll            // 9 (Move/resize all directions cursor)
+Cursor::NotAllowed           // 10 (Not allowed cursor)
+Cursor::Custom0              // 11 (Custom cursor slot 0 (bind image first))
+Cursor::Custom1              // 12 (Custom cursor slot 1)
+Cursor::Custom2              // 13 (Custom cursor slot 2)
+Cursor::Custom3              // 14 (Custom cursor slot 3)
+KEY_SPACE                    // 32 (Space key)
+KEY_ESCAPE                   // 256 (Escape key)
+KEY_ENTER                    // 257 (Enter/Return key)
+KEY_TAB                      // 258 (Tab key)
+KEY_BACKSPACE                // 259 (Backspace key)
+KEY_DELETE                   // 261 (Delete key)
+KEY_RIGHT                    // 262 (Right arrow key)
+KEY_LEFT                     // 263 (Left arrow key)
+KEY_DOWN                     // 264 (Down arrow key)
+KEY_UP                       // 265 (Up arrow key)
+KEY_LEFT_SHIFT               // 340 (Left Shift key)
+KEY_RIGHT_SHIFT              // 344 (Right Shift key)
+KEY_LEFT_CONTROL             // 341 (Left Control key)
+KEY_RIGHT_CONTROL            // 345 (Right Control key)
+KEY_LEFT_ALT                 // 342 (Left Alt/Option key)
+KEY_RIGHT_ALT                // 346 (Right Alt/Option key)
+KEY_LEFT_SUPER               // 343 (Left Super/Command key)
+KEY_RIGHT_SUPER              // 347 (Right Super/Command key)
+MOUSE_BUTTON_LEFT            // 0 (Left mouse button)
+MOUSE_BUTTON_RIGHT           // 1 (Right mouse button)
+MOUSE_BUTTON_MIDDLE          // 2 (Middle mouse button)
 ```
 
 ## Variables

@@ -124,6 +124,32 @@ public:
     }
 
     // -------------------------------------------------------------------------
+    // Clipping-aware hit test: when clipping is enabled, reject children
+    // outside this node's rectangle (prevents scrolled-out items from
+    // receiving events through overlapping siblings)
+    // -------------------------------------------------------------------------
+
+    HitResult findHitNodeRecursive(const Ray& globalRay, const Mat4& parentInverseMatrix) override {
+        if (!isActive() || !isVisible()) return HitResult{};
+
+        if (clipping_) {
+            // Pre-check: ray must hit this rect before we check children
+            Mat4 localInverse = getLocalMatrix().inverted();
+            Mat4 globalInverse = localInverse * parentInverseMatrix;
+            Ray localRay = globalRay.transformed(globalInverse);
+
+            float t;
+            Vec3 hp;
+            if (!localRay.intersectZPlane(t, hp) ||
+                hp.x < 0 || hp.x > width_ || hp.y < 0 || hp.y > height_) {
+                return HitResult{};
+            }
+        }
+
+        return Node::findHitNodeRecursive(globalRay, parentInverseMatrix);
+    }
+
+    // -------------------------------------------------------------------------
     // Drawing helpers (for overriding)
     // -------------------------------------------------------------------------
 
@@ -141,9 +167,9 @@ protected:
     void beginDraw() override {
         if (clipping_) {
             // Convert local coordinates (0,0) and (width_, height_) to global
-            float gx1, gy1, gx2, gy2;
-            localToGlobal(0, 0, gx1, gy1);
-            localToGlobal(width_, height_, gx2, gy2);
+            Vec3 g1 = localToGlobal(Vec3(0, 0, 0));
+            Vec3 g2 = localToGlobal(Vec3(width_, height_, 0));
+            float gx1 = g1.x, gy1 = g1.y, gx2 = g2.x, gy2 = g2.y;
 
             // Calculate rectangle in screen coordinates (considering DPI scale)
             float dpi = sapp_dpi_scale();
@@ -278,7 +304,7 @@ public:
         if (!label.empty()) {
             setColor(1.0f, 1.0f, 1.0f);
             drawBitmapString(label, getWidth() / 2, getHeight() / 2,
-                             Direction::Center, Direction::Baseline);
+                             Direction::Center, Direction::Center);
         }
     }
 

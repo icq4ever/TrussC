@@ -3,11 +3,11 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-# プラットフォームに応じて言語を設定（OBJC/OBJCXX は macOS のみ）
-if(APPLE)
-    project(TrussC VERSION 0.0.1 LANGUAGES C CXX OBJC OBJCXX)
-else()
-    project(TrussC VERSION 0.0.1 LANGUAGES C CXX)
+# Start with C/CXX only — OBJC/OBJCXX enabled after project() if on macOS
+project(TrussC VERSION 0.0.1 LANGUAGES C CXX)
+# Toolchain variables (ANDROID, APPLE) are available after project()
+if(APPLE AND NOT ANDROID)
+    enable_language(OBJC OBJCXX)
 endif()
 
 # C++20 を使用
@@ -24,8 +24,17 @@ set(TC_ROOT "${TC_ROOT}" CACHE PATH "TrussC root directory" FORCE)
 if(EMSCRIPTEN)
     # Emscripten は UNIX=TRUE を設定するので、UNIX より前にチェック
     set(TC_PLATFORM_EMSCRIPTEN TRUE)
-    set(TC_GRAPHICS_BACKEND "WGPU")  # WebGPU
-    message(STATUS "[TrussC] Platform: Emscripten (WebGPU)")
+    # Web backend: WGPU (default) or GLES3 (WebGL2)
+    if(NOT DEFINED TC_WEB_BACKEND)
+        set(TC_WEB_BACKEND "WGPU")
+    endif()
+    set(TC_GRAPHICS_BACKEND "${TC_WEB_BACKEND}")
+    message(STATUS "[TrussC] Platform: Emscripten (${TC_WEB_BACKEND})")
+elseif(ANDROID)
+    # Android NDK toolchain sets ANDROID=TRUE and UNIX=TRUE
+    set(TC_PLATFORM_ANDROID TRUE)
+    set(TC_GRAPHICS_BACKEND "GLES3")
+    message(STATUS "[TrussC] Platform: Android (GLES3)")
 elseif(APPLE)
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         set(TC_PLATFORM_IOS TRUE)
@@ -73,6 +82,8 @@ if(TC_PLATFORM_EMSCRIPTEN)
     file(GLOB TC_PLATFORM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/platform/web/*.cpp)
 elseif(TC_PLATFORM_IOS)
     file(GLOB TC_PLATFORM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/*.mm)
+elseif(TC_PLATFORM_ANDROID)
+    file(GLOB TC_PLATFORM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/platform/android/*.cpp)
 elseif(TC_PLATFORM_MACOS)
     file(GLOB TC_PLATFORM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/platform/mac/*.mm)
 elseif(TC_PLATFORM_WINDOWS)
@@ -117,9 +128,12 @@ target_include_directories(TrussC PUBLIC
 # プラットフォーム固有の設定
 # =============================================================================
 if(TC_PLATFORM_EMSCRIPTEN)
-    target_compile_definitions(TrussC PUBLIC SOKOL_WGPU)
-    # WebGPU port for headers (emdawnwebgpu provides webgpu/webgpu.h)
-    target_compile_options(TrussC PUBLIC --use-port=emdawnwebgpu)
+    if(TC_GRAPHICS_BACKEND STREQUAL "WGPU")
+        target_compile_definitions(TrussC PUBLIC SOKOL_WGPU)
+        target_compile_options(TrussC PUBLIC --use-port=emdawnwebgpu)
+    else()
+        target_compile_definitions(TrussC PUBLIC SOKOL_GLES3)
+    endif()
     # Emscripten リンクオプションはアプリ側で設定（trussc_app.cmake）
 
 elseif(TC_PLATFORM_IOS)
@@ -145,6 +159,7 @@ elseif(TC_PLATFORM_MACOS)
         "-framework Metal"
         "-framework MetalKit"
         "-framework Cocoa"
+        "-framework ImageIO"
         "-framework QuartzCore"
         "-framework AudioToolbox"
         "-framework AVFoundation"
@@ -203,6 +218,15 @@ elseif(TC_PLATFORM_LINUX)
         ${GSTREAMER_LIBRARIES}
         pthread
         dl
+    )
+
+elseif(TC_PLATFORM_ANDROID)
+    target_compile_definitions(TrussC PUBLIC SOKOL_GLES3)
+    target_link_libraries(TrussC PUBLIC
+        GLESv3
+        EGL
+        log
+        android
     )
 
 elseif(TC_PLATFORM_RASPBIAN)
@@ -366,13 +390,26 @@ endfunction()
 function(_trussc_apply_macos_icon_folder TARGET_NAME ICON_FOLDER OUT_SUCCESS)
     set(${OUT_SUCCESS} FALSE PARENT_SCOPE)
 
-    # actool (Xcode に含まれる) を探す
+    # Require full Xcode (actool shim exists in CLI tools but doesn't work)
+    execute_process(
+        COMMAND xcode-select -p
+        OUTPUT_VARIABLE XCODE_DEV_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE XCODE_SELECT_RESULT
+        ERROR_QUIET
+    )
+    if(NOT XCODE_SELECT_RESULT EQUAL 0 OR NOT XCODE_DEV_DIR MATCHES "Xcode.*\\.app")
+        message(STATUS "[${TARGET_NAME}] Skipping .icon folder (requires full Xcode)")
+        return()
+    endif()
+
+    # Find actool from Xcode
     find_program(ACTOOL_EXECUTABLE actool
-        HINTS /Applications/Xcode.app/Contents/Developer/usr/bin
-              /Applications/Xcode-beta.app/Contents/Developer/usr/bin
+        HINTS "${XCODE_DEV_DIR}/usr/bin"
+        NO_DEFAULT_PATH
     )
     if(NOT ACTOOL_EXECUTABLE)
-        message(WARNING "[${TARGET_NAME}] actool not found - skipping .icon folder (install Xcode for macOS 26 Tahoe icon support)")
+        message(STATUS "[${TARGET_NAME}] actool not found - skipping .icon folder")
         return()
     endif()
 
@@ -399,7 +436,7 @@ function(_trussc_apply_macos_icon_folder TARGET_NAME ICON_FOLDER OUT_SUCCESS)
     )
 
     if(NOT RESULT EQUAL 0 OR NOT EXISTS "${ASSETS_CAR}")
-        message(WARNING "[${TARGET_NAME}] Failed to compile .icon folder with actool")
+        message(STATUS "[${TARGET_NAME}] Failed to compile .icon folder with actool")
         return()
     endif()
 

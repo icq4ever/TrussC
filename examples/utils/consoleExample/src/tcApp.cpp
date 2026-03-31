@@ -19,7 +19,7 @@ void tcApp::setup() {
             Ball ball;
             ball.x = x;
             ball.y = y;
-            ball.color = ColorHSB(random(TAU), 0.8f, 0.9f).toRGB();
+            ball.color = ColorHSB(random(1.0f), 0.8f, 0.9f).toRGB();
             balls_.push_back(ball);
             // JSON output for external process communication (intentionally using cout)
             cout << "{\"status\":\"ok\",\"command\":\"spawn\",\"ballCount\":" << balls_.size() << "}" << endl;

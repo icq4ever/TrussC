@@ -305,6 +305,17 @@ sokol_gl uses a fixed-size CPU vertex buffer (default 64k vertices). When draw c
 
 This is fully automatic — no user action required. The mechanism exists because sokol_gl has no resize API and no way to query how many vertices are needed before drawing.
 
+**Node Style Isolation:**
+
+Each Node's `draw()` and `endDraw()` start from a clean default style — `resetStyle()` is called automatically before each. This means:
+
+- Every `draw()` begins with white color, fill enabled, no stroke
+- Parent style does not cascade to children
+- Sibling style does not leak between nodes
+- Each Node is fully self-contained: set what you need, draw, done
+
+This design chose full isolation over CSS-like cascading because predictability outweighs the convenience of inheritance. Style leaks between nodes are hard to debug, and explicit `setColor()` calls are cheap.
+
 **Graphics Context Stack:**
 
 ```cpp

@@ -9,6 +9,7 @@
 #include "../events/tcCoreEvents.h"
 #include "stb/stb_image_write.h"
 #include "../graphics/tcPixels.h"
+#include "../gui/tcImGuiTools.h"
 #include <cstdlib>
 
 // Forward declaration for stbi_write_png_to_mem (missing in older stb_image_write.h headers)
@@ -17,20 +18,66 @@ extern "C" unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int
 namespace trussc {
 namespace mcp {
 
-// Input monitoring state
-namespace internal {
-    inline bool inputMonitoringEnabled = false;
-    inline EventListener mousePressListener;
-    inline EventListener mouseReleaseListener;
-    inline EventListener keyPressListener;
+// ---------------------------------------------------------------------------
+// Inspection Tools (read-only, always available when MCP is enabled)
+// ---------------------------------------------------------------------------
+
+inline void registerInspectionTools() {
+
+    tool("get_screenshot", "Get screenshot as Base64 PNG")
+        .bind(std::function<json()>([]() -> json {
+            // Capture screen to pixels
+            Pixels pixels;
+            if (!grabScreen(pixels)) {
+                return json{{"status", "error"}, {"message", "Failed to grab screen"}};
+            }
+
+            // Encode to PNG in memory
+            int pngSize = 0;
+            unsigned char* pngData = stbi_write_png_to_mem(
+                pixels.getData(), 0,
+                pixels.getWidth(), pixels.getHeight(), pixels.getChannels(),
+                &pngSize);
+
+            if (!pngData) {
+                return json{{"status", "error"}, {"message", "Failed to encode PNG"}};
+            }
+
+            // Convert to Base64
+            std::string b64 = toBase64(pngData, pngSize);
+
+            // Free PNG data
+            std::free(pngData);
+
+            return json{
+                {"mimeType", "image/png"},
+                {"data", b64}
+            };
+        }));
+
+    tool("save_screenshot", "Save screenshot to file")
+        .arg<std::string>("path", "File path")
+        .bind<std::string>([](std::string path) {
+            if (trussc::saveScreenshot(path)) {
+                return json{{"status", "ok"}, {"path", path}};
+            } else {
+                return json{{"status", "error"}, {"message", "Failed to save screenshot"}};
+            }
+        });
+
+    tool("quit", "Quit the application gracefully")
+        .bind(std::function<json()>([]() -> json {
+            sapp_request_quit();
+            return json{{"status", "ok"}};
+        }));
 }
 
 // ---------------------------------------------------------------------------
-// Standard Tools Registration
+// Debugger Tools (input injection, opt-in via mcp::enableDebugger())
 // ---------------------------------------------------------------------------
 
-inline void registerStandardTools() {
-    
+inline void registerDebuggerTools() {
+
     // --- Mouse Tools ---
 
     tool("mouse_move", "Move mouse cursor")
@@ -40,36 +87,32 @@ inline void registerStandardTools() {
         .bind<float, float, int>([](float x, float y, int button) {
             // If button is pressed, treat as drag
             if (button >= 0) {
-                // Fire drag event
                 MouseDragEventArgs args;
                 args.x = x;
                 args.y = y;
-                // Delta is unknown for single command, assume 0 or small
-                args.deltaX = 0; 
+                args.deltaX = 0;
                 args.deltaY = 0;
                 args.button = button;
                 events().mouseDragged.notify(args);
-                
-                // Also update internal state
-                if (::trussc::internal::appMouseDraggedFunc) 
+
+                if (::trussc::internal::appMouseDraggedFunc)
                     ::trussc::internal::appMouseDraggedFunc((int)x, (int)y, button);
             } else {
-                // Moving
                 MouseMoveEventArgs args;
                 args.x = x;
                 args.y = y;
-                args.deltaX = 0; 
+                args.deltaX = 0;
                 args.deltaY = 0;
                 events().mouseMoved.notify(args);
-                
-                if (::trussc::internal::appMouseMovedFunc) 
+
+                if (::trussc::internal::appMouseMovedFunc)
                     ::trussc::internal::appMouseMovedFunc((int)x, (int)y);
             }
-            
+
             // Update global mouse state
             ::trussc::internal::mouseX = x;
             ::trussc::internal::mouseY = y;
-            
+
             return json{{"status", "ok"}};
         });
 
@@ -84,17 +127,17 @@ inline void registerStandardTools() {
             args.y = y;
             args.button = button;
             events().mousePressed.notify(args);
-            if (::trussc::internal::appMousePressedFunc) 
+            if (::trussc::internal::appMousePressedFunc)
                 ::trussc::internal::appMousePressedFunc((int)x, (int)y, button);
-            
+
             // Release
             events().mouseReleased.notify(args);
-            if (::trussc::internal::appMouseReleasedFunc) 
+            if (::trussc::internal::appMouseReleasedFunc)
                 ::trussc::internal::appMouseReleasedFunc((int)x, (int)y, button);
 
             return json{{"status", "ok"}};
         });
-        
+
     tool("mouse_scroll", "Scroll mouse wheel")
         .arg<float>("dx", "Horizontal scroll delta")
         .arg<float>("dy", "Vertical scroll delta")
@@ -132,93 +175,10 @@ inline void registerStandardTools() {
             return json{{"status", "ok"}};
         });
 
-    // --- Screen Tools ---
-
-    tool("get_screenshot", "Get screenshot as Base64 PNG")
-        .bind(std::function<json()>([]() -> json {
-            // Capture screen to pixels
-            Pixels pixels;
-            if (!grabScreen(pixels)) {
-                return json{{"status", "error"}, {"message", "Failed to grab screen"}};
-            }
-            
-            // Encode to PNG in memory
-            int pngSize = 0;
-            unsigned char* pngData = stbi_write_png_to_mem(
-                pixels.getData(), 0, 
-                pixels.getWidth(), pixels.getHeight(), pixels.getChannels(), 
-                &pngSize);
-                
-            if (!pngData) {
-                return json{{"status", "error"}, {"message", "Failed to encode PNG"}};
-            }
-            
-            // Convert to Base64
-            std::string b64 = toBase64(pngData, pngSize);
-            
-            // Free PNG data
-            std::free(pngData);
-            
-            return json{
-                {"mimeType", "image/png"},
-                {"data", b64}
-            };
-        }));
-
-    tool("save_screenshot", "Save screenshot to file")
-        .arg<std::string>("path", "File path")
-        .bind<std::string>([](std::string path) {
-            if (trussc::saveScreenshot(path)) {
-                return json{{"status", "ok"}, {"path", path}};
-            } else {
-                return json{{"status", "error"}, {"message", "Failed to save screenshot"}};
-            }
-        });
-
-    // --- Monitoring Tools ---
-
-    tool("enable_input_monitor", "Enable/Disable user input monitoring logs")
-        .arg<bool>("enabled", "Enable monitoring")
-        .bind<bool>([](bool enabled) {
-            internal::inputMonitoringEnabled = enabled;
-            
-            if (enabled) {
-                // Register listeners if not already done
-                // Note: This is a simplified implementation. 
-                // Ideally we should manage listener lifecycle properly.
-                // Here we just attach to the global events.
-                
-                // Mouse Press
-                internal::mousePressListener = events().mousePressed.listen([](MouseEventArgs& e) {
-                    if (internal::inputMonitoringEnabled) {
-                        json j = {{"type", "mouse_press"}, {"x", e.x}, {"y", e.y}, {"button", e.button}};
-                        Server::instance().sendNotification("input", j);
-                    }
-                });
-
-                // Mouse Release
-                internal::mouseReleaseListener = events().mouseReleased.listen([](MouseEventArgs& e) {
-                    if (internal::inputMonitoringEnabled) {
-                        json j = {{"type", "mouse_release"}, {"x", e.x}, {"y", e.y}, {"button", e.button}};
-                        Server::instance().sendNotification("input", j);
-                    }
-                });
-
-                // Key Press
-                internal::keyPressListener = events().keyPressed.listen([](KeyEventArgs& e) {
-                    if (internal::inputMonitoringEnabled) {
-                        json j = {{"type", "key_press"}, {"key", e.key}};
-                        Server::instance().sendNotification("input", j);
-                    }
-                });
-            } else {
-                internal::mousePressListener.disconnect();
-                internal::mouseReleaseListener.disconnect();
-                internal::keyPressListener.disconnect();
-            }
-            
-            return json{{"status", "ok"}};
-        });
+    // Register ImGui MCP tools (widget inspection & interaction)
+    if (::trussc::internal::imguiEnabled) {
+        ::trussc::imgui_tools::registerImGuiTools();
+    }
 }
 
 } // namespace mcp

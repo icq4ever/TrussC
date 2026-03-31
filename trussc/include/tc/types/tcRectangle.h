@@ -17,7 +17,15 @@ struct Rect {
     Rect() = default;
     Rect(float x_, float y_, float w_, float h_)
         : x(x_), y(y_), width(w_), height(h_) {}
-
+    Rect(const Vec2& pos, float w_, float h_) {
+        set(pos, w_, h_);
+    }
+    Rect(const Vec3& pos, float w_, float h_) {
+        set(pos.x, pos.y, w_, h_);
+    }
+    Rect(float x_, float y_, float z_, float w_, float h_)
+        : x(x_), y(y_), width(w_), height(h_) { (void)z_; }
+    
     // Setters
     Rect& set(float x_, float y_, float w_, float h_) {
         x = x_;

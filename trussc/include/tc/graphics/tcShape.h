@@ -22,6 +22,14 @@ namespace internal {
     inline std::vector<Vec3> shapeVertices;
     inline bool shapeStarted = false;
 
+    // Lines (independent line segments) vertices + colors
+    struct LinesVertex {
+        Vec3 pos;
+        Color color;
+    };
+    inline std::vector<LinesVertex> linesVertices;
+    inline bool linesStarted = false;
+
     // Stroke vertices
     inline std::vector<StrokeVertex> strokeVertices;
     inline bool strokeStarted = false;
@@ -84,6 +92,42 @@ inline void endShape(bool close = false) {
 }
 
 // ===========================================================================
+// Lines drawing (independent line segments, pairs of vertices)
+// ===========================================================================
+
+// Begin batch line drawing
+inline void beginLines() {
+    internal::linesVertices.clear();
+    internal::linesStarted = true;
+    internal::shapeStarted = false;
+    internal::strokeStarted = false;
+}
+
+// End batch line drawing — draws all accumulated vertex pairs as independent lines
+inline void endLines() {
+    if (!internal::linesStarted || internal::linesVertices.size() < 2) {
+        internal::linesStarted = false;
+        return;
+    }
+
+    auto& verts = internal::linesVertices;
+    size_t n = verts.size();
+    auto& writer = internal::getActiveWriter();
+
+    writer.begin(PrimitiveType::Lines);
+    for (size_t i = 0; i + 1 < n; i += 2) {
+        writer.color(verts[i].color.r, verts[i].color.g, verts[i].color.b, verts[i].color.a);
+        writer.vertex(verts[i].pos.x, verts[i].pos.y, verts[i].pos.z);
+        writer.color(verts[i+1].color.r, verts[i+1].color.g, verts[i+1].color.b, verts[i+1].color.a);
+        writer.vertex(verts[i+1].pos.x, verts[i+1].pos.y, verts[i+1].pos.z);
+    }
+    writer.end();
+
+    internal::linesVertices.clear();
+    internal::linesStarted = false;
+}
+
+// ===========================================================================
 // Stroke drawing (lines with width/cap/join)
 // ===========================================================================
 
@@ -104,7 +148,10 @@ inline void endStroke(bool close = false);  // Forward declaration (implemented 
 
 // Add vertex (3D)
 inline void vertex(float x, float y, float z) {
-    if (internal::shapeStarted) {
+    if (internal::linesStarted) {
+        auto& ctx = getDefaultContext();
+        internal::linesVertices.push_back({Vec3{x, y, z}, ctx.getColor()});
+    } else if (internal::shapeStarted) {
         internal::shapeVertices.push_back(Vec3{x, y, z});
     } else if (internal::strokeStarted) {
         auto& ctx = getDefaultContext();

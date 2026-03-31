@@ -1,0 +1,137 @@
+# =============================================================================
+# tcxCurl - HTTPS Client Addon (libcurl + mbedTLS)
+# =============================================================================
+
+cmake_minimum_required(VERSION 3.20)
+message(STATUS "[tcxCurl] Loading addon...")
+
+add_library(tcxCurl INTERFACE)
+target_include_directories(tcxCurl INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+if(EMSCRIPTEN)
+    # WASM: use Emscripten Fetch API
+    target_compile_definitions(tcxCurl INTERFACE TCX_HTTP_EMSCRIPTEN=1)
+    target_link_options(tcxCurl INTERFACE -sFETCH=1)
+elseif(NOT WIN32)
+    # macOS/Linux: use system libcurl (SecureTransport / OpenSSL)
+    find_package(CURL REQUIRED)
+    target_compile_definitions(tcxCurl INTERFACE TCX_HTTP_CURL=1)
+    target_link_libraries(tcxCurl INTERFACE CURL::libcurl)
+else()
+    # Windows: fetch curl from source
+    # mbedTLSが取得できればmbedTLS、できなければSchannel（Windows標準）にフォールバック
+    include(FetchContent)
+
+    set(_TCX_USE_MBEDTLS OFF)
+
+    # mbedTLSの取得を試みる（オフライン環境ではスキップ）
+    if(NOT TARGET mbedtls)
+        # キャッシュ済みならそのまま使う
+        set(_mbedtls_cached_dir "${FETCHCONTENT_BASE_DIR}/mbedtls-src")
+        if(EXISTS "${_mbedtls_cached_dir}/CMakeLists.txt")
+            set(_TCX_USE_MBEDTLS ON)
+        else()
+            # ネットワーク接続チェック（git ls-remoteで軽量に確認）
+            execute_process(
+                COMMAND git ls-remote --exit-code -q https://github.com/Mbed-TLS/mbedtls.git HEAD
+                RESULT_VARIABLE _git_result
+                OUTPUT_QUIET ERROR_QUIET
+                TIMEOUT 5
+            )
+            if(_git_result EQUAL 0)
+                set(_TCX_USE_MBEDTLS ON)
+            else()
+                message(STATUS "[tcxCurl] mbedTLS not available (offline?), using Schannel")
+            endif()
+        endif()
+    else()
+        set(_TCX_USE_MBEDTLS ON)
+    endif()
+
+    if(_TCX_USE_MBEDTLS)
+        message(STATUS "[tcxCurl] Fetching mbedTLS...")
+        FetchContent_Declare(
+            mbedtls
+            GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
+            GIT_TAG v3.5.0
+        )
+        set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+        set(ENABLE_PROGRAMS OFF CACHE BOOL "" FORCE)
+        set(MBEDTLS_FATAL_WARNINGS OFF CACHE BOOL "" FORCE)
+        set(DISABLE_PACKAGE_CONFIG_AND_INSTALL ON CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(mbedtls)
+
+        # Help curl's FindMbedTLS.cmake locate FetchContent-built mbedTLS
+        FetchContent_GetProperties(mbedtls SOURCE_DIR MBEDTLS_SRC_DIR)
+        set(MBEDTLS_INCLUDE_DIR "${MBEDTLS_SRC_DIR}/include" CACHE PATH "" FORCE)
+        set(MBEDTLS_LIBRARY mbedtls CACHE STRING "" FORCE)
+        set(MBEDX509_LIBRARY mbedx509 CACHE STRING "" FORCE)
+        set(MBEDCRYPTO_LIBRARY mbedcrypto CACHE STRING "" FORCE)
+
+        # Download Mozilla CA certificate bundle for mbedTLS
+        set(CACERT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cacert.pem")
+        if(NOT EXISTS "${CACERT_PATH}")
+            message(STATUS "[tcxCurl] Downloading CA certificate bundle...")
+            file(DOWNLOAD
+                "https://curl.se/ca/cacert.pem"
+                "${CACERT_PATH}"
+                TLS_VERIFY ON
+            )
+        endif()
+    endif()
+
+    # curlの共通設定
+    set(BUILD_CURL_EXE OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    set(CURL_ZLIB OFF CACHE BOOL "" FORCE)
+    set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
+    set(HTTP_ONLY ON CACHE BOOL "" FORCE)
+    set(CURL_USE_LIBSSH2 OFF CACHE BOOL "" FORCE)
+    set(CURL_USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
+    set(USE_LIBIDN2 OFF CACHE BOOL "" FORCE)
+    set(CURL_USE_LIBRTMP OFF CACHE BOOL "" FORCE)
+    set(CURL_BROTLI OFF CACHE BOOL "" FORCE)
+    set(CURL_ZSTD OFF CACHE BOOL "" FORCE)
+    set(CURL_USE_GSASL OFF CACHE BOOL "" FORCE)
+    set(CURL_USE_GSSAPI OFF CACHE BOOL "" FORCE)
+    set(USE_NGHTTP2 OFF CACHE BOOL "" FORCE)
+    set(USE_NGTCP2 OFF CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_LDAP ON CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_LDAPS ON CACHE BOOL "" FORCE)
+    set(CURL_USE_OPENSSL OFF CACHE BOOL "" FORCE)
+    set(CURL_USE_SECTRANSP OFF CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_INSTALL ON CACHE BOOL "" FORCE)
+    set(CURL_ENABLE_EXPORT_TARGET OFF CACHE BOOL "" FORCE)
+
+    # SSLバックエンドの選択
+    if(_TCX_USE_MBEDTLS)
+        message(STATUS "[tcxCurl] Fetching curl with mbedTLS backend...")
+        set(CURL_USE_SCHANNEL OFF CACHE BOOL "" FORCE)
+        set(CURL_USE_MBEDTLS ON CACHE BOOL "" FORCE)
+        set(CURL_CA_BUNDLE "${CACERT_PATH}" CACHE STRING "" FORCE)
+    else()
+        message(STATUS "[tcxCurl] Fetching curl with Schannel backend...")
+        set(CURL_USE_SCHANNEL ON CACHE BOOL "" FORCE)
+        set(CURL_USE_MBEDTLS OFF CACHE BOOL "" FORCE)
+    endif()
+
+    FetchContent_Declare(
+        curl
+        URL https://github.com/curl/curl/releases/download/curl-8_12_1/curl-8.12.1.tar.xz
+        URL_HASH SHA256=0341f1ed97a26c811abaebd37d62b833956792b7607ea3f15d001613c76de202
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(curl)
+
+    if(NOT TARGET CURL::libcurl)
+        add_library(CURL::libcurl ALIAS libcurl_static)
+    endif()
+
+    target_compile_definitions(tcxCurl INTERFACE TCX_HTTP_CURL=1)
+    target_link_libraries(tcxCurl INTERFACE CURL::libcurl)
+endif()
+
+message(STATUS "[tcxCurl] Addon loaded")

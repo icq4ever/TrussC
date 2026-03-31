@@ -17,8 +17,8 @@ void tcApp::draw() {
     if (scrollSize < 10) scrollSize = 10;
     if (scrollSize > 300) scrollSize = 300;
 
-    float hue = fmod(scrollX * 0.1f, TAU);
-    if (hue < 0) hue += TAU;
+    float hue = fmod(scrollX * 0.1f, 1.0f);
+    if (hue < 0) hue += 1.0f;
     Color scrollColor = ColorHSB(hue, 0.8f, 0.9f).toRGB();
 
     setColor(scrollColor);

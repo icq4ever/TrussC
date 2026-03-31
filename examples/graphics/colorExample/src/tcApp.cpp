@@ -173,11 +173,12 @@ void tcApp::drawHueWheel() {
 
     // HSB hue wheel
     for (int i = 0; i < segments; i++) {
-        float angle1 = (float)i / segments * TAU;
+        float hue = (float)i / segments;
+        float angle1 = hue * TAU;
         float angle2 = (float)(i + 1) / segments * TAU;
 
         // HSB: Use hue directly
-        Color c = ColorHSB(angle1, 1.0f, 1.0f).toRGB();
+        Color c = ColorHSB(hue, 1.0f, 1.0f).toRGB();
         setColor(c);
 
         // Draw fan shape
@@ -190,11 +191,12 @@ void tcApp::drawHueWheel() {
 
     // OKLCH hue wheel
     for (int i = 0; i < segments; i++) {
-        float angle1 = (float)i / segments * TAU;
+        float hue = (float)i / segments;
+        float angle1 = hue * TAU;
         float angle2 = (float)(i + 1) / segments * TAU;
 
         // OKLCH: Equalize saturation with L=0.7, C=0.15
-        Color c = ColorOKLCH(0.7f, 0.15f, angle1).toRGB().clamped();
+        Color c = ColorOKLCH(0.7f, 0.15f, hue).toRGB().clamped();
         setColor(c);
 
         float x1 = centerX2 + cos(angle1) * radius;
@@ -232,7 +234,7 @@ void tcApp::drawLightnessDemo() {
     // HSB: Same brightness (B=1) but perceptual lightness varies
     float y1 = baseY;
     for (int i = 0; i < segments; i++) {
-        float hue = (float)i / segments * TAU;
+        float hue = (float)i / segments;
         Color c = ColorHSB(hue, 1.0f, 1.0f).toRGB();
         setColor(c);
         drawRect(startX + i * segmentWidth, y1, segmentWidth + 1, barHeight);
@@ -241,7 +243,7 @@ void tcApp::drawLightnessDemo() {
     // Convert HSB to grayscale to check lightness
     float y2 = baseY + barHeight + gap;
     for (int i = 0; i < segments; i++) {
-        float hue = (float)i / segments * TAU;
+        float hue = (float)i / segments;
         Color c = ColorHSB(hue, 1.0f, 1.0f).toRGB();
         // Luminance calculation (sRGB)
         float luma = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
@@ -252,7 +254,7 @@ void tcApp::drawLightnessDemo() {
     // OKLCH: Perceptually uniform lightness with same L
     float y3 = baseY + 2 * (barHeight + gap);
     for (int i = 0; i < segments; i++) {
-        float hue = (float)i / segments * TAU;
+        float hue = (float)i / segments;
         Color c = ColorOKLCH(0.7f, 0.15f, hue).toRGB().clamped();
         setColor(c);
         drawRect(startX + i * segmentWidth, y3, segmentWidth + 1, barHeight);
@@ -261,7 +263,7 @@ void tcApp::drawLightnessDemo() {
     // Convert OKLCH to grayscale
     float y4 = baseY + 3 * (barHeight + gap);
     for (int i = 0; i < segments; i++) {
-        float hue = (float)i / segments * TAU;
+        float hue = (float)i / segments;
         Color c = ColorOKLCH(0.7f, 0.15f, hue).toRGB().clamped();
         float luma = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
         setColor(luma, luma, luma);

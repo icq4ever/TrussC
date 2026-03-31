@@ -43,11 +43,10 @@ public:
     // Console input (commands from stdin)
     Event<ConsoleEventArgs> console;
 
-    // Touch (iOS)
-    Event<TouchEventArgs> touchBegan;
+    // Touch (multi-touch, used on Android/iOS)
+    Event<TouchEventArgs> touchPressed;
     Event<TouchEventArgs> touchMoved;
-    Event<TouchEventArgs> touchEnded;
-    Event<TouchEventArgs> touchCancelled;
+    Event<TouchEventArgs> touchReleased;   // Also fired on cancellation — check args.cancelled
 };
 
 // ---------------------------------------------------------------------------

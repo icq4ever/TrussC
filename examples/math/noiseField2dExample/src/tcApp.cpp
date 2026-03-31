@@ -125,8 +125,8 @@ void tcApp::drawFlowField() {
             float dx = cos(angle) * len;
             float dy = sin(angle) * len;
 
-            // Change hue based on angle
-            setColorHSB(angle, 0.7f, 0.9f);
+            // Change hue based on angle (normalize to 0-1)
+            setColorHSB(fmod(angle / TAU, 1.0f), 0.7f, 0.9f);
             drawLine(x, y, x + dx, y + dy);
 
             // Arrow tip

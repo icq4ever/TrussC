@@ -100,8 +100,8 @@ categories:
         signatures:
           - params: "int key"
             params_simple: "key"
-        description: "Key pressed"
-        description_ja: "キーが押された"
+        description: "Key pressed. Use KEY_* constants for special keys, or uppercase char literals for printable keys (e.g. key == 'A', key == '1')"
+        description_ja: "キーが押された。特殊キーはKEY_*定数、印字可能キーは大文字リテラル（例: key == 'A', key == '1'）で比較"
         sketch: true
         snippet: "void keyPressed(int key) {\n\t$0\n}"
 
@@ -135,12 +135,14 @@ categories:
       - name: clear
         return: "void"
         signatures:
+          - params: ""
+            params_simple: ""
           - params: "float gray"
             params_simple: "gray"
           - params: "float r, float g, float b"
             params_simple: "r, g, b"
-        description: "Clear screen"
-        description_ja: "画面をクリア"
+        description: "Clear screen. No args = transparent black (0,0,0,0)"
+        description_ja: "画面をクリア。引数なし = 透明黒 (0,0,0,0)"
         of_equivalent: "ofClear / ofBackground"
         sketch: true
         snippet: "clear(${1:0.0})"
@@ -166,8 +168,8 @@ categories:
         signatures:
           - params: "float h, float s, float b"
             params_simple: "h, s, b"
-        description: "Set color from HSB (H: 0-TAU)"
-        description_ja: "HSBで色を設定 (H: 0-TAU)"
+        description: "Set color from HSB (H: 0-1)"
+        description_ja: "HSBで色を設定 (H: 0-1)"
         sketch: true
         snippet: "setColorHSB(${1:0.0}, ${2:1.0}, ${3:1.0})"
 
@@ -283,10 +285,12 @@ categories:
         signatures:
           - params: "float x1, float y1, float x2, float y2"
             params_simple: "x1, y1, x2, y2"
+          - params: "float x1, float y1, float z1, float x2, float y2, float z2"
+            params_simple: "x1, y1, z1, x2, y2, z2"
           - params: "Vec3 p1, Vec3 p2"
             params_simple: "p1, p2"
-        description: "Draw line"
-        description_ja: "線を描画"
+        description: "Draw line (2D or 3D)"
+        description_ja: "線を描画（2Dまたは3D）"
         of_equivalent: "ofDrawLine"
         sketch: true
         snippet: "drawLine(${1:x1}, ${2:y1}, ${3:x2}, ${4:y2})"
@@ -413,6 +417,26 @@ categories:
         description_ja: "ストローク描画を終了"
         sketch: true
         snippet: "endStroke()"
+
+      - name: beginLines
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Begin batch line drawing. Add vertex pairs with vertex(), then call endLines(). Each pair of vertices draws one independent line segment. Use setColor() between vertices for per-line colors."
+        description_ja: "バッチ線描画を開始。vertex()で頂点ペアを追加し、endLines()で描画。2頂点で1本の独立した線分。setColor()で頂点ごとに色を変更可能"
+        sketch: true
+        snippet: "beginLines()"
+
+      - name: endLines
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "End batch line drawing and render all accumulated line segments"
+        description_ja: "バッチ線描画を終了し、蓄積された全線分を描画"
+        sketch: true
+        snippet: "endLines()"
 
       - name: drawStroke
         return: "void"
@@ -1089,6 +1113,72 @@ categories:
         sketch: true
         snippet: "isKeyPressed(${1:key})"
 
+      # --- Cursor ---
+
+      - name: showCursor
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Show the mouse cursor (default)"
+        description_ja: "マウスカーソルを表示（デフォルト）"
+        of_equivalent: "ofShowCursor"
+        sketch: true
+        snippet: "showCursor()"
+
+      - name: hideCursor
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Hide the mouse cursor"
+        description_ja: "マウスカーソルを隠す"
+        of_equivalent: "ofHideCursor"
+        sketch: true
+        snippet: "hideCursor()"
+
+      - name: setCursor
+        return: "void"
+        signatures:
+          - params: "Cursor cursor"
+            params_simple: "cursor"
+        description: "Set the mouse cursor shape"
+        description_ja: "マウスカーソルの形状を設定"
+        sketch: true
+        snippet: "setCursor(${1:Cursor::Hand})"
+
+      - name: getCursor
+        return: "Cursor"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the current mouse cursor shape"
+        description_ja: "現在のマウスカーソル形状を取得"
+        sketch: true
+        snippet: "getCursor()"
+
+      - name: bindCursorImage
+        return: "void"
+        signatures:
+          - params: "Cursor cursor, int width, int height, const unsigned char* pixels, int hotspotX = 0, int hotspotY = 0"
+            params_simple: "cursor, width, height, pixels, hotspotX, hotspotY"
+          - params: "Cursor cursor, const Image& image, int hotspotX = 0, int hotspotY = 0"
+            params_simple: "cursor, image, hotspotX, hotspotY"
+        description: "Bind a custom image to a cursor slot (RGBA pixels or Image)"
+        description_ja: "カスタム画像をカーソルスロットにバインド（RGBAピクセルまたはImage）"
+        sketch: true
+        snippet: "bindCursorImage(${1:Cursor::Custom0}, ${2:image})"
+
+      - name: unbindCursorImage
+        return: "void"
+        signatures:
+          - params: "Cursor cursor"
+            params_simple: "cursor"
+        description: "Unbind a custom cursor image, restoring the system default"
+        description_ja: "カスタムカーソル画像を解除し、システムデフォルトに戻す"
+        sketch: true
+        snippet: "unbindCursorImage(${1:Cursor::Custom0})"
+
   # ==========================================================================
   # Time - Frame
   # ==========================================================================
@@ -1421,17 +1511,6 @@ categories:
     name: "Math - Interpolation"
     name_ja: "数学 - 補間"
     functions:
-      - name: lerp
-        return: "float"
-        signatures:
-          - params: "float a, float b, float t"
-            params_simple: "a, b, t"
-        description: "Linear interpolation"
-        description_ja: "線形補間"
-        of_equivalent: "ofLerp"
-        sketch: true
-        snippet: "lerp(${1:a}, ${2:b}, ${3:t})"
-
       - name: clamp
         return: "float"
         signatures:
@@ -1443,16 +1522,16 @@ categories:
         sketch: true
         snippet: "clamp(${1:v}, ${2:min}, ${3:max})"
 
-      - name: map
+      - name: remap
         return: "float"
         signatures:
           - params: "float v, float inMin, float inMax, float outMin, float outMax"
             params_simple: "v, inMin, inMax, outMin, outMax"
-        description: "Map value between ranges"
-        description_ja: "値を範囲間でマッピング"
+        description: "Remap value from one range to another"
+        description_ja: "値を範囲間でリマッピング"
         of_equivalent: "ofMap"
         sketch: true
-        snippet: "map(${1:v}, ${2:inMin}, ${3:inMax}, ${4:outMin}, ${5:outMax})"
+        snippet: "remap(${1:v}, ${2:inMin}, ${3:inMax}, ${4:outMin}, ${5:outMax})"
 
   # ==========================================================================
   # Math - Trigonometry
@@ -2623,15 +2702,25 @@ categories:
         sketch: true
         snippet: "finish()"
 
-      - name: update
-        return: "void"
+      - name: loop
+        return: "Tween@"
         signatures:
-          - params: "float dt"
-            params_simple: "dt"
-        description: "Update animation"
-        description_ja: "更新"
+          - params: "int count = -1"
+            params_simple: "count"
+        description: "Set loop count (-1=infinite, 0=none, N=repeat N times)"
+        description_ja: "ループ回数を設定 (-1=無限, 0=なし, N=N回繰り返し)"
         sketch: true
-        snippet: "update(getDeltaTime())"
+        snippet: "loop(${1:-1})"
+
+      - name: yoyo
+        return: "Tween@"
+        signatures:
+          - params: "bool enable = true"
+            params_simple: "enable"
+        description: "Enable yoyo (reverse direction each loop)"
+        description_ja: "ヨーヨー（ループごとに方向反転）を有効化"
+        sketch: true
+        snippet: "yoyo()"
 
       - name: getValue
         return: "float"
@@ -2712,6 +2801,16 @@ categories:
         description_ja: "終了値を取得"
         sketch: true
         snippet: "getEnd()"
+
+      - name: getLoopCount
+        return: "int"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get number of completed loop iterations"
+        description_ja: "完了したループ回数を取得"
+        sketch: true
+        snippet: "getLoopCount()"
 
   # ==========================================================================
   # Types - Vec2
@@ -2828,6 +2927,36 @@ categories:
         description_ja: "色の成分を設定（型メソッド）"
         snippet: "set(${1:r}, ${2:g}, ${3:b})"
 
+      - name: toHSB
+        return: "ColorHSB"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Convert to HSB color space (H: 0-1, S: 0-1, B: 0-1)"
+        description_ja: "HSB色空間に変換 (H: 0-1, S: 0-1, B: 0-1)"
+        sketch: true
+        snippet: "toHSB()"
+
+      - name: toOKLab
+        return: "ColorOKLab"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Convert to OKLab color space (perceptually uniform)"
+        description_ja: "OKLab色空間に変換（知覚的に均一）"
+        sketch: true
+        snippet: "toOKLab()"
+
+      - name: toOKLCH
+        return: "ColorOKLCH"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Convert to OKLCH color space (L: 0-1, C: 0-0.4, H: 0-1)"
+        description_ja: "OKLCH色空間に変換 (L: 0-1, C: 0-0.4, H: 0-1)"
+        sketch: true
+        snippet: "toOKLCH()"
+
       - name: Color_fromHSB
         return: "Color"
         signatures:
@@ -2835,8 +2964,8 @@ categories:
             params_simple: "h, s, b"
           - params: "float h, float s, float b, float a"
             params_simple: "h, s, b, a"
-        description: "Create Color from HSB"
-        description_ja: "HSBからColorを作成"
+        description: "Create Color from HSB (H: 0-1, S: 0-1, B: 0-1)"
+        description_ja: "HSBからColorを作成 (H: 0-1, S: 0-1, B: 0-1)"
         sketch: true
         snippet: "Color_fromHSB(${1:h}, ${2:s}, ${3:b})"
 
@@ -2875,6 +3004,84 @@ categories:
         description_ja: "OKLabからColorを作成"
         sketch: true
         snippet: "Color_fromOKLab(${1:L}, ${2:a}, ${3:b})"
+
+  # ==========================================================================
+  # Types - ColorHSB
+  # ==========================================================================
+  - id: types_colorhsb
+    name: "Types - ColorHSB"
+    name_ja: "型 - ColorHSB"
+    functions:
+      - name: ColorHSB
+        return: ""
+        signatures:
+          - params: "float h, float s, float b"
+            params_simple: "h, s, b"
+          - params: "float h, float s, float b, float a"
+            params_simple: "h, s, b, a"
+        description: "HSB color type (H: 0-1, S: 0-1, B: 0-1). Use toRGB() to convert to Color"
+        description_ja: "HSBカラー型 (H: 0-1, S: 0-1, B: 0-1)。toRGB()でColorに変換"
+        sketch: true
+        snippet: "ColorHSB(${1:h}, ${2:s}, ${3:b})"
+
+      - name: toRGB
+        return: "Color"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Convert ColorHSB to Color (RGB)"
+        description_ja: "ColorHSBをColor (RGB) に変換"
+        sketch: true
+        snippet: "toRGB()"
+
+      - name: lerp
+        return: "ColorHSB"
+        signatures:
+          - params: "ColorHSB target, float t"
+            params_simple: "target, t"
+        description: "Interpolate in HSB space (shortest hue path)"
+        description_ja: "HSB空間で補間（色相は最短経路）"
+        sketch: true
+        snippet: "lerp(${1:target}, ${2:t})"
+
+  # ==========================================================================
+  # Types - ColorOKLCH
+  # ==========================================================================
+  - id: types_coloroklch
+    name: "Types - ColorOKLCH"
+    name_ja: "型 - ColorOKLCH"
+    functions:
+      - name: ColorOKLCH
+        return: ""
+        signatures:
+          - params: "float L, float C, float H"
+            params_simple: "L, C, H"
+          - params: "float L, float C, float H, float a"
+            params_simple: "L, C, H, a"
+        description: "OKLCH color type (L: 0-1, C: 0-0.4, H: 0-1). Perceptually uniform"
+        description_ja: "OKLCHカラー型 (L: 0-1, C: 0-0.4, H: 0-1)。知覚的に均一"
+        sketch: true
+        snippet: "ColorOKLCH(${1:L}, ${2:C}, ${3:H})"
+
+      - name: toRGB
+        return: "Color"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Convert ColorOKLCH to Color (RGB)"
+        description_ja: "ColorOKLCHをColor (RGB) に変換"
+        sketch: true
+        snippet: "toRGB()"
+
+      - name: lerp
+        return: "ColorOKLCH"
+        signatures:
+          - params: "ColorOKLCH target, float t"
+            params_simple: "target, t"
+        description: "Interpolate in OKLCH space (shortest hue path, perceptually uniform)"
+        description_ja: "OKLCH空間で補間（色相は最短経路、知覚的に均一）"
+        sketch: true
+        snippet: "lerp(${1:target}, ${2:t})"
 
   # ==========================================================================
   # Types - Rect
@@ -3860,8 +4067,10 @@ categories:
         signatures:
           - params: ""
             params_simple: ""
-        description: "Begin drawing to FBO"
-        description_ja: "FBOへの描画を開始"
+          - params: "float r, float g, float b, float a = 1.0"
+            params_simple: "r, g, b, a"
+        description: "Begin drawing to FBO. No args = preserve previous content. With args = clear with specified color"
+        description_ja: "FBOへの描画を開始。引数なし = 前の内容を保持。引数あり = 指定色でクリア"
         sketch: true
         snippet: "begin()"
 
@@ -4731,6 +4940,208 @@ constants:
     description_ja: "無音"
     sketch: true
 
+  # Cursor constants
+  - name: "Cursor::Default"
+    value: "0"
+    description: "System default cursor"
+    description_ja: "システムデフォルトカーソル"
+    sketch: true
+
+  - name: "Cursor::Arrow"
+    value: "1"
+    description: "Arrow cursor"
+    description_ja: "矢印カーソル"
+    sketch: true
+
+  - name: "Cursor::IBeam"
+    value: "2"
+    description: "Text input cursor"
+    description_ja: "テキスト入力カーソル"
+    sketch: true
+
+  - name: "Cursor::Crosshair"
+    value: "3"
+    description: "Crosshair cursor"
+    description_ja: "十字カーソル"
+    sketch: true
+
+  - name: "Cursor::Hand"
+    value: "4"
+    description: "Pointing hand cursor"
+    description_ja: "指差しカーソル"
+    sketch: true
+
+  - name: "Cursor::ResizeEW"
+    value: "5"
+    description: "East-west resize cursor"
+    description_ja: "左右リサイズカーソル"
+    sketch: true
+
+  - name: "Cursor::ResizeNS"
+    value: "6"
+    description: "North-south resize cursor"
+    description_ja: "上下リサイズカーソル"
+    sketch: true
+
+  - name: "Cursor::ResizeNWSE"
+    value: "7"
+    description: "NW-SE diagonal resize cursor"
+    description_ja: "左上-右下リサイズカーソル"
+    sketch: true
+
+  - name: "Cursor::ResizeNESW"
+    value: "8"
+    description: "NE-SW diagonal resize cursor"
+    description_ja: "右上-左下リサイズカーソル"
+    sketch: true
+
+  - name: "Cursor::ResizeAll"
+    value: "9"
+    description: "Move/resize all directions cursor"
+    description_ja: "全方向移動カーソル"
+    sketch: true
+
+  - name: "Cursor::NotAllowed"
+    value: "10"
+    description: "Not allowed cursor"
+    description_ja: "禁止カーソル"
+    sketch: true
+
+  - name: "Cursor::Custom0"
+    value: "11"
+    description: "Custom cursor slot 0 (bind image first)"
+    description_ja: "カスタムカーソルスロット0（先に画像をバインド）"
+    sketch: true
+
+  - name: "Cursor::Custom1"
+    value: "12"
+    description: "Custom cursor slot 1"
+    description_ja: "カスタムカーソルスロット1"
+    sketch: true
+
+  - name: "Cursor::Custom2"
+    value: "13"
+    description: "Custom cursor slot 2"
+    description_ja: "カスタムカーソルスロット2"
+    sketch: true
+
+  - name: "Cursor::Custom3"
+    value: "14"
+    description: "Custom cursor slot 3"
+    description_ja: "カスタムカーソルスロット3"
+    sketch: true
+
+  # Key constants (for keyPressed/keyReleased)
+  # For printable characters, you can also use uppercase char literals: key == 'A', key == '1'
+  # (sokol keycodes match ASCII uppercase values)
+  - name: KEY_SPACE
+    value: "32"
+    description: "Space key"
+    description_ja: "スペースキー"
+    sketch: true
+  - name: KEY_ESCAPE
+    value: "256"
+    description: "Escape key"
+    description_ja: "Escキー"
+    sketch: true
+  - name: KEY_ENTER
+    value: "257"
+    description: "Enter/Return key"
+    description_ja: "Enter/Returnキー"
+    sketch: true
+  - name: KEY_TAB
+    value: "258"
+    description: "Tab key"
+    description_ja: "Tabキー"
+    sketch: true
+  - name: KEY_BACKSPACE
+    value: "259"
+    description: "Backspace key"
+    description_ja: "Backspaceキー"
+    sketch: true
+  - name: KEY_DELETE
+    value: "261"
+    description: "Delete key"
+    description_ja: "Deleteキー"
+    sketch: true
+  - name: KEY_RIGHT
+    value: "262"
+    description: "Right arrow key"
+    description_ja: "右矢印キー"
+    sketch: true
+  - name: KEY_LEFT
+    value: "263"
+    description: "Left arrow key"
+    description_ja: "左矢印キー"
+    sketch: true
+  - name: KEY_DOWN
+    value: "264"
+    description: "Down arrow key"
+    description_ja: "下矢印キー"
+    sketch: true
+  - name: KEY_UP
+    value: "265"
+    description: "Up arrow key"
+    description_ja: "上矢印キー"
+    sketch: true
+  - name: KEY_LEFT_SHIFT
+    value: "340"
+    description: "Left Shift key"
+    description_ja: "左Shiftキー"
+    sketch: true
+  - name: KEY_RIGHT_SHIFT
+    value: "344"
+    description: "Right Shift key"
+    description_ja: "右Shiftキー"
+    sketch: true
+  - name: KEY_LEFT_CONTROL
+    value: "341"
+    description: "Left Control key"
+    description_ja: "左Controlキー"
+    sketch: true
+  - name: KEY_RIGHT_CONTROL
+    value: "345"
+    description: "Right Control key"
+    description_ja: "右Controlキー"
+    sketch: true
+  - name: KEY_LEFT_ALT
+    value: "342"
+    description: "Left Alt/Option key"
+    description_ja: "左Alt/Optionキー"
+    sketch: true
+  - name: KEY_RIGHT_ALT
+    value: "346"
+    description: "Right Alt/Option key"
+    description_ja: "右Alt/Optionキー"
+    sketch: true
+  - name: KEY_LEFT_SUPER
+    value: "343"
+    description: "Left Super/Command key"
+    description_ja: "左Super/Commandキー"
+    sketch: true
+  - name: KEY_RIGHT_SUPER
+    value: "347"
+    description: "Right Super/Command key"
+    description_ja: "右Super/Commandキー"
+    sketch: true
+
+  # Mouse button constants
+  - name: MOUSE_BUTTON_LEFT
+    value: "0"
+    description: "Left mouse button"
+    description_ja: "左マウスボタン"
+    sketch: true
+  - name: MOUSE_BUTTON_RIGHT
+    value: "1"
+    description: "Right mouse button"
+    description_ja: "右マウスボタン"
+    sketch: true
+  - name: MOUSE_BUTTON_MIDDLE
+    value: "2"
+    description: "Middle mouse button"
+    description_ja: "中央マウスボタン"
+    sketch: true
+
 # ==========================================================================
 # Keywords (for TrussSketch syntax highlighting - AngelScript)
 # ==========================================================================
@@ -5098,6 +5509,20 @@ types:
         description: "Get clamped copy (0.0-1.0)"
         description_ja: "クランプしたコピーを取得"
         snippet: "clamped()"
+      - name: toHSB
+        return: ColorHSB
+        signatures:
+          - params: ""
+        description: "Convert to HSB (H: 0-1, S: 0-1, B: 0-1)"
+        description_ja: "HSBに変換 (H: 0-1, S: 0-1, B: 0-1)"
+        snippet: "toHSB()"
+      - name: toOKLCH
+        return: ColorOKLCH
+        signatures:
+          - params: ""
+        description: "Convert to OKLCH (L: 0-1, C: 0-0.4, H: 0-1)"
+        description_ja: "OKLCHに変換 (L: 0-1, C: 0-0.4, H: 0-1)"
+        snippet: "toOKLCH()"
     static_methods:
       - name: Color_fromHex
         return: Color
@@ -5112,8 +5537,8 @@ types:
         signatures:
           - params: "float h, float s, float b"
           - params: "float h, float s, float b, float a"
-        description: "Create from HSB (H: 0-TAU)"
-        description_ja: "HSBから作成 (H: 0-TAU)"
+        description: "Create from HSB (H: 0-1)"
+        description_ja: "HSBから作成 (H: 0-1)"
         snippet: "Color_fromHSB(${1:h}, ${2:s}, ${3:b})"
       - name: Color_fromBytes
         return: Color

@@ -9,6 +9,77 @@
 
 namespace trussc {
 
+// Pixel format for Texture/FBO allocation
+enum class TextureFormat {
+    RGBA8,       // 4ch, 8-bit/ch (default)
+    RGBA16F,     // 4ch, 16-bit float/ch
+    RGBA32F,     // 4ch, 32-bit float/ch
+    R8,          // 1ch, 8-bit
+    R16F,        // 1ch, 16-bit float
+    R32F,        // 1ch, 32-bit float
+    RG8,         // 2ch, 8-bit/ch
+    RG16F,       // 2ch, 16-bit float/ch
+    RG32F,       // 2ch, 32-bit float/ch
+};
+
+// Convert TextureFormat to sokol format
+inline sg_pixel_format toSokolFormat(TextureFormat fmt) {
+    switch (fmt) {
+        case TextureFormat::RGBA8:   return SG_PIXELFORMAT_RGBA8;
+        case TextureFormat::RGBA16F: return SG_PIXELFORMAT_RGBA16F;
+        case TextureFormat::RGBA32F: return SG_PIXELFORMAT_RGBA32F;
+        case TextureFormat::R8:      return SG_PIXELFORMAT_R8;
+        case TextureFormat::R16F:    return SG_PIXELFORMAT_R16F;
+        case TextureFormat::R32F:    return SG_PIXELFORMAT_R32F;
+        case TextureFormat::RG8:     return SG_PIXELFORMAT_RG8;
+        case TextureFormat::RG16F:   return SG_PIXELFORMAT_RG16F;
+        case TextureFormat::RG32F:   return SG_PIXELFORMAT_RG32F;
+        default:                   return SG_PIXELFORMAT_RGBA8;
+    }
+}
+
+// Number of color channels
+inline int channelCount(TextureFormat fmt) {
+    switch (fmt) {
+        case TextureFormat::R8:
+        case TextureFormat::R16F:
+        case TextureFormat::R32F:    return 1;
+        case TextureFormat::RG8:
+        case TextureFormat::RG16F:
+        case TextureFormat::RG32F:   return 2;
+        default:                   return 4;
+    }
+}
+
+// Bytes per pixel
+inline int bytesPerPixel(TextureFormat fmt) {
+    switch (fmt) {
+        case TextureFormat::R8:      return 1;
+        case TextureFormat::RG8:     return 2;
+        case TextureFormat::RGBA8:   return 4;
+        case TextureFormat::R16F:    return 2;
+        case TextureFormat::RG16F:   return 4;
+        case TextureFormat::RGBA16F: return 8;
+        case TextureFormat::R32F:    return 4;
+        case TextureFormat::RG32F:   return 8;
+        case TextureFormat::RGBA32F: return 16;
+        default:                   return 4;
+    }
+}
+
+// Whether the format uses floating-point components
+inline bool isFloatFormat(TextureFormat fmt) {
+    switch (fmt) {
+        case TextureFormat::RGBA16F:
+        case TextureFormat::RGBA32F:
+        case TextureFormat::R16F:
+        case TextureFormat::R32F:
+        case TextureFormat::RG16F:
+        case TextureFormat::RG32F:   return true;
+        default:                   return false;
+    }
+}
+
 // Texture usage mode
 enum class TextureUsage {
     Immutable,      // Set once, cannot update (for Image::load)
@@ -44,7 +115,7 @@ public:
 
     // === Allocation/Deallocation ===
 
-    // Allocate empty texture
+    // Allocate empty texture (channel-based, backward compatible)
     void allocate(int width, int height, int channels = 4,
                   TextureUsage usage = TextureUsage::Immutable,
                   int sampleCount = 1) {
@@ -56,6 +127,22 @@ public:
         usage_ = usage;
         sampleCount_ = sampleCount;
         pixelFormat_ = SG_PIXELFORMAT_NONE;  // Use default based on channels
+
+        createResources(nullptr);
+    }
+
+    // Allocate empty texture with explicit pixel format
+    void allocate(int width, int height, TextureFormat format,
+                  TextureUsage usage = TextureUsage::Immutable,
+                  int sampleCount = 1) {
+        clear();
+
+        width_ = width;
+        height_ = height;
+        channels_ = channelCount(format);
+        usage_ = usage;
+        sampleCount_ = sampleCount;
+        pixelFormat_ = toSokolFormat(format);
 
         createResources(nullptr);
     }
@@ -89,7 +176,8 @@ public:
     }
 
     bool isCompressed() const {
-        return pixelFormat_ != SG_PIXELFORMAT_NONE && pixelFormat_ != SG_PIXELFORMAT_RGBA32F;
+        // Compressed formats (BC/ETC/ASTC) start at BC1_RGBA in sokol's enum
+        return pixelFormat_ >= SG_PIXELFORMAT_BC1_RGBA;
     }
 
     // Allocate texture from Pixels (auto-detects F32 → RGBA32F)
@@ -145,6 +233,7 @@ public:
     int getChannels() const { return channels_; }
     TextureUsage getUsage() const { return usage_; }
     int getSampleCount() const { return sampleCount_; }
+    sg_pixel_format getPixelFormat() const { return pixelFormat_; }
 
     // === Data update (except Immutable) ===
 
@@ -167,10 +256,7 @@ public:
         }
         lastUpdateFrame_ = currentFrame;
 
-        size_t dataSize = (size_t)width * height * channels;
-        if (pixelFormat_ == SG_PIXELFORMAT_RGBA32F) {
-            dataSize *= sizeof(float);
-        }
+        size_t dataSize = (size_t)width * height * computeBytesPerPixel();
 
         sg_image_data img_data = {};
         img_data.mip_levels[0].ptr = data;
@@ -303,13 +389,31 @@ private:
     bool mipmapped_ = false;
     TextureUsage usage_ = TextureUsage::Immutable;
     uint64_t lastUpdateFrame_ = UINT64_MAX;  // Last updated frame
-    sg_pixel_format pixelFormat_ = SG_PIXELFORMAT_NONE;  // For compressed textures
+    sg_pixel_format pixelFormat_ = SG_PIXELFORMAT_NONE;
 
     TextureFilter minFilter_ = TextureFilter::Linear;
     TextureFilter magFilter_ = TextureFilter::Linear;
     TextureWrap wrapU_ = TextureWrap::ClampToEdge;
     TextureWrap wrapV_ = TextureWrap::ClampToEdge;
     bool premultipliedAlpha_ = false;
+
+    // Bytes per pixel for current pixelFormat_ / channels_
+    size_t computeBytesPerPixel() const {
+        switch (pixelFormat_) {
+            case SG_PIXELFORMAT_R8:       return 1;
+            case SG_PIXELFORMAT_RG8:      return 2;
+            case SG_PIXELFORMAT_RGBA8:    return 4;
+            case SG_PIXELFORMAT_R16F:     return 2;
+            case SG_PIXELFORMAT_RG16F:    return 4;
+            case SG_PIXELFORMAT_RGBA16F:  return 8;
+            case SG_PIXELFORMAT_R32F:     return 4;
+            case SG_PIXELFORMAT_RG32F:    return 8;
+            case SG_PIXELFORMAT_RGBA32F:  return 16;
+            default:
+                // Fallback for NONE (legacy path, based on channels_)
+                return (size_t)channels_;
+        }
+    }
 
     void createCompressedResources(const void* data, size_t dataSize) {
         sg_image_desc img_desc = {};
@@ -345,12 +449,10 @@ private:
             img_desc.pixel_format = (channels_ == 4) ? SG_PIXELFORMAT_RGBA8 : SG_PIXELFORMAT_R8;
         }
 
-        // Compute data size (RGBA32F = 4 bytes per component)
+        // Compute data size based on pixel format
+        size_t bpp = computeBytesPerPixel();
         bool isFloat = (pixelFormat_ == SG_PIXELFORMAT_RGBA32F);
-        size_t dataSize = (size_t)width_ * height_ * channels_;
-        if (isFloat) {
-            dataSize *= sizeof(float);
-        }
+        size_t dataSize = (size_t)width_ * height_ * bpp;
 
         // Storage for mip chain data (kept alive until sg_make_image copies them)
         std::vector<std::vector<uint8_t>> mipStorage;

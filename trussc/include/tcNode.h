@@ -68,9 +68,9 @@ public:
             "addChild() called before shared_ptr is ready — move to setup()");
 
         // If preserving global position, record position before move
-        float globalX = 0, globalY = 0;
+        Vec3 gpos;
         if (keepGlobalPosition) {
-            child->localToGlobal(0, 0, globalX, globalY);
+            gpos = child->localToGlobal(Vec3(0, 0, 0));
         }
 
         // Remove from existing parent
@@ -83,9 +83,8 @@ public:
 
         // If preserving global position, recalculate local coordinates relative to new parent
         if (keepGlobalPosition) {
-            float localX, localY;
-            globalToLocal(globalX, globalY, localX, localY);
-            child->setPos(localX, localY, child->getZ());
+            Vec3 lpos = globalToLocal(gpos);
+            child->setPos(lpos.x, lpos.y, child->getZ());
         }
 
         // Notify callback
@@ -101,9 +100,9 @@ public:
             "insertChild() called before shared_ptr is ready — move to setup()");
 
         // If preserving global position, record position before move
-        float globalX = 0, globalY = 0;
+        Vec3 gpos;
         if (keepGlobalPosition) {
-            child->localToGlobal(0, 0, globalX, globalY);
+            gpos = child->localToGlobal(Vec3(0, 0, 0));
         }
 
         // Remove from existing parent
@@ -122,9 +121,8 @@ public:
 
         // If preserving global position, recalculate local coordinates
         if (keepGlobalPosition) {
-            float localX, localY;
-            globalToLocal(globalX, globalY, localX, localY);
-            child->setPos(localX, localY, child->getZ());
+            Vec3 lpos = globalToLocal(gpos);
+            child->setPos(lpos.x, lpos.y, child->getZ());
         }
 
         onChildAdded(child);
@@ -162,8 +160,8 @@ public:
         return parent_.lock();
     }
 
-    // Get list of child nodes
-    const std::vector<Ptr>& getChildren() const {
+    // Get list of child nodes (returns a copy — safe to iterate while modifying the tree)
+    std::vector<Ptr> getChildren() const {
         return children_;
     }
 
@@ -177,7 +175,7 @@ public:
     // -------------------------------------------------------------------------
 
     // Active state (false: update/draw are skipped)
-    bool getActive() const { return isActive_; }
+    bool isActive() const { return isActive_; }
     void setActive(bool active) {
         if (isActive_ != active) {
             isActive_ = active;
@@ -186,7 +184,7 @@ public:
     }
 
     // Visible state (false: only draw is skipped)
-    bool getVisible() const { return isVisible_; }
+    bool isVisible() const { return isVisible_; }
     void setVisible(bool visible) {
         if (isVisible_ != visible) {
             isVisible_ = visible;
@@ -194,10 +192,14 @@ public:
         }
     }
 
-    // Legacy public access (deprecated, use setActive/setVisible)
-    [[deprecated("Use setActive() instead")]]
+    // Deprecated aliases — will be removed in v1.0.0
+    [[deprecated("Use isActive() instead. Will be removed in v1.0.0")]]
+    bool getActive() const { return isActive_; }
+    [[deprecated("Use isVisible() instead. Will be removed in v1.0.0")]]
+    bool getVisible() const { return isVisible_; }
+    [[deprecated("Use setActive() instead. Will be removed in v1.0.0")]]
     void setIsActive(bool active) { setActive(active); }
-    [[deprecated("Use setVisible() instead")]]
+    [[deprecated("Use setVisible() instead. Will be removed in v1.0.0")]]
     void setIsVisible(bool visible) { setVisible(visible); }
 
     // Destroy node (marks as dead, removed from tree on next update cycle)
@@ -318,17 +320,30 @@ public:
     }
 
     // Convert global coordinates to this node's local coordinates
+    Vec3 globalToLocal(const Vec3& global) const {
+        return getGlobalMatrixInverse() * global;
+    }
+
+    [[deprecated("Use globalToLocal(Vec3) instead. Will be removed in v1.0.0")]]
     void globalToLocal(float globalX, float globalY, float& localX, float& localY) const {
-        // Use inverse matrix for coordinate transformation
-        Mat4 inv = getGlobalMatrixInverse();
-        Vec3 local = inv * Vec3(globalX, globalY, 0.0f);
+        Vec3 local = globalToLocal(Vec3(globalX, globalY, 0.0f));
         localX = local.x;
         localY = local.y;
     }
 
+    // Get global position (origin of this node in global space)
+    Vec3 getGlobalPos() const {
+        return localToGlobal(Vec3(0, 0, 0));
+    }
+
     // Convert local coordinates to global coordinates
+    Vec3 localToGlobal(const Vec3& local) const {
+        return getGlobalMatrix() * local;
+    }
+
+    [[deprecated("Use localToGlobal(Vec3) instead. Will be removed in v1.0.0")]]
     void localToGlobal(float localX, float localY, float& globalX, float& globalY) const {
-        Vec3 global = getGlobalMatrix() * Vec3(localX, localY, 0.0f);
+        Vec3 global = localToGlobal(Vec3(localX, localY, 0.0f));
         globalX = global.x;
         globalY = global.y;
     }
@@ -339,30 +354,22 @@ public:
 
     // Mouse X in this node's local coordinate system
     float getMouseX() const {
-        float lx, ly;
-        globalToLocal(trussc::getGlobalMouseX(), trussc::getGlobalMouseY(), lx, ly);
-        return lx;
+        return globalToLocal(Vec3(trussc::getGlobalMouseX(), trussc::getGlobalMouseY(), 0)).x;
     }
 
     // Mouse Y in this node's local coordinate system
     float getMouseY() const {
-        float lx, ly;
-        globalToLocal(trussc::getGlobalMouseX(), trussc::getGlobalMouseY(), lx, ly);
-        return ly;
+        return globalToLocal(Vec3(trussc::getGlobalMouseX(), trussc::getGlobalMouseY(), 0)).y;
     }
 
     // Previous frame mouse X (in local coordinate system)
     float getPMouseX() const {
-        float lx, ly;
-        globalToLocal(trussc::getGlobalPMouseX(), trussc::getGlobalPMouseY(), lx, ly);
-        return lx;
+        return globalToLocal(Vec3(trussc::getGlobalPMouseX(), trussc::getGlobalPMouseY(), 0)).x;
     }
 
     // Previous frame mouse Y (in local coordinate system)
     float getPMouseY() const {
-        float lx, ly;
-        globalToLocal(trussc::getGlobalPMouseX(), trussc::getGlobalPMouseY(), lx, ly);
-        return ly;
+        return globalToLocal(Vec3(trussc::getGlobalPMouseX(), trussc::getGlobalPMouseY(), 0)).y;
     }
 
     // -------------------------------------------------------------------------
@@ -515,6 +522,7 @@ private:
 
         // User drawing
         if (isVisible_) {
+            resetStyle();
             draw();
         }
 
@@ -522,6 +530,7 @@ private:
         drawChildren();
 
         // End draw hook
+        resetStyle();
         endDraw();
 
         popMatrix();
@@ -554,9 +563,8 @@ private:
     Ptr dispatchMouseRelease(float screenX, float screenY, int button) {
         // Send release to grabbed node if it exists
         if (internal::grabbedNode && internal::grabbedButton == button) {
-            float localX, localY;
-            internal::grabbedNode->globalToLocal(screenX, screenY, localX, localY);
-            Vec2 local(localX, localY);
+            Vec3 lp = internal::grabbedNode->globalToLocal(Vec3(screenX, screenY, 0));
+            Vec2 local(lp.x, lp.y);
             internal::grabbedNode->onMouseRelease(local, button);
 
             Ptr result = std::dynamic_pointer_cast<Node>(
@@ -586,9 +594,8 @@ private:
     Ptr dispatchMouseMove(float screenX, float screenY) {
         // Send drag event to grabbed node
         if (internal::grabbedNode) {
-            float localX, localY;
-            internal::grabbedNode->globalToLocal(screenX, screenY, localX, localY);
-            Vec2 local(localX, localY);
+            Vec3 lp = internal::grabbedNode->globalToLocal(Vec3(screenX, screenY, 0));
+            Vec2 local(lp.x, lp.y);
             internal::grabbedNode->onMouseDrag(local, internal::grabbedButton);
         }
 
@@ -615,9 +622,8 @@ private:
             Node* current = result.node.get();
             while (current) {
                 // Convert screen coords to current node's local coords
-                float localX, localY;
-                current->globalToLocal(screenX, screenY, localX, localY);
-                Vec2 local(localX, localY);
+                Vec3 lp = current->globalToLocal(Vec3(screenX, screenY, 0));
+                Vec2 local(lp.x, lp.y);
 
                 if (current->onMouseScroll(local, scroll)) {
                     // Event consumed
@@ -699,9 +705,10 @@ private:
         return false;
     }
 
-
+protected:
     // Recursive hit test (traversed in reverse draw order)
-    HitResult findHitNodeRecursive(const Ray& globalRay, const Mat4& parentInverseMatrix) {
+    // Protected so that RectNode can override for clipping-aware hit test
+    virtual HitResult findHitNodeRecursive(const Ray& globalRay, const Mat4& parentInverseMatrix) {
         if (!isActive_ || !isVisible_) return HitResult{};
 
         // Calculate inverse matrix for this node

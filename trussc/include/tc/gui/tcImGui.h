@@ -6,14 +6,17 @@
 // =============================================================================
 
 #include "imgui/imgui.h"
-#include "sokol/sokol_imgui.h"
+#include "sokol/util/sokol_imgui.h"
 #include "tc/utils/tcLog.h"
+#include "tc/gui/tcImGuiHooks.h"
+#include "tc/gui/tcImGuiTools.h"
 
 namespace trussc {
 
-// Access to imguiEnabled flag in internal namespace
+// Access to internal flags
 namespace internal {
     extern bool imguiEnabled;
+    // imguiRenderPending is declared in TrussC.h internal namespace
 }
 
 // ---------------------------------------------------------------------------
@@ -55,10 +58,13 @@ public:
         simgui_new_frame(&desc);
     }
 
-    // End frame (call at end of draw)
+    // End frame — defer actual GPU render to present()
+    // simgui_render() requires an active render pass (sg_begin_pass),
+    // which may not have started yet during draw(). Deferring to present()
+    // ensures the pass is active and ImGui renders on top of all sokol_gl content.
     void end() {
         if (!initialized_) return;
-        simgui_render();
+        internal::imguiRenderPending = true;
     }
 
     // Event handling (called automatically internally)
@@ -103,11 +109,13 @@ inline void imguiBegin() {
     int h = sapp_height();
     float dt = static_cast<float>(sapp_frame_duration());
     ImGuiManager::instance().begin(w, h, dt);
+    imgui_tools::beginFrame();
 }
 
 // End frame (render)
 inline void imguiEnd() {
     ImGuiManager::instance().end();
+    imgui_tools::swapFrames();
 }
 
 // Event handling (internal use)

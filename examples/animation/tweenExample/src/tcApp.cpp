@@ -4,10 +4,11 @@
  * This example shows:
  * - All EaseType curves (Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce)
  * - EaseMode (In, Out, InOut)
- * - Tween<T> class with complete event handling
- * - Asymmetric easing (different In/Out types)
+ * - Tween<T> class with auto-update and complete event handling
+ * - Loop and Yoyo repeat modes
  *
  * Click anywhere to restart the animation.
+ * Press 1/2/3 for EaseIn/Out/InOut, 4 for Loop(3), 5 for Yoyo
  */
 
 #include "TrussC.h"
@@ -33,6 +34,9 @@ public:
     EaseMode currentMode = EaseMode::InOut;
     int completedCount = 0;
 
+    // Repeat mode: 0=none, 1=loop(3), 2=yoyo infinite
+    int repeatMode = 0;
+
     void setup() override {
         setWindowTitle("Tween Example - Click to restart");
 
@@ -54,13 +58,20 @@ public:
                  .duration(duration)
                  .ease(type, currentMode);
 
+            // Apply repeat mode
+            if (repeatMode == 1) {
+                tween.loop(3);
+            } else if (repeatMode == 2) {
+                tween.loop(-1).yoyo();
+            }
+
             tweens.push_back(move(tween));
         }
 
         // Set up complete event listeners
         completeListeners.resize(tweens.size());
         for (size_t i = 0; i < tweens.size(); i++) {
-            tweens[i].complete->listen(completeListeners[i], [this, i]() {
+            completeListeners[i] = tweens[i].complete->listen([this, i]() {
                 completedCount++;
                 logNotice("Tween") << easeTypeNames[i] << " completed! ("
                     << completedCount << "/" << tweens.size() << ")";
@@ -74,10 +85,7 @@ public:
     }
 
     void update() override {
-        float dt = getDeltaTime();
-        for (auto& tween : tweens) {
-            tween.update(dt);
-        }
+        // Tweens auto-update via events().update — no manual update needed
     }
 
     void draw() override {
@@ -97,12 +105,15 @@ public:
 
         // Draw header
         setColor(1.0f);
-        drawBitmapString("EaseMode: " + getModeString(currentMode) + " (press 1/2/3 to change)", 30, 30);
+        string header = "EaseMode: " + getModeString(currentMode);
+        if (repeatMode == 1) header += " + Loop(3)";
+        else if (repeatMode == 2) header += " + Yoyo";
+        drawBitmapString(header, 30, 30);
 
         // Draw each easing type
         for (size_t i = 0; i < tweens.size(); i++) {
             EaseType type = static_cast<EaseType>(i);
-            Color c = colorFromHSB(i * 0.09f, 0.7f, 1.0f);
+            Color c = Color::fromHSB(i * 0.09f, 0.7f, 1.0f);
 
             // Draw label
             setColor(0.7f);
@@ -135,7 +146,7 @@ public:
 
         // Draw instructions
         setColor(0.5f);
-        drawBitmapString("Click: Restart animation    |    1: EaseIn  2: EaseOut  3: EaseInOut", 30, getWindowHeight() - 30);
+        drawBitmapString("Click: Restart  |  1:In 2:Out 3:InOut  |  4:Loop(3) 5:Yoyo 6:Off", 30, getWindowHeight() - 30);
     }
 
     void drawMiniGraph(float x, float y, float w, float h, EaseType type, const Color& color) {
@@ -188,6 +199,15 @@ public:
             initTweens();
         } else if (key == '3') {
             currentMode = EaseMode::InOut;
+            initTweens();
+        } else if (key == '4') {
+            repeatMode = 1;  // Loop(3)
+            initTweens();
+        } else if (key == '5') {
+            repeatMode = 2;  // Yoyo infinite
+            initTweens();
+        } else if (key == '6') {
+            repeatMode = 0;  // Off
             initTweens();
         }
     }
