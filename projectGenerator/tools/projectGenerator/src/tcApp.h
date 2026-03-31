@@ -47,6 +47,10 @@ private:
     bool generateIosBuild = false;      // Generate iOS build
     int webBackend = 0;                 // 0: WebGPU, 1: WebGL
 
+    // Android env check (cached at startup)
+    bool androidEnvOk = false;
+    string androidEnvTip;
+
     // Visual Studio versions (Windows only)
     vector<VsVersionInfo> installedVsVersions;
     int selectedVsIndex = 0;

@@ -10,6 +10,23 @@
 
 namespace fs = std::filesystem;
 
+// Check if an environment variable is set, even in GUI apps on macOS
+// (GUI apps don't inherit .zshrc env vars, so we ask a login shell)
+static bool hasEnvVar(const string& name) {
+    if (getenv(name.c_str())) return true;
+#ifdef __APPLE__
+    string cmd = "/bin/zsh -c 'source ~/.zshrc 2>/dev/null; source ~/.zprofile 2>/dev/null; printenv " + name + "' 2>/dev/null";
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) return false;
+    char buf[16];
+    bool found = fgets(buf, sizeof(buf), pipe) != nullptr;
+    pclose(pipe);
+    return found;
+#else
+    return false;
+#endif
+}
+
 void tcApp::setup() {
     imguiSetup();
 
@@ -83,6 +100,15 @@ void tcApp::setup() {
         tmp.detectBuildEnvironment();
         installedVsVersions = tmp.installedVsVersions;
         selectedVsIndex = tmp.selectedVsIndex;
+    }
+
+    // Check Android env (shell-aware on macOS for GUI apps)
+    {
+        bool a = hasEnvVar("ANDROID_HOME");
+        bool j = hasEnvVar("JAVA_HOME");
+        androidEnvOk = a && j;
+        if (!a) androidEnvTip += "ANDROID_HOME is not set\n";
+        if (!j) androidEnvTip += "JAVA_HOME is not set";
     }
 
     // Initial draw
@@ -401,20 +427,11 @@ void tcApp::draw() {
         if (ImGui::Checkbox("Android (beta)", &generateAndroidBuild)) {
             saveConfig();
         }
-        if (generateAndroidBuild) {
-            // Check ANDROID_HOME and JAVA_HOME
-            bool hasAndroidHome = getenv("ANDROID_HOME") != nullptr;
-            bool hasJavaHome = getenv("JAVA_HOME") != nullptr;
-            if (!hasAndroidHome || !hasJavaHome) {
-                ImGui::SameLine();
-                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "(!)");;
-                if (ImGui::IsItemHovered()) {
-                    string tip;
-                    if (!hasAndroidHome) tip += "ANDROID_HOME is not set\n";
-                    if (!hasJavaHome) tip += "JAVA_HOME is not set\n";
-                    tip += "(GUI apps don't inherit shell env vars.\n Build from terminal or set via launchctl.)";
-                    ImGui::SetTooltip("%s", tip.c_str());
-                }
+        if (generateAndroidBuild && !androidEnvOk) {
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "(!)");
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("%s", androidEnvTip.c_str());
             }
         }
 
