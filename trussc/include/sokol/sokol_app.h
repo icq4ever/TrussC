@@ -2523,6 +2523,7 @@ inline void sapp_run(const sapp_desc& desc) { return sapp_run(&desc); }
     #include <time.h>
     #include <android/native_activity.h>
     #include <android/looper.h>
+    #include <android/configuration.h>  // [TrussC] AConfiguration for display density
     #include <EGL/egl.h>
     #include <GLES3/gl3.h>
 #elif defined(_SAPP_LINUX)
@@ -10511,7 +10512,22 @@ _SOKOL_PRIVATE void _sapp_android_update_dimensions(ANativeWindow* window, bool 
     const bool fb_changed = (fb_w != _sapp.framebuffer_width) || (fb_h != _sapp.framebuffer_height);
     _sapp.framebuffer_width = fb_w;
     _sapp.framebuffer_height = fb_h;
-    _sapp.dpi_scale = (float)_sapp.framebuffer_width / (float)_sapp.window_width;
+    /* [TrussC] Use actual display density for dpi_scale instead of fb/win ratio.
+       Android baseline is 160dpi (mdpi), so dpi_scale = density / 160.
+       This makes sapp_dpi_scale() behave consistently with macOS/Windows. */
+    if (_sapp.android.activity) {
+        AConfiguration* config = AConfiguration_new();
+        AConfiguration_fromAssetManager(config, _sapp.android.activity->assetManager);
+        int32_t density = AConfiguration_getDensity(config);
+        AConfiguration_delete(config);
+        if (density > 0) {
+            _sapp.dpi_scale = (float)density / 160.0f;
+        } else {
+            _sapp.dpi_scale = (float)fb_w / (float)win_w;
+        }
+    } else {
+        _sapp.dpi_scale = (float)fb_w / (float)win_w;
+    }
     if (win_changed || fb_changed || force_update) {
         if (!_sapp.first_frame) {
             _sapp_android_app_event(SAPP_EVENTTYPE_RESIZED);

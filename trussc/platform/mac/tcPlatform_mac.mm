@@ -37,6 +37,10 @@ float getDisplayScaleFactor() {
     return (float)pixelWidth / (float)pointWidth;
 }
 
+// Immersive mode (no-op on desktop)
+void setImmersiveMode(bool enabled) { (void)enabled; }
+bool getImmersiveMode() { return false; }
+
 void setWindowSize(int width, int height) {
     // メインウィンドウを取得
     NSWindow* window = [[NSApplication sharedApplication] mainWindow];

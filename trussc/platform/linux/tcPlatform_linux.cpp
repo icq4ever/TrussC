@@ -47,6 +47,10 @@ float getDisplayScaleFactor() {
     return dpi / 96.0f;
 }
 
+// Immersive mode (no-op on desktop)
+void setImmersiveMode(bool enabled) { (void)enabled; }
+bool getImmersiveMode() { return false; }
+
 void setWindowSize(int width, int height) {
     // TODO: Implement using X11
     // sokol_app handles window creation, so we need to access the X11 window

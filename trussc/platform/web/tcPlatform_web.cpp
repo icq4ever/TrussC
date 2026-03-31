@@ -16,6 +16,10 @@ float getDisplayScaleFactor() {
     return (float)emscripten_get_device_pixel_ratio();
 }
 
+// Immersive mode (no-op on web)
+void setImmersiveMode(bool enabled) { (void)enabled; }
+bool getImmersiveMode() { return false; }
+
 void setWindowSize(int width, int height) {
     // Emscripten では canvas サイズを変更
     // sokol_app が使用する canvas ID を指定

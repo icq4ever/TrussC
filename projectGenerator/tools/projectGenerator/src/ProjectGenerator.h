@@ -16,6 +16,8 @@ struct ProjectSettings {
     std::vector<int> addonSelected;
     IdeType ideType = IdeType::VSCode;
     bool generateWebBuild = false;
+    bool generateAndroidBuild = false;
+    int webBackend = 0;  // 0: WebGPU, 1: WebGL
     int selectedVsIndex = 0;
     std::vector<VsVersionInfo> installedVsVersions;
 

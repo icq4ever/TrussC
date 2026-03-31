@@ -30,6 +30,15 @@ std::string getExecutablePath();
 std::string getExecutableDir();
 
 // ---------------------------------------------------------------------------
+// Immersive mode (hide system UI)
+// Android: Sticky Immersive (hides status bar + navigation bar)
+// iOS: hides status bar + home indicator (auto-hidden)
+// Desktop: no-op
+// ---------------------------------------------------------------------------
+void setImmersiveMode(bool enabled);
+bool getImmersiveMode();
+
+// ---------------------------------------------------------------------------
 // Screenshot functionality
 // ---------------------------------------------------------------------------
 

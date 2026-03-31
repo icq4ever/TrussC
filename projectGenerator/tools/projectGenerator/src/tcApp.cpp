@@ -393,23 +393,44 @@ void tcApp::draw() {
 
     ImGui::Spacing();
 
-    // Web build option
-    if (ImGui::Checkbox("Web (Emscripten)", &generateWebBuild)) {
-        saveConfig();
-    }
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Generate build scripts for WebAssembly.\nRequires Emscripten SDK installed.\nClick to open download page.");
-    }
-    if (ImGui::IsItemClicked()) {
-#ifdef __APPLE__
-        system("open https://emscripten.org/docs/getting_started/downloads.html");
-#elif defined(_WIN32)
-        system("start https://emscripten.org/docs/getting_started/downloads.html");
-#else
-        system("xdg-open https://emscripten.org/docs/getting_started/downloads.html");
-#endif
+    // Cross-compile targets (collapsible)
+    if (ImGui::CollapsingHeader("Cross-compile targets")) {
+        ImGui::Indent(8);
+
+        // Android
+        if (ImGui::Checkbox("Android", &generateAndroidBuild)) {
+            saveConfig();
+        }
+        if (generateAndroidBuild) {
+            // Check ANDROID_HOME and JAVA_HOME
+            bool hasAndroidHome = getenv("ANDROID_HOME") != nullptr;
+            bool hasJavaHome = getenv("JAVA_HOME") != nullptr;
+            if (!hasAndroidHome || !hasJavaHome) {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "(!)");;
+                if (ImGui::IsItemHovered()) {
+                    string tip;
+                    if (!hasAndroidHome) tip += "ANDROID_HOME is not set\n";
+                    if (!hasJavaHome) tip += "JAVA_HOME is not set";
+                    ImGui::SetTooltip("%s", tip.c_str());
+                }
+            }
+        }
+
+        // Web
+        if (ImGui::Checkbox("Web", &generateWebBuild)) {
+            saveConfig();
+        }
+        if (generateWebBuild) {
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(100);
+            const char* webBackendItems[] = { "WebGPU", "WebGL" };
+            if (ImGui::Combo("##webBackend", &webBackend, webBackendItems, 2)) {
+                saveConfig();
+            }
+        }
+
+        ImGui::Unindent(8);
     }
 
     ImGui::Spacing();
@@ -567,6 +588,12 @@ void tcApp::loadConfig() {
     if (config.contains("generate_web_build")) {
         generateWebBuild = config["generate_web_build"].get<bool>();
     }
+    if (config.contains("generate_android_build")) {
+        generateAndroidBuild = config["generate_android_build"].get<bool>();
+    }
+    if (config.contains("web_backend")) {
+        webBackend = config["web_backend"].get<int>();
+    }
     if (config.contains("last_imported_path")) {
         importedProjectPath = config["last_imported_path"].get<string>();
     }
@@ -586,6 +613,8 @@ void tcApp::saveConfig() {
     config["last_project_name"] = projectName;
     config["ide_type"] = static_cast<int>(ideType);
     config["generate_web_build"] = generateWebBuild;
+    config["generate_android_build"] = generateAndroidBuild;
+    config["web_backend"] = webBackend;
     config["last_imported_path"] = importedProjectPath;
     saveJson(config, configPath);
 }
@@ -785,6 +814,8 @@ ProjectSettings tcApp::buildProjectSettings() {
     s.addonSelected = addonSelected;
     s.ideType = ideType;
     s.generateWebBuild = generateWebBuild;
+    s.generateAndroidBuild = generateAndroidBuild;
+    s.webBackend = webBackend;
     s.detectBuildEnvironment();
     return s;
 }
