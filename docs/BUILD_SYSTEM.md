@@ -133,7 +133,7 @@ Then in Xcode:
 Notes:
 - Touch input works the same as Android (`touchPressed`/`touchMoved`/`touchReleased`).
 - `setTouchAsMouse(true)` is ON by default on iOS, same as Android.
-- System sensors (accelerometer, gyroscope, compass, etc.) are available via `tc::platform::getAccelerometer()` etc.
+- System sensors (accelerometer, gyroscope, compass, etc.) are available via `tc::getAccelerometer()` etc.
 - Screen brightness: iOS returns linear 0.0-1.0 matching the slider. Android returns a gamma-corrected value (see API docs).
 - **First launch may show a black screen for up to 30 seconds** before the app appears. This is a known issue with initial Metal/GPU setup. Subsequent launches are faster.
 - Frame rate may be very low for the first few seconds after launch. This stabilizes quickly.
