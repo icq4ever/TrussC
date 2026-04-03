@@ -4238,7 +4238,12 @@ _SOKOL_PRIVATE void _sapp_wgpu_frame(void) {
             _sapp.wgpu.swapchain_view = 0;
         }
         #if !defined(_SAPP_EMSCRIPTEN)
-        wgpuSurfacePresent(_sapp.wgpu.surface);
+        // Modified by tettou771 for TrussC: skip present support
+        if (!_sapp.skip_present) {
+            wgpuSurfacePresent(_sapp.wgpu.surface);
+        } else {
+            _sapp.skip_present = false;
+        }
         #endif
     }
 }
@@ -4989,7 +4994,9 @@ _SOKOL_PRIVATE void _sapp_vk_present(void) {
 
 _SOKOL_PRIVATE void _sapp_vk_frame(void) {
     _sapp_frame();
-    _sapp_vk_present();
+    // Modified by tettou771 for TrussC: skip present support
+    if (_sapp.skip_present) { _sapp.skip_present = false; }
+    else { _sapp_vk_present(); }
     _sapp.vk.sync_slot = (_sapp.vk.sync_slot + 1) % _sapp.vk.num_swapchain_images;
 }
 
@@ -9009,6 +9016,8 @@ _SOKOL_PRIVATE void _sapp_wgl_destroy_context(void) {
 }
 
 _SOKOL_PRIVATE void _sapp_wgl_swap_buffers(void) {
+    // Modified by tettou771 for TrussC: skip present support
+    if (_sapp.skip_present) { _sapp.skip_present = false; return; }
     SOKOL_ASSERT(_sapp.win32.dc);
     /* FIXME: DwmIsCompositionEnabled? (see GLFW) */
     SwapBuffers(_sapp.win32.dc);
@@ -10464,6 +10473,8 @@ _SOKOL_PRIVATE void _sapp_android_frame(void) {
     _sapp_timing_update(&_sapp.timing, 0.0);
     _sapp_android_update_dimensions(_sapp.android.current.window, false);
     _sapp_frame();
+    // Modified by tettou771 for TrussC: skip present support
+    if (_sapp.skip_present) { _sapp.skip_present = false; return; }
     eglSwapBuffers(_sapp.android.display, _sapp.android.surface);
 }
 
@@ -12452,6 +12463,8 @@ _SOKOL_PRIVATE void _sapp_glx_destroy_context(void) {
 }
 
 _SOKOL_PRIVATE void _sapp_glx_swap_buffers(void) {
+    // Modified by tettou771 for TrussC: skip present support
+    if (_sapp.skip_present) { _sapp.skip_present = false; return; }
     _sapp.glx.SwapBuffers(_sapp.x11.display, _sapp.glx.window);
 }
 
@@ -13713,7 +13726,9 @@ _SOKOL_PRIVATE void _sapp_linux_frame(void) {
         #if defined(_SAPP_GLX)
             _sapp_glx_swap_buffers();
         #elif defined(_SAPP_EGL)
-            eglSwapBuffers(_sapp.egl.display, _sapp.egl.surface);
+            // Modified by tettou771 for TrussC: skip present support
+            if (_sapp.skip_present) { _sapp.skip_present = false; }
+            else { eglSwapBuffers(_sapp.egl.display, _sapp.egl.surface); }
         #endif
     #endif
 }

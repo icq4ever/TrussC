@@ -37,7 +37,8 @@ Matches upstream directory layout: core headers at root, utility headers in `uti
 **Changes:**
 - Added `skip_present` flag to `_sapp_t` struct
 - Added `sapp_skip_present()` function declaration and implementation
-- Modified D3D11 present logic to check the flag
+- Added skip_present check to all backends: D3D11, WGL, Android EGL, Linux GLX, Linux EGL, WGPU, Vulkan
+- Metal (macOS/iOS): not needed (no flickering observed)
 
 ### 2. Keyboard Events on Canvas (Emscripten)
 
