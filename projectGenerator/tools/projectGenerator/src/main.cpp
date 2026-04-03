@@ -70,7 +70,7 @@ static string autoDetectTcRoot() {
     // We assume we are in TRUSSC_ROOT/... something
     
     // Search up to 5 parent directories
-    fs::path exePath = platform::getExecutablePath();
+    fs::path exePath = getExecutablePath();
     fs::path searchPath = exePath.parent_path();
 
     #ifdef __APPLE__

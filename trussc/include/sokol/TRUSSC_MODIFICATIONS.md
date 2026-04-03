@@ -191,7 +191,7 @@ These functions do NOT exist in upstream sokol_gl. They are TrussC additions.
 
 These were previously in sokol_app.h but have been moved to TrussC platform code:
 
-- **SetForegroundWindow (Win32):** Moved to `platform::bringWindowToFront()` in `tcPlatform.h` / per-platform implementations. Cross-platform (macOS, Windows, Linux).
+- **SetForegroundWindow (Win32):** Moved to `trussc::bringWindowToFront()` in `tcPlatform.h` / per-platform implementations. Cross-platform (macOS, Windows, Linux).
 
 ## Author
 

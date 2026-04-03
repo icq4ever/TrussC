@@ -50,7 +50,7 @@ void tcApp::setup() {
     // Auto-detect TC_ROOT if not set
     // Search up to 5 parent directories from executable location
     if (tcRoot.empty()) {
-        fs::path exePath = platform::getExecutablePath();
+        fs::path exePath = getExecutablePath();
         fs::path searchPath = exePath.parent_path();
 
         // On macOS, executable is in .app/Contents/MacOS/, go up to .app's parent
