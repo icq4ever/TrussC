@@ -325,6 +325,7 @@ void setup();
 // Shutdown sokol_gfx + sokol_gl (call in cleanup callback)
 void cleanup();
 
+
 // ---------------------------------------------------------------------------
 // Frame control
 // ---------------------------------------------------------------------------
@@ -1615,6 +1616,13 @@ inline int getSokolMemoryBytes() { return smemtrack_info().num_bytes; }
 
 // Get number of active allocations in sokol libraries
 inline int getSokolMemoryAllocs() { return smemtrack_info().num_allocs; }
+
+// Release sokol_gl vertex/command buffers to free memory.
+// Buffers are automatically re-allocated on the next draw call.
+// Call between frames when you know the next frame will use fewer vertices.
+inline void releaseSglBuffers() {
+    sgl_tc_context_release_buffers(SGL_DEFAULT_CONTEXT);
+}
 
 // ---------------------------------------------------------------------------
 // Mouse state (global / window coordinates)
