@@ -880,7 +880,7 @@ void ProjectGenerator::generateWebBuildFiles(const string& path) {
     file << "REM Configure and build using CMake presets\n";
     file << "cmake --preset web\n";
     file << "if errorlevel 1 exit /b 1\n\n";
-    file << "cmake --build --preset web\n";
+    file << "cmake --build --preset web --parallel\n";
     file << "if errorlevel 1 exit /b 1\n\n";
     file << "echo.\n";
     file << "echo Build complete! Output files are in bin\\\n";
@@ -906,7 +906,7 @@ void ProjectGenerator::generateWebBuildFiles(const string& path) {
     file << "fi\n\n";
     file << "# Configure and build using CMake presets\n";
     file << "cmake --preset web || exit 1\n";
-    file << "cmake --build --preset web || exit 1\n\n";
+    file << "cmake --build --preset web --parallel || exit 1\n\n";
     file << "echo \"\"\n";
     file << "echo \"Build complete! Output files are in bin/\"\n";
     file << "echo \"To test locally:\"\n";
@@ -932,7 +932,7 @@ void ProjectGenerator::generateWebBuildFiles(const string& path) {
     file << "fi\n\n";
     file << "# Configure and build using CMake presets\n";
     file << "cmake --preset web || exit 1\n";
-    file << "cmake --build --preset web || exit 1\n\n";
+    file << "cmake --build --preset web --parallel || exit 1\n\n";
     file << "echo \"\"\n";
     file << "echo \"Build complete! Output files are in bin/\"\n";
     file << "echo \"To test locally:\"\n";
