@@ -144,6 +144,7 @@ categories:
         description: "Clear screen. No args = transparent black (0,0,0,0)"
         description_ja: "画面をクリア。引数なし = 透明黒 (0,0,0,0)"
         of_equivalent: "ofClear / ofBackground"
+        of_signature_index: 1
         sketch: true
         snippet: "clear(${1:0.0})"
 
@@ -1545,6 +1546,19 @@ categories:
     name: "Math - Interpolation"
     name_ja: "数学 - 補間"
     functions:
+      - name: lerp
+        return: "float"
+        signatures:
+          - params: "float a, float b, float t"
+            params_simple: "a, b, t"
+        description: "Linear interpolation"
+        description_ja: "線形補間"
+        of_equivalent: "ofLerp"
+        of_notes: "std::lerp (C++20)"
+        of_notes_ja: "std::lerp (C++20)"
+        sketch: false
+        snippet: "lerp(${1:a}, ${2:b}, ${3:t})"
+
       - name: clamp
         return: "float"
         signatures:
@@ -5215,8 +5229,11 @@ keywords:
 # ==========================================================================
 types:
   - name: Vec2
-    description: "2D vector"
-    description_ja: "2Dベクトル"
+    description: "2D vector (x, y)"
+    description_ja: "2Dベクトル (x, y)"
+    description_ko: "2D 벡터 (x, y)"
+    of_equivalent: "glm::vec2 / ofVec2f"
+    of_type_category: "math-vector"
     sketch: true
     constructor:
       signatures:
@@ -5359,8 +5376,11 @@ types:
         snippet: "Vec2_fromAngle(${1:radians})"
 
   - name: Vec3
-    description: "3D vector"
-    description_ja: "3Dベクトル"
+    description: "3D vector (x, y, z)"
+    description_ja: "3Dベクトル (x, y, z)"
+    description_ko: "3D 벡터 (x, y, z)"
+    of_equivalent: "glm::vec3 / ofVec3f"
+    of_type_category: "math-vector"
     sketch: true
     constructor:
       signatures:
@@ -5476,8 +5496,11 @@ types:
         snippet: "xy()"
 
   - name: Color
-    description: "RGBA color (0.0-1.0)"
-    description_ja: "RGBAカラー (0.0-1.0)"
+    description: "RGBA color (0.0-1.0 range)"
+    description_ja: "RGBAカラー (0.0-1.0範囲)"
+    description_ko: "RGBA 색상 (0.0-1.0 범위)"
+    of_equivalent: "ofColor / ofFloatColor"
+    of_type_category: "color-types"
     sketch: true
     constructor:
       signatures:
@@ -5586,6 +5609,9 @@ types:
   - name: Rect
     description: "Rectangle (x, y, width, height)"
     description_ja: "矩形 (x, y, width, height)"
+    description_ko: "사각형 (x, y, width, height)"
+    of_equivalent: "ofRectangle"
+    of_type_category: "geometry-types"
     sketch: true
     constructor:
       signatures:
@@ -5663,6 +5689,9 @@ types:
   - name: Mat4
     description: "4x4 matrix for 3D transformations"
     description_ja: "3D変換用4x4行列"
+    description_ko: "3D 변환용 4x4 행렬"
+    of_equivalent: "glm::mat4 / ofMatrix4x4"
+    of_type_category: "math-vector"
     sketch: true
     constructor:
       signatures:
@@ -5687,6 +5716,9 @@ types:
   - name: Quaternion
     description: "Unit quaternion for 3D rotations"
     description_ja: "3D回転用単位クォータニオン"
+    description_ko: "3D 회전용 단위 쿼터니언"
+    of_equivalent: "glm::quat / ofQuaternion"
+    of_type_category: "math-vector"
     sketch: true
     constructor:
       signatures:
@@ -5757,6 +5789,9 @@ types:
   - name: Pixels
     description: "Pixel buffer for image manipulation"
     description_ja: "画像操作用ピクセルバッファ"
+    description_ko: "이미지 조작용 픽셀 버퍼"
+    of_equivalent: "ofPixels"
+    of_type_category: "image-texture-types"
     sketch: true
     constructor:
       signatures:
@@ -5880,6 +5915,9 @@ types:
   - name: Image
     description: "Image with CPU pixels and GPU texture"
     description_ja: "CPUピクセルとGPUテクスチャを持つ画像"
+    description_ko: "CPU 픽셀과 GPU 텍스처를 가진 이미지"
+    of_equivalent: "ofImage"
+    of_type_category: "image-texture-types"
     sketch: true
     static_methods:
       - name: createImage
@@ -6022,6 +6060,9 @@ types:
   - name: Texture
     description: "GPU texture for rendering"
     description_ja: "レンダリング用GPUテクスチャ"
+    description_ko: "렌더링용 GPU 텍스처"
+    of_equivalent: "ofTexture"
+    of_type_category: "image-texture-types"
     sketch: true
     constructor:
       signatures:
@@ -6209,7 +6250,10 @@ types:
 
   - name: Fbo
     description: "Framebuffer object for offscreen rendering"
-    description_ja: "オフスクリーンレンダリング用フレームバッファ"
+    description_ja: "オフスクリーンレンダリング用FBO"
+    description_ko: "오프스크린 렌더링용 프레임버퍼 객체"
+    of_equivalent: "ofFbo"
+    of_type_category: "image-texture-types"
     sketch: true
     constructor:
       signatures:
@@ -6315,9 +6359,163 @@ types:
         description_ja: "FBOの内容をImageにコピー"
         snippet: "copyTo(${1:image})"
 
+  - name: Path
+    description: "Path/Polyline for lines and curves"
+    description_ja: "線と曲線のパス/ポリライン"
+    description_ko: "선과 곡선을 위한 경로/폴리라인"
+    of_equivalent: "ofPath / ofPolyline"
+    of_type_category: "geometry-types"
+    sketch: true
+    constructor:
+      signatures:
+        - params: ""
+        - params: "vector<Vec2> verts"
+        - params: "vector<Vec3> verts"
+      snippet: "Path()"
+    methods:
+      - name: addVertex
+        return: "void"
+        signatures:
+          - params: "float x, float y"
+          - params: "float x, float y, float z"
+          - params: "Vec2 v"
+          - params: "Vec3 v"
+        description: "Add a vertex"
+        description_ja: "頂点を追加"
+        snippet: "addVertex(${1:x}, ${2:y})"
+      - name: addVertices
+        return: "Path@"
+        signatures:
+          - params: "array<Vec3>@ verts"
+            params_simple: "verts"
+          - params: "array<Vec2>@ verts"
+            params_simple: "verts"
+        description: "Add multiple vertices"
+        description_ja: "複数の頂点を追加"
+        snippet: "addVertices(${1:verts})"
+      - name: getVertices
+        sketch: false
+        return: "vector<Vec3>"
+        signatures:
+          - params: ""
+        description: "Get all vertices"
+        description_ja: "全頂点を取得"
+        snippet: "getVertices()"
+      - name: size
+        return: int
+        signatures:
+          - params: ""
+        description: "Get vertex count"
+        description_ja: "頂点数を取得"
+        snippet: "size()"
+      - name: empty
+        return: bool
+        signatures:
+          - params: ""
+        description: "Check if polyline is empty"
+        description_ja: "ポリラインが空か確認"
+        snippet: "empty()"
+      - name: clear
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Clear all vertices"
+        description_ja: "全頂点をクリア"
+        snippet: "clear()"
+      - name: lineTo
+        return: "void"
+        signatures:
+          - params: "float x, float y"
+          - params: "float x, float y, float z"
+          - params: "Vec2 p"
+          - params: "Vec3 p"
+        description: "Add line segment to point"
+        description_ja: "点まで線を追加"
+        snippet: "lineTo(${1:x}, ${2:y})"
+      - name: bezierTo
+        return: "void"
+        signatures:
+          - params: "float cx1, float cy1, float cx2, float cy2, float x, float y"
+          - params: "Vec2 cp1, Vec2 cp2, Vec2 to"
+          - params: "Vec3 cp1, Vec3 cp2, Vec3 to"
+        description: "Add cubic bezier curve"
+        description_ja: "3次ベジェ曲線を追加"
+        snippet: "bezierTo(${1:cx1}, ${2:cy1}, ${3:cx2}, ${4:cy2}, ${5:x}, ${6:y})"
+      - name: quadBezierTo
+        return: "void"
+        signatures:
+          - params: "float cx, float cy, float x, float y"
+          - params: "Vec2 cp, Vec2 to"
+          - params: "Vec3 cp, Vec3 to"
+        description: "Add quadratic bezier curve"
+        description_ja: "2次ベジェ曲線を追加"
+        snippet: "quadBezierTo(${1:cx}, ${2:cy}, ${3:x}, ${4:y})"
+      - name: curveTo
+        return: "void"
+        signatures:
+          - params: "float x, float y"
+          - params: "Vec2 to"
+          - params: "Vec3 to"
+        description: "Add Catmull-Rom curve segment"
+        description_ja: "Catmull-Rom曲線を追加"
+        snippet: "curveTo(${1:x}, ${2:y})"
+      - name: arc
+        return: "void"
+        signatures:
+          - params: "float x, float y, float radiusX, float radiusY, float angleBegin, float angleEnd"
+          - params: "Vec2 center, float radiusX, float radiusY, float angleBegin, float angleEnd"
+        description: "Add an arc"
+        description_ja: "円弧を追加"
+        snippet: "arc(${1:x}, ${2:y}, ${3:radiusX}, ${4:radiusY}, ${5:0}, ${6:360})"
+      - name: close
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Close the path"
+        description_ja: "パスを閉じる"
+        snippet: "close()"
+      - name: setClosed
+        return: "void"
+        signatures:
+          - params: "bool closed"
+        description: "Set closed state"
+        description_ja: "閉じた状態を設定"
+        snippet: "setClosed(${1:true})"
+      - name: isClosed
+        return: bool
+        signatures:
+          - params: ""
+        description: "Check if path is closed"
+        description_ja: "パスが閉じているか確認"
+        snippet: "isClosed()"
+      - name: draw
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Draw the polyline"
+        description_ja: "ポリラインを描画"
+        snippet: "draw()"
+      - name: getBounds
+        return: "Rect"
+        signatures:
+          - params: ""
+        description: "Get bounding box as Rect"
+        description_ja: "バウンディングボックスをRectで取得"
+        snippet: "getBounds()"
+      - name: getPerimeter
+        return: float
+        signatures:
+          - params: ""
+        description: "Get total path length"
+        description_ja: "パスの全長を取得"
+        snippet: "getPerimeter()"
+
   - name: Mesh
-    description: "3D mesh with vertices, colors, normals, and indices"
-    description_ja: "頂点、色、法線、インデックスを持つ3Dメッシュ"
+    description: "3D mesh with vertices, colors, normals, indices"
+    description_ja: "頂点・色・法線・インデックスを持つ3Dメッシュ"
+    description_ko: "정점, 색상, 노멀, 인덱스를 가진 3D 메쉬"
+    of_equivalent: "ofMesh"
+    of_type_category: "geometry-types"
     sketch: true
     constructor:
       signatures:
@@ -6664,157 +6862,12 @@ types:
         description_ja: "ワイヤーフレームで描画"
         snippet: "drawWireframe()"
 
-  - name: Path
-    description: "Path/Polyline for drawing lines and curves"
-    description_ja: "線や曲線を描画するためのパス/ポリライン"
-    sketch: true
-    constructor:
-      signatures:
-        - params: ""
-        - params: "vector<Vec2> verts"
-        - params: "vector<Vec3> verts"
-      snippet: "Path()"
-    methods:
-      - name: addVertex
-        return: "void"
-        signatures:
-          - params: "float x, float y"
-          - params: "float x, float y, float z"
-          - params: "Vec2 v"
-          - params: "Vec3 v"
-        description: "Add a vertex"
-        description_ja: "頂点を追加"
-        snippet: "addVertex(${1:x}, ${2:y})"
-      - name: addVertices
-        return: "Path@"
-        signatures:
-          - params: "array<Vec3>@ verts"
-            params_simple: "verts"
-          - params: "array<Vec2>@ verts"
-            params_simple: "verts"
-        description: "Add multiple vertices"
-        description_ja: "複数の頂点を追加"
-        snippet: "addVertices(${1:verts})"
-      - name: getVertices
-        sketch: false
-        return: "vector<Vec3>"
-        signatures:
-          - params: ""
-        description: "Get all vertices"
-        description_ja: "全頂点を取得"
-        snippet: "getVertices()"
-      - name: size
-        return: int
-        signatures:
-          - params: ""
-        description: "Get vertex count"
-        description_ja: "頂点数を取得"
-        snippet: "size()"
-      - name: empty
-        return: bool
-        signatures:
-          - params: ""
-        description: "Check if polyline is empty"
-        description_ja: "ポリラインが空か確認"
-        snippet: "empty()"
-      - name: clear
-        return: "void"
-        signatures:
-          - params: ""
-        description: "Clear all vertices"
-        description_ja: "全頂点をクリア"
-        snippet: "clear()"
-      - name: lineTo
-        return: "void"
-        signatures:
-          - params: "float x, float y"
-          - params: "float x, float y, float z"
-          - params: "Vec2 p"
-          - params: "Vec3 p"
-        description: "Add line segment to point"
-        description_ja: "点まで線を追加"
-        snippet: "lineTo(${1:x}, ${2:y})"
-      - name: bezierTo
-        return: "void"
-        signatures:
-          - params: "float cx1, float cy1, float cx2, float cy2, float x, float y"
-          - params: "Vec2 cp1, Vec2 cp2, Vec2 to"
-          - params: "Vec3 cp1, Vec3 cp2, Vec3 to"
-        description: "Add cubic bezier curve"
-        description_ja: "3次ベジェ曲線を追加"
-        snippet: "bezierTo(${1:cx1}, ${2:cy1}, ${3:cx2}, ${4:cy2}, ${5:x}, ${6:y})"
-      - name: quadBezierTo
-        return: "void"
-        signatures:
-          - params: "float cx, float cy, float x, float y"
-          - params: "Vec2 cp, Vec2 to"
-          - params: "Vec3 cp, Vec3 to"
-        description: "Add quadratic bezier curve"
-        description_ja: "2次ベジェ曲線を追加"
-        snippet: "quadBezierTo(${1:cx}, ${2:cy}, ${3:x}, ${4:y})"
-      - name: curveTo
-        return: "void"
-        signatures:
-          - params: "float x, float y"
-          - params: "Vec2 to"
-          - params: "Vec3 to"
-        description: "Add Catmull-Rom curve segment"
-        description_ja: "Catmull-Rom曲線を追加"
-        snippet: "curveTo(${1:x}, ${2:y})"
-      - name: arc
-        return: "void"
-        signatures:
-          - params: "float x, float y, float radiusX, float radiusY, float angleBegin, float angleEnd"
-          - params: "Vec2 center, float radiusX, float radiusY, float angleBegin, float angleEnd"
-        description: "Add an arc"
-        description_ja: "円弧を追加"
-        snippet: "arc(${1:x}, ${2:y}, ${3:radiusX}, ${4:radiusY}, ${5:0}, ${6:360})"
-      - name: close
-        return: "void"
-        signatures:
-          - params: ""
-        description: "Close the path"
-        description_ja: "パスを閉じる"
-        snippet: "close()"
-      - name: setClosed
-        return: "void"
-        signatures:
-          - params: "bool closed"
-        description: "Set closed state"
-        description_ja: "閉じた状態を設定"
-        snippet: "setClosed(${1:true})"
-      - name: isClosed
-        return: bool
-        signatures:
-          - params: ""
-        description: "Check if path is closed"
-        description_ja: "パスが閉じているか確認"
-        snippet: "isClosed()"
-      - name: draw
-        return: "void"
-        signatures:
-          - params: ""
-        description: "Draw the polyline"
-        description_ja: "ポリラインを描画"
-        snippet: "draw()"
-      - name: getBounds
-        return: "Rect"
-        signatures:
-          - params: ""
-        description: "Get bounding box as Rect"
-        description_ja: "バウンディングボックスをRectで取得"
-        snippet: "getBounds()"
-      - name: getPerimeter
-        return: float
-        signatures:
-          - params: ""
-        description: "Get total path length"
-        description_ja: "パスの全長を取得"
-        snippet: "getPerimeter()"
-
   - name: Sound
     description: "Audio playback"
-    description_ja: "音声再生"
+    description_ja: "オーディオ再生"
+    description_ko: "오디오 재생"
+    of_equivalent: "ofSoundPlayer"
+    of_type_category: "audio-types"
     sketch: true
     constructor:
       signatures:
@@ -6943,7 +6996,10 @@ types:
 
   - name: Font
     description: "TrueType font for text rendering"
-    description_ja: "テキスト描画用TrueTypeフォント"
+    description_ja: "テキストレンダリング用TrueTypeフォント"
+    description_ko: "텍스트 렌더링용 트루타입 폰트"
+    of_equivalent: "ofTrueTypeFont"
+    of_type_category: "text-types"
     sketch: true
     constructor:
       signatures:
@@ -7035,6 +7091,8 @@ types:
   - name: FileWriter
     description: "Streaming file writer with immediate flush"
     description_ja: "即時フラッシュ付きストリーミングファイルライター"
+    description_ko: "즉시 플러시되는 스트리밍 파일 라이터"
+    of_type_category: "file-io-types"
     sketch: true
     constructor:
       signatures:
@@ -7091,6 +7149,8 @@ types:
   - name: FileReader
     description: "Streaming file reader for large files"
     description_ja: "大きなファイル用ストリーミングファイルリーダー"
+    description_ko: "대용량 파일용 스트리밍 파일 리더"
+    of_type_category: "file-io-types"
     sketch: true
     constructor:
       signatures:
@@ -7168,3 +7228,32 @@ types:
         description: "Get remaining bytes"
         description_ja: "残りバイト数を取得"
         snippet: "remaining()"
+
+  - name: ColorHSB
+    description: "HSB color space (H/S/B: 0-1)"
+    description_ja: "HSB色空間 (H/S/B: 0-1)"
+    description_ko: "HSB 색공간 (H/S/B: 0-1)"
+    of_type_category: "color-types"
+    sketch: false
+
+  - name: ColorOKLCH
+    description: "Perceptually uniform OKLCH color"
+    description_ja: "知覚均一なOKLCHカラー"
+    description_ko: "지각적 균일 OKLCH 색상"
+    of_type_category: "color-types"
+    sketch: false
+
+  - name: ChipSound
+    description: "Chip/synthesized sound generation"
+    description_ja: "チップ/合成サウンド生成"
+    description_ko: "칩/합성 사운드 생성"
+    of_type_category: "audio-types"
+    sketch: false
+
+  - name: EasyCam
+    description: "3D camera with mouse control"
+    description_ja: "マウス操作対応3Dカメラ"
+    description_ko: "마우스 조작 가능한 3D 카메라"
+    of_equivalent: "ofEasyCam"
+    of_type_category: "camera-types"
+    sketch: false

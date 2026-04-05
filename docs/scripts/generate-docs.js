@@ -25,7 +25,7 @@
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
-const { categoryMapping, ofOnlyEntries } = require('./of-category-mapping.js');
+const { categoryMapping, typeCategoryMapping, ofOnlyEntries } = require('./of-category-mapping.js');
 
 // Paths
 const API_YAML = path.join(__dirname, '../api-definition.yaml');
@@ -281,6 +281,7 @@ function generateOfMappingJson(api) {
                 id: displayId,
                 name: mapping.name,
                 name_ja: mapping.name_ja,
+                name_ko: mapping.name_ko || '',
                 order: mapping.order,
                 mappings: []
             };
@@ -289,13 +290,16 @@ function generateOfMappingJson(api) {
         // Add functions that have of_equivalent
         for (const fn of cat.functions) {
             if (fn.of_equivalent) {
-                // Use simple params for cleaner display
-                const params = fn.signatures[0]?.params_simple || '';
+                // Use of_signature_index to pick which overload to display (default: 0)
+                const sigIdx = fn.of_signature_index || 0;
+                const sig = fn.signatures[sigIdx] || fn.signatures[0];
+                const params = sig.params_simple || '';
                 categoryGroups[displayId].mappings.push({
                     of: fn.of_equivalent,
                     tc: fn.name + (params ? `(${params})` : '()'),
                     notes: fn.of_notes || '',
-                    notes_ja: fn.of_notes_ja || fn.of_notes || ''
+                    notes_ja: fn.of_notes_ja || fn.of_notes || '',
+                    notes_ko: fn.of_notes_ko || ''
                 });
             }
         }
@@ -308,6 +312,7 @@ function generateOfMappingJson(api) {
                 id: entry.category,
                 name: entry.name,
                 name_ja: entry.name_ja,
+                name_ko: entry.name_ko || '',
                 order: entry.order,
                 mappings: []
             };
@@ -317,17 +322,53 @@ function generateOfMappingJson(api) {
                 of: e.of,
                 tc: e.tc,
                 notes: e.notes || '',
-                notes_ja: e.notes_ja || e.notes || ''
+                notes_ja: e.notes_ja || e.notes || '',
+                notes_ko: e.notes_ko || ''
             });
         }
     }
 
     // Convert to sorted array
-    const categories = Object.values(categoryGroups)
+    const functions = Object.values(categoryGroups)
         .filter(cat => cat.mappings.length > 0)
         .sort((a, b) => a.order - b.order);
 
-    return JSON.stringify({ categories }, null, 2);
+    // Group types by of_type_category
+    const typeGroups = {};
+
+    if (api.types) {
+        for (const type of api.types) {
+            if (!type.of_type_category) continue;
+
+            const catDef = typeCategoryMapping[type.of_type_category];
+            if (!catDef) continue;
+
+            const catId = catDef.id;
+            if (!typeGroups[catId]) {
+                typeGroups[catId] = {
+                    id: catDef.id,
+                    name: catDef.name,
+                    name_ja: catDef.name_ja,
+                    name_ko: catDef.name_ko || '',
+                    order: catDef.order,
+                    mappings: []
+                };
+            }
+
+            typeGroups[catId].mappings.push({
+                of: type.of_equivalent || '-',
+                tc: type.name,
+                notes: type.description || '',
+                notes_ja: type.description_ja || type.description || '',
+                notes_ko: type.description_ko || ''
+            });
+        }
+    }
+
+    const types = Object.values(typeGroups)
+        .sort((a, b) => a.order - b.order);
+
+    return JSON.stringify({ functions, types }, null, 2);
 }
 
 // Generate oF comparison markdown (Section 5)
