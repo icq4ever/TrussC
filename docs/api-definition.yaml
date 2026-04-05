@@ -8,8 +8,6 @@
 #   - TrussC_vs_openFrameworks.md mapping (future)
 #   - for-of-users.html tables (future)
 
-version: "0.0.2"
-
 categories:
   # ==========================================================================
   # Lifecycle
