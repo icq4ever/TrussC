@@ -15,6 +15,7 @@ categories:
   - id: lifecycle
     name: "Lifecycle"
     name_ja: "ライフサイクル"
+    name_ko: "라이프사이클"
     functions:
       - name: setup
         return: "void"
@@ -77,6 +78,7 @@ categories:
   - id: events
     name: "Events"
     name_ja: "イベント"
+    name_ko: "이벤트"
     functions:
       - name: mousePressed
         return: "void"
@@ -161,6 +163,7 @@ categories:
   - id: graphics_color
     name: "Graphics - Color"
     name_ja: "グラフィックス - 色"
+    name_ko: "그래픽 - 색상"
     functions:
       - name: clear
         return: "void"
@@ -235,6 +238,7 @@ categories:
   - id: graphics_shapes
     name: "Graphics - Shapes"
     name_ja: "グラフィックス - 図形"
+    name_ko: "그래픽 - 도형"
     functions:
       - name: drawRect
         return: "void"
@@ -659,6 +663,7 @@ categories:
   - id: graphics_style
     name: "Graphics - Style"
     name_ja: "グラフィックス - スタイル"
+    name_ko: "그래픽 - 스타일"
     functions:
       - name: fill
         return: "void"
@@ -967,6 +972,7 @@ categories:
   - id: transform
     name: "Transform"
     name_ja: "変換"
+    name_ko: "변환"
     functions:
       - name: translate
         return: "void"
@@ -1160,6 +1166,7 @@ categories:
   - id: window_input
     name: "Window & Input"
     name_ja: "ウィンドウと入力"
+    name_ko: "윈도우 & 입력"
     functions:
       - name: getWindowWidth
         return: "int"
@@ -1526,6 +1533,7 @@ categories:
   - id: time_frame
     name: "Time - Frame"
     name_ja: "時間 - フレーム"
+    name_ko: "시간 - 프레임"
     functions:
       - name: getDeltaTime
         return: "double"
@@ -1580,6 +1588,7 @@ categories:
   - id: memory
     name: "Memory"
     name_ja: "メモリ"
+    name_ko: "메모리"
     functions:
       - name: getSokolMemoryBytes
         return: "int"
@@ -1661,6 +1670,7 @@ categories:
   - id: time_elapsed
     name: "Time - Elapsed"
     name_ja: "時間 - 経過"
+    name_ko: "시간 - 경과"
     functions:
       - name: getElapsedTimef
         return: "float"
@@ -1727,6 +1737,7 @@ categories:
   - id: time_system
     name: "Time - System"
     name_ja: "時間 - システム"
+    name_ko: "시간 - 시스템"
     functions:
       - name: getSystemTimeMillis
         return: "uint64_t"
@@ -1782,6 +1793,7 @@ categories:
   - id: time_current
     name: "Time - Current"
     name_ja: "時間 - 現在"
+    name_ko: "시간 - 현재"
     functions:
       - name: getSeconds
         return: "int"
@@ -1873,6 +1885,7 @@ categories:
   - id: math_random
     name: "Math - Random & Noise"
     name_ja: "数学 - 乱数とノイズ"
+    name_ko: "수학 - 난수 & 노이즈"
     functions:
       - name: random
         return: "float"
@@ -1968,6 +1981,7 @@ categories:
   - id: math_interpolation
     name: "Math - Interpolation"
     name_ja: "数学 - 補間"
+    name_ko: "수학 - 보간"
     functions:
       - name: lerp
         return: "float"
@@ -2013,6 +2027,7 @@ categories:
   - id: math_trig
     name: "Math - Trigonometry"
     name_ja: "数学 - 三角関数"
+    name_ko: "수학 - 삼각함수"
     functions:
       - name: sin
         return: "float"
@@ -2121,6 +2136,7 @@ categories:
   - id: math_general
     name: "Math - General"
     name_ja: "数学 - 一般"
+    name_ko: "수학 - 일반"
     functions:
       - name: abs
         return: "float"
@@ -2319,6 +2335,7 @@ categories:
   - id: math_geometry
     name: "Math - Geometry"
     name_ja: "数学 - 幾何"
+    name_ko: "수학 - 기하학"
     functions:
       - name: dist
         return: "float"
@@ -2350,6 +2367,7 @@ categories:
   - id: window_system
     name: "Window & System"
     name_ja: "ウィンドウとシステム"
+    name_ko: "윈도우 & 시스템"
     functions:
       - name: setWindowTitle
         return: "void"
@@ -2546,6 +2564,7 @@ categories:
   - id: utility
     name: "Utility"
     name_ja: "ユーティリティ"
+    name_ko: "유틸리티"
     functions:
       - name: logNotice
         return: "void"
@@ -2685,6 +2704,7 @@ categories:
   - id: file
     name: "File"
     name_ja: "ファイル"
+    name_ko: "파일"
     functions:
       - name: getDataPath
         return: "string"
@@ -2919,6 +2939,7 @@ categories:
   - id: sound
     name: "Sound"
     name_ja: "サウンド"
+    name_ko: "사운드"
     functions:
       - name: Sound
         return: ""
@@ -3003,6 +3024,7 @@ categories:
   - id: chipsound
     name: "ChipSound"
     name_ja: "チップサウンド"
+    name_ko: "칩사운드"
     functions:
       - name: ChipSoundNote
         return: ""
@@ -3175,6 +3197,7 @@ categories:
   - id: font
     name: "Font"
     name_ja: "フォント"
+    name_ko: "폰트"
     functions:
       - name: createFont
         return: "Font@"
@@ -3270,6 +3293,7 @@ categories:
   - id: animation
     name: "Animation"
     name_ja: "アニメーション"
+    name_ko: "애니메이션"
     functions:
       # Easing functions
       - name: ease
@@ -3554,6 +3578,7 @@ categories:
   - id: types_vec2
     name: "Types - Vec2"
     name_ja: "型 - Vec2"
+    name_ko: "타입 - Vec2"
     functions:
       - name: Vec2
         sketch: false
@@ -3602,6 +3627,7 @@ categories:
   - id: types_vec3
     name: "Types - Vec3"
     name_ja: "型 - Vec3"
+    name_ko: "타입 - Vec3"
     functions:
       - name: Vec3
         sketch: false
@@ -3637,6 +3663,7 @@ categories:
   - id: types_color
     name: "Types - Color"
     name_ja: "型 - Color"
+    name_ko: "타입 - Color"
     functions:
       - name: Color
         sketch: false
@@ -3761,6 +3788,7 @@ categories:
   - id: types_colorhsb
     name: "Types - ColorHSB"
     name_ja: "型 - ColorHSB"
+    name_ko: "타입 - ColorHSB"
     functions:
       - name: ColorHSB
         return: ""
@@ -3803,6 +3831,7 @@ categories:
   - id: types_coloroklch
     name: "Types - ColorOKLCH"
     name_ja: "型 - ColorOKLCH"
+    name_ko: "타입 - ColorOKLCH"
     functions:
       - name: ColorOKLCH
         return: ""
@@ -3845,6 +3874,7 @@ categories:
   - id: types_rect
     name: "Types - Rect"
     name_ja: "型 - Rect"
+    name_ko: "타입 - Rect"
     functions:
       - name: Rect
         sketch: false
@@ -3900,6 +3930,7 @@ categories:
   - id: scene_graph
     name: "Scene Graph"
     name_ja: "シーングラフ"
+    name_ko: "씬 그래프"
     functions:
       - name: Node
         return: ""
@@ -4190,6 +4221,7 @@ categories:
   - id: graphics_3d_setup
     name: "3D Setup"
     name_ja: "3Dセットアップ"
+    name_ko: "3D 셋업"
     functions:
       - name: setupScreenPerspective
         return: "void"
@@ -4284,6 +4316,7 @@ categories:
   - id: graphics_camera
     name: "3D Camera"
     name_ja: "3Dカメラ"
+    name_ko: "3D 카메라"
     functions:
       - name: createEasyCam
         return: "EasyCam@"
@@ -4579,6 +4612,7 @@ categories:
   - id: math_3d
     name: "Math - 3D"
     name_ja: "数学 - 3D"
+    name_ko: "수학 - 3D"
     functions:
       # Mat4 static factory functions
       - name: Mat4_identity
@@ -4737,6 +4771,7 @@ categories:
   - id: graphics_advanced
     name: "Graphics - Advanced"
     name_ja: "グラフィックス - 高度"
+    name_ko: "그래픽 - 고급"
     functions:
       - name: drawMesh
         return: "void"
@@ -4803,6 +4838,7 @@ categories:
   - id: graphics_texture
     name: "Graphics - Texture & GPU"
     name_ja: "グラフィックス - テクスチャとGPU"
+    name_ko: "그래픽 - 텍스처 & GPU"
     functions:
       - name: Texture
         return: ""
@@ -4895,6 +4931,7 @@ categories:
   - id: graphics_fbo
     name: "Graphics - FBO"
     name_ja: "グラフィックス - FBO"
+    name_ko: "그래픽 - FBO"
     functions:
       - name: Fbo
         return: ""
@@ -4978,6 +5015,7 @@ categories:
   - id: graphics_shader
     name: "Graphics - Shader"
     name_ja: "グラフィックス - シェーダー"
+    name_ko: "그래픽 - 셰이더"
     functions:
       - name: Shader
         return: ""
@@ -5082,6 +5120,7 @@ categories:
   - id: graphics_pixels
     name: "Types - Pixels"
     name_ja: "型 - Pixels"
+    name_ko: "타입 - Pixels"
     functions:
       - name: Pixels
         return: ""
@@ -5164,6 +5203,7 @@ categories:
   - id: types_mesh
     name: "Types - Mesh"
     name_ja: "型 - Mesh"
+    name_ko: "타입 - Mesh"
     functions:
       - name: createMesh
         return: "Mesh@"
@@ -5296,6 +5336,7 @@ categories:
   - id: types_path
     name: "Types - Path"
     name_ja: "型 - Path"
+    name_ko: "타입 - Path"
     functions:
       - name: createPath
         return: "Path@"
@@ -5402,6 +5443,7 @@ categories:
   - id: types_strokemesh
     name: "Types - StrokeMesh"
     name_ja: "型 - StrokeMesh"
+    name_ko: "타입 - StrokeMesh"
     functions:
       - name: createStrokeMesh
         return: "StrokeMesh@"
@@ -5558,6 +5600,7 @@ categories:
   - id: addon_tcxlut
     name: "Addon: tcxLut (Color Grading)"
     name_ja: "アドオン: tcxLut（カラーグレーディング）"
+    name_ko: "애드온: tcxLut (컬러 그레이딩)"
     functions:
       - name: tcx::lut::Lut3D
         return: ""
