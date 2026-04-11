@@ -208,4 +208,57 @@ if [ "$IS_RASPBERRY_PI" = true ]; then
             echo "  sudo usermod -aG $GROUPS_CSV $USER"
         fi
     fi
+
+    # Offer to install the tc-run launcher into /usr/local/bin so users can
+    # call `tc-run ./yourApp` from anywhere instead of typing the full
+    # `labwc -s 'sh -c "..."'` incantation.
+    if [ ! -e /usr/local/bin/tc-run ]; then
+        echo ""
+        echo "tc-run launcher: a one-line command that launches a TrussC app under labwc"
+        echo "and exits the Wayland session when the app terminates."
+
+        DO_TCRUN=true
+        if [ "$AUTO_YES" != true ]; then
+            read -p "Install tc-run to /usr/local/bin/tc-run? [Y/n] " tcrun_answer
+            case "$tcrun_answer" in
+                [nN]*) DO_TCRUN=false ;;
+            esac
+        fi
+
+        if [ "$DO_TCRUN" = true ]; then
+            if sudo tee /usr/local/bin/tc-run >/dev/null <<'TCRUN_EOF'
+#!/bin/sh
+# tc-run — launch a TrussC app inside a labwc Wayland session.
+# Exits cleanly when the app terminates.
+
+if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "usage: tc-run <app-binary>"
+    exit 1
+fi
+
+APP="$(realpath "$1")"
+
+if [ ! -x "$APP" ]; then
+    echo "tc-run: not executable: $APP" >&2
+    exit 1
+fi
+
+if ! command -v labwc >/dev/null 2>&1; then
+    echo "tc-run: labwc not found. Install with: sudo apt install labwc xwayland" >&2
+    exit 1
+fi
+
+exec labwc -s "sh -c '\"$APP\"; pkill labwc'"
+TCRUN_EOF
+            then
+                sudo chmod +x /usr/local/bin/tc-run
+                echo "  Installed: /usr/local/bin/tc-run"
+                echo "  Usage: tc-run <app-binary>"
+            else
+                echo "  Failed to install tc-run."
+            fi
+        else
+            echo "Skipped tc-run installation."
+        fi
+    fi
 fi

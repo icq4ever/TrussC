@@ -37,7 +37,7 @@ The script installs the standard TrussC Debian build dependencies (X11 dev heade
 labwc needs to access the GPU (`/dev/dri/*`), input devices (`/dev/input/*`), and DRM render nodes. On a fresh Lite install your user is not in the required groups, so the install script adds them automatically when it detects a Raspberry Pi:
 
 ```
-Adding studio42 to groups required by labwc/Wayland: video input render
+Adding pi to groups required by labwc/Wayland: video input render
   Done. You must log out and back in for the new groups to take effect.
 ```
 
@@ -74,20 +74,26 @@ This is also why `libx11-dev` and friends are still in the build dependency list
 
 ## 3. Run a TrussC App
 
-The equivalent of `xinit ./yourApp` for labwc is the `-s` (startup command) flag:
+### Easiest: `tc-run`
+
+If you accepted the `tc-run` prompt during install, just call it with your app binary:
 
 ```bash
 cd ~/TrussC/examples/3d/3DPrimitivesExample/bin
-labwc -s ./3DPrimitivesExample
+tc-run ./3DPrimitivesExample
 ```
 
-labwc starts a Wayland session, runs your app via Xwayland, and you should see the window appear on the connected HDMI display.
+`tc-run` starts a labwc Wayland session, runs your app through Xwayland, and exits the session when the app terminates (Esc, window close, crash — all cleaned up). Works from any directory once `/usr/local/bin/tc-run` is installed.
 
-To make labwc exit when the app closes, wrap the command:
+### Manual equivalent
+
+If you skipped the launcher install or want to understand what `tc-run` does, the underlying command is:
 
 ```bash
 labwc -s 'sh -c "./3DPrimitivesExample; pkill labwc"'
 ```
+
+The `-s` flag tells labwc to run a startup command. The wrapping `sh -c "...; pkill labwc"` makes labwc exit when the app closes — without it, you'd be stuck in an empty Wayland session after the app quits.
 
 ---
 
