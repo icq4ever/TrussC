@@ -26,6 +26,8 @@ REQUIRED_PACKAGES_DEBIAN=(
     libxi-dev
     libxrandr-dev
     libgl1-mesa-dev
+    libgles2-mesa-dev
+    libegl1-mesa-dev
     libasound2-dev
     libgtk-3-dev
     libavcodec-dev
@@ -94,6 +96,15 @@ MISSING=()
 case "$PKG_MANAGER" in
     apt)
         REQUIRED_PACKAGES=("${REQUIRED_PACKAGES_DEBIAN[@]}")
+
+        # Raspberry Pi OS Lite: needs a Wayland session (labwc + Xwayland) since
+        # the Lite image ships without any display server. Detect Lite by the
+        # absence of the desktop meta-package.
+        if [ "$DISTRO" = "raspbian" ] && ! dpkg -s raspberrypi-ui-mods &>/dev/null; then
+            echo "Detected Raspberry Pi OS Lite — adding labwc + xwayland for runtime"
+            REQUIRED_PACKAGES+=(labwc xwayland)
+        fi
+
         for pkg in "${REQUIRED_PACKAGES[@]}"; do
             if ! dpkg -s "$pkg" &>/dev/null; then
                 MISSING+=("$pkg")

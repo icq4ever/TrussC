@@ -126,6 +126,23 @@ EOF
         ;;
 esac
 
+# Install CLI symlink to /usr/local/bin (requires sudo)
+echo ""
+read -r -p "Install projectGenerator to /usr/local/bin so you can call it from anywhere (requires sudo)? [y/N]: " INSTALL_CLI
+case "$INSTALL_CLI" in
+    [yY]|[yY][eE][sS])
+        if sudo ln -sf "$SOURCE_DIR/bin/projectGenerator" /usr/local/bin/projectGenerator; then
+            echo "  Installed: /usr/local/bin/projectGenerator"
+            echo "  You can now run 'projectGenerator --help' from anywhere."
+        else
+            echo "  Failed to install CLI symlink."
+        fi
+        ;;
+    *)
+        echo "Skipped CLI installation."
+        ;;
+esac
+
 echo ""
 echo "=========================================="
 echo "  Build completed successfully!"

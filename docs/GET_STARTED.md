@@ -55,6 +55,14 @@ This will list any missing packages and ask to install them. Use `-y` to skip th
 
 > **Note:** The build script (`buildProjectGenerator_linux.sh`) also runs this check automatically.
 
+### Raspberry Pi OS Lite
+
+Running TrussC on Raspberry Pi OS Lite (no desktop) needs a few extra steps because the default image has no display server. See the dedicated guide:
+
+**[GET_STARTED_RASPBERRY_PI_LITE.md](GET_STARTED_RASPBERRY_PI_LITE.md)**
+
+
+
 ### Editor Setup
 
 #### VSCode
