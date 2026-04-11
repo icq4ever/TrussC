@@ -264,3 +264,72 @@ TCRUN_EOF
         fi
     fi
 fi
+
+# Offer to install the tc-build helper. Generic enough to be useful on any
+# Linux: wraps the standard out-of-source CMake build flow into a single
+# command you run from a project source directory.
+if [ ! -e /usr/local/bin/tc-build ]; then
+    echo ""
+    echo "tc-build helper: builds a TrussC project from its source directory"
+    echo "by running cmake + build inside build-linux/ for you."
+
+    DO_TCBUILD=true
+    if [ "$AUTO_YES" != true ]; then
+        read -p "Install tc-build to /usr/local/bin/tc-build? [Y/n] " tcbuild_answer
+        case "$tcbuild_answer" in
+            [nN]*) DO_TCBUILD=false ;;
+        esac
+    fi
+
+    if [ "$DO_TCBUILD" = true ]; then
+        if sudo tee /usr/local/bin/tc-build >/dev/null <<'TCBUILD_EOF'
+#!/bin/sh
+# tc-build — build a TrussC project from its source directory.
+#
+# Handles cmake configure on first run, incremental build afterwards.
+# Run from your project root (the directory containing CMakeLists.txt).
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "usage: tc-build [-c|--clean]"
+    echo ""
+    echo "Build a TrussC project from its source directory."
+    echo "Creates build-linux/ if missing and runs cmake + build."
+    echo ""
+    echo "Options:"
+    echo "  -c, --clean   Wipe build-linux/ and reconfigure from scratch"
+    exit 0
+fi
+
+if [ ! -f CMakeLists.txt ]; then
+    echo "tc-build: no CMakeLists.txt in current directory." >&2
+    echo "Run from your TrussC project root." >&2
+    exit 1
+fi
+
+BUILD_DIR="build-linux"
+
+if [ "$1" = "-c" ] || [ "$1" = "--clean" ]; then
+    echo "tc-build: removing $BUILD_DIR for clean rebuild..."
+    rm -rf "$BUILD_DIR"
+fi
+
+if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
+    echo "tc-build: configuring $BUILD_DIR..."
+    cmake -B "$BUILD_DIR" -S . || exit 1
+fi
+
+JOBS=$(nproc 2>/dev/null || echo 1)
+echo "tc-build: building with $JOBS parallel jobs..."
+exec cmake --build "$BUILD_DIR" --parallel "$JOBS"
+TCBUILD_EOF
+        then
+            sudo chmod +x /usr/local/bin/tc-build
+            echo "  Installed: /usr/local/bin/tc-build"
+            echo "  Usage: tc-build (run from your project source dir)"
+        else
+            echo "  Failed to install tc-build."
+        fi
+    else
+        echo "Skipped tc-build installation."
+    fi
+fi
