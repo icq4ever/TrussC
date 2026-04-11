@@ -34,13 +34,21 @@ The script installs the standard TrussC Debian build dependencies (X11 dev heade
 
 ### Permissions
 
-Make sure your user can access the GPU and input devices:
+labwc needs to access the GPU (`/dev/dri/*`), input devices (`/dev/input/*`), and DRM render nodes. On a fresh Lite install your user is not in the required groups, so the install script adds them automatically when it detects a Raspberry Pi:
 
+```
+Adding studio42 to groups required by labwc/Wayland: video input render
+  Done. You must log out and back in for the new groups to take effect.
+```
+
+**You must log out of all sessions (including SSH) and log back in for the new groups to apply.** `groups` should then list `video`, `input`, and `render`.
+
+If you ever need to add them by hand:
 ```bash
 sudo usermod -aG video,input,render $USER
 ```
 
-Log out and back in for the new groups to take effect.
+> **Note:** These groups solve GPU/input access. They do **not** let you launch labwc over SSH — Wayland compositors also need a real seat (a physical TTY login or a systemd service). See [Section 4](#4-auto-start-on-boot-kiosk-mode) for the systemd-based approach if you want to start the kiosk from SSH.
 
 ---
 

@@ -170,3 +170,28 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "All dependencies installed successfully."
+
+# On Raspberry Pi, ensure the user is in the groups labwc / Wayland needs
+# (GPU + input + DRM seat). Skipped on non-Pi systems.
+if [ "$IS_RASPBERRY_PI" = true ]; then
+    REQUIRED_GROUPS=(video input render)
+    MISSING_GROUPS=()
+    CURRENT_GROUPS=" $(id -nG "$USER") "
+    for grp in "${REQUIRED_GROUPS[@]}"; do
+        if [[ "$CURRENT_GROUPS" != *" $grp "* ]]; then
+            MISSING_GROUPS+=("$grp")
+        fi
+    done
+
+    if [ ${#MISSING_GROUPS[@]} -gt 0 ]; then
+        GROUPS_CSV=$(IFS=,; echo "${MISSING_GROUPS[*]}")
+        echo ""
+        echo "Adding $USER to groups required by labwc/Wayland: ${MISSING_GROUPS[*]}"
+        if sudo usermod -aG "$GROUPS_CSV" "$USER"; then
+            echo "  Done. You must log out and back in for the new groups to take effect."
+        else
+            echo "  Failed to add groups. Run manually:"
+            echo "    sudo usermod -aG $GROUPS_CSV $USER"
+        fi
+    fi
+fi
