@@ -98,10 +98,15 @@ case "$PKG_MANAGER" in
         REQUIRED_PACKAGES=("${REQUIRED_PACKAGES_DEBIAN[@]}")
 
         # Raspberry Pi OS Lite: needs a Wayland session (labwc + Xwayland) since
-        # the Lite image ships without any display server. Detect Lite by the
-        # absence of the desktop meta-package.
-        if [ "$DISTRO" = "raspbian" ] && ! dpkg -s raspberrypi-ui-mods &>/dev/null; then
-            echo "Detected Raspberry Pi OS Lite — adding labwc + xwayland for runtime"
+        # the Lite image ships without any display server. Detect by hardware
+        # (device-tree model) rather than distro ID, because 64-bit Raspberry Pi OS
+        # reports ID=debian, not raspbian.
+        IS_RASPBERRY_PI=false
+        if [ -r /proc/device-tree/model ] && grep -qi "raspberry pi" /proc/device-tree/model; then
+            IS_RASPBERRY_PI=true
+        fi
+        if [ "$IS_RASPBERRY_PI" = true ] && ! dpkg -s raspberrypi-ui-mods &>/dev/null; then
+            echo "Detected Raspberry Pi (Lite — no desktop meta-package) — adding labwc + xwayland for runtime"
             REQUIRED_PACKAGES+=(labwc xwayland)
         fi
 

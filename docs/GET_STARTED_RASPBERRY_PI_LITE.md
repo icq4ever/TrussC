@@ -30,7 +30,7 @@ The script installs the standard TrussC Debian build dependencies (X11 dev heade
 | `labwc` | Wayland compositor (the same one Raspberry Pi OS Desktop uses) |
 | `xwayland` | X11 server emulator — sokol_app is X11-only, so it runs through Xwayland |
 
-> **How Lite detection works:** The script treats raspbian as Lite if `raspberrypi-ui-mods` (the Desktop meta-package) is not installed. If you install the desktop later, `labwc` and `xwayland` will not be added on subsequent runs.
+> **How Lite detection works:** The script first checks `/proc/device-tree/model` for the string "Raspberry Pi" — this is a hardware-level signal that works regardless of distro ID. (64-bit Raspberry Pi OS reports `ID=debian` in `/etc/os-release`, not `raspbian`, so distro-ID-based detection would miss it.) If running on a Pi *and* the Desktop meta-package `raspberrypi-ui-mods` is not installed, the script treats it as Lite and adds `labwc` + `xwayland`.
 
 ### Permissions
 
