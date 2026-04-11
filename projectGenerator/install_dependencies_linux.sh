@@ -130,46 +130,45 @@ esac
 
 if [ ${#MISSING[@]} -eq 0 ]; then
     echo "All required packages are already installed."
-    exit 0
-fi
-
-echo "Detected distribution: $DISTRO ($PKG_MANAGER)"
-echo "The following packages are missing:"
-echo ""
-for pkg in "${MISSING[@]}"; do
-    echo "  - $pkg"
-done
-echo ""
-
-if [ "$AUTO_YES" = true ]; then
-    echo "Installing (auto-yes mode)..."
 else
-    read -p "Install now? [Y/n] " answer
-    case "$answer" in
-        [nN]*)
-            echo "Skipped. You can install manually with:"
-            echo "  $MANUAL_INSTALL_CMD ${MISSING[*]}"
-            exit 1
+    echo "Detected distribution: $DISTRO ($PKG_MANAGER)"
+    echo "The following packages are missing:"
+    echo ""
+    for pkg in "${MISSING[@]}"; do
+        echo "  - $pkg"
+    done
+    echo ""
+
+    if [ "$AUTO_YES" = true ]; then
+        echo "Installing (auto-yes mode)..."
+    else
+        read -p "Install now? [Y/n] " answer
+        case "$answer" in
+            [nN]*)
+                echo "Skipped. You can install manually with:"
+                echo "  $MANUAL_INSTALL_CMD ${MISSING[*]}"
+                exit 1
+                ;;
+        esac
+    fi
+
+    case "$PKG_MANAGER" in
+        apt)
+            sudo apt-get update
+            sudo apt-get install -y "${MISSING[@]}"
+            ;;
+        pacman)
+            sudo pacman -Sy --needed --noconfirm "${MISSING[@]}"
             ;;
     esac
+
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to install some packages."
+        exit 1
+    fi
+
+    echo "All dependencies installed successfully."
 fi
-
-case "$PKG_MANAGER" in
-    apt)
-        sudo apt-get update
-        sudo apt-get install -y "${MISSING[@]}"
-        ;;
-    pacman)
-        sudo pacman -Sy --needed --noconfirm "${MISSING[@]}"
-        ;;
-esac
-
-if [ $? -ne 0 ]; then
-    echo "ERROR: Failed to install some packages."
-    exit 1
-fi
-
-echo "All dependencies installed successfully."
 
 # On Raspberry Pi, ensure the user is in the groups labwc / Wayland needs
 # (GPU + input + DRM seat). Skipped on non-Pi systems.
