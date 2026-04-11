@@ -186,12 +186,26 @@ if [ "$IS_RASPBERRY_PI" = true ]; then
     if [ ${#MISSING_GROUPS[@]} -gt 0 ]; then
         GROUPS_CSV=$(IFS=,; echo "${MISSING_GROUPS[*]}")
         echo ""
-        echo "Adding $USER to groups required by labwc/Wayland: ${MISSING_GROUPS[*]}"
-        if sudo usermod -aG "$GROUPS_CSV" "$USER"; then
-            echo "  Done. You must log out and back in for the new groups to take effect."
+        echo "labwc/Wayland needs $USER to be in these groups (currently missing): ${MISSING_GROUPS[*]}"
+
+        DO_GROUPS=true
+        if [ "$AUTO_YES" != true ]; then
+            read -p "Add $USER to ${GROUPS_CSV}? [Y/n] " group_answer
+            case "$group_answer" in
+                [nN]*) DO_GROUPS=false ;;
+            esac
+        fi
+
+        if [ "$DO_GROUPS" = true ]; then
+            if sudo usermod -aG "$GROUPS_CSV" "$USER"; then
+                echo "  Done. You must log out and back in for the new groups to take effect."
+            else
+                echo "  Failed to add groups. Run manually:"
+                echo "    sudo usermod -aG $GROUPS_CSV $USER"
+            fi
         else
-            echo "  Failed to add groups. Run manually:"
-            echo "    sudo usermod -aG $GROUPS_CSV $USER"
+            echo "Skipped. Run manually when ready:"
+            echo "  sudo usermod -aG $GROUPS_CSV $USER"
         fi
     fi
 fi
