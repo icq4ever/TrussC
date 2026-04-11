@@ -83,17 +83,25 @@ cd ~/TrussC/examples/3d/3DPrimitivesExample/bin
 tc-run ./3DPrimitivesExample
 ```
 
-`tc-run` starts a labwc Wayland session, runs your app through Xwayland, and exits the session when the app terminates (Esc, window close, crash — all cleaned up). Works from any directory once `/usr/local/bin/tc-run` is installed.
+`tc-run` starts a labwc Wayland session and runs your app through Xwayland. Works from any directory once `/usr/local/bin/tc-run` is installed.
+
+### Exiting the session
+
+> **Important:** Closing the app does **not** automatically close labwc. labwc is a full Wayland compositor (the same one that ships with Raspberry Pi OS Desktop), and it stays running after its child app terminates. You'll see an empty desktop with just the cursor.
+>
+> To exit labwc, **click anywhere on the empty desktop (any mouse button) and choose `Exit`** from the menu that appears. This is the standard labwc shutdown path.
+>
+> For unattended kiosk use, you don't need to exit manually at all — see [Section 4](#4-auto-start-on-boot-kiosk-mode), where systemd handles restart and shutdown for you.
 
 ### Manual equivalent
 
 If you skipped the launcher install or want to understand what `tc-run` does, the underlying command is:
 
 ```bash
-labwc -s 'sh -c "./3DPrimitivesExample; pkill labwc"'
+labwc -s ./3DPrimitivesExample
 ```
 
-The `-s` flag tells labwc to run a startup command. The wrapping `sh -c "...; pkill labwc"` makes labwc exit when the app closes — without it, you'd be stuck in an empty Wayland session after the app quits.
+The `-s` flag tells labwc to run a startup command after starting. Same exit caveat as above — close the app, then right-click → Exit.
 
 ---
 
@@ -173,7 +181,7 @@ This replaces the bash_profile hook entirely. It takes over `tty1` directly, run
    StandardError=journal
    Environment=XDG_RUNTIME_DIR=/run/user/<YOUR_UID>        # id -u
    ExecStart=/usr/bin/labwc -s /home/<YOUR_USERNAME>/TrussC/examples/3d/3DPrimitivesExample/bin/3DPrimitivesExample
-   Restart=on-failure
+   Restart=always
    RestartSec=2
 
    [Install]
@@ -210,7 +218,7 @@ This replaces the bash_profile hook entirely. It takes over `tty1` directly, run
 - `Conflicts=getty@tty1` — getty is stopped before the kiosk starts, so they don't fight over tty1.
 - `PAMName=login` — runs the service through the PAM `login` stack, which sets up logind seat access. Without this, labwc can't grab `/dev/dri/card1` and `/dev/input/*`.
 - `TTYPath=/dev/tty1` — pins labwc to the same VT getty was on.
-- `Restart=on-failure` — if your app or labwc crashes, systemd restarts the whole thing after 2 seconds.
+- `Restart=always` — labwc does not exit when the wrapped app terminates, but systemd will restart the whole unit anyway whenever the service stops (manual `systemctl stop`, crash, normal exit). For unattended kiosks this is exactly what you want: the screen never stays empty. If you'd prefer "restart only on crash, leave alone on clean exit," use `Restart=on-failure` instead.
 
 ---
 

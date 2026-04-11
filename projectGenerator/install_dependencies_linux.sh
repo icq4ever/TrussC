@@ -228,7 +228,10 @@ if [ "$IS_RASPBERRY_PI" = true ]; then
             if sudo tee /usr/local/bin/tc-run >/dev/null <<'TCRUN_EOF'
 #!/bin/sh
 # tc-run — launch a TrussC app inside a labwc Wayland session.
-# Exits cleanly when the app terminates.
+#
+# Note: labwc is a full compositor and does NOT exit when the app terminates.
+# After the app closes, right-click on the empty desktop and choose Exit.
+# For unattended kiosk use, run via systemd with Restart=always instead.
 
 if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     echo "usage: tc-run <app-binary>"
@@ -247,7 +250,7 @@ if ! command -v labwc >/dev/null 2>&1; then
     exit 1
 fi
 
-exec labwc -s "sh -c '\"$APP\"; pkill labwc'"
+exec labwc -s "$APP"
 TCRUN_EOF
             then
                 sudo chmod +x /usr/local/bin/tc-run
