@@ -75,6 +75,7 @@ private:
     AVPacket* packet_ = nullptr;
     AVBufferRef* hwDeviceCtx_ = nullptr;
     bool usingHwAccel_ = false;
+    AVPixelFormat lastScalerFmt_ = AV_PIX_FMT_NONE;
 
     int videoStreamIndex_ = -1;
 
@@ -517,33 +518,37 @@ bool TCVideoPlayerImpl::decodeNextFrame() {
         // HW accel frames need to be transferred to CPU first
         AVFrame* srcFrame = frame_;
         AVFrame* swFrame = nullptr;
-        if (usingHwAccel_ && frame_->format == AV_PIX_FMT_DRM_PRIME) {
+        if (usingHwAccel_ && frame_->hw_frames_ctx) {
             swFrame = av_frame_alloc();
+            swFrame->format = AV_PIX_FMT_YUV420P;
             if (av_hwframe_transfer_data(swFrame, frame_, 0) < 0) {
                 av_frame_free(&swFrame);
                 av_frame_unref(frame_);
                 continue;
             }
             srcFrame = swFrame;
-
-            // Recreate scaler for HW decoder output format (e.g. NV12)
-            if (!swsCtx_ || srcFrame->format != codecCtx_->pix_fmt) {
-                if (swsCtx_) sws_freeContext(swsCtx_);
-                swsCtx_ = sws_getContext(
-                    width_, height_, (AVPixelFormat)srcFrame->format,
-                    width_, height_, AV_PIX_FMT_RGBA,
-                    SWS_BILINEAR, nullptr, nullptr, nullptr
-                );
-                codecCtx_->pix_fmt = (AVPixelFormat)srcFrame->format;
-            }
         }
 
-        sws_scale(
-            swsCtx_,
-            srcFrame->data, srcFrame->linesize,
-            0, height_,
-            frameRGBA_->data, frameRGBA_->linesize
-        );
+        // Recreate scaler if pixel format changed
+        AVPixelFormat srcFmt = (AVPixelFormat)srcFrame->format;
+        if (srcFmt != lastScalerFmt_ && srcFmt != AV_PIX_FMT_NONE) {
+            if (swsCtx_) sws_freeContext(swsCtx_);
+            swsCtx_ = sws_getContext(
+                width_, height_, srcFmt,
+                width_, height_, AV_PIX_FMT_RGBA,
+                SWS_BILINEAR, nullptr, nullptr, nullptr
+            );
+            lastScalerFmt_ = srcFmt;
+        }
+
+        if (swsCtx_ && srcFrame->data[0]) {
+            sws_scale(
+                swsCtx_,
+                srcFrame->data, srcFrame->linesize,
+                0, height_,
+                frameRGBA_->data, frameRGBA_->linesize
+            );
+        }
 
         if (swFrame) {
             av_frame_free(&swFrame);
