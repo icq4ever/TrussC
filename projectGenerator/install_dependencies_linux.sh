@@ -315,12 +315,20 @@ fi
 
 if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
     echo "tc-build: configuring $BUILD_DIR..."
-    cmake -B "$BUILD_DIR" -S . || exit 1
+    if [ -f CMakePresets.json ]; then
+        cmake --preset linux || exit 1
+    else
+        cmake -B "$BUILD_DIR" -S . || exit 1
+    fi
 fi
 
 JOBS=$(nproc 2>/dev/null || echo 1)
 echo "tc-build: building with $JOBS parallel jobs..."
-exec cmake --build "$BUILD_DIR" --parallel "$JOBS"
+if [ -f CMakePresets.json ]; then
+    exec cmake --build --preset linux --parallel "$JOBS"
+else
+    exec cmake --build "$BUILD_DIR" --parallel "$JOBS"
+fi
 TCBUILD_EOF
         then
             sudo chmod +x /usr/local/bin/tc-build
