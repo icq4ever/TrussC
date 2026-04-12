@@ -216,12 +216,14 @@ elseif(TC_PLATFORM_LINUX)
     pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
     # FFmpeg for VideoPlayer
     pkg_check_modules(FFMPEG REQUIRED libavcodec libavformat libswscale libavutil)
+    pkg_check_modules(LIBDRM libdrm)
     # GStreamer for AAC audio decoding
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0)
     target_include_directories(TrussC PUBLIC
         ${GTK3_INCLUDE_DIRS}
         ${FFMPEG_INCLUDE_DIRS}
         ${GSTREAMER_INCLUDE_DIRS}
+        ${LIBDRM_INCLUDE_DIRS}
     )
     target_link_libraries(TrussC PUBLIC
         ${X11_LIBRARIES}
@@ -231,6 +233,7 @@ elseif(TC_PLATFORM_LINUX)
         ${GTK3_LIBRARIES}
         ${FFMPEG_LIBRARIES}
         ${GSTREAMER_LIBRARIES}
+        ${LIBDRM_LIBRARIES}
         pthread
         dl
     )
@@ -250,11 +253,13 @@ elseif(TC_PLATFORM_RASPBIAN)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
     pkg_check_modules(FFMPEG REQUIRED libavcodec libavformat libswscale libavutil)
+    pkg_check_modules(LIBDRM libdrm)
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0)
     target_include_directories(TrussC PUBLIC
         ${GTK3_INCLUDE_DIRS}
         ${FFMPEG_INCLUDE_DIRS}
         ${GSTREAMER_INCLUDE_DIRS}
+        ${LIBDRM_INCLUDE_DIRS}
     )
     target_link_libraries(TrussC PUBLIC
         ${X11_LIBRARIES}
@@ -265,6 +270,7 @@ elseif(TC_PLATFORM_RASPBIAN)
         ${GTK3_LIBRARIES}
         ${FFMPEG_LIBRARIES}
         ${GSTREAMER_LIBRARIES}
+        ${LIBDRM_LIBRARIES}
         pthread
         dl
     )

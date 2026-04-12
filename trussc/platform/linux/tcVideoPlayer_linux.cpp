@@ -15,6 +15,8 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/time.h>
+#include <libavutil/hwcontext.h>
+#include <libavutil/hwcontext_drm.h>
 }
 
 #include <thread>
@@ -71,6 +73,8 @@ private:
     AVFrame* frame_ = nullptr;
     AVFrame* frameRGBA_ = nullptr;
     AVPacket* packet_ = nullptr;
+    AVBufferRef* hwDeviceCtx_ = nullptr;
+    bool usingHwAccel_ = false;
 
     int videoStreamIndex_ = -1;
 
@@ -176,12 +180,36 @@ bool TCVideoPlayerImpl::load(const std::string& path, VideoPlayer* player) {
         return false;
     }
 
+    // Try DRM hardware acceleration (RPi 5 HEVC, etc.)
+    if (av_hwdevice_ctx_create(&hwDeviceCtx_, AV_HWDEVICE_TYPE_DRM, nullptr, nullptr, 0) >= 0) {
+        codecCtx_->hw_device_ctx = av_buffer_ref(hwDeviceCtx_);
+        usingHwAccel_ = true;
+        logNotice("VideoPlayer") << "Using DRM hardware acceleration";
+    } else {
+        logNotice("VideoPlayer") << "DRM hwaccel not available, using software decoding";
+    }
+
     // Open codec
     if (avcodec_open2(codecCtx_, codec, nullptr) < 0) {
-        logError("VideoPlayer") << "Failed to open codec";
-        avcodec_free_context(&codecCtx_);
-        avformat_close_input(&formatCtx_);
-        return false;
+        if (usingHwAccel_) {
+            logWarning("VideoPlayer") << "HW accel open failed, falling back to SW";
+            usingHwAccel_ = false;
+            avcodec_free_context(&codecCtx_);
+
+            codecCtx_ = avcodec_alloc_context3(codec);
+            avcodec_parameters_to_context(codecCtx_, codecPar);
+            if (avcodec_open2(codecCtx_, codec, nullptr) < 0) {
+                logError("VideoPlayer") << "Failed to open codec";
+                avcodec_free_context(&codecCtx_);
+                avformat_close_input(&formatCtx_);
+                return false;
+            }
+        } else {
+            logError("VideoPlayer") << "Failed to open codec";
+            avcodec_free_context(&codecCtx_);
+            avformat_close_input(&formatCtx_);
+            return false;
+        }
     }
 
     // Get video properties
@@ -264,6 +292,12 @@ void TCVideoPlayerImpl::close() {
     }
 
     // Free FFmpeg resources
+    if (hwDeviceCtx_) {
+        av_buffer_unref(&hwDeviceCtx_);
+        hwDeviceCtx_ = nullptr;
+    }
+    usingHwAccel_ = false;
+
     if (rgbaBuffer_) {
         av_free(rgbaBuffer_);
         rgbaBuffer_ = nullptr;
@@ -480,12 +514,40 @@ bool TCVideoPlayerImpl::decodeNextFrame() {
         }
 
         // Convert to RGBA
+        // HW accel frames need to be transferred to CPU first
+        AVFrame* srcFrame = frame_;
+        AVFrame* swFrame = nullptr;
+        if (usingHwAccel_ && frame_->format == AV_PIX_FMT_DRM_PRIME) {
+            swFrame = av_frame_alloc();
+            if (av_hwframe_transfer_data(swFrame, frame_, 0) < 0) {
+                av_frame_free(&swFrame);
+                av_frame_unref(frame_);
+                continue;
+            }
+            srcFrame = swFrame;
+
+            // Recreate scaler for HW decoder output format (e.g. NV12)
+            if (!swsCtx_ || srcFrame->format != codecCtx_->pix_fmt) {
+                if (swsCtx_) sws_freeContext(swsCtx_);
+                swsCtx_ = sws_getContext(
+                    width_, height_, (AVPixelFormat)srcFrame->format,
+                    width_, height_, AV_PIX_FMT_RGBA,
+                    SWS_BILINEAR, nullptr, nullptr, nullptr
+                );
+                codecCtx_->pix_fmt = (AVPixelFormat)srcFrame->format;
+            }
+        }
+
         sws_scale(
             swsCtx_,
-            frame_->data, frame_->linesize,
+            srcFrame->data, srcFrame->linesize,
             0, height_,
             frameRGBA_->data, frameRGBA_->linesize
         );
+
+        if (swFrame) {
+            av_frame_free(&swFrame);
+        }
 
         // Calculate PTS
         double pts = 0.0;
