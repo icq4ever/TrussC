@@ -166,13 +166,15 @@ esac
 
 # Enable shell tab completion
 # Skip if already configured in shell rc file
-SHELL_RC=""
-if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "$(which zsh 2>/dev/null)" ]; then
+# Use $SHELL (user's login shell), not $BASH_VERSION (script interpreter)
+if echo "$SHELL" | grep -q 'zsh'; then
     SHELL_RC="$HOME/.zshrc"
     SHELL_TYPE="zsh"
-elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "$(which bash 2>/dev/null)" ]; then
+elif echo "$SHELL" | grep -q 'bash'; then
     SHELL_RC="$HOME/.bashrc"
     SHELL_TYPE="bash"
+else
+    SHELL_RC=""
 fi
 
 if [ -n "$SHELL_RC" ]; then

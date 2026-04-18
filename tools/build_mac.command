@@ -97,9 +97,11 @@ esac
 
 # Enable shell tab completion
 # Skip if already configured in shell rc file
-SHELL_RC="$HOME/.zshrc"
-SHELL_TYPE="zsh"
-if [ -n "$BASH_VERSION" ]; then
+# Use $SHELL (user's login shell), not $BASH_VERSION (script interpreter)
+if echo "$SHELL" | grep -q 'zsh'; then
+    SHELL_RC="$HOME/.zshrc"
+    SHELL_TYPE="zsh"
+else
     SHELL_RC="$HOME/.bash_profile"
     SHELL_TYPE="bash"
 fi
