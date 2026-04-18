@@ -60,8 +60,15 @@ rm -rf "$SCRIPT_DIR/trusscli.app"
 ln -s "$SOURCE_DIR/bin/trusscli.app" "$SCRIPT_DIR/trusscli.app"
 
 # Install symlink to /usr/local/bin so trusscli is on PATH
-echo ""
-read -r -p "Add trusscli to PATH via /usr/local/bin? [y/N]: " INSTALL_PATH_LINK
+# Skip only if it already points to THIS binary
+BIN_TARGET="$SOURCE_DIR/bin/trusscli.app/Contents/MacOS/trusscli"
+CURRENT_LINK=$(readlink /usr/local/bin/trusscli 2>/dev/null)
+if [ "$CURRENT_LINK" = "$BIN_TARGET" ]; then
+    INSTALL_PATH_LINK="skip"
+else
+    echo ""
+    read -r -p "Add trusscli to PATH via /usr/local/bin? [y/N]: " INSTALL_PATH_LINK
+fi
 case "$INSTALL_PATH_LINK" in
     [yY]|[yY][eE][sS])
         LINK_PATH="/usr/local/bin/trusscli"
@@ -87,6 +94,35 @@ case "$INSTALL_PATH_LINK" in
         echo "Skipped PATH symlink installation."
         ;;
 esac
+
+# Enable shell tab completion
+# Skip if already configured in shell rc file
+# Use $SHELL (user's login shell), not $BASH_VERSION (script interpreter)
+if echo "$SHELL" | grep -q 'zsh'; then
+    SHELL_RC="$HOME/.zshrc"
+    SHELL_TYPE="zsh"
+else
+    SHELL_RC="$HOME/.bash_profile"
+    SHELL_TYPE="bash"
+fi
+
+if grep -q 'trusscli completion' "$SHELL_RC" 2>/dev/null; then
+    echo "Shell completion already configured."
+else
+    echo ""
+    read -r -p "Enable tab completion for trusscli? [y/N]: " INSTALL_COMPLETION
+    case "$INSTALL_COMPLETION" in
+        [yY]|[yY][eE][sS])
+            echo "" >> "$SHELL_RC"
+            echo '# TrussC CLI tab completion' >> "$SHELL_RC"
+            echo "eval \"\$(trusscli completion $SHELL_TYPE)\"" >> "$SHELL_RC"
+            echo "  Added to $SHELL_RC — restart your shell or run: source $SHELL_RC"
+            ;;
+        *)
+            echo "Skipped. To enable later: eval \"\$(trusscli completion $SHELL_TYPE)\""
+            ;;
+    esac
+fi
 
 echo ""
 echo "=========================================="
