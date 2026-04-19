@@ -161,7 +161,9 @@ private:
 
     // Frame queue
     struct FrameData {
-        std::vector<uint8_t> pixels;
+        std::vector<uint8_t> pixels;    // RGBA, or NV12 Y-plane when isNV12
+        std::vector<uint8_t> pixelsUV;  // NV12 UV-plane (empty when !isNV12)
+        bool isNV12 = false;
         double pts;
     };
     std::queue<FrameData> frameQueue_;
@@ -175,6 +177,10 @@ private:
     // Pixel buffer
     uint8_t* rgbaBuffer_ = nullptr;
     int rgbaBufferSize_ = 0;
+
+public:
+    bool nv12Mode_ = false;  // set by loadPlatform() when CUDA is active
+    bool isNV12Capable() const { return hwType_ == AV_HWDEVICE_TYPE_CUDA; }
 };
 
 // =============================================================================
@@ -545,18 +551,28 @@ void TCVideoPlayerImpl::update(VideoPlayer* player) {
         FrameData& front = frameQueue_.front();
 
         if (front.pts <= targetPts) {
-            // Copy pixels to VideoPlayer's buffer
             if (player) {
-                unsigned char* playerPixels = player->getPixels();
-                if (playerPixels && front.pixels.size() == (size_t)(width_ * height_ * 4)) {
-                    memcpy(playerPixels, front.pixels.data(), front.pixels.size());
-                    hasNewFrame_ = true;
-                    currentPts_ = front.pts;
+                if (front.isNV12) {
+                    unsigned char* yBuf  = player->getPixelsY();
+                    unsigned char* uvBuf = player->getPixelsUV();
+                    if (yBuf  && front.pixels.size()   == (size_t)(width_ * height_) &&
+                        uvBuf && front.pixelsUV.size() == (size_t)(width_ * height_ / 2)) {
+                        memcpy(yBuf,  front.pixels.data(),   front.pixels.size());
+                        memcpy(uvBuf, front.pixelsUV.data(), front.pixelsUV.size());
+                        hasNewFrame_ = true;
+                        currentPts_  = front.pts;
+                    }
+                } else {
+                    unsigned char* playerPixels = player->getPixels();
+                    if (playerPixels && front.pixels.size() == (size_t)(width_ * height_ * 4)) {
+                        memcpy(playerPixels, front.pixels.data(), front.pixels.size());
+                        hasNewFrame_ = true;
+                        currentPts_  = front.pts;
+                    }
                 }
             }
             frameQueue_.pop();
         } else {
-            // Frame is in the future, wait
             break;
         }
     }
@@ -708,8 +724,40 @@ bool TCVideoPlayerImpl::decodeNextFrame() {
             srcFrame = swFrame;
         }
 
-        // Recreate scaler if source pixel format changed (HW transfer may
-        // produce NV12 / YUV420P depending on backend).
+        // Calculate PTS (frame_->pts before any av_frame_unref)
+        double pts = 0.0;
+        if (frame_->pts != AV_NOPTS_VALUE)
+            pts = frame_->pts * av_q2d(timeBase_);
+
+        // NV12 fast path: copy Y+UV planes directly, skip sws_scale entirely
+        if (nv12Mode_ && srcFrame->format == AV_PIX_FMT_NV12) {
+            FrameData data;
+            data.isNV12 = true;
+            data.pts    = pts;
+
+            data.pixels.resize(width_ * height_);
+            for (int row = 0; row < height_; ++row)
+                std::memcpy(data.pixels.data()  + row * width_,
+                            srcFrame->data[0]   + row * srcFrame->linesize[0],
+                            width_);
+
+            const int uvRows     = height_ / 2;
+            const int uvRowBytes = width_;      // (width/2 pairs) * 2 bytes = width
+            data.pixelsUV.resize(uvRows * uvRowBytes);
+            for (int row = 0; row < uvRows; ++row)
+                std::memcpy(data.pixelsUV.data() + row * uvRowBytes,
+                            srcFrame->data[1]    + row * srcFrame->linesize[1],
+                            uvRowBytes);
+
+            if (swFrame) av_frame_free(&swFrame);
+            av_frame_unref(frame_);
+
+            std::lock_guard<std::mutex> lock(mutex_);
+            frameQueue_.push(std::move(data));
+            return true;
+        }
+
+        // RGBA fallback: sws_scale for non-CUDA or non-NV12
         AVPixelFormat srcFmt = (AVPixelFormat)srcFrame->format;
         if (srcFmt != lastScalerFmt_ && srcFmt != AV_PIX_FMT_NONE) {
             if (swsCtx_) sws_freeContext(swsCtx_);
@@ -730,13 +778,6 @@ bool TCVideoPlayerImpl::decodeNextFrame() {
 
         if (swFrame) av_frame_free(&swFrame);
 
-        // Calculate PTS
-        double pts = 0.0;
-        if (frame_->pts != AV_NOPTS_VALUE) {
-            pts = frame_->pts * av_q2d(timeBase_);
-        }
-
-        // Add to queue
         {
             std::lock_guard<std::mutex> lock(mutex_);
             FrameData data;
@@ -1012,6 +1053,74 @@ void TCVideoPlayerImpl::previousFrame() {
 // VideoPlayer platform methods (Linux implementation)
 // =============================================================================
 
+#include "tc/gpu/shaders/videoNV12.glsl.h"
+
+// NV12 immediate-draw shader (immutable unit-quad, uniform-based positioning)
+class NV12VideoShader : public Shader {
+public:
+    void loadShader() { load(tc_video_nv12_nv12_shader_desc); }
+
+    void draw(float x, float y, float w, float h,
+              const Texture& texY, const Texture& texUV) {
+        if (!loaded) return;
+
+        ensureSwapchainPass();
+        sgl_draw();
+
+        sg_apply_pipeline(pipeline);
+
+        struct VsParams { float v[8]; } p = {{
+            (float)sapp_width(), (float)sapp_height(), x, y,
+            w, h, 0.0f, 0.0f
+        }};
+        sg_range range = { &p, sizeof(p) };
+        sg_apply_uniforms(0, &range);
+
+        sg_bindings bind = {};
+        bind.vertex_buffers[0] = vertexBuffer;
+        bind.index_buffer      = indexBuffer;
+        bind.views[0]    = texY.getView();
+        bind.samplers[0] = texY.getSampler();
+        bind.views[1]    = texUV.getView();
+        bind.samplers[1] = texUV.getSampler();
+        sg_apply_bindings(&bind);
+
+        sg_draw(0, 6, 1);
+
+        sg_reset_state_cache();
+        sgl_defaults();
+        sgl_matrix_mode_projection();
+        sgl_ortho(0.0f, (float)sapp_width(), (float)sapp_height(), 0.0f, -10000.0f, 10000.0f);
+        sgl_matrix_mode_modelview();
+        sgl_load_identity();
+    }
+
+protected:
+    sg_pipeline_desc createPipelineDesc() override {
+        sg_pipeline_desc desc = {};
+        desc.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT2;
+        desc.colors[0].blend.enabled = false;
+        desc.index_type = SG_INDEXTYPE_UINT16;
+        desc.label = "tc_nv12_pipeline";
+        return desc;
+    }
+
+    void createVertexBuffer() override {
+        float verts[] = { 0.f,0.f, 1.f,0.f, 1.f,1.f, 0.f,1.f };
+        sg_buffer_desc vd = {};
+        vd.data  = SG_RANGE(verts);
+        vd.label = "tc_nv12_verts";
+        vertexBuffer = sg_make_buffer(&vd);
+
+        uint16_t idx[] = { 0, 1, 2, 0, 2, 3 };
+        sg_buffer_desc id = {};
+        id.usage.index_buffer = true;
+        id.data  = SG_RANGE(idx);
+        id.label = "tc_nv12_idx";
+        indexBuffer = sg_make_buffer(&id);
+    }
+};
+
 namespace trussc {
 
 bool VideoPlayer::loadPlatform(const std::string& path) {
@@ -1023,24 +1132,44 @@ bool VideoPlayer::loadPlatform(const std::string& path) {
     }
 
     platformHandle_ = impl;
-    width_ = impl->getWidth();
+    width_  = impl->getWidth();
     height_ = impl->getHeight();
 
-    // Allocate pixel buffer
     if (width_ > 0 && height_ > 0) {
-        pixels_ = new unsigned char[width_ * height_ * 4];
-        std::memset(pixels_, 0, width_ * height_ * 4);
+        if (impl->isNV12Capable()) {
+            impl->nv12Mode_ = true;
+            nv12Mode_  = true;
+            pixelsY_   = new unsigned char[width_ * height_];
+            pixelsUV_  = new unsigned char[width_ * height_ / 2];
+            std::memset(pixelsY_,  0, width_ * height_);
+            std::memset(pixelsUV_, 0, width_ * height_ / 2);
+
+            auto* shader = new NV12VideoShader();
+            shader->loadShader();
+            nv12ShaderHandle_ = shader;
+        } else {
+            pixels_ = new unsigned char[width_ * height_ * 4];
+            std::memset(pixels_, 0, width_ * height_ * 4);
+        }
     }
 
     return true;
 }
 
 void VideoPlayer::closePlatform() {
+    if (nv12ShaderHandle_) {
+        delete static_cast<NV12VideoShader*>(nv12ShaderHandle_);
+        nv12ShaderHandle_ = nullptr;
+    }
     if (platformHandle_) {
         auto impl = static_cast<TCVideoPlayerImpl*>(platformHandle_);
         delete impl;
         platformHandle_ = nullptr;
     }
+}
+
+void VideoPlayer::drawNV12Platform(float x, float y, float w, float h) const {
+    static_cast<NV12VideoShader*>(nv12ShaderHandle_)->draw(x, y, w, h, textureY_, textureUV_);
 }
 
 void VideoPlayer::playPlatform() {
