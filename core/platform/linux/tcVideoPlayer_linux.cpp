@@ -1147,9 +1147,16 @@ public:
 
         sg_apply_pipeline(pipeline);
 
+        // x/y/w/h come in logical coordinates (same space tcApp draws in),
+        // but sapp_width()/sapp_height() are physical framebuffer pixels.
+        // Divide by DPI scale so the shader's viewport matches its inputs.
+        const float dpiScale = sapp_dpi_scale();
+        const float vpW = (float)sapp_width()  / dpiScale;
+        const float vpH = (float)sapp_height() / dpiScale;
+
         struct VsParams { float v[8]; } p = {{
-            (float)sapp_width(), (float)sapp_height(), x, y,
-            w, h, 0.0f, 0.0f
+            vpW, vpH, x, y,
+            w,   h,   0.0f, 0.0f
         }};
         sg_range range = { &p, sizeof(p) };
         sg_apply_uniforms(0, &range);
@@ -1168,7 +1175,7 @@ public:
         sg_reset_state_cache();
         sgl_defaults();
         sgl_matrix_mode_projection();
-        sgl_ortho(0.0f, (float)sapp_width(), (float)sapp_height(), 0.0f, -10000.0f, 10000.0f);
+        sgl_ortho(0.0f, vpW, vpH, 0.0f, -10000.0f, 10000.0f);
         sgl_matrix_mode_modelview();
         sgl_load_identity();
     }
