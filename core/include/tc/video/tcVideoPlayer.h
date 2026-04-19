@@ -68,6 +68,15 @@ public:
             if (nv12Mode_) {
                 textureY_.allocate(width_,     height_,     1,                  TextureUsage::Stream);
                 textureUV_.allocate(width_ / 2, height_ / 2, TextureFormat::RG8, TextureUsage::Stream);
+                // Prime the textures with the neutral-chroma CPU buffers
+                // (Y=0, UV=128) set up in loadPlatform(). Without this, the
+                // GPU textures contain uninitialized data and the BT.601
+                // shader renders a green flash on the first frame (Y=0,
+                // U=0, V=0 → RGB (0, 135, 0)).
+                if (pixelsY_ && pixelsUV_) {
+                    textureY_.loadData(pixelsY_,  width_,     height_,     1);
+                    textureUV_.loadData(pixelsUV_, width_ / 2, height_ / 2, 2);
+                }
             } else {
                 texture_.allocate(width_, height_, 4, TextureUsage::Stream);
                 clearTexture();
