@@ -1142,7 +1142,7 @@ bool VideoPlayer::loadPlatform(const std::string& path) {
             pixelsY_   = new unsigned char[width_ * height_];
             pixelsUV_  = new unsigned char[width_ * height_ / 2];
             std::memset(pixelsY_,  0, width_ * height_);
-            std::memset(pixelsUV_, 0, width_ * height_ / 2);
+            std::memset(pixelsUV_, 128, width_ * height_ / 2);  // 128 = neutral chroma in NV12
 
             auto* shader = new NV12VideoShader();
             shader->loadShader();
