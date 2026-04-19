@@ -312,6 +312,9 @@ namespace internal {
 
     // Color pixel format of the current FBO pass (for PBR pipeline format matching)
     inline sg_pixel_format currentFboColorFormat = SG_PIXELFORMAT_RGBA8;
+
+    // MSAAサンプルカウント（FBOパス中のPBRパイプライン用）
+    inline int currentFboSampleCount = 1;
 }
 
 // ---------------------------------------------------------------------------

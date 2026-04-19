@@ -213,6 +213,7 @@ private:
             pd.depth.pixel_format = SG_PIXELFORMAT_NONE;  // no depth attachment
             pd.colors[0].pixel_format = colorFmt;
             pd.colors[0].blend.enabled = false;
+            pd.sample_count = 1;  // オフスクリーンベイク用（MSAA不要）
             pd.label = "tc_ibl_bake_pipeline";
             return sg_make_pipeline(&pd);
         };
