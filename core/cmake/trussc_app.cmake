@@ -360,6 +360,13 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
             # dumpbin.exe のパスを検出
             get_filename_component(_TC_MSVC_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
             find_program(_TC_DUMPBIN dumpbin HINTS "${_TC_MSVC_BIN_DIR}")
+            if(NOT _TC_DUMPBIN)
+                message(FATAL_ERROR
+                    "[HotReload] dumpbin.exe not found. Hot Reload on Windows "
+                    "requires the MSVC toolchain (looked near "
+                    "${_TC_MSVC_BIN_DIR}). Open a Visual Studio Developer "
+                    "Prompt or run vcvarsall.bat before configuring.")
+            endif()
 
             # TrussC.lib ビルド後に .def を生成
             add_custom_command(

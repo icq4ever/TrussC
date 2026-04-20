@@ -255,9 +255,12 @@ struct Host {
 #ifdef __APPLE__
         guestLibPath = buildDir + "/libguest.dylib";
 #elif defined(_WIN32)
-        // Ninja (CMakePresets.json) ではサブディレクトリなし
+        // Ninja (CMakePresets.json) ではサブディレクトリなし。
+        // Visual Studio multi-config generator は Release/ や Debug/ を作る。
         if (fs::exists(buildDir + "/guest.dll")) {
             guestLibPath = buildDir + "/guest.dll";
+        } else if (fs::exists(buildDir + "/Debug/guest.dll")) {
+            guestLibPath = buildDir + "/Debug/guest.dll";
         } else {
             guestLibPath = buildDir + "/Release/guest.dll";
         }
