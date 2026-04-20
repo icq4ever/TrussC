@@ -332,11 +332,13 @@ struct Host {
         // overwriting a loaded dylib is safe (the old inode stays in memory).
         // If the build fails, the old App keeps running undisturbed.
 
+        auto tStart = Clock::now();
         if (!rebuildGuest()) {
             logWarning() << "[HotReload] Build failed — keeping current version";
             watcher.markBuilt();  // don't re-trigger on the same mtime
             return false;
         }
+        auto tBuildDone = Clock::now();
 
         // Build succeeded — now swap: destroy old App, unload old library,
         // load the new one.
@@ -357,7 +359,16 @@ struct Host {
         watcher.markBuilt();
         watcher.rescan(srcDir);
 
-        logNotice("HotReload") << "Reloaded (#" << reloadCount << ")";
+        // Report build vs swap split — useful for diagnosing where time goes
+        // (e.g. when iterating on PCH or linker flags).
+        using ms = std::chrono::milliseconds;
+        auto tEnd = Clock::now();
+        long buildMs = std::chrono::duration_cast<ms>(tBuildDone - tStart).count();
+        long swapMs  = std::chrono::duration_cast<ms>(tEnd - tBuildDone).count();
+        long totalMs = std::chrono::duration_cast<ms>(tEnd - tStart).count();
+        logNotice("HotReload") << "Reloaded (#" << reloadCount << ") — "
+                               << totalMs << " ms total (build " << buildMs
+                               << " ms + swap " << swapMs << " ms)";
         return true;
     }
 
