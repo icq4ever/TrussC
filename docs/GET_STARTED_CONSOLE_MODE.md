@@ -90,10 +90,32 @@ The simplest option. Works well and avoids Wayland-specific issues (e.g., surfac
 **Install X11:**
 ```bash
 # Debian / Raspbian / Ubuntu
-sudo apt install xserver-xorg xinit
+sudo apt install xserver-xorg xinit libgl1-mesa-dri
 
 # Arch
-sudo pacman -S xorg-server xorg-xinit
+sudo pacman -S xorg-server xorg-xinit mesa
+```
+
+> **Raspberry Pi 5 only** — Pi 5 has no legacy `/dev/fb0`, so Xorg falls back
+> to `fbdev` and fails with "Cannot run in framebuffer mode". Force the
+> `modesetting` driver by creating `/etc/X11/xorg.conf.d/99-vc4.conf`:
+>
+> ```bash
+> sudo tee /etc/X11/xorg.conf.d/99-vc4.conf > /dev/null << 'EOF'
+> Section "OutputClass"
+>     Identifier "vc4"
+>     MatchDriver "vc4"
+>     Driver "modesetting"
+>     Option "PrimaryGPU" "true"
+> EndSection
+> EOF
+> ```
+
+**Permissions** — add yourself to the video / render groups so the X
+server can access the GPU:
+```bash
+sudo usermod -aG video,render $USER
+# Log out and back in for changes to take effect
 ```
 
 **Run:**
