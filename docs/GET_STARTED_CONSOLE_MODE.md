@@ -90,10 +90,22 @@ The simplest option. Works well and avoids Wayland-specific issues (e.g., surfac
 **Install X11:**
 ```bash
 # Debian / Raspbian / Ubuntu
-sudo apt install xserver-xorg xinit libgl1-mesa-dri
+sudo apt install xserver-xorg xinit libgl1-mesa-dri x11-xserver-utils
 
 # Arch
-sudo pacman -S xorg-server xorg-xinit mesa
+sudo pacman -S xorg-server xorg-xinit mesa xorg-xhost
+```
+
+`x11-xserver-utils` (Arch: `xorg-xhost`) provides `xhost`, which
+`trusscli run --session x11` uses to authorize the local user.
+
+**Optional — window manager for multi-window apps:**
+Single-window apps run fine without a WM. If your app opens file
+dialogs, popups, or extra windows, install a minimal WM (`trusscli`
+auto-detects and uses it):
+```bash
+sudo apt install twm        # Debian / Raspbian
+sudo pacman -S xorg-twm     # Arch
 ```
 
 > **Raspberry Pi 5 only** — Pi 5 has no legacy `/dev/fb0`, so Xorg falls back
