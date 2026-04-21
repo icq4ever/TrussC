@@ -107,6 +107,7 @@ private:
     void decodeThread();
     bool decodeNextFrame();
     void seekToTime(double seconds);
+    void probeHwOutputFormat();
 
     // FFmpeg context
     AVFormatContext* formatCtx_ = nullptr;
@@ -115,9 +116,18 @@ private:
     AVFrame* frame_ = nullptr;
     AVFrame* frameRGBA_ = nullptr;
     AVPacket* packet_ = nullptr;
+    // Set when packet_ holds a referenced packet that avcodec_send_packet
+    // returned EAGAIN on. The packet must be re-sent (not re-read) after the
+    // decoder is drained, otherwise the stream would lose data.
+    bool packetPending_ = false;
     AVBufferRef*   hwDeviceCtx_   = nullptr;
     AVHWDeviceType hwType_        = AV_HWDEVICE_TYPE_NONE;
     AVPixelFormat  lastScalerFmt_ = AV_PIX_FMT_NONE;
+    // Filled by probeHwOutputFormat() after opening the codec. For HW decode
+    // this is the format the first transferred frame actually produced (e.g.
+    // NV12 on most VAAPI/NVDEC paths, P010 for 10-bit, YUV420P for some
+    // V4L2M2M). AV_PIX_FMT_NONE if no HW or probe failed.
+    AVPixelFormat  probedFormat_  = AV_PIX_FMT_NONE;
 
     int videoStreamIndex_ = -1;
     int audioStreamIndex_ = -1;
@@ -157,7 +167,9 @@ private:
 
     // Frame queue
     struct FrameData {
-        std::vector<uint8_t> pixels;
+        std::vector<uint8_t> pixels;    // RGBA, or NV12 Y-plane when isNV12
+        std::vector<uint8_t> pixelsUV;  // NV12 UV-plane (empty when !isNV12)
+        bool isNV12 = false;
         double pts;
     };
     std::queue<FrameData> frameQueue_;
@@ -171,6 +183,16 @@ private:
     // Pixel buffer
     uint8_t* rgbaBuffer_ = nullptr;
     int rgbaBufferSize_ = 0;
+
+public:
+    bool nv12Mode_ = false;  // set by loadPlatform() when HW decode produces NV12
+    // Runtime check: HW backend is active AND the first probed frame came
+    // out as NV12 after hwframe_transfer. Different backends / codecs /
+    // bit-depths can produce P010, YUV420P, etc. — those fall back to RGBA.
+    bool isNV12Capable() const {
+        return hwType_ != AV_HWDEVICE_TYPE_NONE
+            && probedFormat_ == AV_PIX_FMT_NV12;
+    }
 };
 
 // =============================================================================
@@ -359,6 +381,10 @@ bool TCVideoPlayerImpl::load(const std::string& path, VideoPlayer* player) {
         }
     }
 
+    // Probe the first decoded frame so callers can see the post-transfer
+    // pixel format and pick NV12 fast path vs RGBA fallback accurately.
+    probeHwOutputFormat();
+
     return true;
 }
 
@@ -541,18 +567,28 @@ void TCVideoPlayerImpl::update(VideoPlayer* player) {
         FrameData& front = frameQueue_.front();
 
         if (front.pts <= targetPts) {
-            // Copy pixels to VideoPlayer's buffer
             if (player) {
-                unsigned char* playerPixels = player->getPixels();
-                if (playerPixels && front.pixels.size() == (size_t)(width_ * height_ * 4)) {
-                    memcpy(playerPixels, front.pixels.data(), front.pixels.size());
-                    hasNewFrame_ = true;
-                    currentPts_ = front.pts;
+                if (front.isNV12) {
+                    unsigned char* yBuf  = player->getPixelsY();
+                    unsigned char* uvBuf = player->getPixelsUV();
+                    if (yBuf  && front.pixels.size()   == (size_t)(width_ * height_) &&
+                        uvBuf && front.pixelsUV.size() == (size_t)(width_ * height_ / 2)) {
+                        memcpy(yBuf,  front.pixels.data(),   front.pixels.size());
+                        memcpy(uvBuf, front.pixelsUV.data(), front.pixelsUV.size());
+                        hasNewFrame_ = true;
+                        currentPts_  = front.pts;
+                    }
+                } else {
+                    unsigned char* playerPixels = player->getPixels();
+                    if (playerPixels && front.pixels.size() == (size_t)(width_ * height_ * 4)) {
+                        memcpy(playerPixels, front.pixels.data(), front.pixels.size());
+                        hasNewFrame_ = true;
+                        currentPts_  = front.pts;
+                    }
                 }
             }
             frameQueue_.pop();
         } else {
-            // Frame is in the future, wait
             break;
         }
     }
@@ -560,6 +596,9 @@ void TCVideoPlayerImpl::update(VideoPlayer* player) {
     // Check if finished
     if (frameQueue_.empty() && isFinished_) {
         if (isLoop_) {
+            if (audioBuffer_) {
+                audioSound_.setPosition(0.0f);
+            }
             seekToTime(0.0);
             playbackStartTime_ = av_gettime_relative() / 1000000.0;
             isFinished_ = false;
@@ -595,6 +634,12 @@ void TCVideoPlayerImpl::decodeThread() {
             av_seek_frame(formatCtx_, videoStreamIndex_, timestamp, AVSEEK_FLAG_BACKWARD);
             avcodec_flush_buffers(codecCtx_);
 
+            // Any packet held from a previous EAGAIN is invalidated by the seek.
+            if (packetPending_) {
+                av_packet_unref(packet_);
+                packetPending_ = false;
+            }
+
             // Clear queue
             {
                 std::lock_guard<std::mutex> lock(mutex_);
@@ -614,14 +659,22 @@ void TCVideoPlayerImpl::decodeThread() {
     }
 }
 
-bool TCVideoPlayerImpl::decodeNextFrame() {
-    while (true) {
-        int ret = av_read_frame(formatCtx_, packet_);
-        if (ret < 0) {
-            // End of file or error
-            return false;
-        }
+// Decodes a single frame up-front to learn the actual post-transfer pixel
+// format (e.g. NV12 on VAAPI/NVDEC, P010 for 10-bit, YUV420P on some
+// V4L2M2M). The format only becomes knowable after av_hwframe_transfer_data
+// runs, so we cannot decide it from hwType_ alone. The demuxer is rewound
+// and the codec flushed afterwards so playback starts cleanly from frame 0.
+void TCVideoPlayerImpl::probeHwOutputFormat() {
+    probedFormat_ = AV_PIX_FMT_NONE;
+    if (hwType_ == AV_HWDEVICE_TYPE_NONE) return;  // SW decode: nothing to probe
 
+    AVFrame* probeFrame = av_frame_alloc();
+    bool captured = false;
+    constexpr int kMaxPackets = 64;  // keep probe bounded
+
+    for (int i = 0; i < kMaxPackets && !captured; ++i) {
+        int ret = av_read_frame(formatCtx_, packet_);
+        if (ret < 0) break;
         if (packet_->stream_index != videoStreamIndex_) {
             av_packet_unref(packet_);
             continue;
@@ -629,16 +682,105 @@ bool TCVideoPlayerImpl::decodeNextFrame() {
 
         ret = avcodec_send_packet(codecCtx_, packet_);
         av_packet_unref(packet_);
+        if (ret < 0 && ret != AVERROR(EAGAIN)) continue;
 
-        if (ret < 0) {
-            continue;
+        while (!captured) {
+            ret = avcodec_receive_frame(codecCtx_, frame_);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) break;
+            if (ret < 0) { captured = false; break; }
+
+            if (frame_->hw_frames_ctx) {
+                probeFrame->format = AV_PIX_FMT_NONE;
+                if (av_hwframe_transfer_data(probeFrame, frame_, 0) >= 0) {
+                    probedFormat_ = (AVPixelFormat)probeFrame->format;
+                    captured = true;
+                }
+                av_frame_unref(probeFrame);
+            } else {
+                probedFormat_ = (AVPixelFormat)frame_->format;
+                captured = true;
+            }
+            av_frame_unref(frame_);
         }
+    }
 
-        ret = avcodec_receive_frame(codecCtx_, frame_);
+    av_frame_free(&probeFrame);
+    av_frame_unref(frame_);
+
+    // Reset demuxer + codec state so the decode thread starts from frame 0.
+    av_seek_frame(formatCtx_, videoStreamIndex_, 0, AVSEEK_FLAG_BACKWARD);
+    avcodec_flush_buffers(codecCtx_);
+    packetPending_ = false;
+
+    if (captured) {
+        const char* name = av_get_pix_fmt_name(probedFormat_);
+        logNotice("VideoPlayer") << "HW transfer format: "
+                                  << (name ? name : "unknown");
+    } else {
+        logWarning("VideoPlayer") << "HW format probe failed; using RGBA fallback";
+    }
+}
+
+bool TCVideoPlayerImpl::decodeNextFrame() {
+    char errbuf[128];
+    while (true) {
+        // Drain the decoder first. HW backends (VAAPI/NVDEC) and streams with
+        // B-frames keep several frames in flight, so output is often ready
+        // before the next packet is fed. Pulling frames first prevents the
+        // internal queue from filling up and producing spurious EAGAIN on
+        // subsequent avcodec_send_packet calls.
+        int ret = avcodec_receive_frame(codecCtx_, frame_);
+
         if (ret == AVERROR(EAGAIN)) {
+            // Decoder wants more input. Either resend a pending packet held
+            // from a prior EAGAIN on send, or read a new one from the demuxer.
+            if (!packetPending_) {
+                int rret = av_read_frame(formatCtx_, packet_);
+                if (rret == AVERROR_EOF) {
+                    // Enter drain mode so remaining buffered frames are
+                    // flushed out on following receive_frame calls.
+                    avcodec_send_packet(codecCtx_, nullptr);
+                    continue;
+                }
+                if (rret < 0) {
+                    av_strerror(rret, errbuf, sizeof(errbuf));
+                    logWarning("VideoPlayer") << "av_read_frame ended: " << errbuf
+                                              << " (pts=" << currentPts_ << ")";
+                    return false;
+                }
+                if (packet_->stream_index != videoStreamIndex_) {
+                    av_packet_unref(packet_);
+                    continue;
+                }
+                packetPending_ = true;
+            }
+
+            int sret = avcodec_send_packet(codecCtx_, packet_);
+            if (sret == AVERROR(EAGAIN)) {
+                // Decoder is still full even after the receive above (can
+                // happen across format transitions). Keep the packet
+                // referenced and try to drain again on the next iteration.
+                continue;
+            }
+            av_packet_unref(packet_);
+            packetPending_ = false;
+
+            if (sret < 0 && sret != AVERROR_EOF) {
+                av_strerror(sret, errbuf, sizeof(errbuf));
+                logWarning("VideoPlayer") << "send_packet failed: " << errbuf
+                                          << " (pts=" << currentPts_ << ")";
+            }
             continue;
         }
+
+        if (ret == AVERROR_EOF) {
+            // Decoder fully drained after EOF was signalled upstream.
+            return false;
+        }
         if (ret < 0) {
+            av_strerror(ret, errbuf, sizeof(errbuf));
+            logWarning("VideoPlayer") << "receive_frame failed: " << errbuf
+                                      << " (pts=" << currentPts_ << ")";
             return false;
         }
 
@@ -660,8 +802,40 @@ bool TCVideoPlayerImpl::decodeNextFrame() {
             srcFrame = swFrame;
         }
 
-        // Recreate scaler if source pixel format changed (HW transfer may
-        // produce NV12 / YUV420P depending on backend).
+        // Calculate PTS (frame_->pts before any av_frame_unref)
+        double pts = 0.0;
+        if (frame_->pts != AV_NOPTS_VALUE)
+            pts = frame_->pts * av_q2d(timeBase_);
+
+        // NV12 fast path: copy Y+UV planes directly, skip sws_scale entirely
+        if (nv12Mode_ && srcFrame->format == AV_PIX_FMT_NV12) {
+            FrameData data;
+            data.isNV12 = true;
+            data.pts    = pts;
+
+            data.pixels.resize(width_ * height_);
+            for (int row = 0; row < height_; ++row)
+                std::memcpy(data.pixels.data()  + row * width_,
+                            srcFrame->data[0]   + row * srcFrame->linesize[0],
+                            width_);
+
+            const int uvRows     = height_ / 2;
+            const int uvRowBytes = width_;      // (width/2 pairs) * 2 bytes = width
+            data.pixelsUV.resize(uvRows * uvRowBytes);
+            for (int row = 0; row < uvRows; ++row)
+                std::memcpy(data.pixelsUV.data() + row * uvRowBytes,
+                            srcFrame->data[1]    + row * srcFrame->linesize[1],
+                            uvRowBytes);
+
+            if (swFrame) av_frame_free(&swFrame);
+            av_frame_unref(frame_);
+
+            std::lock_guard<std::mutex> lock(mutex_);
+            frameQueue_.push(std::move(data));
+            return true;
+        }
+
+        // RGBA fallback: sws_scale for non-CUDA or non-NV12
         AVPixelFormat srcFmt = (AVPixelFormat)srcFrame->format;
         if (srcFmt != lastScalerFmt_ && srcFmt != AV_PIX_FMT_NONE) {
             if (swsCtx_) sws_freeContext(swsCtx_);
@@ -682,13 +856,6 @@ bool TCVideoPlayerImpl::decodeNextFrame() {
 
         if (swFrame) av_frame_free(&swFrame);
 
-        // Calculate PTS
-        double pts = 0.0;
-        if (frame_->pts != AV_NOPTS_VALUE) {
-            pts = frame_->pts * av_q2d(timeBase_);
-        }
-
-        // Add to queue
         {
             std::lock_guard<std::mutex> lock(mutex_);
             FrameData data;
@@ -964,6 +1131,81 @@ void TCVideoPlayerImpl::previousFrame() {
 // VideoPlayer platform methods (Linux implementation)
 // =============================================================================
 
+#include "tc/gpu/shaders/videoNV12.glsl.h"
+
+// NV12 immediate-draw shader (immutable unit-quad, uniform-based positioning)
+class NV12VideoShader : public Shader {
+public:
+    void loadShader() { load(tc_video_nv12_nv12_shader_desc); }
+
+    void draw(float x, float y, float w, float h,
+              const Texture& texY, const Texture& texUV) {
+        if (!loaded) return;
+
+        ensureSwapchainPass();
+        sgl_draw();
+
+        sg_apply_pipeline(pipeline);
+
+        // x/y/w/h come in logical coordinates (same space tcApp draws in),
+        // but sapp_width()/sapp_height() are physical framebuffer pixels.
+        // Divide by DPI scale so the shader's viewport matches its inputs.
+        const float dpiScale = sapp_dpi_scale();
+        const float vpW = (float)sapp_width()  / dpiScale;
+        const float vpH = (float)sapp_height() / dpiScale;
+
+        struct VsParams { float v[8]; } p = {{
+            vpW, vpH, x, y,
+            w,   h,   0.0f, 0.0f
+        }};
+        sg_range range = { &p, sizeof(p) };
+        sg_apply_uniforms(0, &range);
+
+        sg_bindings bind = {};
+        bind.vertex_buffers[0] = vertexBuffer;
+        bind.index_buffer      = indexBuffer;
+        bind.views[0]    = texY.getView();
+        bind.samplers[0] = texY.getSampler();
+        bind.views[1]    = texUV.getView();
+        bind.samplers[1] = texUV.getSampler();
+        sg_apply_bindings(&bind);
+
+        sg_draw(0, 6, 1);
+
+        sg_reset_state_cache();
+        sgl_defaults();
+        sgl_matrix_mode_projection();
+        sgl_ortho(0.0f, vpW, vpH, 0.0f, -10000.0f, 10000.0f);
+        sgl_matrix_mode_modelview();
+        sgl_load_identity();
+    }
+
+protected:
+    sg_pipeline_desc createPipelineDesc() override {
+        sg_pipeline_desc desc = {};
+        desc.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT2;
+        desc.colors[0].blend.enabled = false;
+        desc.index_type = SG_INDEXTYPE_UINT16;
+        desc.label = "tc_nv12_pipeline";
+        return desc;
+    }
+
+    void createVertexBuffer() override {
+        float verts[] = { 0.f,0.f, 1.f,0.f, 1.f,1.f, 0.f,1.f };
+        sg_buffer_desc vd = {};
+        vd.data  = SG_RANGE(verts);
+        vd.label = "tc_nv12_verts";
+        vertexBuffer = sg_make_buffer(&vd);
+
+        uint16_t idx[] = { 0, 1, 2, 0, 2, 3 };
+        sg_buffer_desc id = {};
+        id.usage.index_buffer = true;
+        id.data  = SG_RANGE(idx);
+        id.label = "tc_nv12_idx";
+        indexBuffer = sg_make_buffer(&id);
+    }
+};
+
 namespace trussc {
 
 bool VideoPlayer::loadPlatform(const std::string& path) {
@@ -975,24 +1217,44 @@ bool VideoPlayer::loadPlatform(const std::string& path) {
     }
 
     platformHandle_ = impl;
-    width_ = impl->getWidth();
+    width_  = impl->getWidth();
     height_ = impl->getHeight();
 
-    // Allocate pixel buffer
     if (width_ > 0 && height_ > 0) {
-        pixels_ = new unsigned char[width_ * height_ * 4];
-        std::memset(pixels_, 0, width_ * height_ * 4);
+        if (impl->isNV12Capable()) {
+            impl->nv12Mode_ = true;
+            nv12Mode_  = true;
+            pixelsY_   = new unsigned char[width_ * height_];
+            pixelsUV_  = new unsigned char[width_ * height_ / 2];
+            std::memset(pixelsY_,  0, width_ * height_);
+            std::memset(pixelsUV_, 128, width_ * height_ / 2);  // 128 = neutral chroma in NV12
+
+            auto* shader = new NV12VideoShader();
+            shader->loadShader();
+            nv12ShaderHandle_ = shader;
+        } else {
+            pixels_ = new unsigned char[width_ * height_ * 4];
+            std::memset(pixels_, 0, width_ * height_ * 4);
+        }
     }
 
     return true;
 }
 
 void VideoPlayer::closePlatform() {
+    if (nv12ShaderHandle_) {
+        delete static_cast<NV12VideoShader*>(nv12ShaderHandle_);
+        nv12ShaderHandle_ = nullptr;
+    }
     if (platformHandle_) {
         auto impl = static_cast<TCVideoPlayerImpl*>(platformHandle_);
         delete impl;
         platformHandle_ = nullptr;
     }
+}
+
+void VideoPlayer::drawNV12Platform(float x, float y, float w, float h) const {
+    static_cast<NV12VideoShader*>(nv12ShaderHandle_)->draw(x, y, w, h, textureY_, textureUV_);
 }
 
 void VideoPlayer::playPlatform() {

@@ -63,10 +63,24 @@ public:
             return false;
         }
 
-        // Create texture (Stream mode: for per-frame updates)
+        // Create texture(s) for per-frame updates
         if (width_ > 0 && height_ > 0) {
-            texture_.allocate(width_, height_, 4, TextureUsage::Stream);
-            clearTexture();
+            if (nv12Mode_) {
+                textureY_.allocate(width_,     height_,     1,                  TextureUsage::Stream);
+                textureUV_.allocate(width_ / 2, height_ / 2, TextureFormat::RG8, TextureUsage::Stream);
+                // Prime the textures with the neutral-chroma CPU buffers
+                // (Y=0, UV=128) set up in loadPlatform(). Without this, the
+                // GPU textures contain uninitialized data and the BT.601
+                // shader renders a green flash on the first frame (Y=0,
+                // U=0, V=0 → RGB (0, 135, 0)).
+                if (pixelsY_ && pixelsUV_) {
+                    textureY_.loadData(pixelsY_,  width_,     height_,     1);
+                    textureUV_.loadData(pixelsUV_, width_ / 2, height_ / 2, 2);
+                }
+            } else {
+                texture_.allocate(width_, height_, 4, TextureUsage::Stream);
+                clearTexture();
+            }
         }
 
         initialized_ = true;
@@ -80,11 +94,14 @@ public:
         closePlatform();
 
         texture_.clear();
+        textureY_.clear();
+        textureUV_.clear();
 
-        if (pixels_) {
-            delete[] pixels_;
-            pixels_ = nullptr;
-        }
+        if (pixels_)  { delete[] pixels_;  pixels_  = nullptr; }
+        if (pixelsY_) { delete[] pixelsY_; pixelsY_ = nullptr; }
+        if (pixelsUV_){ delete[] pixelsUV_; pixelsUV_ = nullptr; }
+        nv12Mode_ = false;
+        nv12ShaderHandle_ = nullptr;  // deleted in closePlatform()
 
         initialized_ = false;
         playing_ = false;
@@ -110,11 +127,18 @@ public:
 
         // Check for new frame from platform
         if (hasNewFramePlatform()) {
-            // Update texture from pixel buffer
             std::lock_guard<std::mutex> lock(mutex_);
-            if (pixels_ && width_ > 0 && height_ > 0) {
-                texture_.loadData(pixels_, width_, height_, 4);
-                markFrameNew();
+            if (nv12Mode_) {
+                if (pixelsY_ && pixelsUV_ && width_ > 0 && height_ > 0) {
+                    textureY_.loadData(pixelsY_,  width_,     height_,     1);
+                    textureUV_.loadData(pixelsUV_, width_ / 2, height_ / 2, 2);
+                    markFrameNew();
+                }
+            } else {
+                if (pixels_ && width_ > 0 && height_ > 0) {
+                    texture_.loadData(pixels_, width_, height_, 4);
+                    markFrameNew();
+                }
             }
         }
 
@@ -122,6 +146,24 @@ public:
         if (playing_ && !paused_ && isFinishedPlatform()) {
             markDone();
         }
+    }
+
+    // =========================================================================
+    // Draw (NV12 path uses shader; RGBA path uses default HasTexture::draw)
+    // =========================================================================
+
+    void draw(float x, float y) const override {
+        draw(x, y, (float)width_, (float)height_);
+    }
+
+    void draw(float x, float y, float w, float h) const override {
+#if defined(__linux__) && !defined(__ANDROID__)
+        if (nv12Mode_ && nv12ShaderHandle_) {
+            drawNV12Platform(x, y, w, h);
+            return;
+        }
+#endif
+        if (texture_.isAllocated()) texture_.draw(x, y, w, h);
     }
 
     // =========================================================================
@@ -207,6 +249,9 @@ public:
     unsigned char* getPixels() override { return pixels_; }
     const unsigned char* getPixels() const override { return pixels_; }
 
+    unsigned char* getPixelsY()  { return pixelsY_; }
+    unsigned char* getPixelsUV() { return pixelsUV_; }
+
     // =========================================================================
     // Audio access
     // =========================================================================
@@ -267,7 +312,15 @@ protected:
 private:
     // Pixel data (RGBA)
     unsigned char* pixels_ = nullptr;
-    
+
+    // NV12 (CUDA HW decode) planes — Linux only, non-null when nv12Mode_ is set
+    unsigned char* pixelsY_  = nullptr;
+    unsigned char* pixelsUV_ = nullptr;
+    Texture textureY_;
+    Texture textureUV_;
+    bool  nv12Mode_       = false;
+    void* nv12ShaderHandle_ = nullptr;  // NV12VideoShader* on Linux/CUDA
+
     // Gamma correction (1.0 = none)
     float gammaCorrection_ = 1.0f;
 
@@ -293,15 +346,24 @@ private:
         loop_ = other.loop_;
         volume_ = other.volume_;
         speed_ = other.speed_;
-        pixels_ = other.pixels_;
-        texture_ = std::move(other.texture_);
-        platformHandle_ = other.platformHandle_;
+        pixels_    = other.pixels_;
+        pixelsY_   = other.pixelsY_;
+        pixelsUV_  = other.pixelsUV_;
+        texture_   = std::move(other.texture_);
+        textureY_  = std::move(other.textureY_);
+        textureUV_ = std::move(other.textureUV_);
+        nv12Mode_        = other.nv12Mode_;
+        nv12ShaderHandle_ = other.nv12ShaderHandle_;
+        platformHandle_  = other.platformHandle_;
 
-        // Invalidate source
-        other.pixels_ = nullptr;
-        other.initialized_ = false;
-        other.platformHandle_ = nullptr;
-        other.width_ = 0;
+        other.pixels_    = nullptr;
+        other.pixelsY_   = nullptr;
+        other.pixelsUV_  = nullptr;
+        other.nv12Mode_        = false;
+        other.nv12ShaderHandle_ = nullptr;
+        other.initialized_     = false;
+        other.platformHandle_  = nullptr;
+        other.width_  = 0;
         other.height_ = 0;
     }
 
@@ -373,6 +435,10 @@ private:
 
     // Allow platform implementations to access internals
     friend class VideoPlayerPlatformAccess;
+
+#if defined(__linux__) && !defined(__ANDROID__)
+    void drawNV12Platform(float x, float y, float w, float h) const;
+#endif
 };
 
 // Helper class for platform implementations to access protected members
