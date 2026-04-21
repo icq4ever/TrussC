@@ -2308,11 +2308,23 @@ static int cmdRun(const vector<string>& args) {
             //   6. Tear xinit down when the app exits
             cout << "Launching via xinit (X11 session) on vt7 ...\n";
 
-            // 1. Write minimal xinitrc that keeps a WM alive without xterm.
+            // 1. Write minimal xinitrc. Single-window apps work fine with
+            // no WM (verified on Pi 5), so we don't make a WM a hard dep.
+            // If twm or openbox happens to be installed though, prefer it
+            // — it helps with multi-window scenarios such as file dialogs,
+            // popups, or apps that open additional windows. Otherwise just
+            // keep the X session alive with sleep infinity.
             string xinitrcPath = "/tmp/trusscli-x11-" + to_string(getpid()) + ".sh";
             {
                 ofstream f(xinitrcPath);
-                f << "#!/bin/sh\nexec twm\n";
+                f << "#!/bin/sh\n"
+                  << "if command -v twm >/dev/null 2>&1; then\n"
+                  << "    exec twm\n"
+                  << "elif command -v openbox >/dev/null 2>&1; then\n"
+                  << "    exec openbox\n"
+                  << "else\n"
+                  << "    exec sleep infinity\n"
+                  << "fi\n";
             }
             chmod(xinitrcPath.c_str(), 0755);
 
