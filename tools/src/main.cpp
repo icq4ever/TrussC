@@ -13,6 +13,7 @@
 #include <spawn.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <signal.h>
 #else
 #include <process.h>
 #endif
@@ -2292,19 +2293,62 @@ static int cmdRun(const vector<string>& args) {
             return runProcess({"labwc", "-s", binPath});
         }
         if (session == "x11") {
-            // Put Xorg on the currently-active VT so output is visible on
-            // the attached monitor. Without this, xinit can allocate an
-            // inactive VT (common when launched over SSH) and the app
-            // renders off-screen while the monitor keeps showing tty1.
-            string vt = "vt7";  // Debian/Raspbian traditional fallback
-            ifstream activeTty("/sys/class/tty/tty0/active");
-            string line;
-            if (activeTty && getline(activeTty, line)) {
-                auto pos = line.find_first_of("0123456789");
-                if (pos != string::npos) vt = "vt" + line.substr(pos);
+            // On Pi 5 (modesetting + V3D), running the binary directly as
+            // xinit's client races with driver init and the app renders
+            // invisibly. The reliable path is:
+            //   1. Start xinit in the background with the default xinitrc
+            //      (pulls up twm / resources so the X session is stable)
+            //   2. Wait for the X socket to exist
+            //   3. Authorize the local user via xhost
+            //   4. Run the binary as a separate X client with DISPLAY=:0
+            //   5. Tear xinit down when the app exits
+            // xinit is pinned to vt7 so the monitor follows the kernel's VT
+            // switch (without explicit vt, xinit can pick an inactive VT).
+            cout << "Launching via xinit (X11 session) on vt7 ...\n";
+
+            extern char** environ;
+            vector<char*> xinitArgv = {
+                (char*)"xinit", (char*)"--", (char*)":0", (char*)"vt7", nullptr
+            };
+            pid_t xinitPid = 0;
+            if (posix_spawnp(&xinitPid, "xinit", nullptr, nullptr,
+                             xinitArgv.data(), environ) != 0) {
+                cerr << "Error: failed to spawn xinit (is xserver-xorg installed?)\n";
+                return -1;
             }
-            cout << "Launching via xinit (X11 session) on " << vt << " ...\n";
-            return runProcess({"xinit", binPath, "--", ":0", vt});
+
+            // Poll for the X socket (<=6s). Socket appears as soon as Xorg
+            // starts listening; that's enough for xhost to work. A small
+            // extra sleep lets xinitrc (twm etc.) settle.
+            bool xReady = false;
+            for (int i = 0; i < 30; ++i) {
+                if (access("/tmp/.X11-unix/X0", F_OK) == 0) { xReady = true; break; }
+                usleep(200000);
+            }
+            if (!xReady) {
+                cerr << "Error: X server did not start within 6 seconds\n";
+                kill(xinitPid, SIGTERM);
+                waitpid(xinitPid, nullptr, 0);
+                return -1;
+            }
+            sleep(1);  // let WM / xinitrc finish coming up
+
+            setenv("DISPLAY", ":0", 1);
+
+            // Authorize this user so DISPLAY=:0 connects without needing
+            // the server's XAUTHORITY file (which xinit keeps private).
+            const char* user = getenv("USER");
+            if (user && *user) {
+                runProcess({"xhost", string("+SI:localuser:") + user});
+            }
+
+            // Run the app (blocks until it exits).
+            int rc = runProcess({binPath});
+
+            // Tear down the X session.
+            kill(xinitPid, SIGTERM);
+            waitpid(xinitPid, nullptr, 0);
+            return rc;
         }
         cout << "Launching " << projectName << " ...\n";
         return runProcess({binPath});
