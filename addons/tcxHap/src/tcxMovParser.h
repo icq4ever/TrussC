@@ -279,10 +279,17 @@ private:
             uint32_t atomSize = readU32();
             uint32_t atomType = readU32();
 
+            // Reject malformed atoms (< 8 bytes is impossible for standard atom
+            // header; 0 and 1 are legal extensions). Without this the dataSize
+            // computation underflows and the seek wraps, causing an infinite loop.
+            if (atomSize > 0 && atomSize < 8 && atomSize != 1) break;
+
             uint64_t dataSize;
             if (atomSize == 1) {
                 // Extended size
-                dataSize = readU64() - 16;
+                uint64_t extSize = readU64();
+                if (extSize < 16) break;  // guard underflow
+                dataSize = extSize - 16;
             } else if (atomSize == 0) {
                 // Atom extends to end of file
                 dataSize = fileSize_ - file_.tellg();
@@ -290,8 +297,10 @@ private:
                 dataSize = atomSize - 8;
             }
 
-            uint64_t atomEnd = file_.tellg();
-            atomEnd += dataSize;
+            uint64_t atomEnd = static_cast<uint64_t>(file_.tellg()) + dataSize;
+
+            // Progress guard: atom must advance past its start and stay within file.
+            if (atomEnd <= atomStart || atomEnd > fileSize_) break;
 
             if (atomType == ATOM_MOOV) {
                 parseMoov(atomEnd);
