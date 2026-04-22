@@ -273,11 +273,15 @@ bool TlsClient::performHandshake() {
             return false;
         }
 
-        // Certificate verification settings
+        // Certificate verification settings.
+        // Default is REQUIRED: handshake aborts if the peer cert chain fails to verify.
+        // VERIFY_OPTIONAL is unsafe here because we do not inspect
+        // mbedtls_ssl_get_verify_result() after the handshake, so failures would be
+        // silently ignored and we'd be talking TLS to an unauthenticated peer.
         if (verifyNone_) {
             mbedtls_ssl_conf_authmode(&ctx_->conf, MBEDTLS_SSL_VERIFY_NONE);
         } else {
-            mbedtls_ssl_conf_authmode(&ctx_->conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
+            mbedtls_ssl_conf_authmode(&ctx_->conf, MBEDTLS_SSL_VERIFY_REQUIRED);
             mbedtls_ssl_conf_ca_chain(&ctx_->conf, &ctx_->cacert, nullptr);
         }
 
