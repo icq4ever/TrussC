@@ -21,12 +21,36 @@ set(MBEDTLS_FATAL_WARNINGS OFF CACHE BOOL "" FORCE)
 set(DISABLE_PACKAGE_CONFIG_AND_INSTALL ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(mbedtls)
 
+# Embed the Mozilla CA bundle as a generated .cpp so a trust anchor fallback
+# is available even when neither the OS trust store nor an explicit PEM is set.
+# Refresh with addons/tcxTls/scripts/update_ca_bundle.sh.
+set(_CA_BUNDLE_PEM "${CMAKE_CURRENT_SOURCE_DIR}/data/cacert.pem")
+if(NOT EXISTS "${_CA_BUNDLE_PEM}")
+    message(FATAL_ERROR "tcxTls: bundled cacert.pem missing at ${_CA_BUNDLE_PEM}. "
+                        "Run addons/tcxTls/scripts/update_ca_bundle.sh.")
+endif()
+file(READ "${_CA_BUNDLE_PEM}" CA_BUNDLE_CONTENT)
+# Parse out the Mozilla date line for logging.
+string(REGEX MATCH "Certificate data from Mozilla[^\n]*" CA_BUNDLE_DATE "${CA_BUNDLE_CONTENT}")
+set(_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(_GEN_CPP "${_GEN_DIR}/tcTlsCaBundle.cpp")
+file(MAKE_DIRECTORY "${_GEN_DIR}")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/tcTlsCaBundle.cpp.in"
+    "${_GEN_CPP}"
+    @ONLY
+)
+
 # Source files
 file(GLOB ADDON_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 file(GLOB ADDON_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h)
 
-add_library(${ADDON_NAME} STATIC ${ADDON_SOURCES} ${ADDON_HEADERS})
+add_library(${ADDON_NAME} STATIC ${ADDON_SOURCES} ${ADDON_HEADERS} ${_GEN_CPP})
 add_library(tc::tcxTls ALIAS ${ADDON_NAME})
 
 target_include_directories(${ADDON_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(${ADDON_NAME} PUBLIC TrussC PRIVATE mbedtls mbedx509 mbedcrypto)
+if(WIN32)
+    # Needed for CertOpenSystemStoreW / CertEnumCertificatesInStore fallback.
+    target_link_libraries(${ADDON_NAME} PRIVATE crypt32)
+endif()

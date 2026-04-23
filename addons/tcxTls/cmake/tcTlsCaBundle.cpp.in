@@ -1,0 +1,22 @@
+// Auto-generated from addons/tcxTls/data/cacert.pem at configure time.
+// Do not edit by hand. To refresh, run scripts/update_ca_bundle.sh and reconfigure.
+
+namespace trussc {
+namespace tls_internal {
+
+extern const char* bundledCaPem();
+extern const char* bundledCaBundleDate();
+
+const char* bundledCaPem() {
+    static const char kPem[] = R"TLS_CA_BUNDLE(
+@CA_BUNDLE_CONTENT@
+)TLS_CA_BUNDLE";
+    return kPem;
+}
+
+const char* bundledCaBundleDate() {
+    return "@CA_BUNDLE_DATE@";
+}
+
+} // namespace tls_internal
+} // namespace trussc

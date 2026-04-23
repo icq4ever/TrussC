@@ -59,9 +59,37 @@ out-of-bounds reads. Treat these as "caution" tier.
 ### Certificate verification is ON by default
 
 `TlsClient` and `WebSocketClient` verify the server certificate chain against
-the configured CA trust store. A failed verification aborts the handshake.
+a trust anchor. A failed verification aborts the handshake.
 
-This is the safe default. Do not disable it in production.
+### Where trust anchors come from (priority order)
+
+On the first handshake, `TlsClient` resolves a trust anchor set using the first
+of the following that succeeds:
+
+1. **User-supplied PEM** — if you called `setCACertificate()` /
+   `setCACertificateFile()` (on `TlsClient`) or `setTlsCACertificate()` (on
+   `WebSocketClient`). This replaces the default set; nothing else is consulted.
+   Use this for private CAs or when you want to pin to a specific issuer.
+2. **OS trust store** — on POSIX, a well-known bundle path
+   (`/etc/ssl/cert.pem`, `/etc/ssl/certs/ca-certificates.crt`,
+   `/etc/pki/tls/certs/ca-bundle.crt`, …). On Windows, the system `ROOT`
+   store via `CertOpenSystemStoreW`. This is the typical path and picks up
+   OS updates automatically.
+3. **Bundled Mozilla roots** — a copy of `https://curl.se/ca/cacert.pem` is
+   embedded in `tcxTls` at build time and used as a fallback when no OS store
+   is readable. Refresh with `addons/tcxTls/scripts/update_ca_bundle.sh`; this
+   should be done every few months so the bundled set tracks Mozilla's
+   distrust decisions.
+
+The source that was used is logged at notice level on first connect, e.g.:
+
+```
+[notice] TlsClient: loaded 150 CAs from /etc/ssl/cert.pem
+[notice] TlsClient: loaded 130 CAs from bundled cacert.pem (Certificate data from Mozilla last updated on: …)
+```
+
+If all three sources fail, an error is logged and every subsequent handshake
+will fail until an explicit PEM is provided or verification is turned off.
 
 ### Opting out for development
 

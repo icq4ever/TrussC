@@ -17,7 +17,32 @@
 #include <fstream>
 #include <sstream>
 
+#ifdef _WIN32
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <windows.h>
+    #include <wincrypt.h>
+#else
+    #include <sys/stat.h>
+#endif
+
 namespace trussc {
+
+// Forward declarations for the generated bundle (see cmake/tcTlsCaBundle.cpp.in).
+namespace tls_internal {
+extern const char* bundledCaPem();
+extern const char* bundledCaBundleDate();
+} // namespace tls_internal
+
+namespace {
+size_t countCerts(const mbedtls_x509_crt* chain) {
+    size_t n = 0;
+    for (const mbedtls_x509_crt* c = chain; c != nullptr; c = c->next) ++n;
+    return n;
+}
+} // namespace
+
 
 // =============================================================================
 // TLS Context Structure (PIMPL)
@@ -125,6 +150,8 @@ bool TlsClient::setCACertificate(const std::string& pemData) {
         tcLogError() << "TlsClient: Failed to parse CA certificate: " << errBuf;
         return false;
     }
+    // Explicit user intent: skip the default-CA auto-load entirely.
+    caUserProvided_ = true;
     return true;
 }
 
@@ -146,6 +173,86 @@ void TlsClient::setVerifyNone() {
 
 void TlsClient::setHostname(const std::string& hostname) {
     hostname_ = hostname;
+}
+
+// =============================================================================
+// Default CA Loading (lazy)
+// =============================================================================
+void TlsClient::ensureDefaultCAsLoaded() {
+    caAutoLoadAttempted_ = true;
+    const size_t before = countCerts(&ctx_->cacert);
+
+#ifdef _WIN32
+    // Windows: enumerate the system ROOT store and feed each cert to mbedtls
+    // as DER. Requires linking crypt32 (set in CMakeLists).
+    HCERTSTORE store = CertOpenSystemStoreW(0, L"ROOT");
+    if (store) {
+        PCCERT_CONTEXT ctx = nullptr;
+        size_t parsed = 0;
+        while ((ctx = CertEnumCertificatesInStore(store, ctx)) != nullptr) {
+            int r = mbedtls_x509_crt_parse_der(
+                &ctx_->cacert, ctx->pbCertEncoded, ctx->cbCertEncoded);
+            if (r == 0) ++parsed;
+        }
+        CertCloseStore(store, 0);
+        if (parsed > 0) {
+            tcLogNotice() << "TlsClient: loaded " << parsed
+                          << " CAs from Windows Cert Store (ROOT)";
+            return;
+        }
+    }
+#else
+    // POSIX: try well-known bundle paths in order. Works on macOS (/etc/ssl/cert.pem
+    // is maintained by the OS), Linux distros, BSDs, Alpine, etc.
+    static const char* kPaths[] = {
+        "/etc/ssl/cert.pem",                       // macOS, OpenBSD, Alpine, FreeBSD
+        "/etc/ssl/certs/ca-certificates.crt",      // Debian, Ubuntu, Raspberry Pi OS
+        "/etc/pki/tls/certs/ca-bundle.crt",        // RHEL, Fedora, Amazon Linux
+        "/etc/ssl/ca-bundle.pem",                  // OpenSUSE
+        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // newer RHEL
+        nullptr,
+    };
+    for (const char** p = kPaths; *p != nullptr; ++p) {
+        struct stat st;
+        if (stat(*p, &st) != 0) continue;
+        std::ifstream f(*p);
+        if (!f) continue;
+        std::stringstream buf;
+        buf << f.rdbuf();
+        const std::string pem = buf.str();
+        int ret = mbedtls_x509_crt_parse(
+            &ctx_->cacert,
+            reinterpret_cast<const unsigned char*>(pem.c_str()),
+            pem.size() + 1);
+        if (ret < 0) continue;  // try the next path
+        const size_t loaded = countCerts(&ctx_->cacert) - before;
+        if (loaded > 0) {
+            tcLogNotice() << "TlsClient: loaded " << loaded
+                          << " CAs from " << *p;
+            return;
+        }
+    }
+#endif
+
+    // Fallback: bundled Mozilla cacert.pem embedded at build time.
+    const char* bundled = tls_internal::bundledCaPem();
+    int ret = mbedtls_x509_crt_parse(
+        &ctx_->cacert,
+        reinterpret_cast<const unsigned char*>(bundled),
+        std::strlen(bundled) + 1);
+    if (ret >= 0) {
+        const size_t loaded = countCerts(&ctx_->cacert) - before;
+        if (loaded > 0) {
+            tcLogNotice() << "TlsClient: loaded " << loaded
+                          << " CAs from bundled cacert.pem ("
+                          << tls_internal::bundledCaBundleDate() << ")";
+            return;
+        }
+    }
+
+    tcLogError() << "TlsClient: failed to load any default CA certificates. "
+                 << "TLS handshakes will fail unless setCACertificate() or "
+                 << "setVerifyNone() is called explicitly.";
 }
 
 // =============================================================================
@@ -281,6 +388,11 @@ bool TlsClient::performHandshake() {
         if (verifyNone_) {
             mbedtls_ssl_conf_authmode(&ctx_->conf, MBEDTLS_SSL_VERIFY_NONE);
         } else {
+            // If the user never called setCACertificate*(), lazy-load default
+            // trust anchors (OS store, then bundled fallback). Once-per-client.
+            if (!caUserProvided_ && !caAutoLoadAttempted_) {
+                ensureDefaultCAsLoaded();
+            }
             mbedtls_ssl_conf_authmode(&ctx_->conf, MBEDTLS_SSL_VERIFY_REQUIRED);
             mbedtls_ssl_conf_ca_chain(&ctx_->conf, &ctx_->cacert, nullptr);
         }
