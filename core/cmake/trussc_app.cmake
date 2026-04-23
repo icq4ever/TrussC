@@ -433,13 +433,16 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
     string(TIMESTAMP _tc_build_hour     "%H")
     string(TIMESTAMP _tc_build_minute   "%M")
     string(TIMESTAMP _tc_build_second   "%S")
-    # Strip leading zero so the value is a valid decimal integer literal
-    # (e.g. "09" would otherwise be interpreted as invalid octal in C++).
-    string(REGEX REPLACE "^0" "" _tc_build_month  "${_tc_build_month}")
-    string(REGEX REPLACE "^0" "" _tc_build_day    "${_tc_build_day}")
-    string(REGEX REPLACE "^0" "" _tc_build_hour   "${_tc_build_hour}")
-    string(REGEX REPLACE "^0" "" _tc_build_minute "${_tc_build_minute}")
-    string(REGEX REPLACE "^0" "" _tc_build_second "${_tc_build_second}")
+    # Normalize to plain decimal integers so they're valid C++ literals.
+    # "09" would be read as invalid octal; using string(REGEX REPLACE "^0" ...)
+    # would also collapse "00" all the way to "" (CMake's replace re-anchors
+    # after each match), breaking midnight / :00 builds — math(EXPR) sidesteps
+    # both traps.
+    math(EXPR _tc_build_month  "${_tc_build_month}")
+    math(EXPR _tc_build_day    "${_tc_build_day}")
+    math(EXPR _tc_build_hour   "${_tc_build_hour}")
+    math(EXPR _tc_build_minute "${_tc_build_minute}")
+    math(EXPR _tc_build_second "${_tc_build_second}")
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         TRUSSC_BUILD_DATE="${_tc_build_date}"
         TRUSSC_BUILD_TIME="${_tc_build_time}"
