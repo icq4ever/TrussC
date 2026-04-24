@@ -5525,9 +5525,15 @@ categories:
             params_simple: "slot, c"
           - params: "int slot, const vector<float>& v"
             params_simple: "slot, v"
-        description: "Set uniform variable by slot"
-        description_ja: "スロット番号でUniform変数を設定"
-        description_ko: "슬롯별로 유니폼 변수를 설정"
+          - params: "int slot, const vector<Vec2>& v"
+            params_simple: "slot, v"
+          - params: "int slot, const vector<Vec3>& v"
+            params_simple: "slot, v"
+          - params: "int slot, const vector<Vec4>& v"
+            params_simple: "slot, v"
+        description: "Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)"
+        description_ja: "スロット番号でUniform変数を設定 (vector版は配列送信、Vec3配列はstd140に合わせて内部でVec4にパディング)"
+        description_ko: "슬롯별로 유니폼 변수를 설정 (vector 오버로드는 배열 전송, Vec3 배열은 std140에 맞춰 내부적으로 Vec4로 패딩)"
         sketch: false
 
       - name: setTexture
