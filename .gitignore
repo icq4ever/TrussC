@@ -152,3 +152,20 @@ addons/CMakeLists.txt
 # Auto-generated Shader Headers (sokol-shdc output)
 # =============================================================================
 core/include/tc/gpu/shaders/*.glsl.h
+
+# =============================================================================
+# AI assistant local state
+# =============================================================================
+# Project-local state/settings from AI coding tools. Root-level instruction
+# files like CLAUDE.md / GEMINI.md / AGENTS.md are intentionally *not* ignored
+# since those are meant to be shared.
+.claude/
+.gemini/
+.codex/
+.cursor/
+.windsurf/
+.continue/
+.amazonq/
+.cline/
+.clinerules/
+.aider*

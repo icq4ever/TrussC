@@ -45,6 +45,27 @@ bool getImmersiveMode() {
     return immersiveMode_;
 }
 
+// ---------------------------------------------------------------------------
+// Keep screen on (FLAG_KEEP_SCREEN_ON = 0x80)
+// ---------------------------------------------------------------------------
+static bool keepScreenOn_ = false;
+
+void setKeepScreenOn(bool enabled) {
+    keepScreenOn_ = enabled;
+    auto* activity = (ANativeActivity*)sapp_android_get_native_activity();
+    if (!activity) return;
+
+    if (enabled) {
+        ANativeActivity_setWindowFlags(activity, 0x00000080 /*FLAG_KEEP_SCREEN_ON*/, 0);
+    } else {
+        ANativeActivity_setWindowFlags(activity, 0, 0x00000080);
+    }
+}
+
+bool getKeepScreenOn() {
+    return keepScreenOn_;
+}
+
 IVec2 getWindowPosition() {
     logWarning("Platform") << "getWindowPosition() is not supported on Android";
     return IVec2(-1, -1);

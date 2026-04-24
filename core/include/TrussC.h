@@ -68,6 +68,12 @@
 // TrussC platform-specific features
 #include "tcPlatform.h"
 
+// TrussC graphics backend detection (runtime query of sokol_gfx backend)
+#include "tc/graphics/tcBackend.h"
+
+// TrussC build info (populated by trussc_app() at CMake configure time)
+#include "tcBuildInfo.h"
+
 // TrussC event system
 #include "tc/events/tcCoreEvents.h"
 

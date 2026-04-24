@@ -93,6 +93,18 @@ float getDisplayScaleFactor() {
 void setImmersiveMode(bool enabled) { (void)enabled; }
 bool getImmersiveMode() { return false; }
 
+// Keep screen on (SetThreadExecutionState)
+static bool keepScreenOn_ = false;
+void setKeepScreenOn(bool enabled) {
+    keepScreenOn_ = enabled;
+    if (enabled) {
+        SetThreadExecutionState(ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED | ES_CONTINUOUS);
+    } else {
+        SetThreadExecutionState(ES_CONTINUOUS);
+    }
+}
+bool getKeepScreenOn() { return keepScreenOn_; }
+
 // ---------------------------------------------------------------------------
 // setWindowSize - ウィンドウサイズを変更
 // ---------------------------------------------------------------------------

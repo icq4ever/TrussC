@@ -14,6 +14,7 @@
 #include <AudioToolbox/AudioServices.h>
 #include <IOKit/ps/IOPowerSources.h>
 #include <IOKit/ps/IOPSKeys.h>
+#include <IOKit/pwr_mgt/IOPMLib.h>
 #import <CoreLocation/CoreLocation.h>
 
 // sokol_app の swapchain 取得関数
@@ -52,6 +53,30 @@ float getDisplayScaleFactor() {
 // Immersive mode (no-op on desktop)
 void setImmersiveMode(bool enabled) { (void)enabled; }
 bool getImmersiveMode() { return false; }
+
+// Keep screen on (IOPMAssertion)
+static bool keepScreenOn_ = false;
+static IOPMAssertionID keepScreenOnAssertion_ = kIOPMNullAssertionID;
+
+void setKeepScreenOn(bool enabled) {
+    if (enabled == keepScreenOn_) return;
+    if (enabled) {
+        IOReturn r = IOPMAssertionCreateWithName(
+            kIOPMAssertionTypeNoDisplaySleep,
+            kIOPMAssertionLevelOn,
+            CFSTR("TrussC keepScreenOn"),
+            &keepScreenOnAssertion_);
+        if (r == kIOReturnSuccess) keepScreenOn_ = true;
+    } else {
+        if (keepScreenOnAssertion_ != kIOPMNullAssertionID) {
+            IOPMAssertionRelease(keepScreenOnAssertion_);
+            keepScreenOnAssertion_ = kIOPMNullAssertionID;
+        }
+        keepScreenOn_ = false;
+    }
+}
+
+bool getKeepScreenOn() { return keepScreenOn_; }
 
 IVec2 getWindowPosition() {
     NSWindow* window = (__bridge NSWindow*)sapp_macos_get_window();

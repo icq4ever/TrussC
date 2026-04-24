@@ -420,6 +420,42 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
     # Link TrussC
     target_link_libraries(${PROJECT_NAME} PRIVATE tc::TrussC)
 
+    # Build info — injected as compile definitions, read back through
+    # tc::BuildInfo (see core/include/tcBuildInfo.h). Timestamps reflect the
+    # moment CMake configured the project, so `cmake ..` refreshes them.
+    string(TIMESTAMP _tc_build_unix     "%s")
+    string(TIMESTAMP _tc_build_date     "%Y-%m-%d")
+    string(TIMESTAMP _tc_build_time     "%H:%M:%S")
+    string(TIMESTAMP _tc_build_datetime "%Y-%m-%d %H:%M:%S")
+    string(TIMESTAMP _tc_build_year     "%Y")
+    string(TIMESTAMP _tc_build_month    "%m")
+    string(TIMESTAMP _tc_build_day      "%d")
+    string(TIMESTAMP _tc_build_hour     "%H")
+    string(TIMESTAMP _tc_build_minute   "%M")
+    string(TIMESTAMP _tc_build_second   "%S")
+    # Normalize to plain decimal integers so they're valid C++ literals.
+    # "09" would be read as invalid octal; using string(REGEX REPLACE "^0" ...)
+    # would also collapse "00" all the way to "" (CMake's replace re-anchors
+    # after each match), breaking midnight / :00 builds — math(EXPR) sidesteps
+    # both traps.
+    math(EXPR _tc_build_month  "${_tc_build_month}")
+    math(EXPR _tc_build_day    "${_tc_build_day}")
+    math(EXPR _tc_build_hour   "${_tc_build_hour}")
+    math(EXPR _tc_build_minute "${_tc_build_minute}")
+    math(EXPR _tc_build_second "${_tc_build_second}")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        TRUSSC_BUILD_DATE="${_tc_build_date}"
+        TRUSSC_BUILD_TIME="${_tc_build_time}"
+        TRUSSC_BUILD_DATETIME="${_tc_build_datetime}"
+        TRUSSC_BUILD_UNIX=${_tc_build_unix}LL
+        TRUSSC_BUILD_YEAR=${_tc_build_year}
+        TRUSSC_BUILD_MONTH=${_tc_build_month}
+        TRUSSC_BUILD_DAY=${_tc_build_day}
+        TRUSSC_BUILD_HOUR=${_tc_build_hour}
+        TRUSSC_BUILD_MINUTE=${_tc_build_minute}
+        TRUSSC_BUILD_SECOND=${_tc_build_second}
+    )
+
     # Ensure the hot reload check runs BEFORE any compilation starts.
     # If the check fails (state changed), the build stops immediately
     # with a clear message — no wasted compilation time.

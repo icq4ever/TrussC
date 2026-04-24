@@ -88,9 +88,21 @@ private:
     bool verifyNone_ = false;
     bool handshakePending_ = false;
     bool handshakeStarted_ = false;
+    // True once the user has called setCACertificate() or setCACertificateFile().
+    // When true, ensureDefaultCAsLoaded() is skipped — the user's explicit set
+    // wins and replaces any default. When false and !verifyNone_, default CAs
+    // are lazily loaded on first handshake (OS store, then bundled fallback).
+    bool caUserProvided_ = false;
+    bool caAutoLoadAttempted_ = false;
 
     // Perform TLS handshake
     bool performHandshake();
+
+    // Lazy-load a trust anchor set on first handshake when the user hasn't
+    // provided one explicitly. Tries the OS trust store first, then falls back
+    // to the embedded Mozilla cacert.pem. Logs the source (logNotice) on
+    // success and an error if no CAs could be loaded.
+    void ensureDefaultCAsLoaded();
 
     // Receive thread (for TLS)
     void tlsReceiveThreadFunc();

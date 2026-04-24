@@ -374,6 +374,20 @@ void setImmersiveMode(bool enabled) {
 }
 bool getImmersiveMode() { return _sapp_ios_immersive_mode; }
 
+// ---------------------------------------------------------------------------
+// Keep screen on
+// ---------------------------------------------------------------------------
+static bool keepScreenOn_ = false;
+
+void setKeepScreenOn(bool enabled) {
+    keepScreenOn_ = enabled;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIApplication.sharedApplication.idleTimerDisabled = enabled ? YES : NO;
+    });
+}
+
+bool getKeepScreenOn() { return keepScreenOn_; }
+
 void bringWindowToFront() {
     // no-op: iOS apps are always foreground when running
 }

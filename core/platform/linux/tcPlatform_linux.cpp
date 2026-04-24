@@ -62,6 +62,10 @@ float getDisplayScaleFactor() {
 void setImmersiveMode(bool enabled) { (void)enabled; }
 bool getImmersiveMode() { return false; }
 
+// Keep screen on (TODO: xdg-screensaver or systemd-inhibit — no-op for now)
+void setKeepScreenOn(bool enabled) { (void)enabled; }
+bool getKeepScreenOn() { return false; }
+
 IVec2 getWindowPosition() {
     logWarning("Platform") << "getWindowPosition() not yet implemented on Linux";
     return IVec2(-1, -1);
