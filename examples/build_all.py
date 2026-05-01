@@ -130,6 +130,7 @@ def main():
     parser.add_argument('--web', action='store_true', help="Also build for WebAssembly")
     parser.add_argument('--web-only', action='store_true', help="Build for WebAssembly only (skip native build)")
     parser.add_argument('--test-only', action='store_true', help="Build ONLY AllFeaturesExample for quick CI check")
+    parser.add_argument('--test-hot-reload', action='store_true', help="Build ONLY HotReloadExample (exercises the host/guest split + addon includes)")
     parser.add_argument('--verbose', action='store_true', help="Show detailed build output")
     args = parser.parse_args()
 
@@ -146,6 +147,8 @@ def main():
         Colors.print("Mode: Web Only", Colors.YELLOW)
     if args.test_only:
         Colors.print("Mode: AllFeaturesExample Only", Colors.YELLOW)
+    if args.test_hot_reload:
+        Colors.print("Mode: HotReloadExample Only", Colors.YELLOW)
     print("")
 
     if args.test_only:
@@ -154,6 +157,13 @@ def main():
             example_dirs = [test_example]
         else:
             Colors.print(f"AllFeaturesExample not found at: {test_example}", Colors.RED)
+            sys.exit(1)
+    elif args.test_hot_reload:
+        hr_example = os.path.join(ROOT_DIR, "examples", "tests", "HotReloadExample")
+        if os.path.exists(hr_example):
+            example_dirs = [hr_example]
+        else:
+            Colors.print(f"HotReloadExample not found at: {hr_example}", Colors.RED)
             sys.exit(1)
     else:
         example_dirs = find_examples(ROOT_DIR)

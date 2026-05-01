@@ -469,6 +469,39 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
     # Apply addons from addons.make
     apply_addons(${PROJECT_NAME})
 
+    # Hot reload: addons are linked into the host (so their symbols resolve
+    # against the host process at runtime), but the guest still needs their
+    # headers and compile defs at build time. Propagate INTERFACE_* properties
+    # from each loaded addon target onto guest the same way we already do for
+    # TrussC itself above.
+    if(TARGET guest)
+        set(_TC_ADDONS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/addons.make")
+        if(EXISTS "${_TC_ADDONS_FILE}")
+            file(STRINGS "${_TC_ADDONS_FILE}" _TC_ADDON_LINES)
+            foreach(_TC_LINE ${_TC_ADDON_LINES})
+                string(STRIP "${_TC_LINE}" _TC_LINE)
+                if(_TC_LINE AND NOT _TC_LINE MATCHES "^#" AND TARGET ${_TC_LINE})
+                    get_target_property(_TC_A_INCS ${_TC_LINE} INTERFACE_INCLUDE_DIRECTORIES)
+                    if(_TC_A_INCS)
+                        target_include_directories(guest PRIVATE ${_TC_A_INCS})
+                    endif()
+                    get_target_property(_TC_A_SYS_INCS ${_TC_LINE} INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
+                    if(_TC_A_SYS_INCS)
+                        target_include_directories(guest SYSTEM PRIVATE ${_TC_A_SYS_INCS})
+                    endif()
+                    get_target_property(_TC_A_DEFS ${_TC_LINE} INTERFACE_COMPILE_DEFINITIONS)
+                    if(_TC_A_DEFS)
+                        target_compile_definitions(guest PRIVATE ${_TC_A_DEFS})
+                    endif()
+                    get_target_property(_TC_A_OPTS ${_TC_LINE} INTERFACE_COMPILE_OPTIONS)
+                    if(_TC_A_OPTS)
+                        target_compile_options(guest PRIVATE ${_TC_A_OPTS})
+                    endif()
+                endif()
+            endforeach()
+        endif()
+    endif()
+
     # Include project-local CMake config if it exists
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/local.cmake")
         include("${CMAKE_CURRENT_SOURCE_DIR}/local.cmake")
