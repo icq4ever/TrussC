@@ -465,6 +465,14 @@ public:
         }
     }
 
+    // Draw with vertical flip (v swapped). Used by Fbo on GL backends
+    // where framebuffer textures are stored bottom-to-top in memory.
+    void drawFlippedY(float x, float y, float w, float h) const {
+        if (allocated_) {
+            drawInternal(x, y, w, h, 0.0f, 1.0f, 1.0f, 0.0f);
+        }
+    }
+
     // Partial draw (for sprite sheets)
     void drawSubsection(float x, float y, float w, float h,
                         float sx, float sy, float sw, float sh) const {

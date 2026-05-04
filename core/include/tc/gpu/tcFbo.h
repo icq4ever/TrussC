@@ -272,7 +272,26 @@ public:
     Texture& getTexture() override { return colorTexture_; }
     const Texture& getTexture() const override { return colorTexture_; }
 
-    // draw() uses HasTexture's default implementation
+    // GL backends store FBO color textures bottom-to-top in memory
+    // (unlike Metal/D3D11 which are top-to-bottom). Override draw to
+    // flip V on GL so the displayed image matches user-space top-left coords.
+    void draw(float x, float y) const override {
+        if (!hasTexture()) return;
+        if (needsGlYFlip()) {
+            colorTexture_.drawFlippedY(x, y, (float)width_, (float)height_);
+        } else {
+            colorTexture_.draw(x, y);
+        }
+    }
+
+    void draw(float x, float y, float w, float h) const override {
+        if (!hasTexture()) return;
+        if (needsGlYFlip()) {
+            colorTexture_.drawFlippedY(x, y, w, h);
+        } else {
+            colorTexture_.draw(x, y, w, h);
+        }
+    }
 
     // save() override - Save FBO contents to file
     bool save(const fs::path& path) const override {
@@ -289,6 +308,11 @@ public:
     sg_sampler getSampler() const { return colorTexture_.getSampler(); }
 
 private:
+    static bool needsGlYFlip() {
+        sg_backend be = sg_query_backend();
+        return be == SG_BACKEND_GLCORE || be == SG_BACKEND_GLES3;
+    }
+
     int width_ = 0;
     int height_ = 0;
     int sampleCount_ = 1;
