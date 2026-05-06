@@ -242,7 +242,7 @@ endif()
             "${TRUSSC_DIR}/include"
         )
         target_compile_features(guest PRIVATE cxx_std_20)
-        target_compile_definitions(guest PRIVATE TC_HOT_RELOAD_BUILD)
+        target_compile_definitions(guest PRIVATE TC_HOT_RELOAD_BUILD TRUSSC_SHOW_CONSOLE)
         # GuestはTrussCにリンクしない（シンボルはHostから実行時解決）が、
         # TrussCのPUBLICコンパイル設定（/utf-8, Windows SDK include, SOKOL_D3D11等）は必要。
         get_target_property(_TC_PUB_OPTS TrussC INTERFACE_COMPILE_OPTIONS)
