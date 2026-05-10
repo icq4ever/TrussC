@@ -10538,11 +10538,14 @@ _SOKOL_PRIVATE bool _sapp_android_key_event(const AInputEvent* e) {
         return false;
     }
     if (AKeyEvent_getKeyCode(e) == AKEYCODE_BACK) {
-        /* FIXME: this should be hooked into a "really quit?" mechanism
-           so the app can ask the user for confirmation, this is currently
-           generally missing in sokol_app.h
-        */
-        _sapp_android_shutdown();
+        /* [TrussC tettou771] Patched: BACK key no longer triggers shutdown.
+           Upstream calls _sapp_android_shutdown() here, which destroys the
+           EGL surface and invokes cleanup_cb. Under screen pinning, the OS
+           blocks ANativeActivity_finish(), so the process keeps running but
+           the EGL context is gone — the app appears frozen. Consume the
+           event without shutdown. Long-term fix: implement
+           SAPP_EVENTTYPE_QUIT_REQUESTED for Android (already supported on
+           macOS/Windows/Linux). */
         return true;
     }
     return false;

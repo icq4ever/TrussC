@@ -13,7 +13,7 @@ Search for `tettou771` or `Modified by` or `[TrussC` to find all modified sectio
 
 ```
 sokol/
-├── sokol_app.h          # Modified (8 patches)
+├── sokol_app.h          # Modified (9 patches)
 ├── sokol_gfx.h          # Untouched (direct copy from upstream)
 ├── sokol_glue.h         # Modified (1 patch)
 ├── sokol_log.h          # Untouched
@@ -95,6 +95,13 @@ Matches upstream directory layout: core headers at root, utility headers in `uti
 
 **Changes:**
 - In `_sapp_ios_mtl_update_framebuffer_dimensions()`: after setting drawable size, read back `layer.drawableSize` and update `framebuffer_width`/`framebuffer_height`
+
+### 8a. Android BACK Key No Shutdown
+
+**Purpose:** Suppress upstream BACK-key shutdown. Upstream `_sapp_android_key_event` reacts to `AKEYCODE_BACK` by calling `_sapp_android_shutdown()`, which destroys the EGL surface and invokes `cleanup_cb` immediately. Under screen pinning (lock-task mode), `ANativeActivity_finish()` is blocked by the OS, so the process keeps running but the EGL context is gone — the app appears frozen with the last frame on screen. We consume the event without shutting down. Long-term fix: implement `SAPP_EVENTTYPE_QUIT_REQUESTED` for Android (already supported on macOS/Windows/Linux — see line 158 support table).
+
+**Changes:**
+- In `_sapp_android_key_event()`: replaced `_sapp_android_shutdown()` with a comment explaining the issue; just `return true` to consume the event
 
 ### 8. Android DPI Scale
 
