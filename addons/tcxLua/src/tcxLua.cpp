@@ -674,6 +674,13 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
         "Linear", sol::var(TextureFilter::Linear)
     );
 
+    lua->new_usertype<TextureWrap>("TextureWrap",
+        sol::meta_function::equal_to, [](TextureWrap a, TextureWrap b){ return a == b; },
+        "Repeat", sol::var(TextureWrap::Repeat),
+        "ClampToEdge", sol::var(TextureWrap::ClampToEdge),
+        "MirroredRepeat", sol::var(TextureWrap::MirroredRepeat)
+    );
+
     sol::usertype<Shader> shader_type = lua->new_usertype<Shader>("Shader",
         sol::constructors<Shader()>() // FIXME: move constructor?
     );
