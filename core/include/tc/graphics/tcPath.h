@@ -374,6 +374,15 @@ public:
         }
     }
 
+    // Draw the path as a thick stroke (StrokeMesh, respects strokeWeight /
+    // strokeCap / strokeJoin). Use draw() for 1-pixel line rendering.
+    void drawStroke() const {
+        if (vertices_.empty()) return;
+        beginStroke();
+        for (const auto& v : vertices_) vertex(v);
+        endStroke(closed_);
+    }
+
     // Get bounding box as Rect
     Rect getBounds() const {
         if (vertices_.empty()) {
