@@ -598,8 +598,10 @@ private:
     }
 public:
 
+    // drawBezier / drawCurve are inherently strokes (open curves cannot be
+    // filled unambiguously). Like drawLine, they ignore the fill/stroke mode
+    // and always emit a polyline. Use Path for filled curve shapes.
     void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) {
-        if (!strokeEnabled_) return;
         std::vector<Vec3> pts;
         if (style_.curve.mode == CurveStyle::Mode::Tolerance) {
             tessellateCubicBezier(p0, p1, p2, p3,
@@ -612,7 +614,6 @@ public:
     }
 
     void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2) {
-        if (!strokeEnabled_) return;
         std::vector<Vec3> pts;
         if (style_.curve.mode == CurveStyle::Mode::Tolerance) {
             tessellateQuadBezier(p0, p1, p2,
@@ -625,7 +626,7 @@ public:
     }
 
     void drawBezier(const std::vector<Vec3>& controlPoints) {
-        if (!strokeEnabled_ || controlPoints.size() < 2) return;
+        if (controlPoints.size() < 2) return;
         if (controlPoints.size() == 2) {
             drawLine(controlPoints[0], controlPoints[1]);
             return;
