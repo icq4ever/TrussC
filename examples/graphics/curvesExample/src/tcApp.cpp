@@ -6,6 +6,7 @@
 #include <string>
 
 void tcApp::setup() {
+    setIndependentFps(VSYNC, VSYNC);  // continuous redraw for the spinner
     applyMode();
 }
 
@@ -38,12 +39,15 @@ void tcApp::draw() {
     drawArc(ax + 220, ay + 60, 60, HALF_TAU, TAU);
     fill();
 
-    // Filled donut chunk: outer arc + inner arc + line caps
+    // Thick stroked arc — rotating loading-spinner (TAU*2/3 span)
     setColor(0.7f, 0.5f, 0.9f);
-    beginShape();
-    appendArc(ax + 380, ay + 60, 60, -QUARTER_TAU * 0.5f, QUARTER_TAU * 0.5f);
-    appendArc(ax + 380, ay + 60, 35,  QUARTER_TAU * 0.5f, -QUARTER_TAU * 0.5f);
-    endShape(true);
+    setStrokeWeight(20.0f);
+    setStrokeCap(StrokeCap::Butt);
+    float spin = getElapsedTimef() * TAU * 0.6f;        // ~1.7s per revolution
+    float spanAngle = TAU * 2.0f / 3.0f;
+    beginStroke();
+    appendArc(ax + 380, ay + 60, 50, spin, spin + spanAngle);
+    endStroke();
 
     // ------------------------------------------------------------------
     // Row 2 — Bezier demos (cubic + quadratic + N-th order)
@@ -55,30 +59,33 @@ void tcApp::draw() {
     // Cubic
     setColor(0.95f, 0.7f, 0.3f);
     drawBezier(Vec3{80,  by + 80, 0},
-               Vec3{180, by - 30, 0},
-               Vec3{280, by + 180, 0},
-               Vec3{380, by + 50, 0});
+               Vec3{180, by + 20, 0},
+               Vec3{280, by + 140, 0},
+               Vec3{380, by + 60, 0});
     // Visualise control polygon (faint)
     setColor(1.0f, 1.0f, 1.0f, 0.25f);
-    drawLine(80, by + 80,   180, by - 30);
-    drawLine(180, by - 30,  280, by + 180);
-    drawLine(280, by + 180, 380, by + 50);
+    drawLine(80,  by + 80,   180, by + 20);
+    drawLine(180, by + 20,   280, by + 140);
+    drawLine(280, by + 140,  380, by + 60);
 
     // Quadratic
     setColor(0.4f, 0.85f, 0.95f);
     drawBezier(Vec3{440, by + 80, 0},
-               Vec3{530, by - 40, 0},
+               Vec3{530, by + 10, 0},
                Vec3{620, by + 80, 0});
 
-    // N-th order (5 control points)
+    // N-th order — wild control polygon that doubles back on itself, so the
+    // resulting Bezier crosses itself multiple times.
     setColor(0.95f, 0.45f, 0.7f);
     std::vector<Vec3> pts = {
-        Vec3{680,  by + 80,  0},
-        Vec3{740,  by - 20,  0},
-        Vec3{800,  by + 160, 0},
-        Vec3{860,  by - 30,  0},
-        Vec3{920,  by + 80,  0},
-        Vec3{980,  by + 30,  0},
+        Vec3{680,  by + 80,  0},   // start
+        Vec3{820,  by - 10,  0},   // sharp up + right
+        Vec3{700,  by + 160, 0},   // back-left + far down (cross 1)
+        Vec3{960,  by + 140, 0},   // jump far right + down
+        Vec3{720,  by + 30,  0},   // back-left + up (cross 2)
+        Vec3{980,  by + 100, 0},   // far right
+        Vec3{780,  by + 170, 0},   // back middle + down (cross 3)
+        Vec3{980,  by + 50,  0},   // end
     };
     drawBezier(pts);
 
