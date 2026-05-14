@@ -109,106 +109,151 @@ public:
     }
 
     // Cubic Bezier curve
-    // cp1, cp2: control points, to: end point
-    void bezierTo(const Vec3& cp1, const Vec3& cp2, const Vec3& to, int resolution = 20) {
-        if (vertices_.empty()) {
-            vertices_.push_back(Vec3{0, 0, 0});
-        }
+    // -----------------------------------------------------------------------
+    // bezierTo / quadBezierTo / curveTo
+    //
+    // Default behaviour (no `resolution` arg, or resolution < 0): inherit
+    // the current CurveStyle. In Tolerance mode the curve is adaptively
+    // subdivided so the polyline stays within the configured pixel
+    // tolerance (scale-aware). In Resolution mode it falls back to N
+    // uniform t-samples.
+    //
+    // Pass an explicit positive `resolution` to force N uniform t-samples
+    // regardless of the CurveStyle (the original behaviour — kept so
+    // existing callers that asked for, say, resolution=64 still get
+    // exactly 64 samples).
+    //
+    // NOTE: this changes the default of `resolution` from 20 to -1 (=
+    // sentinel for "use CurveStyle"). Existing `path.bezierTo(c1, c2, t)`
+    // calls now produce smoother curves at small radii and may emit a
+    // different vertex count than before — visually equivalent or better.
+    // -----------------------------------------------------------------------
 
+    // Cubic Bezier — cp1, cp2 control points, `to` endpoint.
+    void bezierTo(const Vec3& cp1, const Vec3& cp2, const Vec3& to, int resolution = -1) {
+        if (vertices_.empty()) vertices_.push_back(Vec3{0, 0, 0});
         Vec3 p0 = vertices_.back();
 
+        if (resolution < 0) {
+            const auto& ctx = getDefaultContext();
+            if (ctx.getCurveMode() == CurveStyle::Mode::Tolerance) {
+                std::vector<Vec3> tmp;
+                tessellateCubicBezier(p0, cp1, cp2, to,
+                                      ctx.getCurveTolerance() / ctx.getCurrentScale(),
+                                      tmp);
+                // tmp[0] == p0 — already at vertices_.back(), skip it.
+                for (size_t i = 1; i < tmp.size(); i++) vertices_.push_back(tmp[i]);
+                return;
+            }
+            resolution = std::max(2, ctx.getCurveResolution());
+        }
         for (int i = 1; i <= resolution; i++) {
-            float t = (float)i / resolution;
-            float t2 = t * t;
-            float t3 = t2 * t;
-            float mt = 1 - t;
-            float mt2 = mt * mt;
-            float mt3 = mt2 * mt;
-
-            // Bezier curve: B(t) = (1-t)^3*P0 + 3*(1-t)^2*t*P1 + 3*(1-t)*t^2*P2 + t^3*P3
-            Vec3 p;
-            p.x = mt3 * p0.x + 3 * mt2 * t * cp1.x + 3 * mt * t2 * cp2.x + t3 * to.x;
-            p.y = mt3 * p0.y + 3 * mt2 * t * cp1.y + 3 * mt * t2 * cp2.y + t3 * to.y;
-            p.z = mt3 * p0.z + 3 * mt2 * t * cp1.z + 3 * mt * t2 * cp2.z + t3 * to.z;
-
-            vertices_.push_back(p);
+            float t  = (float)i / resolution;
+            float t2 = t * t,  t3 = t2 * t;
+            float mt = 1 - t,  mt2 = mt * mt, mt3 = mt2 * mt;
+            vertices_.push_back(Vec3{
+                mt3*p0.x + 3*mt2*t*cp1.x + 3*mt*t2*cp2.x + t3*to.x,
+                mt3*p0.y + 3*mt2*t*cp1.y + 3*mt*t2*cp2.y + t3*to.y,
+                mt3*p0.z + 3*mt2*t*cp1.z + 3*mt*t2*cp2.z + t3*to.z});
         }
     }
 
-    void bezierTo(float cx1, float cy1, float cx2, float cy2, float x, float y, int resolution = 20) {
+    void bezierTo(float cx1, float cy1, float cx2, float cy2, float x, float y, int resolution = -1) {
         bezierTo(Vec3{cx1, cy1, 0}, Vec3{cx2, cy2, 0}, Vec3{x, y, 0}, resolution);
     }
-
-    void bezierTo(const Vec2& cp1, const Vec2& cp2, const Vec2& to, int resolution = 20) {
+    void bezierTo(const Vec2& cp1, const Vec2& cp2, const Vec2& to, int resolution = -1) {
         bezierTo(Vec3{cp1.x, cp1.y, 0}, Vec3{cp2.x, cp2.y, 0}, Vec3{to.x, to.y, 0}, resolution);
     }
 
-    // Quadratic Bezier curve
-    // cp: control point, to: end point
-    void quadBezierTo(const Vec3& cp, const Vec3& to, int resolution = 20) {
-        if (vertices_.empty()) {
-            vertices_.push_back(Vec3{0, 0, 0});
-        }
-
+    // Quadratic Bezier — cp control point, `to` endpoint.
+    void quadBezierTo(const Vec3& cp, const Vec3& to, int resolution = -1) {
+        if (vertices_.empty()) vertices_.push_back(Vec3{0, 0, 0});
         Vec3 p0 = vertices_.back();
 
+        if (resolution < 0) {
+            const auto& ctx = getDefaultContext();
+            if (ctx.getCurveMode() == CurveStyle::Mode::Tolerance) {
+                std::vector<Vec3> tmp;
+                tessellateQuadBezier(p0, cp, to,
+                                     ctx.getCurveTolerance() / ctx.getCurrentScale(),
+                                     tmp);
+                for (size_t i = 1; i < tmp.size(); i++) vertices_.push_back(tmp[i]);
+                return;
+            }
+            resolution = std::max(2, ctx.getCurveResolution());
+        }
         for (int i = 1; i <= resolution; i++) {
-            float t = (float)i / resolution;
+            float t  = (float)i / resolution;
             float t2 = t * t;
-            float mt = 1 - t;
-            float mt2 = mt * mt;
-
-            // Quadratic Bezier: B(t) = (1-t)^2*P0 + 2*(1-t)*t*P1 + t^2*P2
-            Vec3 p;
-            p.x = mt2 * p0.x + 2 * mt * t * cp.x + t2 * to.x;
-            p.y = mt2 * p0.y + 2 * mt * t * cp.y + t2 * to.y;
-            p.z = mt2 * p0.z + 2 * mt * t * cp.z + t2 * to.z;
-
-            vertices_.push_back(p);
+            float mt = 1 - t, mt2 = mt * mt;
+            vertices_.push_back(Vec3{
+                mt2*p0.x + 2*mt*t*cp.x + t2*to.x,
+                mt2*p0.y + 2*mt*t*cp.y + t2*to.y,
+                mt2*p0.z + 2*mt*t*cp.z + t2*to.z});
         }
     }
 
-    void quadBezierTo(float cx, float cy, float x, float y, int resolution = 20) {
+    void quadBezierTo(float cx, float cy, float x, float y, int resolution = -1) {
         quadBezierTo(Vec3{cx, cy, 0}, Vec3{x, y, 0}, resolution);
     }
-
-    void quadBezierTo(const Vec2& cp, const Vec2& to, int resolution = 20) {
+    void quadBezierTo(const Vec2& cp, const Vec2& to, int resolution = -1) {
         quadBezierTo(Vec3{cp.x, cp.y, 0}, Vec3{to.x, to.y, 0}, resolution);
     }
 
-    // Catmull-Rom spline curve
-    // Calling curveTo consecutively generates smooth curves
-    void curveTo(const Vec3& to, int resolution = 20) {
+    // Catmull-Rom spline. Each consecutive curveTo() emits the segment
+    // between the previous-1 and current points using the previous-2 and
+    // next as tangent influences (i.e. you must call curveTo at least 4
+    // times before any geometry appears). When `resolution < 0`, the
+    // segment is converted to its equivalent cubic Bezier and adaptively
+    // subdivided per CurveStyle.
+    void curveTo(const Vec3& to, int resolution = -1) {
         curveVertices_.push_back(to);
+        if (curveVertices_.size() < 4) return;
 
-        // Calculate spline if 4 or more points
-        if (curveVertices_.size() >= 4) {
-            size_t n = curveVertices_.size();
-            const Vec3& p0 = curveVertices_[n - 4];
-            const Vec3& p1 = curveVertices_[n - 3];
-            const Vec3& p2 = curveVertices_[n - 2];
-            const Vec3& p3 = curveVertices_[n - 1];
+        size_t n = curveVertices_.size();
+        const Vec3& p0 = curveVertices_[n - 4];
+        const Vec3& p1 = curveVertices_[n - 3];
+        const Vec3& p2 = curveVertices_[n - 2];
+        const Vec3& p3 = curveVertices_[n - 1];
 
-            // Add first point (if not already added)
-            if (vertices_.empty() ||
-                (vertices_.back().x != p1.x || vertices_.back().y != p1.y || vertices_.back().z != p1.z)) {
-                vertices_.push_back(p1);
+        if (vertices_.empty() ||
+            vertices_.back().x != p1.x || vertices_.back().y != p1.y || vertices_.back().z != p1.z) {
+            vertices_.push_back(p1);
+        }
+
+        if (resolution < 0) {
+            const auto& ctx = getDefaultContext();
+            if (ctx.getCurveMode() == CurveStyle::Mode::Tolerance) {
+                // Convert Catmull-Rom (uniform) segment to its cubic-Bezier
+                // equivalent (B1 = p1 + (p2-p0)/6, B2 = p2 - (p3-p1)/6) and
+                // reuse the same adaptive tessellator the rest of the
+                // plumbing depends on.
+                Vec3 b1{p1.x + (p2.x - p0.x) / 6.0f,
+                        p1.y + (p2.y - p0.y) / 6.0f,
+                        p1.z + (p2.z - p0.z) / 6.0f};
+                Vec3 b2{p2.x - (p3.x - p1.x) / 6.0f,
+                        p2.y - (p3.y - p1.y) / 6.0f,
+                        p2.z - (p3.z - p1.z) / 6.0f};
+                std::vector<Vec3> tmp;
+                tessellateCubicBezier(p1, b1, b2, p2,
+                                      ctx.getCurveTolerance() / ctx.getCurrentScale(),
+                                      tmp);
+                for (size_t i = 1; i < tmp.size(); i++) vertices_.push_back(tmp[i]);
+                return;
             }
-
-            // Generate curve from p1 to p2
-            for (int i = 1; i <= resolution; i++) {
-                float t = (float)i / resolution;
-                Vec3 p = catmullRom(p0, p1, p2, p3, t);
-                vertices_.push_back(p);
-            }
+            resolution = std::max(2, ctx.getCurveResolution());
+        }
+        for (int i = 1; i <= resolution; i++) {
+            float t = (float)i / resolution;
+            vertices_.push_back(catmullRom(p0, p1, p2, p3, t));
         }
     }
 
-    void curveTo(float x, float y, float z = 0, int resolution = 20) {
+    void curveTo(float x, float y, float z = 0, int resolution = -1) {
         curveTo(Vec3{x, y, z}, resolution);
     }
 
-    void curveTo(const Vec2& to, int resolution = 20) {
+    void curveTo(const Vec2& to, int resolution = -1) {
         curveTo(Vec3{to.x, to.y, 0}, resolution);
     }
 
@@ -246,6 +291,40 @@ public:
     void arc(const Vec2& center, float radiusX, float radiusY,
              float angleBegin, float angleEnd, int circleResolution = 20) {
         arc(Vec3{center.x, center.y, 0}, radiusX, radiusY, angleBegin, angleEnd, true, circleResolution);
+    }
+
+    // -----------------------------------------------------------------------
+    // Circular arc — radians, tolerance-aware (uses current CurveStyle).
+    //
+    // Disambiguated from the elliptical overloads above by parameter count:
+    // these take a single `radius` instead of `radiusX, radiusY`. Angles
+    // are in **radians** (matches TrussC's overall convention; the older
+    // overloads take degrees for backward-compat reasons).
+    // -----------------------------------------------------------------------
+    void arc(const Vec3& center, float radius,
+             float angleBegin, float angleEnd, bool clockwise = true) {
+        if (radius <= 0.0f) return;
+        float diff = angleEnd - angleBegin;
+        if (!clockwise) diff = -diff;
+        if (diff == 0.0f) return;
+        int segments = getDefaultContext().decideArcSegments(radius, std::abs(diff));
+        for (int i = 0; i <= segments; i++) {
+            float t = (float)i / (float)segments;
+            float a = angleBegin + diff * t;
+            vertices_.push_back(Vec3{
+                center.x + std::cos(a) * radius,
+                center.y + std::sin(a) * radius,
+                center.z
+            });
+        }
+    }
+    void arc(float x, float y, float radius,
+             float angleBegin, float angleEnd, bool clockwise = true) {
+        arc(Vec3{x, y, 0}, radius, angleBegin, angleEnd, clockwise);
+    }
+    void arc(const Vec2& center, float radius,
+             float angleBegin, float angleEnd, bool clockwise = true) {
+        arc(Vec3{center.x, center.y, 0}, radius, angleBegin, angleEnd, clockwise);
     }
 
     // Close/Open path
@@ -293,6 +372,15 @@ public:
             }
             sgl_end();
         }
+    }
+
+    // Draw the path as a thick stroke (StrokeMesh, respects strokeWeight /
+    // strokeCap / strokeJoin). Use draw() for 1-pixel line rendering.
+    void drawStroke() const {
+        if (vertices_.empty()) return;
+        beginStroke();
+        for (const auto& v : vertices_) vertex(v);
+        endStroke(closed_);
     }
 
     // Get bounding box as Rect

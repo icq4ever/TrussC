@@ -22,6 +22,8 @@
 // This file is included from TrussC.h, so required headers
 // are already included: tcMath.h, tcColor.h, tcBitmapFont.h, sokol_gl.h
 
+#include "tc/graphics/tcCurveTessellation.h"
+
 #include <vector>
 #include <string>
 
@@ -153,10 +155,83 @@ public:
     StrokeJoin getStrokeJoin() const { return style_.strokeJoin; }
 
     // -----------------------------------------------------------------------
-    // Circle resolution
+    // Curve quality (circles, arcs, beziers, rounded rects, squircle)
     // -----------------------------------------------------------------------
+    //
+    // Two modes share the same Style.curve field:
+    //
+    //   Tolerance (default): pick segment count adaptively so the chord
+    //     stays within `pixels` of the true curve, in screen space. Set
+    //     once with setCurveTolerance(); zoom & scale() are accounted for
+    //     via getCurrentScale().
+    //
+    //   Resolution: use a fixed segment count regardless of radius. Useful
+    //     for intentionally chunky styling, or to bound vertex cost on
+    //     thousands of small circles.
+    //
+    // setCircleResolution() stays as a deprecated alias forwarding to
+    // setCurveResolution(); existing apps keep building, with a warning
+    // pointing at the new name.
 
-    void setCircleResolution(int res) { circleResolution_ = res; }
+    void setCurveTolerance(float pixels) {
+        style_.curve.mode = CurveStyle::Mode::Tolerance;
+        style_.curve.tolerance = pixels;
+    }
+    void setCurveResolution(int n) {
+        style_.curve.mode = CurveStyle::Mode::Resolution;
+        style_.curve.resolution = n;
+    }
+    float getCurveTolerance() const { return style_.curve.tolerance; }
+    int   getCurveResolution() const { return style_.curve.resolution; }
+    CurveStyle::Mode getCurveMode() const { return style_.curve.mode; }
+
+    // Effective uniform scale derived from the current modelView matrix.
+    // Used by tolerance mode to convert "0.1 px on screen" (the default)
+    // into the local tolerance the tessellator should aim for. Camera
+    // projection (perspective) is intentionally NOT considered — for
+    // creative-coding use most rendering is 2D or orthographic, and
+    // accounting for perspective would require per-pixel jacobian inversion
+    // at every curve point (overkill).
+    float getCurrentScale() const {
+        const auto& m = currentMatrix_.m;
+        // Column 0 / column 1 lengths = effective x / y scale of the basis.
+        float sx = std::sqrt(m[0]*m[0] + m[4]*m[4] + m[8]*m[8]);
+        float sy = std::sqrt(m[1]*m[1] + m[5]*m[5] + m[9]*m[9]);
+        float s = std::max(sx, sy);
+        return s > 0.0f ? s : 1.0f;
+    }
+
+    // Segment-count helpers. Used by drawCircle / drawEllipse / Path::arc /
+    // drawRectRounded / drawArc — single source of truth so a future
+    // tweak to the math (e.g. caching, or a different sagitta formula)
+    // propagates everywhere automatically.
+    int decideCircleSegments(float radius) const {
+        if (style_.curve.mode == CurveStyle::Mode::Resolution) {
+            return std::max(3, style_.curve.resolution);
+        }
+        float effTol = style_.curve.tolerance / getCurrentScale();
+        return segmentsForCircle(radius, effTol);
+    }
+    int decideArcSegments(float radius, float angleSpan) const {
+        if (style_.curve.mode == CurveStyle::Mode::Resolution) {
+            int full = std::max(3, style_.curve.resolution);
+            int n = (int)std::ceil(full * std::abs(angleSpan) / TAU);
+            return std::max(2, n);
+        }
+        float effTol = style_.curve.tolerance / getCurrentScale();
+        return segmentsForArc(radius, angleSpan, effTol);
+    }
+
+    // -----------------------------------------------------------------------
+    // Circle resolution (legacy — kept undeprecated on the context so the
+    // global wrapper in TrussC.h can forward without triggering its own
+    // deprecation warning. The user-facing TrussC.h wrapper IS deprecated.)
+    // -----------------------------------------------------------------------
+    void setCircleResolution(int res) {
+        circleResolution_ = res;          // legacy field, still read by
+                                          // some drawers until C2 migrates them
+        setCurveResolution(res);
+    }
     int getCircleResolution() const { return circleResolution_; }
 
     // -----------------------------------------------------------------------
@@ -345,7 +420,8 @@ public:
 
     // Main implementation (Vec3)
     void drawCircle(Vec3 center, float radius) {
-        int segments = circleResolution_;
+        int segments = decideCircleSegments(radius);
+        if (segments == 0) return;
         float cx = center.x, cy = center.y, cz = center.z;
         auto& writer = internal::getActiveWriter();
 
@@ -380,7 +456,10 @@ public:
 
     // Main implementation (Vec3)
     void drawEllipse(Vec3 center, Vec2 radii) {
-        int segments = circleResolution_;
+        // Use the larger radius for the segment count — conservative
+        // approximation; matches what oF and most engines do for ellipses.
+        int segments = decideCircleSegments(std::max(radii.x, radii.y));
+        if (segments == 0) return;
         float cx = center.x, cy = center.y, cz = center.z;
         float rx = radii.x, ry = radii.y;
         auto& writer = internal::getActiveWriter();
@@ -416,6 +495,222 @@ public:
 
     void drawEllipse(float cx, float cy, float rx, float ry) {
         drawEllipse(Vec3(cx, cy, 0), Vec2(rx, ry));
+    }
+
+    // -----------------------------------------------------------------------
+    // Arc — circular arc spanning [angleBegin, angleEnd] radians.
+    //
+    // Stroke: just the arc curve.
+    // Fill:   pie sector — fan from center to arc, like p5.js / Processing.
+    //
+    // Angles in **radians**, going counter-clockwise (mathematical
+    // convention). For a quick semicircle: drawArc(x, y, r, 0, HALF_TAU).
+    // -----------------------------------------------------------------------
+    void drawArc(Vec3 center, float radius, float angleBegin, float angleEnd) {
+        if (radius <= 0.0f) return;
+        float span = angleEnd - angleBegin;
+        if (span == 0.0f) return;
+        int segments = decideArcSegments(radius, std::abs(span));
+        if (segments < 2) segments = 2;
+        float cx = center.x, cy = center.y, cz = center.z;
+        auto& writer = internal::getActiveWriter();
+
+        if (fillEnabled_) {
+            // TriangleStrip alternating center / rim — same fan pattern
+            // drawCircle uses, just over a partial angular range.
+            writer.begin(PrimitiveType::TriangleStrip);
+            writer.color(currentR_, currentG_, currentB_, currentA_);
+            for (int i = 0; i <= segments; i++) {
+                float a = angleBegin + span * ((float)i / (float)segments);
+                float px = cx + std::cos(a) * radius;
+                float py = cy + std::sin(a) * radius;
+                writer.vertex(cx, cy, cz);
+                writer.vertex(px, py, cz);
+            }
+            writer.end();
+        }
+        if (strokeEnabled_) {
+            writer.begin(PrimitiveType::LineStrip);
+            writer.color(currentR_, currentG_, currentB_, currentA_);
+            for (int i = 0; i <= segments; i++) {
+                float a = angleBegin + span * ((float)i / (float)segments);
+                writer.vertex(cx + std::cos(a) * radius,
+                              cy + std::sin(a) * radius, cz);
+            }
+            writer.end();
+        }
+    }
+
+    void drawArc(float x, float y, float radius, float angleBegin, float angleEnd) {
+        drawArc(Vec3(x, y, 0), radius, angleBegin, angleEnd);
+    }
+
+    // -----------------------------------------------------------------------
+    // Bezier and curve primitives — stroke only (open curves have no
+    // natural enclosed region; build a Path if you want a filled shape
+    // that includes a Bezier piece).
+    //
+    //   drawBezier(p0, p1, p2, p3)        — cubic
+    //   drawBezier(p0, p1, p2)            — quadratic
+    //   drawBezier(std::vector<Vec3>)     — n-th order (control polygon)
+    //   drawCurve (p0, p1, p2, p3)        — Catmull-Rom interpolating p1->p2,
+    //                                       using p0/p3 as tangent influences
+    //                                       (same semantics as oF's drawCurve)
+    //
+    // In Tolerance mode each curve is adaptively subdivided so the polyline
+    // stays within `tolerance` (in screen pixels) of the true curve. In
+    // Resolution mode the curve is sampled at N+1 uniform t-values.
+    // -----------------------------------------------------------------------
+private:
+    void emitPolylineStroke_(const std::vector<Vec3>& pts) {
+        if (pts.size() < 2) return;
+        auto& writer = internal::getActiveWriter();
+        writer.begin(PrimitiveType::LineStrip);
+        writer.color(currentR_, currentG_, currentB_, currentA_);
+        for (auto& p : pts) writer.vertex(p.x, p.y, p.z);
+        writer.end();
+    }
+
+    // Uniform-t cubic sampling for resolution mode.
+    static void sampleCubicUniform_(const Vec3& p0, const Vec3& p1,
+                                    const Vec3& p2, const Vec3& p3,
+                                    int n, std::vector<Vec3>& out) {
+        out.reserve(out.size() + n + 1);
+        for (int i = 0; i <= n; i++) {
+            float t = (float)i / (float)n;
+            float u = 1 - t;
+            float b0 = u*u*u, b1 = 3*u*u*t, b2 = 3*u*t*t, b3 = t*t*t;
+            out.push_back(Vec3{
+                b0*p0.x + b1*p1.x + b2*p2.x + b3*p3.x,
+                b0*p0.y + b1*p1.y + b2*p2.y + b3*p3.y,
+                b0*p0.z + b1*p1.z + b2*p2.z + b3*p3.z});
+        }
+    }
+    static void sampleQuadUniform_(const Vec3& p0, const Vec3& p1, const Vec3& p2,
+                                   int n, std::vector<Vec3>& out) {
+        out.reserve(out.size() + n + 1);
+        for (int i = 0; i <= n; i++) {
+            float t = (float)i / (float)n;
+            float u = 1 - t;
+            float b0 = u*u, b1 = 2*u*t, b2 = t*t;
+            out.push_back(Vec3{
+                b0*p0.x + b1*p1.x + b2*p2.x,
+                b0*p0.y + b1*p1.y + b2*p2.y,
+                b0*p0.z + b1*p1.z + b2*p2.z});
+        }
+    }
+public:
+
+    // drawBezier / drawCurve are inherently strokes (open curves cannot be
+    // filled unambiguously). Like drawLine, they ignore the fill/stroke mode
+    // and always emit a polyline. Use Path for filled curve shapes.
+    void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) {
+        std::vector<Vec3> pts;
+        if (style_.curve.mode == CurveStyle::Mode::Tolerance) {
+            tessellateCubicBezier(p0, p1, p2, p3,
+                                  style_.curve.tolerance / getCurrentScale(), pts);
+        } else {
+            sampleCubicUniform_(p0, p1, p2, p3,
+                                std::max(2, style_.curve.resolution), pts);
+        }
+        emitPolylineStroke_(pts);
+    }
+
+    void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2) {
+        std::vector<Vec3> pts;
+        if (style_.curve.mode == CurveStyle::Mode::Tolerance) {
+            tessellateQuadBezier(p0, p1, p2,
+                                 style_.curve.tolerance / getCurrentScale(), pts);
+        } else {
+            sampleQuadUniform_(p0, p1, p2,
+                               std::max(2, style_.curve.resolution), pts);
+        }
+        emitPolylineStroke_(pts);
+    }
+
+    void drawBezier(const std::vector<Vec3>& controlPoints) {
+        if (controlPoints.size() < 2) return;
+        if (controlPoints.size() == 2) {
+            drawLine(controlPoints[0], controlPoints[1]);
+            return;
+        }
+        // Fast paths for the two common orders. Same numerical result as
+        // tessellateBezierN — just avoids the extra std::vector copy that
+        // path takes for its in-place de Casteljau scratch buffer.
+        if (controlPoints.size() == 3) {
+            drawBezier(controlPoints[0], controlPoints[1], controlPoints[2]);
+            return;
+        }
+        if (controlPoints.size() == 4) {
+            drawBezier(controlPoints[0], controlPoints[1],
+                       controlPoints[2], controlPoints[3]);
+            return;
+        }
+        std::vector<Vec3> pts;
+        if (style_.curve.mode == CurveStyle::Mode::Tolerance) {
+            tessellateBezierN(controlPoints,
+                              style_.curve.tolerance / getCurrentScale(), pts);
+        } else {
+            // Uniform t via repeated de Casteljau evaluation.
+            int n = std::max(2, style_.curve.resolution);
+            pts.reserve(n + 1);
+            for (int i = 0; i <= n; i++) {
+                float t = (float)i / (float)n;
+                std::vector<Vec3> work = controlPoints;
+                int sz = (int)work.size();
+                for (int level = 1; level < sz; level++) {
+                    for (int j = 0; j < sz - level; j++) {
+                        work[j] = Vec3{
+                            work[j].x + (work[j+1].x - work[j].x) * t,
+                            work[j].y + (work[j+1].y - work[j].y) * t,
+                            work[j].z + (work[j+1].z - work[j].z) * t};
+                    }
+                }
+                pts.push_back(work[0]);
+            }
+        }
+        emitPolylineStroke_(pts);
+    }
+
+    // Catmull-Rom interpolating p1 -> p2, using p0 and p3 as tangent
+    // influences. Matches openFrameworks' ofDrawCurve / curveVertex
+    // semantics. Internally converted to the equivalent cubic Bezier
+    // (B1 = p1 + (p2-p0)/6, B2 = p2 - (p3-p1)/6) so it inherits the
+    // same adaptive subdivision and mode handling as drawBezier.
+    void drawCurve(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) {
+        Vec3 b1{p1.x + (p2.x - p0.x) / 6.0f,
+                p1.y + (p2.y - p0.y) / 6.0f,
+                p1.z + (p2.z - p0.z) / 6.0f};
+        Vec3 b2{p2.x - (p3.x - p1.x) / 6.0f,
+                p2.y - (p3.y - p1.y) / 6.0f,
+                p2.z - (p3.z - p1.z) / 6.0f};
+        drawBezier(p1, b1, b2, p2);
+    }
+
+    // Catmull-Rom chained through every point. Needs at least 4 points;
+    // emits (N-3) segments, each interpolating points[i+1] -> points[i+2]
+    // with points[i] / points[i+3] as tangent influences.
+    void drawCurve(const std::vector<Vec3>& points) {
+        if (points.size() < 4) return;
+        for (size_t i = 0; i + 3 < points.size(); i++) {
+            drawCurve(points[i], points[i+1], points[i+2], points[i+3]);
+        }
+    }
+
+    // Closed (looped) Catmull-Rom — the curve passes through ALL points
+    // and joins last->first smoothly. Tangents wrap around, so a minimum
+    // of 3 points is enough.
+    void drawCurve(const std::vector<Vec3>& points, bool closed) {
+        if (!closed) { drawCurve(points); return; }
+        const int n = (int)points.size();
+        if (n < 3) return;
+        for (int i = 0; i < n; i++) {
+            const Vec3& p0 = points[(i - 1 + n) % n];
+            const Vec3& p1 = points[i];
+            const Vec3& p2 = points[(i + 1) % n];
+            const Vec3& p3 = points[(i + 2) % n];
+            drawCurve(p0, p1, p2, p3);
+        }
     }
 
     // Main implementation (Vec3)
@@ -574,7 +869,10 @@ private:
         float strokeWeight = 1.0f;
         StrokeCap strokeCap = StrokeCap::Butt;
         StrokeJoin strokeJoin = StrokeJoin::Miter;
-        int circleResolution = 20;
+        int circleResolution = 20;     // legacy, will be removed once all
+                                       // draw* migrate to curve.resolution
+        CurveStyle curve;              // shared by all curved primitives
+                                       // (circle, ellipse, arc, bezier, ...)
         Direction textAlignH = Direction::Left;
         Direction textAlignV = Direction::Top;
         float bitmapLineHeight = bitmapfont::CHAR_TEX_HEIGHT;

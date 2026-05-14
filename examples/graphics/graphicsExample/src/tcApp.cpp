@@ -38,13 +38,16 @@ void tcApp::draw() {
     // ----------------------
     // Circle
     // ----------------------
-    // Higher resolution for larger circles to be smooth
-    setCircleResolution(100);
+    // Tighter tolerance for this one big circle, restored via pushStyle.
+    // (In tolerance mode the segment count adapts to radius automatically;
+    // dialing tolerance down to 0.05 px just makes the rim extra crisp.)
+    pushStyle();
+    setCurveTolerance(0.05f);
     setColor(0.3f, 0.9f, 0.3f);
     drawCircle(350, 100, 60);
-    setCircleResolution(20);  // Reset to default
+    popStyle();
 
-    // Animated circle (default resolution = 20 segments)
+    // Animated circle — uses the default 0.1 px tolerance.
     float pulse = (float)(sin(t * 3.0) * 0.3 + 0.7);
     setColor(0.3f, 0.7f, 0.9f, pulse);
     drawCircle(350, 250, 50);

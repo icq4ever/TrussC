@@ -9,54 +9,54 @@ void tcApp::setup() {
 }
 
 void tcApp::setupPolylines() {
-    int w = getWindowWidth();
-    int h = getWindowHeight();
-    float cx = w / 2.0f;
-    float cy = h / 2.0f;
+    // 3x2 grid; col centers 160 / 480 / 800, row centers 230 / 430.
 
-    // Line Polyline
+    // Line Polyline (col 1, row 1)
     linePolyline.clear();
-    linePolyline.addVertex(50, 100);
-    linePolyline.lineTo(150, 150);
-    linePolyline.lineTo(100, 200);
-    linePolyline.lineTo(200, 200);
+    linePolyline.addVertex(60,  170);
+    linePolyline.lineTo   (180, 230);
+    linePolyline.lineTo   (120, 290);
+    linePolyline.lineTo   (260, 290);
 
-    // Cubic Bezier curve
+    // Cubic Bezier curve (col 2, row 1) — endpoints + peaks lowered to clear label
     bezierPolyline.clear();
-    bezierPolyline.addVertex(250, 100);
-    bezierPolyline.bezierTo(300, 50, 400, 250, 450, 100);
+    bezierPolyline.addVertex(360, 200);
+    bezierPolyline.bezierTo(430, 140, 530, 350, 600, 200);
 
-    // Quadratic Bezier curve
+    // Quadratic Bezier curve (col 3, row 1) — same lowering
     quadPolyline.clear();
-    quadPolyline.addVertex(500, 100);
-    quadPolyline.quadBezierTo(600, 250, 700, 100);
+    quadPolyline.addVertex(680, 200);
+    quadPolyline.quadBezierTo(800, 350, 920, 200);
 
-    // Catmull-Rom spline
+    // Catmull-Rom spline (col 1, row 2) — shapes pushed down +50 from row labels
     curvePolyline.clear();
-    curvePolyline.curveTo(50.0f, 350.0f);   // Control point 1
-    curvePolyline.curveTo(100.0f, 300.0f);  // Control point 2 (curve starts here)
-    curvePolyline.curveTo(200.0f, 400.0f);
-    curvePolyline.curveTo(300.0f, 300.0f);
-    curvePolyline.curveTo(400.0f, 400.0f);
-    curvePolyline.curveTo(450.0f, 350.0f);  // Control point (curve ends here)
+    curvePolyline.curveTo(40.0f,  470.0f);   // tangent only
+    curvePolyline.curveTo(80.0f,  430.0f);   // curve begins here
+    curvePolyline.curveTo(130.0f, 520.0f);
+    curvePolyline.curveTo(180.0f, 430.0f);
+    curvePolyline.curveTo(230.0f, 520.0f);
+    curvePolyline.curveTo(280.0f, 470.0f);   // curve ends here (tangent only)
 
-    // Arc
-    arcPolyline.clear();
-    arcPolyline.arc(600.0f, 350.0f, 80.0f, 80.0f, 0.0f, 270.0f, 32);
-
-    // Star (closed shape)
+    // Star — closed shape (col 2, row 2)
     starPolyline.clear();
-    int points = 5;
-    float outerR = 80;
-    float innerR = 35;
-    for (int i = 0; i < points * 2; i++) {
-        float angle = i * TAU / (points * 2) - QUARTER_TAU;
-        float r = (i % 2 == 0) ? outerR : innerR;
-        float x = cx + cos(angle) * r;
-        float y = cy + 150 + sin(angle) * r;
-        starPolyline.addVertex(x, y);
+    {
+        const int points = 5;
+        const float outerR = 75;
+        const float innerR = 32;
+        const float scx = 480;
+        const float scy = 480;
+        for (int i = 0; i < points * 2; i++) {
+            float angle = i * TAU / (points * 2) - QUARTER_TAU;
+            float r = (i % 2 == 0) ? outerR : innerR;
+            starPolyline.addVertex(scx + cos(angle) * r,
+                                   scy + sin(angle) * r);
+        }
+        starPolyline.close();
     }
-    starPolyline.close();
+
+    // Arc (col 3, row 2)
+    arcPolyline.clear();
+    arcPolyline.arc(800.0f, 480.0f, 80.0f, 80.0f, 0.0f, 270.0f, 32);
 }
 
 void tcApp::update() {
@@ -92,41 +92,37 @@ void tcApp::drawCurveDemo() {
     // Draw with stroke only (Polyline fill supports only convex shapes)
     noFill();
 
-    // Line
+    // Row 1
     setColor(colors::red);
     linePolyline.draw();
     setColor(colors::darkGray);
-    drawBitmapString("lineTo()", 100, 80);
+    drawBitmapString("lineTo()", 130, 150);
 
-    // Cubic Bezier
     setColor(colors::green);
     bezierPolyline.draw();
     setColor(colors::darkGray);
-    drawBitmapString("bezierTo()", 320, 80);
+    drawBitmapString("bezierTo()", 440, 150);
 
-    // Quadratic Bezier
     setColor(colors::blue);
     quadPolyline.draw();
     setColor(colors::darkGray);
-    drawBitmapString("quadBezierTo()", 560, 80);
+    drawBitmapString("quadBezierTo()", 740, 150);
 
-    // Catmull-Rom
+    // Row 2 (labels at +20, shapes at +50 vs row 1)
     setColor(colors::orange);
     curvePolyline.draw();
     setColor(colors::darkGray);
-    drawBitmapString("curveTo()", 200, 280);
+    drawBitmapString("curveTo()", 130, 370);
 
-    // Arc
-    setColor(colors::blue);
-    arcPolyline.draw();
-    setColor(colors::darkGray);
-    drawBitmapString("arc()", 570, 280);
-
-    // Star (closed shape)
     setColor(colors::magenta);
     starPolyline.draw();
     setColor(colors::darkGray);
-    drawBitmapString("closed star", getWindowWidth() / 2.0f - 40, getWindowHeight() / 2.0f + 100);
+    drawBitmapString("closed star", 440, 370);
+
+    setColor(colors::blue);
+    arcPolyline.draw();
+    setColor(colors::darkGray);
+    drawBitmapString("arc()", 780, 370);
 
     // Reset to default
     fill();

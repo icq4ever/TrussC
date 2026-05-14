@@ -10,7 +10,9 @@
 
 void tcApp::setup() {
     setWindowTitle("Rounded Rect Example");
-    setCircleResolution(64);
+    // Default tolerance (0.1 px) keeps corners visually crisp at this size;
+    // bump down to 0.05 if you want extra-smooth high-DPI output.
+    // setCurveTolerance(0.05f);
 }
 
 void tcApp::draw() {

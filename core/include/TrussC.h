@@ -1048,6 +1048,39 @@ inline void drawEllipse(float cx, float cy, float rx, float ry) {
     getDefaultContext().drawEllipse(cx, cy, rx, ry);
 }
 
+// Arc — see RenderContext::drawArc for semantics. Angles in radians.
+inline void drawArc(Vec3 center, float radius, float angleBegin, float angleEnd) {
+    getDefaultContext().drawArc(center, radius, angleBegin, angleEnd);
+}
+inline void drawArc(float x, float y, float radius, float angleBegin, float angleEnd) {
+    getDefaultContext().drawArc(x, y, radius, angleBegin, angleEnd);
+}
+
+// Bezier — stroke-only. Cubic / quadratic / N-th order via overloading.
+inline void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) {
+    getDefaultContext().drawBezier(p0, p1, p2, p3);
+}
+inline void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2) {
+    getDefaultContext().drawBezier(p0, p1, p2);
+}
+inline void drawBezier(const std::vector<Vec3>& controlPoints) {
+    getDefaultContext().drawBezier(controlPoints);
+}
+
+// Catmull-Rom curve — stroke-only. p1->p2 is the drawn segment, with
+// p0/p3 acting as tangent influences. Same semantics as oF's drawCurve.
+inline void drawCurve(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) {
+    getDefaultContext().drawCurve(p0, p1, p2, p3);
+}
+// Chained Catmull-Rom through N points (open). Requires N >= 4.
+inline void drawCurve(const std::vector<Vec3>& points) {
+    getDefaultContext().drawCurve(points);
+}
+// Chained Catmull-Rom with closed=true for a smooth wraparound loop.
+inline void drawCurve(const std::vector<Vec3>& points, bool closed) {
+    getDefaultContext().drawCurve(points, closed);
+}
+
 // Line
 inline void drawLine(Vec3 p1, Vec3 p2) {
     getDefaultContext().drawLine(p1, p2);
@@ -1079,11 +1112,35 @@ inline void drawPoint(float x, float y) {
     getDefaultContext().drawPoint(x, y);
 }
 
-// Set circle resolution
-inline void setCircleResolution(int res) {
-    getDefaultContext().setCircleResolution(res);
+// -----------------------------------------------------------------------
+// Curve quality — see tcRenderContext.h for the full doc comment.
+// -----------------------------------------------------------------------
+
+inline void setCurveTolerance(float pixels) {
+    getDefaultContext().setCurveTolerance(pixels);
+}
+inline void setCurveResolution(int n) {
+    getDefaultContext().setCurveResolution(n);
+}
+inline float getCurveTolerance() {
+    return getDefaultContext().getCurveTolerance();
+}
+inline int getCurveResolution() {
+    return getDefaultContext().getCurveResolution();
+}
+inline CurveStyle::Mode getCurveMode() {
+    return getDefaultContext().getCurveMode();
 }
 
+// Legacy alias. Forwards to setCurveResolution to avoid double-warning;
+// the deprecation marker fires at the user's call site.
+// Will be removed in v1.0.0
+[[deprecated("Use setCurveResolution(int), or setCurveTolerance(float) for adaptive quality. Will be removed in v1.0.0")]]
+inline void setCircleResolution(int res) {
+    getDefaultContext().setCurveResolution(res);
+}
+
+[[deprecated("Use getCurveResolution() instead. Will be removed in v1.0.0")]]
 inline int getCircleResolution() {
     return getDefaultContext().getCircleResolution();
 }

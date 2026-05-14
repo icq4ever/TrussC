@@ -297,6 +297,19 @@ categories:
         sketch: true
         snippet: "drawCircle(${1:x}, ${2:y}, ${3:radius})"
 
+      - name: drawArc
+        return: "void"
+        signatures:
+          - params: "float x, float y, float radius, float angleBegin, float angleEnd"
+            params_simple: "x, y, radius, angleBegin, angleEnd"
+          - params: "Vec3 center, float radius, float angleBegin, float angleEnd"
+            params_simple: "center, radius, angleBegin, angleEnd"
+        description: "Draw arc (partial circle, angles in radians)"
+        description_ja: "円弧を描画（角度はradian）"
+        description_ko: "호 그리기 (각도는 radian)"
+        sketch: true
+        snippet: "drawArc(${1:x}, ${2:y}, ${3:radius}, ${4:0}, ${5:TAU})"
+
       - name: drawEllipse
         return: "void"
         signatures:
@@ -341,6 +354,36 @@ categories:
         of_equivalent: "ofDrawLine"
         sketch: true
         snippet: "drawLine(${1:x1}, ${2:y1}, ${3:x2}, ${4:y2})"
+
+      - name: drawBezier
+        return: "void"
+        signatures:
+          - params: "Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3"
+            params_simple: "p0, p1, p2, p3"
+          - params: "Vec3 p0, Vec3 p1, Vec3 p2"
+            params_simple: "p0, p1, p2"
+          - params: "const vector<Vec3>& controlPoints"
+            params_simple: "controlPoints"
+        description: "Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)"
+        description_ja: "ベジェ曲線を描画（4点で3次、3点で2次、vectorでN次）"
+        description_ko: "베지어 곡선 그리기 (4점은 3차, 3점은 2차, vector는 N차)"
+        sketch: true
+        snippet: "drawBezier(${1:p0}, ${2:p1}, ${3:p2}, ${4:p3})"
+
+      - name: drawCurve
+        return: "void"
+        signatures:
+          - params: "Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3"
+            params_simple: "p0, p1, p2, p3"
+          - params: "const vector<Vec3>& points"
+            params_simple: "points"
+          - params: "const vector<Vec3>& points, bool closed"
+            params_simple: "points, closed"
+        description: "Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)"
+        description_ja: "Catmull-Rom曲線を描画（4点でp1→p2を描画、vectorで内部点を通る連結、closed=trueで閉曲線）"
+        description_ko: "Catmull-Rom 곡선 그리기 (4점은 p1→p2 그리기, vector는 내부 점들을 통과하는 연결, closed=true는 닫힌 곡선)"
+        sketch: true
+        snippet: "drawCurve(${1:p0}, ${2:p1}, ${3:p2}, ${4:p3})"
 
       - name: drawTriangle
         return: "void"
@@ -451,6 +494,32 @@ categories:
         of_equivalent: "ofEndShape"
         sketch: true
         snippet: "endShape()"
+
+      - name: appendArc
+        return: "void"
+        signatures:
+          - params: "float cx, float cy, float radius, float angleBegin, float angleEnd"
+            params_simple: "cx, cy, radius, angleBegin, angleEnd"
+          - params: "const Vec2& center, float radius, float angleBegin, float angleEnd"
+            params_simple: "center, radius, angleBegin, angleEnd"
+        description: "Append arc vertices to the current shape (use between beginShape/endShape)"
+        description_ja: "現在の図形に円弧の頂点を追加（beginShape/endShape間で使用）"
+        description_ko: "현재 도형에 호 정점을 추가 (beginShape/endShape 사이에서 사용)"
+        sketch: true
+        snippet: "appendArc(${1:cx}, ${2:cy}, ${3:radius}, ${4:0}, ${5:TAU})"
+
+      - name: appendCurve
+        return: "void"
+        signatures:
+          - params: "const vector<Vec3>& points"
+            params_simple: "points"
+          - params: "const vector<Vec3>& points, bool closed"
+            params_simple: "points, closed"
+        description: "Append Catmull-Rom curve vertices to the current shape (use between beginShape/endShape; needs >=4 points, closed=true wraps around)"
+        description_ja: "現在の図形にCatmull-Rom曲線の頂点を追加（beginShape/endShape間で使用、4点以上必要、closed=trueで閉曲線）"
+        description_ko: "현재 도형에 Catmull-Rom 곡선 정점을 추가 (beginShape/endShape 사이에서 사용, 4점 이상 필요, closed=true는 닫힌 곡선)"
+        sketch: true
+        snippet: "appendCurve(${1:points})"
 
       - name: beginStroke
         return: "void"
@@ -778,28 +847,49 @@ categories:
         sketch: true
         snippet: "isStrokeEnabled()"
 
-      - name: setCircleResolution
+      - name: setCurveTolerance
         return: "void"
         signatures:
-          - params: "int resolution"
-            params_simple: "resolution"
-        description: "Set circle segment count"
-        description_ja: "円の分割数を設定"
-        description_ko: "원의 분할 개수를 설정"
-        of_equivalent: "ofSetCircleResolution"
+          - params: "float pixels"
+            params_simple: "pixels"
+        description: "Set adaptive curve tessellation tolerance in pixels (smaller = smoother, scale-aware)"
+        description_ja: "曲線の適応的分割の許容誤差をピクセル単位で設定（小さいほど滑らか、スケール対応）"
+        description_ko: "곡선의 적응형 분할 허용 오차를 픽셀 단위로 설정 (작을수록 부드러움, 스케일 대응)"
         sketch: true
-        snippet: "setCircleResolution(${1:32})"
+        snippet: "setCurveTolerance(${1:0.5})"
 
-      - name: getCircleResolution
+      - name: getCurveTolerance
+        return: "float"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get current curve tessellation tolerance (in pixels)"
+        description_ja: "現在の曲線分割の許容誤差を取得（ピクセル単位）"
+        description_ko: "현재 곡선 분할 허용 오차를 얻음 (픽셀 단위)"
+        sketch: true
+        snippet: "getCurveTolerance()"
+
+      - name: setCurveResolution
+        return: "void"
+        signatures:
+          - params: "int n"
+            params_simple: "n"
+        description: "Set fixed curve segment count (switches off adaptive tolerance mode)"
+        description_ja: "曲線の固定分割数を設定（適応的tolerance modeをオフ）"
+        description_ko: "곡선의 고정 분할 개수를 설정 (적응형 tolerance 모드 끔)"
+        sketch: true
+        snippet: "setCurveResolution(${1:32})"
+
+      - name: getCurveResolution
         return: "int"
         signatures:
           - params: ""
             params_simple: ""
-        description: "Get circle segment count"
-        description_ja: "円の分割数を取得"
-        description_ko: "원의 분할 개수를 얻음"
+        description: "Get current curve resolution"
+        description_ja: "現在の曲線分割数を取得"
+        description_ko: "현재 곡선 분할 개수를 얻음"
         sketch: true
-        snippet: "getCircleResolution()"
+        snippet: "getCurveResolution()"
 
       - name: pushStyle
         return: "void"
@@ -8730,42 +8820,43 @@ types:
       - name: bezierTo
         return: "void"
         signatures:
-          - params: "float cx1, float cy1, float cx2, float cy2, float x, float y"
-          - params: "Vec2 cp1, Vec2 cp2, Vec2 to"
-          - params: "Vec3 cp1, Vec3 cp2, Vec3 to"
-        description: "Add cubic bezier curve"
-        description_ja: "3次ベジェ曲線を追加"
-        description_ko: "3차 베지어 곡선을 추가"
+          - params: "float cx1, float cy1, float cx2, float cy2, float x, float y, int resolution = -1"
+          - params: "Vec2 cp1, Vec2 cp2, Vec2 to, int resolution = -1"
+          - params: "Vec3 cp1, Vec3 cp2, Vec3 to, int resolution = -1"
+        description: "Add cubic bezier curve (resolution=-1 uses current curve style)"
+        description_ja: "3次ベジェ曲線を追加（resolution=-1で現在のcurve styleを使用）"
+        description_ko: "3차 베지어 곡선을 추가 (resolution=-1은 현재 곡선 스타일 사용)"
         snippet: "bezierTo(${1:cx1}, ${2:cy1}, ${3:cx2}, ${4:cy2}, ${5:x}, ${6:y})"
       - name: quadBezierTo
         return: "void"
         signatures:
-          - params: "float cx, float cy, float x, float y"
-          - params: "Vec2 cp, Vec2 to"
-          - params: "Vec3 cp, Vec3 to"
-        description: "Add quadratic bezier curve"
-        description_ja: "2次ベジェ曲線を追加"
-        description_ko: "2차 베지어 곡선을 추가"
+          - params: "float cx, float cy, float x, float y, int resolution = -1"
+          - params: "Vec2 cp, Vec2 to, int resolution = -1"
+          - params: "Vec3 cp, Vec3 to, int resolution = -1"
+        description: "Add quadratic bezier curve (resolution=-1 uses current curve style)"
+        description_ja: "2次ベジェ曲線を追加（resolution=-1で現在のcurve styleを使用）"
+        description_ko: "2차 베지어 곡선을 추가 (resolution=-1은 현재 곡선 스타일 사용)"
         snippet: "quadBezierTo(${1:cx}, ${2:cy}, ${3:x}, ${4:y})"
       - name: curveTo
         return: "void"
         signatures:
-          - params: "float x, float y"
-          - params: "Vec2 to"
-          - params: "Vec3 to"
-        description: "Add Catmull-Rom curve segment"
-        description_ja: "Catmull-Rom曲線を追加"
-        description_ko: "Catmull-Rom 곡선 구간을 추가"
+          - params: "float x, float y, float z = 0, int resolution = -1"
+          - params: "Vec2 to, int resolution = -1"
+          - params: "Vec3 to, int resolution = -1"
+        description: "Add Catmull-Rom curve segment (needs >=4 consecutive calls; resolution=-1 uses current curve style)"
+        description_ja: "Catmull-Rom曲線を追加（4回以上の連続呼び出しが必要、resolution=-1で現在のcurve styleを使用）"
+        description_ko: "Catmull-Rom 곡선 구간을 추가 (4회 이상의 연속 호출 필요, resolution=-1은 현재 곡선 스타일 사용)"
         snippet: "curveTo(${1:x}, ${2:y})"
       - name: arc
         return: "void"
         signatures:
-          - params: "float x, float y, float radiusX, float radiusY, float angleBegin, float angleEnd"
-          - params: "Vec2 center, float radiusX, float radiusY, float angleBegin, float angleEnd"
-        description: "Add an arc"
-        description_ja: "円弧を追加"
-        description_ko: "호를 추가"
-        snippet: "arc(${1:x}, ${2:y}, ${3:radiusX}, ${4:radiusY}, ${5:0}, ${6:360})"
+          - params: "float x, float y, float radius, float angleBegin, float angleEnd, bool clockwise = true"
+          - params: "Vec2 center, float radius, float angleBegin, float angleEnd, bool clockwise = true"
+          - params: "Vec3 center, float radius, float angleBegin, float angleEnd, bool clockwise = true"
+        description: "Add an arc (angles in radians)"
+        description_ja: "円弧を追加（角度はradian）"
+        description_ko: "호를 추가 (각도는 radian)"
+        snippet: "arc(${1:x}, ${2:y}, ${3:radius}, ${4:0}, ${5:TAU})"
       - name: close
         return: "void"
         signatures:
