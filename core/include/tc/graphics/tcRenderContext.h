@@ -684,6 +684,32 @@ public:
         drawBezier(p1, b1, b2, p2);
     }
 
+    // Catmull-Rom chained through every point. Needs at least 4 points;
+    // emits (N-3) segments, each interpolating points[i+1] -> points[i+2]
+    // with points[i] / points[i+3] as tangent influences.
+    void drawCurve(const std::vector<Vec3>& points) {
+        if (points.size() < 4) return;
+        for (size_t i = 0; i + 3 < points.size(); i++) {
+            drawCurve(points[i], points[i+1], points[i+2], points[i+3]);
+        }
+    }
+
+    // Closed (looped) Catmull-Rom — the curve passes through ALL points
+    // and joins last->first smoothly. Tangents wrap around, so a minimum
+    // of 3 points is enough.
+    void drawCurve(const std::vector<Vec3>& points, bool closed) {
+        if (!closed) { drawCurve(points); return; }
+        const int n = (int)points.size();
+        if (n < 3) return;
+        for (int i = 0; i < n; i++) {
+            const Vec3& p0 = points[(i - 1 + n) % n];
+            const Vec3& p1 = points[i];
+            const Vec3& p2 = points[(i + 1) % n];
+            const Vec3& p3 = points[(i + 2) % n];
+            drawCurve(p0, p1, p2, p3);
+        }
+    }
+
     // Main implementation (Vec3)
     // NOTE: drawLine uses GL_LINES (1px fixed width, not affected by strokeWeight)
     //       For thick lines or shader support, use StrokeMesh instead

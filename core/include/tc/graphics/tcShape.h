@@ -213,4 +213,61 @@ inline void appendArc(const Vec2& center, float radius,
     appendArc(center.x, center.y, radius, angleBegin, angleEnd);
 }
 
+// Helper — tessellate one Catmull-Rom segment (with p0/p3 as tangent
+// influences, p1->p2 as the visible piece) into the active vertex buffer.
+namespace internal {
+inline void appendCatmullRomSegment_(const Vec3& p0, const Vec3& p1,
+                                     const Vec3& p2, const Vec3& p3) {
+    const auto& ctx = getDefaultContext();
+    Vec3 b1{p1.x + (p2.x - p0.x) / 6.0f,
+            p1.y + (p2.y - p0.y) / 6.0f,
+            p1.z + (p2.z - p0.z) / 6.0f};
+    Vec3 b2{p2.x - (p3.x - p1.x) / 6.0f,
+            p2.y - (p3.y - p1.y) / 6.0f,
+            p2.z - (p3.z - p1.z) / 6.0f};
+    if (ctx.getCurveMode() == CurveStyle::Mode::Tolerance) {
+        std::vector<Vec3> tmp;
+        tessellateCubicBezier(p1, b1, b2, p2,
+                              ctx.getCurveTolerance() / ctx.getCurrentScale(),
+                              tmp);
+        for (auto& q : tmp) vertex(q.x, q.y, q.z);
+    } else {
+        int n = std::max(2, ctx.getCurveResolution());
+        for (int j = 0; j <= n; j++) {
+            float t = (float)j / n;
+            float u = 1 - t;
+            float c0 = u*u*u, c1 = 3*u*u*t, c2 = 3*u*t*t, c3 = t*t*t;
+            vertex(c0*p1.x + c1*b1.x + c2*b2.x + c3*p2.x,
+                   c0*p1.y + c1*b1.y + c2*b2.y + c3*p2.y,
+                   c0*p1.z + c1*b1.z + c2*b2.z + c3*p2.z);
+        }
+    }
+}
+} // namespace internal
+
+// Append a chained Catmull-Rom curve through `points`. Emits (N-3)
+// segments; needs N >= 4. Tangent points (first and last) are NOT
+// pushed as vertices — only the visible interior is appended.
+inline void appendCurve(const std::vector<Vec3>& points) {
+    if (points.size() < 4) return;
+    for (size_t i = 0; i + 3 < points.size(); i++) {
+        internal::appendCatmullRomSegment_(points[i], points[i+1],
+                                           points[i+2], points[i+3]);
+    }
+}
+
+// Closed loop variant — wraparound tangents, all N points are passed
+// through.
+inline void appendCurve(const std::vector<Vec3>& points, bool closed) {
+    if (!closed) { appendCurve(points); return; }
+    const int n = (int)points.size();
+    if (n < 3) return;
+    for (int i = 0; i < n; i++) {
+        internal::appendCatmullRomSegment_(points[(i - 1 + n) % n],
+                                           points[i],
+                                           points[(i + 1) % n],
+                                           points[(i + 2) % n]);
+    }
+}
+
 } // namespace trussc

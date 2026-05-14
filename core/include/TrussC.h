@@ -1072,6 +1072,14 @@ inline void drawBezier(const std::vector<Vec3>& controlPoints) {
 inline void drawCurve(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) {
     getDefaultContext().drawCurve(p0, p1, p2, p3);
 }
+// Chained Catmull-Rom through N points (open). Requires N >= 4.
+inline void drawCurve(const std::vector<Vec3>& points) {
+    getDefaultContext().drawCurve(points);
+}
+// Chained Catmull-Rom with closed=true for a smooth wraparound loop.
+inline void drawCurve(const std::vector<Vec3>& points, bool closed) {
+    getDefaultContext().drawCurve(points, closed);
+}
 
 // Line
 inline void drawLine(Vec3 p1, Vec3 p2) {
