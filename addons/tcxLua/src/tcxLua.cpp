@@ -1402,6 +1402,19 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
     defineTween<Tween<Vec3>, Vec3>(lua, "TweenVec3");
     defineTween<Tween<Color>, Color>(lua, "TweenColor");
 
+    lua->new_usertype<PlayingSound>("PlayingSound",
+        sol::constructors<PlayingSound()>(),
+        "buffer", &PlayingSound::buffer,
+        "volume", &PlayingSound::volume,
+        "pan", &PlayingSound::pan,
+        "speed", &PlayingSound::speed,
+        "loop", &PlayingSound::loop,
+        "playing", &PlayingSound::playing,
+        "paused", &PlayingSound::paused,
+        "positionF", &PlayingSound::positionF,
+        "rateRatio", &PlayingSound::rateRatio
+    );
+
     lua->new_usertype<SoundBuffer>("SoundBuffer",
         sol::constructors<SoundBuffer(),
             SoundBuffer(const SoundBuffer&), SoundBuffer(SoundBuffer&&)>(),
