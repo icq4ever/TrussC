@@ -762,10 +762,58 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
             set(_TC_ALIGNED "${CMAKE_CURRENT_BINARY_DIR}/aligned.apk")
             set(_TC_APK_OUT "${_TC_APK_DIR}/${PROJECT_NAME}.apk")
 
+            # Optional Java + res integration (DeviceAdminReceiver etc.)
+            # Only kicks in when the project ships android/java/.
+            set(_TC_PRE_CMDS)
+            set(_TC_AAPT_EXTRA_ARGS)
+            if(EXISTS "${_TC_JAVA_SRC_DIR}")
+                find_program(_TC_JAVAC javac)
+                find_program(_TC_D8 d8 HINTS "${ANDROID_BUILD_TOOLS_DIR}")
+                if(NOT _TC_JAVAC OR "${_TC_JAVAC}" MATCHES "NOTFOUND$")
+                    message(FATAL_ERROR "[${PROJECT_NAME}] javac not found but android/java/ exists")
+                endif()
+                if(NOT _TC_D8 OR "${_TC_D8}" MATCHES "NOTFOUND$")
+                    message(FATAL_ERROR "[${PROJECT_NAME}] d8 not found in ${ANDROID_BUILD_TOOLS_DIR} but android/java/ exists")
+                endif()
+
+                find_program(_TC_JAR jar)
+                if(NOT _TC_JAR OR "${_TC_JAR}" MATCHES "NOTFOUND$")
+                    message(FATAL_ERROR "[${PROJECT_NAME}] jar (from JDK) not found")
+                endif()
+
+                file(GLOB_RECURSE _TC_JAVA_SRCS "${_TC_JAVA_SRC_DIR}/*.java")
+                set(_TC_CLASSES_DIR "${CMAKE_CURRENT_BINARY_DIR}/java_classes")
+                set(_TC_CLASSES_JAR "${CMAKE_CURRENT_BINARY_DIR}/classes.jar")
+                # classes.dex is dropped at the apk_staging root — aapt will
+                # then bundle it into the APK alongside lib/arm64-v8a/*.so.
+                list(APPEND _TC_PRE_CMDS
+                    COMMAND ${CMAKE_COMMAND} -E rm -rf "${_TC_CLASSES_DIR}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${_TC_CLASSES_DIR}"
+                    COMMAND ${_TC_JAVAC}
+                        -d "${_TC_CLASSES_DIR}"
+                        -classpath "${_TC_ANDROID_JAR}"
+                        -source 1.8 -target 1.8
+                        ${_TC_JAVA_SRCS}
+                    COMMAND ${_TC_JAR} cf "${_TC_CLASSES_JAR}" -C "${_TC_CLASSES_DIR}" .
+                    COMMAND ${_TC_D8}
+                        --output "${_TC_APK_STAGING}"
+                        --lib "${_TC_ANDROID_JAR}"
+                        --no-desugaring
+                        "${_TC_CLASSES_JAR}"
+                )
+                message(STATUS "[${PROJECT_NAME}] Java compile enabled (${_TC_JAVA_SRC_DIR})")
+            endif()
+            if(EXISTS "${_TC_RES_DIR}")
+                list(APPEND _TC_AAPT_EXTRA_ARGS -S "${_TC_RES_DIR}")
+                message(STATUS "[${PROJECT_NAME}] Android res dir enabled (${_TC_RES_DIR})")
+            endif()
+
             add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                ${_TC_PRE_CMDS}
                 COMMAND ${_TC_AAPT} package -f
                     -M "${_TC_MANIFEST_OUT}"
                     -I "${_TC_ANDROID_JAR}"
+                    ${_TC_AAPT_EXTRA_ARGS}
                     -F "${_TC_UNSIGNED}"
                     "${_TC_APK_STAGING}"
                 COMMAND ${_TC_ZIPALIGN} -f 4 "${_TC_UNSIGNED}" "${_TC_ALIGNED}"
