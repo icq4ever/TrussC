@@ -51,8 +51,16 @@ public:
     bool loadMp3(const std::string& path);
     bool loadFlac(const std::string& path);
 
-    // Memory-based decoders
+    // Auto-detect entry point. Dispatches to the format-specific loader
+    // based on the file's extension (.wav / .mp3 / .ogg / .flac / .aac /
+    // .m4a — case-insensitive).
+    bool load(const std::string& path);
+
+    // Memory-based decoders. Format must be known (no extension to sniff).
+    bool loadWavFromMemory(const void* data, size_t dataSize);
     bool loadMp3FromMemory(const void* data, size_t dataSize);
+    bool loadFlacFromMemory(const void* data, size_t dataSize);
+    bool loadOggFromMemory(const void* data, size_t dataSize);
 
     // Load AAC/M4A file (platform-specific implementation)
     // Returns false on unsupported platforms

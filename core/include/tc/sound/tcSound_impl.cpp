@@ -7,8 +7,10 @@
 
 #define TC_SOUND_IMPL
 
+#include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <utility>
 
 // stb_vorbis - OGG Vorbis decoder
@@ -158,8 +160,68 @@ bool SoundBuffer::loadFlac(const std::string& path) {
     return decodeFileWithMiniaudio(path, ma_encoding_format_flac, "FLAC", *this);
 }
 
+bool SoundBuffer::loadWavFromMemory(const void* data, size_t dataSize) {
+    return decodeMemoryWithMiniaudio(data, dataSize, ma_encoding_format_wav, "WAV", *this);
+}
+
 bool SoundBuffer::loadMp3FromMemory(const void* data, size_t dataSize) {
     return decodeMemoryWithMiniaudio(data, dataSize, ma_encoding_format_mp3, "MP3", *this);
+}
+
+bool SoundBuffer::loadFlacFromMemory(const void* data, size_t dataSize) {
+    return decodeMemoryWithMiniaudio(data, dataSize, ma_encoding_format_flac, "FLAC", *this);
+}
+
+bool SoundBuffer::loadOggFromMemory(const void* data, size_t dataSize) {
+    if (data == nullptr || dataSize == 0) {
+        printf("SoundBuffer: empty memory range for OGG decode\n");
+        return false;
+    }
+    int error = 0;
+    stb_vorbis* vorbis = stb_vorbis_open_memory(
+        static_cast<const unsigned char*>(data), static_cast<int>(dataSize),
+        &error, nullptr);
+    if (!vorbis) {
+        printf("SoundBuffer: failed to decode OGG from memory (error=%d)\n", error);
+        return false;
+    }
+
+    stb_vorbis_info info = stb_vorbis_get_info(vorbis);
+    channels = info.channels;
+    sampleRate = info.sample_rate;
+    numSamples = stb_vorbis_stream_length_in_samples(vorbis);
+
+    samples.resize(numSamples * channels);
+    int decoded = stb_vorbis_get_samples_float_interleaved(
+        vorbis, channels, samples.data(), static_cast<int>(samples.size()));
+
+    stb_vorbis_close(vorbis);
+    printf("SoundBuffer: decoded OGG from memory (%d ch, %d Hz, %zu samples)\n",
+           channels, sampleRate, numSamples);
+    return decoded > 0;
+}
+
+// -----------------------------------------------------------------------------
+// Auto-detect by extension. Mirrors the dispatch in Sound::load() so callers
+// that already have a SoundBuffer (e.g., for sharing across multiple Sounds)
+// can use it directly.
+// -----------------------------------------------------------------------------
+
+bool SoundBuffer::load(const std::string& path) {
+    // Lowercase the extension once
+    const auto dot = path.find_last_of('.');
+    std::string ext = (dot == std::string::npos) ? "" : path.substr(dot + 1);
+    for (auto& c : ext) c = (char)std::tolower((unsigned char)c);
+
+    if (ext == "wav")  return loadWav(path);
+    if (ext == "mp3")  return loadMp3(path);
+    if (ext == "ogg")  return loadOgg(path);
+    if (ext == "flac") return loadFlac(path);
+    if (ext == "aac" || ext == "m4a") return loadAac(path);
+
+    printf("SoundBuffer: unsupported extension '.%s' for %s\n",
+           ext.c_str(), path.c_str());
+    return false;
 }
 
 } // namespace trussc
