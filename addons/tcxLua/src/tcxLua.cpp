@@ -14,6 +14,12 @@ using namespace tc;
 
 // namespace tcx::lua {
 
+namespace sol
+{
+    template <>
+    struct is_automagical<std::filesystem::path> : std::false_type {};
+}
+
 bool tcxLua::canUseLuaJITFromSol2(){
     #ifdef TCXLUA_USE_LUAJIT
     return true;
@@ -81,6 +87,17 @@ void tcxLua::setBindings(const std::shared_ptr<sol::state>& lua){
     setMathBindings(lua);
 
     lua->set_function("getElapsedTimef", &trussc::getElapsedTimef);
+    lua->set_function("getDataPath", &trussc::getDataPath);
+    lua->set_function("toPath", [](const std::string& s){
+        std::filesystem::path p(s);
+        return s;
+    });
+    lua->set_function("fromPath", [](const std::filesystem::path& p){
+        return p.string();
+    });
+    lua->set_function("pathToString", [](const std::filesystem::path& p){
+        return p.string();
+    });
 }
 
 void tcxLua::setConstBindings(const std::shared_ptr<sol::state>& lua){
@@ -177,6 +194,8 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
            [](const Vec2& a, const Vec2& b){ return a - b; },
            [](const Vec2& a, float b){ return a - b; }
         ),
+        sol::meta_function::unary_minus,
+        [](const Vec2& a){ return -a; },
         sol::meta_function::multiplication,
         sol::overload(
            [](const Vec2& a, const Vec2& b){ return a * b; },
@@ -186,7 +205,8 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
         sol::overload(
            [](const Vec2& a, const Vec2& b){ return a / b; },
            [](const Vec2& a, float b){ return a / b; }
-        )
+        ),
+        sol::meta_function::equal_to, [](const Vec2& a, const Vec2& b){ return a == b; }
     );
     vec2_type["x"] = &Vec2::x;
     vec2_type["y"] = &Vec2::y;
@@ -228,6 +248,8 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
            [](const Vec3& a, const Vec3& b){ return a - b; },
            [](const Vec3& a, float b){ return a - b; }
         ),
+        sol::meta_function::unary_minus,
+        [](const Vec3& a){ return -a; },
         sol::meta_function::multiplication,
         sol::overload(
            [](const Vec3& a, const Vec3& b){ return a * b; },
@@ -237,7 +259,8 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
         sol::overload(
            [](const Vec3& a, const Vec3& b){ return a / b; },
            [](const Vec3& a, float b){ return a / b; }
-        )
+        ),
+        sol::meta_function::equal_to, [](const Vec3& a, const Vec3& b){ return a == b; }
     );
     vec3_type["x"] = &Vec3::x;
     vec3_type["y"] = &Vec3::y;
@@ -273,10 +296,13 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
            [](const Vec4& a, const Vec4& b){ return a - b; },
            [](const Vec4& a, float b){ return a - b; }
         ),
+        sol::meta_function::unary_minus,
+        [](const Vec4& a){ return -a; },
         sol::meta_function::multiplication,
         [](const Vec4& a, float b){ return a * b; },
         sol::meta_function::division,
-        [](const Vec4& a, float b){ return a / b; }
+        [](const Vec4& a, float b){ return a / b; },
+        sol::meta_function::equal_to, [](const Vec4& a, const Vec4& b){ return a == b; }
     );
     vec4_type["x"] = &Vec4::x;
     vec4_type["y"] = &Vec4::y;
@@ -296,10 +322,60 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
     vec4_type["lerp"] = &Vec4::lerp;
     vec4_type["xy"] = &Vec4::xy;
 
+    lua->new_usertype<IVec2>("IVec2",
+        sol::constructors<IVec2(), IVec2(int, int)>(),
+        sol::meta_function::addition,
+        sol::overload(
+           [](const IVec2& a, const IVec2& b){ return a + b; },
+           [](const IVec2& a, int b){ return a + b; }
+        ),
+        sol::meta_function::subtraction,
+        sol::overload(
+           [](const IVec2& a, const IVec2& b){ return a - b; },
+           [](const IVec2& a, int b){ return a - b; }
+        ),
+        sol::meta_function::unary_minus,
+        [](const IVec2& a){ return -a; },
+        sol::meta_function::multiplication,
+        sol::overload(
+           [](const IVec2& a, int b){ return a * b; }
+        ),
+        sol::meta_function::equal_to, [](const IVec2& a, const IVec2& b){ return a == b; },
+        "x", &IVec2::x,
+        "y", &IVec2::y,
+        "toVec2", &IVec2::toVec2
+    );
+
+    lua->new_usertype<IVec3>("IVec3",
+        sol::constructors<IVec3(), IVec3(int, int, int)>(),
+        sol::meta_function::addition,
+        sol::overload(
+           [](const IVec3& a, const IVec3& b){ return a + b; },
+           [](const IVec3& a, int b){ return a + b; }
+        ),
+        sol::meta_function::subtraction,
+        sol::overload(
+           [](const IVec3& a, const IVec3& b){ return a - b; },
+           [](const IVec3& a, int b){ return a - b; }
+        ),
+        sol::meta_function::unary_minus,
+        [](const IVec3& a){ return -a; },
+        sol::meta_function::multiplication,
+        sol::overload(
+           [](const IVec3& a, int b){ return a * b; }
+        ),
+        sol::meta_function::equal_to, [](const IVec3& a, const IVec3& b){ return a == b; },
+        "x", &IVec3::x,
+        "y", &IVec3::y,
+        "z", &IVec3::z,
+        "toVec3", &IVec3::toVec3
+    );
+
     sol::usertype<Quaternion> quat_type = lua->new_usertype<Quaternion>("Quaternion",
         sol::constructors<Quaternion(), Quaternion(float, float, float, float), Quaternion(const Quaternion&)>(),
         sol::meta_function::multiplication,
-        [](const Quaternion& a, const Quaternion& b){ return a * b; }
+        [](const Quaternion& a, const Quaternion& b){ return a * b; },
+        sol::meta_function::equal_to, [](const Quaternion& a, const Quaternion& b){ return a == b; }
     );
     quat_type["w"] = &Quaternion::w;
     quat_type["x"] = &Quaternion::x;
@@ -358,6 +434,61 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
     mat4_type["ortho"] = &Mat4::ortho;
     mat4_type["perspective"] = &Mat4::perspective;
     mat4_type["frustum"] = &Mat4::frustum;
+
+    sol::usertype<Mat3> mat3_type = lua->new_usertype<Mat3>("Mat3",
+        sol::constructors<Mat3(),
+            Mat3(float m00, float m01, float m02,
+                 float m10, float m11, float m12,
+                 float m20, float m21, float m22),
+            Mat3(const Mat3&)>(),
+        sol::meta_function::multiplication,
+        sol::overload(
+           [](const Mat3& a, const Mat3& b){ return a * b; },
+           [](const Mat3& a, const Vec2& b){ return a * b; },
+           [](const Mat3& a, const Vec3& b){ return a * b; }
+        )
+    );
+    mat3_type["at"] = [](Mat3& m, int raw, int col) { return m.at(raw, col); };
+    mat3_type["set"] = [](Mat3& m, int raw, int col, int v){ m.at(raw, col) = v; }; // WORKAROUND
+    mat3_type["identity"] = &Mat3::identity;
+    mat3_type["getHomography"] = &Mat3::getHomography;
+    mat3_type["determinant"] = &Mat3::determinant;
+    mat3_type["translate"] = sol::overload(
+        [](Mat3& m, float tx, float ty){ return m.translate(tx, ty); },
+        [](Mat3& m, const Vec2& t){ return m.translate(t); }
+    );
+    mat3_type["rotate"] = &Mat3::rotate;
+    mat3_type["scale"] = sol::overload(
+        [](Mat3& m, float s){ return m.scale(s); },
+        [](Mat3& m, float sx, float sy){ return m.scale(sx, sy); },
+        [](Mat3& m, const Vec2& s){ return m.scale(s); }
+    );
+    mat3_type["transposed"] = &Mat3::transposed;
+    mat3_type["inverted"] = &Mat3::inverted;
+
+    // FIXME: this makes compilation error
+    // using StdPath = std::filesystem::path;
+    // lua->new_usertype<StdPath>("StdPath",
+    //     sol::constructors<StdPath(), StdPath(const std::string&)>(),
+    //     sol::meta_function::division,
+    //     sol::overload(
+    //         [](StdPath& a, const StdPath& b){ return a / b; },
+    //         [](StdPath& a, const std::string& b){ return a / b; }
+    //     ),
+    //     "c_str", [](StdPath& p){ return p.c_str(); },
+    //     "string", [](StdPath& p){ return p.string(); },
+    //     "exists", [](StdPath& p){ return std::filesystem::exists(p); },
+    //     "is_directory", [](StdPath& p){ return std::filesystem::is_directory(p); },
+    //     "is_dir", [](StdPath& p){ return std::filesystem::is_directory(p); },
+    //     "is_file", [](StdPath& p){ return std::filesystem::is_regular_file(p); },
+    //     "is_regular_file", [](StdPath& p){ return std::filesystem::is_regular_file(p); },
+    //     "is_empty", [](StdPath& p){ return std::filesystem::is_empty(p); },
+    //     "absolute", [](StdPath& p){ return std::filesystem::absolute(p); },
+    //     "relative", sol::overload(
+    //         [](StdPath& p){ return std::filesystem::relative(p); },
+    //         [](StdPath& p, const StdPath& b){ return std::filesystem::relative(p, b); }
+    //     )
+    // );
     
     sol::usertype<Color> color_type = lua->new_usertype<Color>("Color",
         sol::constructors<Color(), Color(float), Color(float, float), Color(float, float, float), Color(float, float, float, float), Color(const Color&)>(),
@@ -515,7 +646,14 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
     fbo_type["isAllocated"] = &Fbo::isAllocated;
     fbo_type["isActive"] = &Fbo::isActive;
     fbo_type["getTexture"] = [](Fbo& f) -> Texture& { return f.getTexture(); };
-    fbo_type["save"] = &Fbo::save;
+    fbo_type["save"] = sol::overload(
+        &Fbo::save,
+        [](Fbo& t, const std::string& s){ return t.save(s); }
+    );
+    fbo_type["draw"] = sol::overload(
+        [](Fbo& t, float x, float y){ return t.draw(x, y); },
+        [](Fbo& t, float x, float y, float w, float h){ return t.draw(x, y, w, h); }
+    );
     fbo_type["getColorImage"] = &Fbo::getColorImage;
     fbo_type["getTextureView"] = &Fbo::getTextureView;
     fbo_type["getSampler"] = &Fbo::getSampler;
@@ -601,14 +739,24 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
     sol::usertype<Image> img_type = lua->new_usertype<Image>("Image",
         sol::constructors<Image()>() // FIXME: move constructor?
     );
-    img_type["load"] = &Image::load;
+    img_type["load"] = sol::overload(
+        &Image::load,
+        [](Image& t, const std::string& s){ return t.load(s); }
+    );
+    img_type["save"] = sol::overload(
+        &Image::save,
+        [](Image& t, const std::string& s){ return t.save(s); }
+    );
     img_type["loadFromMemory"] = &Image::loadFromMemory;
-    img_type["save"] = &Image::save;
     img_type["allocate"] = sol::overload(
         [](Image& t, int w, int h){ return t.allocate(w, h); },
         [](Image& t, int w, int h, int c){ return t.allocate(w, h, c); }
     );
     img_type["clear"] = &Image::clear;
+    img_type["draw"] = sol::overload(
+        [](Image& t, float x, float y){ return t.draw(x, y); },
+        [](Image& t, float x, float y, float w, float h){ return t.draw(x, y, w, h); }
+    );
     img_type["isAllocated"] = &Image::isAllocated;
     img_type["getWidth"] = &Image::getWidth;
     img_type["getHeight"] = &Image::getHeight;
@@ -646,17 +794,105 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
     pix_type["setFromFloats"] = &Pixels::setFromFloats;
     pix_type["copyTo"] = &Pixels::copyTo;
     pix_type["clone"] = &Pixels::clone;
-    pix_type["load"] = &Pixels::load;
     pix_type["loadHDR"] = &Pixels::loadHDR;
     pix_type["loadPlatform"] = &Pixels::loadPlatform;
     pix_type["loadFromMemory"] = &Pixels::loadFromMemory;
-    pix_type["save"] = &Pixels::save;
+    pix_type["load"] = sol::overload(
+        &Pixels::load,
+        [](Pixels& t, const std::string& s){ return t.load(s); }
+    );
+    pix_type["save"] = sol::overload(
+        &Pixels::save,
+        [](Pixels& t, const std::string& s){ return t.save(s); }
+    );
 
     sol::usertype<PixelFormat> pix_format_type = lua->new_usertype<PixelFormat>("PixelFormat",
         sol::meta_function::equal_to, [](PixelFormat a, PixelFormat b){ return a == b; }
     );
     pix_format_type["U8"] = sol::var(PixelFormat::U8);
     pix_format_type["F32"] = sol::var(PixelFormat::F32);
+
+    lua->new_usertype<BlendMode>("BlendMode",
+        sol::meta_function::equal_to, [](BlendMode a, BlendMode b){ return a == b; },
+        "Alpha", sol::var(BlendMode::Alpha),
+        "Add", sol::var(BlendMode::Add),
+        "Multiply", sol::var(BlendMode::Multiply),
+        "Screen", sol::var(BlendMode::Screen),
+        "Subtract", sol::var(BlendMode::Subtract),
+        "Disabled", sol::var(BlendMode::Disabled)
+    );
+
+    lua->new_usertype<TextureFilter>("TextureFilter",
+        sol::meta_function::equal_to, [](TextureFilter a, TextureFilter b){ return a == b; },
+        "Nearest", sol::var(TextureFilter::Nearest),
+        "Linear", sol::var(TextureFilter::Linear)
+    );
+
+    lua->new_usertype<TextureWrap>("TextureWrap",
+        sol::meta_function::equal_to, [](TextureWrap a, TextureWrap b){ return a == b; },
+        "Repeat", sol::var(TextureWrap::Repeat),
+        "ClampToEdge", sol::var(TextureWrap::ClampToEdge),
+        "MirroredRepeat", sol::var(TextureWrap::MirroredRepeat)
+    );
+
+    lua->new_usertype<StrokeJoin>("StrokeJoin",
+        sol::meta_function::equal_to, [](StrokeJoin a, StrokeJoin b){ return a == b; },
+        "Miter", sol::var(StrokeJoin::Miter),
+        "Round", sol::var(StrokeJoin::Round),
+        "Bevel", sol::var(StrokeJoin::Bevel)
+    );
+
+    lua->new_usertype<Direction>("Direction",
+        sol::meta_function::equal_to, [](Direction a, Direction b){ return a == b; },
+        "Left", sol::var(Direction::Left),
+        "Center", sol::var(Direction::Center),
+        "Right", sol::var(Direction::Right),
+        "Top", sol::var(Direction::Top),
+        "Bottom", sol::var(Direction::Bottom),
+        "Baseline", sol::var(Direction::Baseline)
+    );
+
+    lua->new_usertype<Cursor>("Cursor",
+        sol::meta_function::equal_to, [](Cursor a, Cursor b){ return a == b; },
+        "Default", sol::var(Cursor::Default),
+        "Arrow", sol::var(Cursor::Arrow),
+        "IBeam", sol::var(Cursor::IBeam),
+        "Crosshair", sol::var(Cursor::Crosshair),
+        "Hand", sol::var(Cursor::Hand),
+        "ResizeEW", sol::var(Cursor::ResizeEW),
+        "ResizeNS", sol::var(Cursor::ResizeNS),
+        "ResizeNWSE", sol::var(Cursor::ResizeNWSE),
+        "ResizeNESW", sol::var(Cursor::ResizeNESW),
+        "ResizeAll", sol::var(Cursor::ResizeAll),
+        "NotAllowed", sol::var(Cursor::NotAllowed),
+        "Custom0", sol::var(Cursor::Custom0),
+        "Custom1", sol::var(Cursor::Custom1),
+        "Custom2", sol::var(Cursor::Custom2),
+        "Custom3", sol::var(Cursor::Custom3),
+        "Custom4", sol::var(Cursor::Custom4),
+        "Custom5", sol::var(Cursor::Custom5),
+        "Custom6", sol::var(Cursor::Custom6),
+        "Custom7", sol::var(Cursor::Custom7),
+        "Custom8", sol::var(Cursor::Custom8),
+        "Custom9", sol::var(Cursor::Custom9),
+        "Custom10", sol::var(Cursor::Custom10),
+        "Custom11", sol::var(Cursor::Custom11),
+        "Custom12", sol::var(Cursor::Custom12),
+        "Custom13", sol::var(Cursor::Custom13),
+        "Custom14", sol::var(Cursor::Custom14),
+        "Custom15", sol::var(Cursor::Custom15)
+    );
+
+    lua->new_usertype<Orientation>("Orientation",
+        sol::meta_function::equal_to, [](Orientation a, Orientation b){ return a == b; },
+        "Portrait", sol::var(Orientation::Portrait),
+        "PortraitUpsideDown", sol::var(Orientation::PortraitUpsideDown),
+        "LandscapeLeft", sol::var(Orientation::LandscapeLeft),
+        "LandscapeRight", sol::var(Orientation::LandscapeRight),
+        "Landscape", sol::var(Orientation::Landscape),
+        "All", sol::var(Orientation::All),
+        "AllButUpsideDown", sol::var(Orientation::AllButUpsideDown)
+    );
 
     sol::usertype<Shader> shader_type = lua->new_usertype<Shader>("Shader",
         sol::constructors<Shader()>() // FIXME: move constructor?
@@ -950,6 +1186,7 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
             [](XmlAttribute& x, float s){ return (x = s); },
             [](XmlAttribute& x, long s){ return (x = s); }
         ),
+        "name", &XmlAttribute::name,
         "value", &XmlAttribute::value
     );
 
@@ -994,6 +1231,7 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
             [](XmlNode& x, const pugi::char_t* n){ return x.child(n); }
         ),
         "text", &XmlNode::text,
+        "name", &XmlNode::name,
         "first_child", &XmlNode::first_child,
         "last_child", &XmlNode::last_child,
         "first_attribute", &XmlNode::first_attribute,
@@ -1021,7 +1259,33 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
 
     sol::usertype<Font> font_t = lua->new_usertype<Font>("Font",
         sol::constructors<Font(), Font(const Font&), Font(Font&&)>(),
-        "load", &Font::load
+        "load", &Font::load,
+        "isLoaded", &Font::isLoaded,
+        "setAlign", sol::overload(
+            [](Font& f, Direction a, Direction b){ return f.setAlign(a,b); },
+            [](Font& f, Direction a){ return f.setAlign(a); }
+        ),
+        "getAlignH", &Font::getAlignH,
+        "getAlignV", &Font::getAlignV,
+        "drawString", sol::overload(
+            [](Font& f, const std::string& s, float x, float y){
+                f.drawString(s, x, y);
+            },
+            [](Font& f, const std::string& s, float x, float y, Direction a, Direction b){
+                f.drawString(s, x, y, a, b);
+            }
+        ),
+        "setLineHeight", &Font::setLineHeight,
+        "setLineHeightEm", &Font::setLineHeightEm,
+        "getLineHeight", &Font::getLineHeight,
+        "getDefaultLineHeight", &Font::getDefaultLineHeight,
+        "resetLineHeight", &Font::resetLineHeight,
+        "getWidth", &Font::getWidth,
+        "getHeight", &Font::getHeight,
+        "getBBox", &Font::getBBox,
+        "getAscent", &Font::getAscent,
+        "getDescent", &Font::getDescent,
+        "getSize", &Font::getSize
     );
 
     sol::usertype<Rect> rect_t = lua->new_usertype<Rect>("Rect",
@@ -1137,6 +1401,93 @@ void tcxLua::setTypeBindings(const std::shared_ptr<sol::state>& lua){
     defineTween<Tween<Vec2>, Vec2>(lua, "TweenVec2");
     defineTween<Tween<Vec3>, Vec3>(lua, "TweenVec3");
     defineTween<Tween<Color>, Color>(lua, "TweenColor");
+
+    lua->new_usertype<PlayingSound>("PlayingSound",
+        sol::constructors<PlayingSound()>(),
+        "buffer", &PlayingSound::buffer,
+        "volume", &PlayingSound::volume,
+        "pan", &PlayingSound::pan,
+        "speed", &PlayingSound::speed,
+        "loop", &PlayingSound::loop,
+        "playing", &PlayingSound::playing,
+        "paused", &PlayingSound::paused,
+        "positionF", &PlayingSound::positionF,
+        "rateRatio", &PlayingSound::rateRatio
+    );
+
+    lua->new_usertype<SoundBuffer>("SoundBuffer",
+        sol::constructors<SoundBuffer(),
+            SoundBuffer(const SoundBuffer&), SoundBuffer(SoundBuffer&&)>(),
+        "loadOgg", &SoundBuffer::loadOgg,
+        "loadWav", &SoundBuffer::loadWav,
+        "loadMp3", &SoundBuffer::loadMp3,
+        "loadMp3FromMemory", &SoundBuffer::loadMp3FromMemory,
+        "loadAac", &SoundBuffer::loadAac,
+        "loadAacFromMemory", &SoundBuffer::loadAacFromMemory,
+        "getAdtsSampleRateIndex", sol::var(&SoundBuffer::getAdtsSampleRateIndex),
+        "createAdtsHeader", sol::var(&SoundBuffer::createAdtsHeader),
+        "loadPcmFromMemory", &SoundBuffer::loadPcmFromMemory,
+        "getDuration", &SoundBuffer::getDuration,
+        "generateSineWave", &SoundBuffer::generateSineWave,
+        "generateSquareWave", &SoundBuffer::generateSquareWave,
+        "generateTriangleWave", &SoundBuffer::generateTriangleWave,
+        "generateSawtoothWave", &SoundBuffer::generateSawtoothWave,
+        "generateNoise", &SoundBuffer::generateNoise,
+        "generatePinkNoise", &SoundBuffer::generatePinkNoise,
+        "generateSilence", &SoundBuffer::generateSilence,
+        "applyADSR", &SoundBuffer::applyADSR,
+        "mixFrom", &SoundBuffer::mixFrom,
+        "clip", &SoundBuffer::clip
+    );
+
+    lua->new_usertype<AudioEngine>("AudioEngine",
+        "getInstance", sol::var(&AudioEngine::getInstance),
+        "init", &AudioEngine::init,
+        "shutdown", &AudioEngine::shutdown,
+        "getAnalysisBuffer", &AudioEngine::getAnalysisBuffer,
+        "play", &AudioEngine::play,
+        "mixAudio", &AudioEngine::mixAudio
+    );
+
+    lua->new_usertype<Sound>("Sound",
+        sol::constructors<Sound(),
+            Sound(const Sound&), Sound(Sound&&)>(),
+        "load", &Sound::load,
+        "loadTestTone", &Sound::loadTestTone,
+        "loadFromBuffer", sol::overload(
+            [](Sound& s, const SoundBuffer& b){ s.loadFromBuffer(b); },
+            [](Sound& s, std::shared_ptr<SoundBuffer> b){ s.loadFromBuffer(b); }
+        ),
+        "isLoaded", &Sound::isLoaded,
+        "play", &Sound::play,
+        "stop", &Sound::stop,
+        "pause", &Sound::pause,
+        "resume", &Sound::resume,
+        "setVolume", &Sound::setVolume,
+        "getVolume", &Sound::getVolume,
+        "setLoop", &Sound::setLoop,
+        "isLoop", &Sound::isLoop,
+        "setPan", &Sound::setPan,
+        "getPan", &Sound::getPan,
+        "setSpeed", &Sound::setSpeed,
+        "getSpeed", &Sound::getSpeed,
+        "isPlaying", &Sound::isPlaying,
+        "isPaused", &Sound::isPaused,
+        "getPosition", &Sound::getPosition,
+        "setPosition", &Sound::setPosition,
+        "getDuration", &Sound::getDuration
+    );
+
+    lua->new_usertype<MicInput>("MicInput",
+        sol::constructors<MicInput>(),
+            // MicInput(const MicInput&), MicInput(MicInput&&)>(),
+        "start", &MicInput::start,
+        "stop", &MicInput::stop,
+        "getBuffer", &MicInput::getBuffer,
+        "isRunning", &MicInput::isRunning,
+        "getSampleRate", &MicInput::getSampleRate,
+        "onAudioData", &MicInput::onAudioData
+    );
 }
 
 struct Colors{};
