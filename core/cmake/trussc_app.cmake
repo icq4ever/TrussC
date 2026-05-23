@@ -441,6 +441,19 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
     # Link TrussC
     target_link_libraries(${PROJECT_NAME} PRIVATE tc::TrussC)
 
+    # Silence the macOS ld-prime "ignoring duplicate libraries" warning. It
+    # fires on the legitimate diamond dependency (app -> TrussC and
+    # app -> addon -> TrussC), where libTrussC.a appears twice in the link
+    # line. The flag only exists on the new linker, so probe before adding —
+    # classic ld would fail the check and we skip it.
+    if(APPLE)
+        include(CheckLinkerFlag)
+        check_linker_flag(CXX "-Wl,-no_warn_duplicate_libraries" _TC_HAS_NO_WARN_DUP_LIBS)
+        if(_TC_HAS_NO_WARN_DUP_LIBS)
+            target_link_options(${PROJECT_NAME} PRIVATE -Wl,-no_warn_duplicate_libraries)
+        endif()
+    endif()
+
     # Build info — injected as compile definitions, read back through
     # tc::BuildInfo (see core/include/tcBuildInfo.h). Timestamps reflect the
     # moment CMake configured the project, so `cmake ..` refreshes them.
