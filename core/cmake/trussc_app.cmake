@@ -692,6 +692,17 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
         else()
             set(_TC_MANIFEST_TEMPLATE "${TRUSSC_DIR}/resources/android/AndroidManifest.xml.in")
         endif()
+        # Opt-in Java/.dex packaging. Set hasCode based on whether the
+        # project ships any Java sources (DeviceAdminReceiver and similar
+        # things that need real Java classes in the APK). NativeActivity-
+        # only projects keep hasCode="false" and the existing build path.
+        set(_TC_JAVA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android/java")
+        set(_TC_RES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android/res")
+        if(EXISTS "${_TC_JAVA_SRC_DIR}")
+            set(TC_APP_HAS_CODE "true")
+        else()
+            set(TC_APP_HAS_CODE "false")
+        endif()
         set(_TC_MANIFEST_OUT "${CMAKE_CURRENT_BINARY_DIR}/AndroidManifest.xml")
         configure_file("${_TC_MANIFEST_TEMPLATE}" "${_TC_MANIFEST_OUT}" @ONLY)
 
