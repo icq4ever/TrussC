@@ -30,54 +30,6 @@
 #include <cmath>
 #include "../../tcMath.h"
 
-#ifndef TC_SOUND_IMPL
-// stb_vorbis forward declaration
-extern "C" {
-    typedef struct stb_vorbis stb_vorbis;
-
-    typedef struct {
-        unsigned int sample_rate;
-        int channels;
-        unsigned int setup_memory_required;
-        unsigned int setup_temp_memory_required;
-        unsigned int temp_memory_required;
-        int max_frame_size;
-    } stb_vorbis_info;
-
-    stb_vorbis* stb_vorbis_open_filename(const char *filename, int *error, void *alloc_buffer);
-    stb_vorbis_info stb_vorbis_get_info(stb_vorbis *f);
-    int stb_vorbis_stream_length_in_samples(stb_vorbis *f);
-    int stb_vorbis_get_samples_float_interleaved(stb_vorbis *f, int channels, float *buffer, int num_floats);
-    void stb_vorbis_close(stb_vorbis *f);
-}
-
-// dr_wav forward declaration
-extern "C" {
-    typedef uint64_t drwav_uint64;
-    float* drwav_open_file_and_read_pcm_frames_f32(
-        const char* filename, unsigned int* channels, unsigned int* sampleRate,
-        drwav_uint64* totalFrameCount, void* pAllocationCallbacks);
-    void drwav_free(void* p, void* pAllocationCallbacks);
-}
-
-// dr_mp3 forward declaration
-extern "C" {
-    typedef uint64_t drmp3_uint64;
-    typedef uint32_t drmp3_uint32;
-    typedef struct {
-        drmp3_uint32 channels;
-        drmp3_uint32 sampleRate;
-    } drmp3_config;
-    float* drmp3_open_file_and_read_pcm_frames_f32(
-        const char* filePath, drmp3_config* pConfig,
-        drmp3_uint64* pTotalFrameCount, void* pAllocationCallbacks);
-    float* drmp3_open_memory_and_read_pcm_frames_f32(
-        const void* pData, size_t dataSize, drmp3_config* pConfig,
-        drmp3_uint64* pTotalFrameCount, void* pAllocationCallbacks);
-    void drmp3_free(void* p, void* pAllocationCallbacks);
-}
-#endif // TC_SOUND_IMPL
-
 namespace trussc {
 
 
@@ -91,112 +43,24 @@ public:
     int sampleRate = 0;
     size_t numSamples = 0;       // Samples per channel
 
-    bool loadOgg(const std::string& path) {
-        int error = 0;
-        stb_vorbis* vorbis = stb_vorbis_open_filename(path.c_str(), &error, nullptr);
-        if (!vorbis) {
-            printf("SoundBuffer: failed to open %s (error=%d)\n", path.c_str(), error);
-            return false;
-        }
+    // File-based decoders (implemented in tcSound_impl.cpp).
+    // WAV / MP3 / FLAC go through ma_decoder (miniaudio); OGG goes through
+    // stb_vorbis directly because miniaudio does not bundle a Vorbis decoder.
+    bool loadOgg(const std::string& path);
+    bool loadWav(const std::string& path);
+    bool loadMp3(const std::string& path);
+    bool loadFlac(const std::string& path);
 
-        stb_vorbis_info info = stb_vorbis_get_info(vorbis);
-        channels = info.channels;
-        sampleRate = info.sample_rate;
-        numSamples = stb_vorbis_stream_length_in_samples(vorbis);
+    // Auto-detect entry point. Dispatches to the format-specific loader
+    // based on the file's extension (.wav / .mp3 / .ogg / .flac / .aac /
+    // .m4a — case-insensitive).
+    bool load(const std::string& path);
 
-        samples.resize(numSamples * channels);
-
-        int decoded = stb_vorbis_get_samples_float_interleaved(
-            vorbis, channels, samples.data(), static_cast<int>(samples.size()));
-
-        stb_vorbis_close(vorbis);
-
-        printf("SoundBuffer: loaded %s (%d ch, %d Hz, %zu samples)\n",
-               path.c_str(), channels, sampleRate, numSamples);
-
-        return decoded > 0;
-    }
-
-    bool loadWav(const std::string& path) {
-        unsigned int ch, sr;
-        drwav_uint64 frameCount;
-
-        float* data = drwav_open_file_and_read_pcm_frames_f32(
-            path.c_str(), &ch, &sr, &frameCount, nullptr);
-
-        if (!data) {
-            printf("SoundBuffer: failed to open WAV %s\n", path.c_str());
-            return false;
-        }
-
-        channels = ch;
-        sampleRate = sr;
-        numSamples = frameCount;
-
-        samples.resize(numSamples * channels);
-        std::memcpy(samples.data(), data, samples.size() * sizeof(float));
-
-        drwav_free(data, nullptr);
-
-        printf("SoundBuffer: loaded WAV %s (%d ch, %d Hz, %zu samples)\n",
-               path.c_str(), channels, sampleRate, numSamples);
-
-        return true;
-    }
-
-    bool loadMp3(const std::string& path) {
-        drmp3_config config = {0, 0};
-        drmp3_uint64 frameCount = 0;
-
-        float* data = drmp3_open_file_and_read_pcm_frames_f32(
-            path.c_str(), &config, &frameCount, nullptr);
-
-        if (!data) {
-            printf("SoundBuffer: failed to open MP3 %s\n", path.c_str());
-            return false;
-        }
-
-        channels = config.channels;
-        sampleRate = config.sampleRate;
-        numSamples = frameCount;
-
-        samples.resize(numSamples * channels);
-        std::memcpy(samples.data(), data, samples.size() * sizeof(float));
-
-        drmp3_free(data, nullptr);
-
-        printf("SoundBuffer: loaded MP3 %s (%d ch, %d Hz, %zu samples)\n",
-               path.c_str(), channels, sampleRate, numSamples);
-
-        return true;
-    }
-
-    bool loadMp3FromMemory(const void* data, size_t dataSize) {
-        drmp3_config config = {0, 0};
-        drmp3_uint64 frameCount = 0;
-
-        float* decoded = drmp3_open_memory_and_read_pcm_frames_f32(
-            data, dataSize, &config, &frameCount, nullptr);
-
-        if (!decoded) {
-            printf("SoundBuffer: failed to decode MP3 from memory\n");
-            return false;
-        }
-
-        channels = config.channels;
-        sampleRate = config.sampleRate;
-        numSamples = frameCount;
-
-        samples.resize(numSamples * channels);
-        std::memcpy(samples.data(), decoded, samples.size() * sizeof(float));
-
-        drmp3_free(decoded, nullptr);
-
-        printf("SoundBuffer: decoded MP3 from memory (%d ch, %d Hz, %zu samples)\n",
-               channels, sampleRate, numSamples);
-
-        return true;
-    }
+    // Memory-based decoders. Format must be known (no extension to sniff).
+    bool loadWavFromMemory(const void* data, size_t dataSize);
+    bool loadMp3FromMemory(const void* data, size_t dataSize);
+    bool loadFlacFromMemory(const void* data, size_t dataSize);
+    bool loadOggFromMemory(const void* data, size_t dataSize);
 
     // Load AAC/M4A file (platform-specific implementation)
     // Returns false on unsupported platforms
@@ -730,6 +594,8 @@ public:
             success = buffer_->loadWav(path);
         } else if (ext == "mp3" || ext == "MP3") {
             success = buffer_->loadMp3(path);
+        } else if (ext == "flac" || ext == "FLAC") {
+            success = buffer_->loadFlac(path);
         } else if (ext == "aac" || ext == "AAC" || ext == "m4a" || ext == "M4A") {
             success = buffer_->loadAac(path);
         } else {
