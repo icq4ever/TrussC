@@ -597,6 +597,26 @@ inline void endStroke(bool close) {
         return;
     }
 
+    // When closing, drop a trailing duplicate of the first vertex so that
+    // the natural idiom
+    //     for (int i = 0; i <= N; i++) vertex(cos(TAU*i/N), sin(TAU*i/N));
+    //     endStroke(true);
+    // doesn't produce a degenerate zero-length segment between the last and
+    // first vertex (which used to cause a NaN normal at the closing join
+    // and render as a spike/notch). Tolerance is tied to the stroke width
+    // so sub-pixel duplicates count regardless of coordinate scale.
+    if (close && verts.size() >= 3) {
+        const auto& a = verts.front().pos;
+        const auto& b = verts.back().pos;
+        const float dx = a.x - b.x;
+        const float dy = a.y - b.y;
+        const float w  = verts.back().width;
+        const float tol = std::max(1e-4f, w * 0.01f);
+        if (dx * dx + dy * dy < tol * tol) {
+            verts.pop_back();
+        }
+    }
+
     auto& ctx = getDefaultContext();
 
     // Convert StrokeCap to StrokeMesh::CapType
