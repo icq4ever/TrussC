@@ -468,24 +468,20 @@ private:
                     Vec3 n2 = getNormal(curr, next);
                     Vec3 avgNormal = normalize(Vec3{n1.x + n2.x, n1.y + n2.y, n1.z + n2.z});
 
-                    Vec3 d1 = normalize(Vec3{curr.x - prev.x, curr.y - prev.y, curr.z - prev.z});
-                    Vec3 d2 = normalize(Vec3{next.x - curr.x, next.y - curr.y, next.z - curr.z});
-                    float cross = d1.x * d2.y - d1.y * d2.x;
-                    bool turnsLeft = cross > 0;
-
                     float dotVal = dot(n1, avgNormal);
                     if (dotVal < 0.001f) dotVal = 0.001f;
                     float miterLength = 1.0f / dotVal;
 
                     if (miterLength <= miterLimit_) {
+                        // Both sides extend to the miter point — this preserves the
+                        // perpendicular stroke width across the join. Using avgNormal
+                        // on the inside (shorter) would pinch the stroke thinner near
+                        // the joint. Inner vertex may overshoot the spine on sharp
+                        // angles (self-intersecting geometry), but the rasterized area
+                        // is still correct; miterLimit_ guards against extreme cases.
                         Vec3 miterNormal = Vec3{avgNormal.x * miterLength, avgNormal.y * miterLength, avgNormal.z * miterLength};
-                        if (turnsLeft) {
-                            leftPt = Vec3{curr.x + miterNormal.x * hw, curr.y + miterNormal.y * hw, curr.z};
-                            rightPt = Vec3{curr.x - avgNormal.x * hw, curr.y - avgNormal.y * hw, curr.z};
-                        } else {
-                            leftPt = Vec3{curr.x + avgNormal.x * hw, curr.y + avgNormal.y * hw, curr.z};
-                            rightPt = Vec3{curr.x - miterNormal.x * hw, curr.y - miterNormal.y * hw, curr.z};
-                        }
+                        leftPt = Vec3{curr.x + miterNormal.x * hw, curr.y + miterNormal.y * hw, curr.z};
+                        rightPt = Vec3{curr.x - miterNormal.x * hw, curr.y - miterNormal.y * hw, curr.z};
                     } else {
                         leftPt = Vec3{curr.x + avgNormal.x * hw, curr.y + avgNormal.y * hw, curr.z};
                         rightPt = Vec3{curr.x - avgNormal.x * hw, curr.y - avgNormal.y * hw, curr.z};
