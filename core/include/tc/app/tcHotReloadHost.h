@@ -25,6 +25,7 @@
 extern char** environ;
 #endif
 #include <filesystem>
+#include <fstream>
 #include <chrono>
 #include <string>
 #include <vector>
@@ -37,6 +38,7 @@ namespace hot_reload {
 namespace fs = std::filesystem;
 using std::string;
 using std::vector;
+using std::ifstream;
 using std::cout;
 using std::cerr;
 using Clock = std::chrono::steady_clock;
@@ -200,7 +202,23 @@ struct FileWatcher {
 // Find cmake binary (same logic as trusscli)
 // ---------------------------------------------------------------------------
 
-inline string findCMake() {
+inline string findCMake(const string& buildDir = "") {
+    // Prefer the cmake that originally configured this build directory.
+    // On Windows, PATH may resolve to an older VS cmake that doesn't
+    // know the generator used by the current build (e.g. "Visual Studio 18 2026").
+    if (!buildDir.empty()) {
+        string cachePath = buildDir + "/CMakeCache.txt";
+        if (fs::exists(cachePath)) {
+            ifstream cache(cachePath);
+            string line;
+            while (getline(cache, line)) {
+                if (line.rfind("CMAKE_COMMAND:INTERNAL=", 0) == 0) {
+                    string path = line.substr(23);
+                    if (fs::exists(path)) return path;
+                }
+            }
+        }
+    }
 #ifdef __APPLE__
     const char* paths[] = {
         "/opt/homebrew/bin/cmake",
@@ -230,11 +248,36 @@ inline int runBuildCommand(const vector<string>& argv) {
     if (argv.empty()) return -1;
 
 #ifdef _WIN32
-    vector<const char*> cargv;
-    cargv.reserve(argv.size() + 1);
-    for (const auto& a : argv) cargv.push_back(a.c_str());
-    cargv.push_back(nullptr);
-    return (int)_spawnvp(_P_WAIT, cargv[0], cargv.data());
+    // Build a quoted command line for CreateProcess.
+    // _spawnvp can mangle argv when the executable path contains spaces.
+    string cmdLine;
+    for (size_t i = 0; i < argv.size(); i++) {
+        if (i > 0) cmdLine += ' ';
+        bool needsQuote = argv[i].find(' ') != string::npos;
+        if (needsQuote) cmdLine += '"';
+        cmdLine += argv[i];
+        if (needsQuote) cmdLine += '"';
+    }
+    STARTUPINFOA si = {};
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    si.hStdError  = GetStdHandle(STD_ERROR_HANDLE);
+    PROCESS_INFORMATION pi = {};
+    vector<char> buf(cmdLine.begin(), cmdLine.end());
+    buf.push_back('\0');
+    if (!CreateProcessA(argv[0].c_str(), buf.data(),
+                        nullptr, nullptr, TRUE, 0, nullptr, nullptr, &si, &pi)) {
+        cerr << "[HotReload] Failed to launch: " << argv[0] << "\n";
+        return -1;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD exitCode = 1;
+    GetExitCodeProcess(pi.hProcess, &exitCode);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return (int)exitCode;
 #else
     vector<char*> cargv;
     cargv.reserve(argv.size() + 1);
@@ -295,7 +338,7 @@ struct Host {
 #ifdef __APPLE__
         const char* presetDirs[] = {"build-macos", "xcode", "build"};
 #elif defined(_WIN32)
-        const char* presetDirs[] = {"build-windows", "build"};
+        const char* presetDirs[] = {"build-windows", "vs", "build"};
 #else
         const char* presetDirs[] = {"build-linux", "build"};
 #endif
@@ -377,7 +420,7 @@ struct Host {
     }
 
     bool rebuildGuest() {
-        string cmake = findCMake();
+        string cmake = findCMake(buildDir);
         logNotice("HotReload") << "Rebuilding guest...";
 
         // Only rebuild the guest target — fast incremental build.
