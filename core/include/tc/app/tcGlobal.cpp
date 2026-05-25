@@ -1,6 +1,23 @@
 // =============================================================================
 // tcGlobal.cpp - TrussC Global Functions Implementation
-// Large functions moved from TrussC.h for better compile times
+//
+// Two kinds of definitions live here:
+//
+//   1. Large lifecycle / frame-management functions moved out of TrussC.h
+//      to keep header compile times down (setup, cleanup, present, clear,
+//      swapchain pass helpers, ...).
+//
+//   2. Singletons and accessors that MUST be non-inline so Host (EXE) and
+//      Guest (DLL) share a single instance during hot reload on Windows.
+//      `inline` functions with static locals create per-module instances
+//      under MSVC's per-DLL symbol namespace — splitting events(),
+//      getDefaultContext(), timers, the logger, etc. between modules
+//      causes silent breakage (drawRectRounded white, tweens frozen, no
+//      logs in guest, ...). Moving the definition into this .cpp keeps
+//      one canonical instance shared via the host's exported symbols.
+//
+// When adding a new global singleton accessor, prefer defining it here
+// (or in a sibling .cpp) rather than inline in a header.
 // =============================================================================
 
 #include <TrussC.h>
