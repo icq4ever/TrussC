@@ -57,7 +57,7 @@ struct GuestLibrary {
 #endif
     CreateAppFn createApp = nullptr;
     DestroyAppFn destroyApp = nullptr;
-    App* app = nullptr;
+    std::shared_ptr<App> app;
     string loadedPath;  // actual path loaded (may be a temp copy on Windows)
 
     bool load(const string& path) {
@@ -120,17 +120,18 @@ struct GuestLibrary {
 
     App* create() {
         if (createApp) {
-            app = createApp();
-            return app;
+            App* raw = createApp();
+            auto deleter = destroyApp;
+            app = std::shared_ptr<App>(raw, [deleter](App* p) {
+                if (deleter) deleter(p);
+            });
+            return raw;
         }
         return nullptr;
     }
 
     void destroy() {
-        if (app && destroyApp) {
-            destroyApp(app);
-            app = nullptr;
-        }
+        app.reset();
     }
 
     void unload() {
@@ -450,7 +451,7 @@ struct Host {
         }
     }
 
-    App* getApp() { return guest.app; }
+    App* getApp() { return guest.app.get(); }
 };
 
 // ---------------------------------------------------------------------------
