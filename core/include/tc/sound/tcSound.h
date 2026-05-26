@@ -465,10 +465,29 @@ struct PlayingSound {
 // ---------------------------------------------------------------------------
 class AudioEngine {
 public:
-    static constexpr int MAX_PLAYING_SOUNDS = 32;
+    // Default engine configuration. These keep their historical names so
+    // callers that hard-coded `AudioEngine::SAMPLE_RATE` still compile, but
+    // they now represent the *default*, not the *current*, configuration.
+    // For the currently-running engine value, use getSampleRate() etc.
+    //
+    // Deprecated in favor of getSampleRate() / getChannels() / getMaxPolyphony()
+    // — these names look like compile-time constants but the engine value
+    // can now be reconfigured via AudioSettings.
+    [[deprecated("use getSampleRate() — engine sample rate is now runtime-configurable")]]
     static constexpr int SAMPLE_RATE = 96000;
-    static constexpr int NUM_CHANNELS = 2;  // Stereo output
-    static constexpr int ANALYSIS_BUFFER_SIZE = 4096;  // FFT analysis buffer size
+    [[deprecated("use getChannels() — engine channel count is now runtime-configurable")]]
+    static constexpr int NUM_CHANNELS = 2;
+    [[deprecated("use getMaxPolyphony() — engine polyphony is now runtime-configurable")]]
+    static constexpr int MAX_PLAYING_SOUNDS = 32;
+    // FFT analysis buffer is internal-only and unaffected by AudioSettings.
+    static constexpr int ANALYSIS_BUFFER_SIZE = 4096;
+
+    // Default values used when init() is called without an explicit
+    // AudioSettings, and as initial values for the runtime fields below.
+    static constexpr int DEFAULT_SAMPLE_RATE = 96000;
+    static constexpr int DEFAULT_CHANNELS = 2;
+    static constexpr int DEFAULT_MAX_PLAYING_SOUNDS = 32;
+    static constexpr int DEFAULT_BUFFER_SIZE = 0;  // 0 = let miniaudio choose
 
     static AudioEngine& getInstance() {
         static AudioEngine instance;
@@ -478,6 +497,17 @@ public:
     // Initialize and shutdown (implementation in tcAudio_impl.cpp)
     bool init();
     void shutdown();
+
+    // Runtime engine configuration accessors. These reflect the values
+    // passed to init(AudioSettings) — or the defaults if init() was called
+    // without an argument. They return the default even before init() is
+    // called, so video / audio code that needs the rate up front can rely
+    // on the value being sensible.
+    int getSampleRate()   const { return sampleRate_; }
+    int getChannels()     const { return channels_; }
+    int getMaxPolyphony() const { return (int)playingSounds_.size(); }
+    int getBufferSize()   const { return bufferSize_; }
+    bool isInitialized()  const { return initialized_; }
 
     // FFT analysis: Get latest audio samples (mono, left+right average)
     // numSamples: Number of samples to get (max ANALYSIS_BUFFER_SIZE)
@@ -518,7 +548,7 @@ public:
 
 private:
     AudioEngine() {
-        playingSounds_.resize(MAX_PLAYING_SOUNDS);
+        playingSounds_.resize(DEFAULT_MAX_PLAYING_SOUNDS);
         analysisBuffer_.resize(ANALYSIS_BUFFER_SIZE, 0.0f);
     }
 
@@ -661,6 +691,15 @@ private:
     bool initialized_ = false;
     std::vector<std::shared_ptr<PlayingSound>> playingSounds_;
     std::mutex mutex_;
+
+    // Runtime engine configuration. Initialized to defaults; replaced when
+    // init(AudioSettings) succeeds. Reading these before init() returns the
+    // defaults (intentional — code that needs the rate up front, e.g. video
+    // resampler setup in tcVideoPlayer_*, can pull the value without first
+    // forcing engine startup).
+    int sampleRate_ = DEFAULT_SAMPLE_RATE;
+    int channels_   = DEFAULT_CHANNELS;
+    int bufferSize_ = DEFAULT_BUFFER_SIZE;
 
     // FFT analysis ring buffer
     std::vector<float> analysisBuffer_;

@@ -285,10 +285,12 @@ bool SoundStream::loadStream(const std::string& path, int maxPolyphony) {
     }
 
     // Probe decode: open, query, close. Per-voice decoders re-open later.
+    // The decoder is configured to output at the engine's runtime sample
+    // rate so the mixer can memcpy without resampling.
     ma_decoder probe;
     ma_decoder_config cfg = ma_decoder_config_init(ma_format_f32,
                                                     StreamInstance::CHANNELS,
-                                                    AudioEngine::SAMPLE_RATE);
+                                                    AudioEngine::getInstance().getSampleRate());
     cfg.encodingFormat = fmt;
     ma_result r = ma_decoder_init_file(path.c_str(), &cfg, &probe);
     if (r != MA_SUCCESS) {
@@ -348,7 +350,7 @@ std::shared_ptr<PlayingSound> AudioEngine::play(std::shared_ptr<SoundSource> sou
         // Open a fresh decoder for this voice.
         stream = std::make_shared<StreamInstance>();
         ma_decoder_config cfg = ma_decoder_config_init(
-            ma_format_f32, StreamInstance::CHANNELS, AudioEngine::SAMPLE_RATE);
+            ma_format_f32, StreamInstance::CHANNELS, sampleRate_);
         cfg.encodingFormat = (ma_encoding_format)s->encodingFormatHint_;
         ma_result r = ma_decoder_init_file(s->getPath().c_str(), &cfg, &stream->decoder);
         if (r != MA_SUCCESS) {
@@ -382,8 +384,8 @@ std::shared_ptr<PlayingSound> AudioEngine::play(std::shared_ptr<SoundSource> sou
             // rateRatio = 1.0 (no pitch adjust). For eager buffers, retain
             // the existing buffer/engine ratio compensation.
             if (source->kind() == SoundSource::Eager) {
-                slot->rateRatio = (source->sampleRate > 0)
-                    ? ((float)source->sampleRate / (float)SAMPLE_RATE)
+                slot->rateRatio = (source->sampleRate > 0 && sampleRate_ > 0)
+                    ? ((float)source->sampleRate / (float)sampleRate_)
                     : 1.0f;
             } else {
                 slot->rateRatio = 1.0f;
@@ -527,12 +529,14 @@ static void playbackDataCallback(ma_device* pDevice, void* pOutput, const void* 
 bool AudioEngine::init() {
     if (initialized_) return true;
 
+    // Use whatever values were already in the runtime fields (defaults
+    // unless a future init(AudioSettings) wrote them first).
     ma_device* device = new ma_device();
 
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.format = ma_format_f32;
-    config.playback.channels = NUM_CHANNELS;
-    config.sampleRate = SAMPLE_RATE;
+    config.playback.channels = channels_;
+    config.sampleRate = sampleRate_;
     config.dataCallback = playbackDataCallback;
     config.pUserData = this;
 
@@ -554,7 +558,8 @@ bool AudioEngine::init() {
     device_ = device;
     initialized_ = true;
 
-    printf("AudioEngine: initialized (%d Hz, %d ch) [miniaudio]\n", SAMPLE_RATE, NUM_CHANNELS);
+    printf("AudioEngine: initialized (%d Hz, %d ch) [miniaudio]\n",
+           sampleRate_, channels_);
     return true;
 }
 
