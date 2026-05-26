@@ -29,6 +29,7 @@
 #include <cstring>
 #include <cmath>
 #include "../../tcMath.h"
+#include "../events/tcEvent.h"
 
 namespace trussc {
 
@@ -491,6 +492,38 @@ struct AudioDeviceInfo {
 };
 
 // ---------------------------------------------------------------------------
+// AudioOutBuffer / AudioInBuffer — argument types for the audioOut /
+// audioIn event listeners. Buffer is interleaved float, frameCount frames
+// of `channels` floats each. Listeners on `AudioEngine::audioOut` should
+// ADD their contribution to `data` (mixer already wrote pre-existing
+// Sound voices into it); zeroing or overwriting silences other voices.
+//
+// framePosition is a monotonic count of output frames emitted by the
+// engine since init(). Useful as a phase / time reference inside the
+// callback (sample-accurate, independent of wall clock).
+//
+// IMPORTANT: these structs are passed by reference to a callback that
+// runs on the audio thread. Do NOT call AudioEngine::play() / load() /
+// other engine APIs from inside the listener — they may deadlock or
+// be RT-unsafe. Just fill / process the buffer and return quickly.
+// ---------------------------------------------------------------------------
+struct AudioOutBuffer {
+    float*   data;            // interleaved mutable, frameCount * channels samples
+    int      frameCount;
+    int      channels;
+    int      sampleRate;      // engine output sample rate
+    uint64_t framePosition;   // monotonic frame counter since engine init
+};
+
+struct AudioInBuffer {
+    const float* data;        // interleaved read-only mic input
+    int          frameCount;
+    int          channels;
+    int          sampleRate;
+    uint64_t     framePosition;
+};
+
+// ---------------------------------------------------------------------------
 // Audio Engine (singleton, miniaudio-based)
 // ---------------------------------------------------------------------------
 class AudioEngine {
@@ -549,6 +582,24 @@ public:
     int getMaxPolyphony() const { return (int)playingSounds_.size(); }
     int getBufferSize()   const { return bufferSize_; }
     bool isInitialized()  const { return initialized_; }
+
+    // Real-time audio listeners. audioOut fires once per audio device
+    // callback AFTER all Sound voices have been mixed into the output
+    // buffer; listeners should ADD their contribution. audioIn fires
+    // when microphone input is available (only when a capture device is
+    // actually running — currently provided by tc::MicInput, but the
+    // event channel is here so both paths can use the same wiring).
+    //
+    // Listeners run on the audio thread with NO engine lock held. Do
+    // not call AudioEngine::play() / Sound::load() / etc. from inside
+    // them — these are RT-unsafe and can deadlock.
+    //
+    // Typical use (synthesis):
+    //   AudioEngine::getInstance().audioOut.listen([](AudioOutBuffer& b){
+    //       for (int i = 0; i < b.frameCount; i++) ...
+    //   });
+    Event<AudioOutBuffer> audioOut;
+    Event<AudioInBuffer>  audioIn;
 
     // FFT analysis: Get latest audio samples (mono, left+right average)
     // numSamples: Number of samples to get (max ANALYSIS_BUFFER_SIZE)
@@ -687,24 +738,46 @@ private:
         // Clear buffer
         std::memset(buffer, 0, num_frames * num_channels * sizeof(float));
 
-        std::lock_guard<std::mutex> lock(mutex_);
+        // Mix all live Sound voices under the engine lock. The lock guards
+        // the playingSounds_ slot list against concurrent play() — without
+        // it a play() that swaps a slot mid-iteration would crash.
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
 
-        for (auto& sound : playingSounds_) {
-            if (!sound || !sound->playing || sound->paused) continue;
-            if (!sound->buffer) continue;
+            for (auto& sound : playingSounds_) {
+                if (!sound || !sound->playing || sound->paused) continue;
+                if (!sound->buffer) continue;
 
-            // Dispatch on source kind. Eager path is the common case and
-            // stays inline-friendly; streaming path lives in the impl TU.
-            if (sound->buffer->kind() == SoundSource::Eager) {
-                mixEagerVoice(*sound,
-                              *static_cast<SoundBuffer*>(sound->buffer.get()),
-                              buffer, num_frames, num_channels);
-            } else {
-                mixStreamVoice(*sound,
-                               *static_cast<SoundStream*>(sound->buffer.get()),
-                               buffer, num_frames, num_channels);
+                // Dispatch on source kind. Eager path is the common case
+                // and stays inline-friendly; streaming path lives in the
+                // impl TU.
+                if (sound->buffer->kind() == SoundSource::Eager) {
+                    mixEagerVoice(*sound,
+                                  *static_cast<SoundBuffer*>(sound->buffer.get()),
+                                  buffer, num_frames, num_channels);
+                } else {
+                    mixStreamVoice(*sound,
+                                   *static_cast<SoundStream*>(sound->buffer.get()),
+                                   buffer, num_frames, num_channels);
+                }
             }
         }
+
+        // audioOut listeners run AFTER Sound voices and OUTSIDE the lock.
+        // The lock is released first so a listener that calls
+        // engine.play() doesn't deadlock — that's a discouraged but
+        // possible foot-gun. Listeners read/write only the buffer and
+        // their own captured state, so they don't need the engine lock.
+        if (audioOut.listenerCount() > 0) {
+            AudioOutBuffer ob;
+            ob.data          = buffer;
+            ob.frameCount    = num_frames;
+            ob.channels      = num_channels;
+            ob.sampleRate    = sampleRate_;
+            ob.framePosition = framePosition_;
+            audioOut.notify(ob);
+        }
+        framePosition_ += (uint64_t)num_frames;
 
         // Clipping
         for (int i = 0; i < num_frames * num_channels; i++) {
@@ -741,6 +814,12 @@ private:
     int sampleRate_ = DEFAULT_SAMPLE_RATE;
     int channels_   = DEFAULT_CHANNELS;
     int bufferSize_ = DEFAULT_BUFFER_SIZE;
+
+    // Monotonic count of output frames emitted since the engine started.
+    // Exposed to audioOut listeners via AudioOutBuffer::framePosition so
+    // synthesis code has a sample-accurate phase / time reference. Only
+    // touched on the audio thread (mixAudioInternal), no atomicity needed.
+    uint64_t framePosition_ = 0;
 
     // FFT analysis ring buffer
     std::vector<float> analysisBuffer_;
