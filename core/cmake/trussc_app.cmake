@@ -283,7 +283,11 @@ endif()
         endif()
         # Windows: デバッグ情報を.objに埋め込み（/Z7）、PDBを生成しない。
         # デバッガがguest.pdbをロックするとホットリロード時のリビルドが失敗するため。
+        # CMakeデフォルトの/Ziを/Z7に置換してD9025 warningを防ぐ。
         if(MSVC)
+            foreach(_cfg DEBUG RELWITHDEBINFO)
+                string(REGEX REPLACE "/Z[iI]" "/Z7" CMAKE_CXX_FLAGS_${_cfg} "${CMAKE_CXX_FLAGS_${_cfg}}")
+            endforeach()
             target_compile_options(guest PRIVATE /Z7)
             set_target_properties(guest PROPERTIES LINK_FLAGS "/DEBUG /PDBALTPATH:none")
         endif()
@@ -430,6 +434,15 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
             target_link_options(${PROJECT_NAME} PRIVATE
                 -Wl,--whole-archive $<TARGET_FILE:TrussC> -Wl,--no-whole-archive
                 -rdynamic)
+        endif()
+
+        # Mac/Linux: guest doesn't link to host (symbols resolved at runtime via
+        # dlopen), so without an explicit dependency the IDE-driven host build
+        # leaves libguest.dylib stale or missing. Force the IDE/build system
+        # (Xcode, Ninja, Make) to build guest whenever host is built.
+        # Windows already has guest -> host link dependency above.
+        if(NOT WIN32)
+            add_dependencies(${PROJECT_NAME} guest)
         endif()
 
     elseif(ANDROID)
@@ -908,6 +921,7 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
             MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_BUNDLE_NAME "${MACOSX_BUNDLE_DISPLAY_NAME}"
             MACOSX_BUNDLE_GUI_IDENTIFIER "com.trussc.${PROJECT_NAME}"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.trussc.${PROJECT_NAME}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1.0"
             MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
             MACOSX_BUNDLE_INFO_PLIST "${TRUSSC_DIR}/resources/Info.plist.in"

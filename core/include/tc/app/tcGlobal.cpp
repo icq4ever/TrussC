@@ -1,6 +1,23 @@
 // =============================================================================
 // tcGlobal.cpp - TrussC Global Functions Implementation
-// Large functions moved from TrussC.h for better compile times
+//
+// Two kinds of definitions live here:
+//
+//   1. Large lifecycle / frame-management functions moved out of TrussC.h
+//      to keep header compile times down (setup, cleanup, present, clear,
+//      swapchain pass helpers, ...).
+//
+//   2. Singletons and accessors that MUST be non-inline so Host (EXE) and
+//      Guest (DLL) share a single instance during hot reload on Windows.
+//      `inline` functions with static locals create per-module instances
+//      under MSVC's per-DLL symbol namespace — splitting events(),
+//      getDefaultContext(), timers, the logger, etc. between modules
+//      causes silent breakage (drawRectRounded white, tweens frozen, no
+//      logs in guest, ...). Moving the definition into this .cpp keeps
+//      one canonical instance shared via the host's exported symbols.
+//
+// When adding a new global singleton accessor, prefer defining it here
+// (or in a sibling .cpp) rather than inline in a header.
 // =============================================================================
 
 #include <TrussC.h>
@@ -456,6 +473,74 @@ void resumeSwapchainPass() {
         sg_begin_pass(&pass);
         internal::inSwapchainPass = true;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Non-inline singletons / accessors (Hot Reload: Host/Guest share state)
+// ---------------------------------------------------------------------------
+
+CoreEvents& events() {
+    static CoreEvents instance;
+    return instance;
+}
+
+double getElapsedTime() {
+    auto now = std::chrono::high_resolution_clock::now();
+    if (!internal::startTimeInitialized) {
+        internal::startTime = now;
+        internal::startTimeInitialized = true;
+        return 0.0;
+    }
+    auto duration = std::chrono::duration<double>(now - internal::startTime);
+    return duration.count();
+}
+
+uint64_t getUpdateCount() {
+    return internal::updateFrameCount;
+}
+
+uint64_t getDrawCount() {
+    return sapp_frame_count();
+}
+
+uint64_t getFrameCount() {
+    return internal::updateFrameCount;
+}
+
+double getDeltaTime() {
+    return internal::updateDeltaTime;
+}
+
+double getFrameRate() {
+    double dt = internal::updateDeltaTime;
+    if (dt <= 0.0) return 0.0;
+    internal::frameTimeBuffer[internal::frameTimeIndex] = dt;
+    internal::frameTimeIndex = (internal::frameTimeIndex + 1) % 10;
+    if (internal::frameTimeIndex == 0) {
+        internal::frameTimeBufferFilled = true;
+    }
+
+    int count = internal::frameTimeBufferFilled ? 10 : internal::frameTimeIndex;
+    if (count == 0) return 0.0;
+
+    double sum = 0.0;
+    for (int i = 0; i < count; i++) {
+        sum += internal::frameTimeBuffer[i];
+    }
+    double avgDt = sum / count;
+    return avgDt > 0.0 ? 1.0 / avgDt : 0.0;
+}
+
+namespace internal {
+ElapsedTimeClock& getElapsedClock() {
+    static ElapsedTimeClock clock;
+    return clock;
+}
+} // namespace internal
+
+Logger& tcGetLogger() {
+    static Logger logger;
+    return logger;
 }
 
 } // namespace trussc

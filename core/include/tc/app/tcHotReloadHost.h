@@ -25,6 +25,7 @@
 extern char** environ;
 #endif
 #include <filesystem>
+#include <fstream>
 #include <chrono>
 #include <string>
 #include <vector>
@@ -37,6 +38,7 @@ namespace hot_reload {
 namespace fs = std::filesystem;
 using std::string;
 using std::vector;
+using std::ifstream;
 using std::cout;
 using std::cerr;
 using Clock = std::chrono::steady_clock;
@@ -57,7 +59,7 @@ struct GuestLibrary {
 #endif
     CreateAppFn createApp = nullptr;
     DestroyAppFn destroyApp = nullptr;
-    App* app = nullptr;
+    std::shared_ptr<App> app;
     string loadedPath;  // actual path loaded (may be a temp copy on Windows)
 
     bool load(const string& path) {
@@ -120,17 +122,18 @@ struct GuestLibrary {
 
     App* create() {
         if (createApp) {
-            app = createApp();
-            return app;
+            App* raw = createApp();
+            auto deleter = destroyApp;
+            app = std::shared_ptr<App>(raw, [deleter](App* p) {
+                if (deleter) deleter(p);
+            });
+            return raw;
         }
         return nullptr;
     }
 
     void destroy() {
-        if (app && destroyApp) {
-            destroyApp(app);
-            app = nullptr;
-        }
+        app.reset();
     }
 
     void unload() {
@@ -199,7 +202,23 @@ struct FileWatcher {
 // Find cmake binary (same logic as trusscli)
 // ---------------------------------------------------------------------------
 
-inline string findCMake() {
+inline string findCMake(const string& buildDir = "") {
+    // Prefer the cmake that originally configured this build directory.
+    // On Windows, PATH may resolve to an older VS cmake that doesn't
+    // know the generator used by the current build (e.g. "Visual Studio 18 2026").
+    if (!buildDir.empty()) {
+        string cachePath = buildDir + "/CMakeCache.txt";
+        if (fs::exists(cachePath)) {
+            ifstream cache(cachePath);
+            string line;
+            while (getline(cache, line)) {
+                if (line.rfind("CMAKE_COMMAND:INTERNAL=", 0) == 0) {
+                    string path = line.substr(23);
+                    if (fs::exists(path)) return path;
+                }
+            }
+        }
+    }
 #ifdef __APPLE__
     const char* paths[] = {
         "/opt/homebrew/bin/cmake",
@@ -229,11 +248,36 @@ inline int runBuildCommand(const vector<string>& argv) {
     if (argv.empty()) return -1;
 
 #ifdef _WIN32
-    vector<const char*> cargv;
-    cargv.reserve(argv.size() + 1);
-    for (const auto& a : argv) cargv.push_back(a.c_str());
-    cargv.push_back(nullptr);
-    return (int)_spawnvp(_P_WAIT, cargv[0], cargv.data());
+    // Build a quoted command line for CreateProcess.
+    // _spawnvp can mangle argv when the executable path contains spaces.
+    string cmdLine;
+    for (size_t i = 0; i < argv.size(); i++) {
+        if (i > 0) cmdLine += ' ';
+        bool needsQuote = argv[i].find(' ') != string::npos;
+        if (needsQuote) cmdLine += '"';
+        cmdLine += argv[i];
+        if (needsQuote) cmdLine += '"';
+    }
+    STARTUPINFOA si = {};
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    si.hStdError  = GetStdHandle(STD_ERROR_HANDLE);
+    PROCESS_INFORMATION pi = {};
+    vector<char> buf(cmdLine.begin(), cmdLine.end());
+    buf.push_back('\0');
+    if (!CreateProcessA(argv[0].c_str(), buf.data(),
+                        nullptr, nullptr, TRUE, 0, nullptr, nullptr, &si, &pi)) {
+        cerr << "[HotReload] Failed to launch: " << argv[0] << "\n";
+        return -1;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD exitCode = 1;
+    GetExitCodeProcess(pi.hProcess, &exitCode);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return (int)exitCode;
 #else
     vector<char*> cargv;
     cargv.reserve(argv.size() + 1);
@@ -292,9 +336,9 @@ struct Host {
 
         // Detect the build directory — try preset-style names first, fall back to build/
 #ifdef __APPLE__
-        const char* presetDirs[] = {"build-macos", "build"};
+        const char* presetDirs[] = {"build-macos", "xcode", "build"};
 #elif defined(_WIN32)
-        const char* presetDirs[] = {"build-windows", "build"};
+        const char* presetDirs[] = {"build-windows", "vs", "build"};
 #else
         const char* presetDirs[] = {"build-linux", "build"};
 #endif
@@ -316,23 +360,38 @@ struct Host {
             return false;
         }
 
-        // Guest library path
-        // Ninja: buildDir直下に出力。VS generator: Release/等のサブディレクトリ。
+        // Guest library path: search known locations for the built dylib.
+        // Single-config (Ninja/Make): buildDir直下。
+        // Multi-config (Xcode/VS): <config>/ サブディレクトリ。
+        // Files are searched in priority order; whichever exists wins.
 #ifdef __APPLE__
-        guestLibPath = buildDir + "/libguest.dylib";
+        const string guestName = "libguest.dylib";
 #elif defined(_WIN32)
-        // Ninja (CMakePresets.json) ではサブディレクトリなし。
-        // Visual Studio multi-config generator は Release/ や Debug/ を作る。
-        if (fs::exists(buildDir + "/guest.dll")) {
-            guestLibPath = buildDir + "/guest.dll";
-        } else if (fs::exists(buildDir + "/Debug/guest.dll")) {
-            guestLibPath = buildDir + "/Debug/guest.dll";
-        } else {
-            guestLibPath = buildDir + "/Release/guest.dll";
-        }
+        const string guestName = "guest.dll";
 #else
-        guestLibPath = buildDir + "/libguest.so";
+        const string guestName = "libguest.so";
 #endif
+        const char* configs[] = {"Debug", "Release", "RelWithDebInfo", "MinSizeRel"};
+        guestLibPath = "";
+        if (fs::exists(buildDir + "/" + guestName)) {
+            guestLibPath = buildDir + "/" + guestName;
+        } else {
+            for (const char* c : configs) {
+                string candidate = buildDir + "/" + c + "/" + guestName;
+                if (fs::exists(candidate)) { guestLibPath = candidate; break; }
+            }
+        }
+        // Nothing yet — the initial rebuildGuest() below will create it. Pick
+        // a sensible default destination so the post-rebuild load() finds it.
+        // If any config subdir exists, we're in a multi-config tree → Debug/.
+        if (guestLibPath.empty()) {
+            bool multiConfig = false;
+            for (const char* c : configs) {
+                if (fs::exists(buildDir + "/" + c)) { multiConfig = true; break; }
+            }
+            guestLibPath = multiConfig ? (buildDir + "/Debug/" + guestName)
+                                       : (buildDir + "/" + guestName);
+        }
 
         // Initial build of the Guest
         if (!rebuildGuest()) {
@@ -361,12 +420,15 @@ struct Host {
     }
 
     bool rebuildGuest() {
-        string cmake = findCMake();
+        string cmake = findCMake(buildDir);
         logNotice("HotReload") << "Rebuilding guest...";
 
         // Only rebuild the guest target — fast incremental build.
         // argv is passed directly to posix_spawnp / _spawnvp — no shell
         // is involved, so $(...), ``, ; etc. in buildDir cannot run.
+        // For multi-config generators (Xcode, Visual Studio), cmake picks the
+        // generator's default config (Debug) when --config is omitted — which
+        // matches the layout the rest of init() expects (Debug/libguest.dylib).
         int rc = runBuildCommand({cmake, "--build", buildDir,
                                   "--target", "guest", "--parallel"});
         if (rc != 0) {
@@ -450,7 +512,7 @@ struct Host {
         }
     }
 
-    App* getApp() { return guest.app; }
+    App* getApp() { return guest.app.get(); }
 };
 
 // ---------------------------------------------------------------------------
