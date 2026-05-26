@@ -41,6 +41,7 @@
 #include "../types/tcDirection.h"
 #include "../types/tcRectangle.h"
 #include "../../tcMath.h"  // Vec2
+#include "tcFontVertical.h"
 
 // ---------------------------------------------------------------------------
 // System font paths - use these for cross-platform font loading
@@ -290,6 +291,14 @@ public:
 
     bool hasGlyph(uint32_t codepoint) const {
         return glyphs_.find(codepoint) != glyphs_.end();
+    }
+
+    // Check whether the underlying font file actually contains a glyph for
+    // this codepoint (vs. .notdef). Used by vertical writing to decide whether
+    // a CJK Compatibility Forms variant (U+FE10–FE4F) is usable.
+    bool fontHasGlyph(uint32_t codepoint) const {
+        if (!loaded_) return false;
+        return stbtt_FindGlyphIndex(&fontInfo_, (int)codepoint) != 0;
     }
 
     // -------------------------------------------------------------------------
@@ -898,13 +907,42 @@ public:
     virtual void drawString(const std::string& text, float x, float y) const {
         Direction h = getDefaultContext().getTextAlignH();
         Direction v = getDefaultContext().getTextAlignV();
-        drawStringInternal(text, x, y, h, v);
+        if (writingMode_ == WritingMode::VerticalRL) {
+            drawStringVerticalInternal(text, x, y, h, v);
+        } else {
+            drawStringInternal(text, x, y, h, v);
+        }
     }
 
     virtual void drawString(const std::string& text, float x, float y,
                             Direction h, Direction v) const {
-        drawStringInternal(text, x, y, h, v);
+        if (writingMode_ == WritingMode::VerticalRL) {
+            drawStringVerticalInternal(text, x, y, h, v);
+        } else {
+            drawStringInternal(text, x, y, h, v);
+        }
     }
+
+    // -------------------------------------------------------------------------
+    // Writing mode (default: Horizontal — existing behavior unchanged)
+    // -------------------------------------------------------------------------
+    void setWritingMode(WritingMode mode) { writingMode_ = mode; }
+    WritingMode getWritingMode() const { return writingMode_; }
+
+    // Tate-chu-yoko (縦中横) for runs of consecutive ASCII digits.
+    //   maxDigits == 0   → disabled, every run uses overflowMode
+    //   N digits ≤ max   → inMode (e.g. Combine to squeeze digits into one cell)
+    //   N digits  > max  → overflowMode (typically Rotate)
+    void setTcyDigits(int maxDigits, TcyMode inMode, TcyMode overflowMode) {
+        tcyDigitMax_ = maxDigits;
+        tcyDigitInMode_ = inMode;
+        tcyDigitOverflowMode_ = overflowMode;
+    }
+    // Tate-chu-yoko for runs of Latin letters (single mode, default Rotate).
+    void setTcyLatin(TcyMode mode) { tcyLatinMode_ = mode; }
+
+    TcyMode getTcyLatinMode() const { return tcyLatinMode_; }
+    int     getTcyDigitMax() const { return tcyDigitMax_; }
 
     // -------------------------------------------------------------------------
     // Internal drawing implementation
@@ -1038,6 +1076,309 @@ protected:
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Vertical text drawing (writingMode_ == VerticalRL).
+    //
+    // Coordinate convention with default alignment (Right, Top):
+    //   (x, y) = right-top corner of the first column.
+    // Columns flow right→left (Japanese books). Newlines start a new column.
+    // ---------------------------------------------------------------------
+    enum class VTokKind_ { Single, LatinRun, DigitRun, Newline };
+    struct VTok_ {
+        VTokKind_ kind;
+        std::vector<uint32_t> cps;  // for LatinRun / DigitRun
+        uint32_t cp = 0;            // for Single
+    };
+
+    void drawStringVerticalInternal(const std::string& text, float x, float y,
+                                    Direction h, Direction v) const {
+        if (!atlasManager_ || text.empty()) return;
+
+        const float s   = 1.0f / dpiScale_;
+        const float em  = (float)logicalSize_;
+        const float asc = atlasManager_->getAscent() * s;
+        const float colSpacing = getLineHeight();
+        const float cellH = em;  // CJK vertical advance per cell
+
+        // -------- Tokenize --------
+        std::vector<VTok_> toks;
+        toks.reserve(text.size());
+        for (size_t i = 0; i < text.size(); ) {
+            uint32_t cp = decodeUTF8(text, i);
+            if (cp == '\n') { toks.push_back({VTokKind_::Newline, {}, 0}); continue; }
+            if (cp == '\t') continue;  // ignored in vertical for now
+            if (isAsciiDigit(cp)) {
+                if (toks.empty() || toks.back().kind != VTokKind_::DigitRun)
+                    toks.push_back({VTokKind_::DigitRun, {}, 0});
+                toks.back().cps.push_back(cp);
+            } else if (isAsciiLetter(cp)) {
+                if (toks.empty() || toks.back().kind != VTokKind_::LatinRun)
+                    toks.push_back({VTokKind_::LatinRun, {}, 0});
+                toks.back().cps.push_back(cp);
+            } else {
+                toks.push_back({VTokKind_::Single, {}, cp});
+            }
+        }
+
+        // -------- Preload glyphs (incl. vertical-form variants) --------
+        for (auto& t : toks) {
+            if (t.kind == VTokKind_::Single) {
+                atlasManager_->getOrLoadGlyph(t.cp);
+                uint32_t vcp = getVerticalCodepoint(t.cp);
+                if (vcp != 0 && atlasManager_->fontHasGlyph(vcp)) {
+                    atlasManager_->getOrLoadGlyph(vcp);
+                }
+            } else if (t.kind == VTokKind_::LatinRun || t.kind == VTokKind_::DigitRun) {
+                for (uint32_t cp : t.cps) atlasManager_->getOrLoadGlyph(cp);
+            }
+        }
+        atlasManager_->ensureTexturesUpdated();
+
+        // -------- TCY mode selection per token --------
+        auto pickTcy = [&](const VTok_& t) -> TcyMode {
+            if (t.kind == VTokKind_::DigitRun) {
+                return ((int)t.cps.size() <= tcyDigitMax_) ? tcyDigitInMode_
+                                                           : tcyDigitOverflowMode_;
+            }
+            return tcyLatinMode_;
+        };
+
+        // Horizontal layout width of a run (sum of advances).
+        auto runHorizWidth = [&](const VTok_& t) -> float {
+            float w = 0;
+            for (uint32_t cp : t.cps) {
+                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                if (g && g->isValid()) w += g->getAdvance() * s;
+            }
+            return w;
+        };
+
+        // Token vertical advance in its column.
+        auto tokAdvance = [&](const VTok_& t) -> float {
+            if (t.kind == VTokKind_::Single)   return cellH;
+            if (t.kind == VTokKind_::Newline)  return 0;
+            const TcyMode m = pickTcy(t);
+            switch (m) {
+                case TcyMode::Rotate:  return runHorizWidth(t);
+                case TcyMode::Upright: return cellH * (float)t.cps.size();
+                case TcyMode::Combine: return cellH;
+            }
+            return cellH;
+        };
+
+        // -------- Column-height pass (for vertical alignment) --------
+        std::vector<float> colHeights;
+        {
+            float ch = 0;
+            for (const auto& t : toks) {
+                if (t.kind == VTokKind_::Newline) {
+                    colHeights.push_back(ch);
+                    ch = 0;
+                } else {
+                    ch += tokAdvance(t);
+                }
+            }
+            colHeights.push_back(ch);
+        }
+        const size_t numCols = colHeights.size();
+
+        // -------- Horizontal alignment of column block --------
+        // Columns are placed right→left; column 0 has its right edge at colX0.
+        // Total block horizontal extent ≈ numCols * colSpacing.
+        const float totalW = (float)numCols * colSpacing;
+        float colX0;  // right edge x of column 0
+        switch (h) {
+            case Direction::Right:  colX0 = x; break;
+            case Direction::Center: colX0 = x + totalW / 2.f - colSpacing / 2.f; break;
+            case Direction::Left:   colX0 = x + totalW - colSpacing; break;
+            default:                colX0 = x; break;
+        }
+
+        auto colYStart = [&](size_t i) -> float {
+            const float ch = (i < colHeights.size()) ? colHeights[i] : 0.f;
+            switch (v) {
+                case Direction::Top:      return y;
+                case Direction::Center:   return y - ch / 2.f;
+                case Direction::Bottom:   return y - ch;
+                case Direction::Baseline: return y;  // treat like Top
+                default:                  return y;
+            }
+        };
+
+        // -------- Render per atlas --------
+        const size_t atlasCount = atlasManager_->getAtlasCount();
+        for (size_t atlasIdx = 0; atlasIdx < atlasCount; ++atlasIdx) {
+            const AtlasState& atlas = atlasManager_->getAtlas(atlasIdx);
+            if (!atlas.isTextureValid()) continue;
+
+            if (internal::inFboPass && internal::currentFboBlendPipeline.id != 0) {
+                sgl_load_pipeline(internal::currentFboBlendPipeline);
+            } else {
+                sgl_load_pipeline(pipeline_);
+            }
+            sgl_enable_texture();
+            sgl_texture(atlas.getView(), sampler_);
+            Color col = getDefaultContext().getColor();
+            sgl_c4f(col.r, col.g, col.b, col.a);
+            sgl_begin_quads();
+
+            // Upright glyph quad (no rotation, no scaling).
+            auto emitUpright = [&](const GlyphInfo* g, float drawX, float baselineY) {
+                if (!g || !g->isValid()) return;
+                if (g->getAtlasIndex() != atlasIdx) return;
+                if (g->getWidth() <= 0 || g->getHeight() <= 0) return;
+                float gx = drawX + g->getXoff() * s;
+                float gy = baselineY + g->getYoff() * s;
+                float gw = g->getWidth() * s;
+                float gh = g->getHeight() * s;
+                sgl_v2f_t2f(gx,        gy,        g->getU0(), g->getV0());
+                sgl_v2f_t2f(gx + gw,   gy,        g->getU1(), g->getV0());
+                sgl_v2f_t2f(gx + gw,   gy + gh,   g->getU1(), g->getV1());
+                sgl_v2f_t2f(gx,        gy + gh,   g->getU0(), g->getV1());
+            };
+
+            // Rotate 90° CW around (cx, cy): (px,py) → (cx + (cy-py), cy + (px-cx)).
+            auto emitRotated = [&](const GlyphInfo* g, float drawX, float baselineY,
+                                   float cx, float cy) {
+                if (!g || !g->isValid()) return;
+                if (g->getAtlasIndex() != atlasIdx) return;
+                if (g->getWidth() <= 0 || g->getHeight() <= 0) return;
+                float gx = drawX + g->getXoff() * s;
+                float gy = baselineY + g->getYoff() * s;
+                float gw = g->getWidth() * s;
+                float gh = g->getHeight() * s;
+                auto rot = [&](float px, float py, float& ox, float& oy) {
+                    ox = cx + (cy - py);
+                    oy = cy + (px - cx);
+                };
+                float v0x, v0y, v1x, v1y, v2x, v2y, v3x, v3y;
+                rot(gx,      gy,      v0x, v0y);
+                rot(gx + gw, gy,      v1x, v1y);
+                rot(gx + gw, gy + gh, v2x, v2y);
+                rot(gx,      gy + gh, v3x, v3y);
+                sgl_v2f_t2f(v0x, v0y, g->getU0(), g->getV0());
+                sgl_v2f_t2f(v1x, v1y, g->getU1(), g->getV0());
+                sgl_v2f_t2f(v2x, v2y, g->getU1(), g->getV1());
+                sgl_v2f_t2f(v3x, v3y, g->getU0(), g->getV1());
+            };
+
+            size_t colIdx = 0;
+            float  colX        = colX0;
+            float  colCenterX  = colX - em / 2.f;
+            float  colY        = colYStart(0);
+
+            for (const auto& t : toks) {
+                if (t.kind == VTokKind_::Newline) {
+                    colIdx++;
+                    colX       -= colSpacing;
+                    colCenterX  = colX - em / 2.f;
+                    colY        = colYStart(colIdx);
+                    continue;
+                }
+
+                if (t.kind == VTokKind_::Single) {
+                    const uint32_t cp = t.cp;
+                    const VertOrient vo = getVerticalOrientation(cp);
+                    const uint32_t vcp = getVerticalCodepoint(cp);
+                    const bool hasVert = (vcp != 0 && atlasManager_->fontHasGlyph(vcp));
+
+                    if (vo == VertOrient::U
+                        || (vo == VertOrient::Tu)
+                        || (vo == VertOrient::Tr && hasVert)) {
+                        // Upright path.
+                        const uint32_t useCp = hasVert ? vcp : cp;
+                        const GlyphInfo* g = atlasManager_->getOrLoadGlyph(useCp);
+                        if (g && g->isValid()) {
+                            float drawX = colCenterX - g->getAdvance() * s / 2.f;
+                            float baselineY = colY + asc;
+                            // Fallback offset for Tu without vertical form.
+                            if (vo == VertOrient::Tu && !hasVert) {
+                                VertOffset off = getVerticalPunctOffset(cp);
+                                drawX     += off.dx * em;
+                                baselineY += off.dy * em;
+                            }
+                            emitUpright(g, drawX, baselineY);
+                        }
+                    } else {
+                        // Rotate 90° CW around cell center.
+                        const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                        if (g && g->isValid()) {
+                            float cx = colCenterX;
+                            float cy = colY + cellH / 2.f;
+                            float drawX = cx - g->getAdvance() * s / 2.f;
+                            float baselineY = cy - em / 2.f + asc;
+                            emitRotated(g, drawX, baselineY, cx, cy);
+                        }
+                    }
+                    colY += cellH;
+                    continue;
+                }
+
+                // ---- LatinRun / DigitRun ----
+                const TcyMode m = pickTcy(t);
+                const float rw = runHorizWidth(t);
+                switch (m) {
+                    case TcyMode::Rotate: {
+                        float cx = colCenterX;
+                        float cy = colY + rw / 2.f;
+                        float cursorX   = cx - rw / 2.f;
+                        float baselineY = cy - em / 2.f + asc;
+                        for (uint32_t cp : t.cps) {
+                            const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                            if (!g || !g->isValid()) continue;
+                            emitRotated(g, cursorX, baselineY, cx, cy);
+                            cursorX += g->getAdvance() * s;
+                        }
+                        colY += rw;
+                        break;
+                    }
+                    case TcyMode::Upright: {
+                        for (uint32_t cp : t.cps) {
+                            const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                            if (g && g->isValid()) {
+                                float drawX = colCenterX - g->getAdvance() * s / 2.f;
+                                float baselineY = colY + asc;
+                                emitUpright(g, drawX, baselineY);
+                            }
+                            colY += cellH;
+                        }
+                        break;
+                    }
+                    case TcyMode::Combine: {
+                        // Fit run horizontally into one em cell with x-scale only.
+                        const float xscale = (rw > em) ? em / rw : 1.f;
+                        const float scaledW = rw * xscale;
+                        const float cellLeft = colCenterX - em / 2.f;
+                        float cursorX = cellLeft + (em - scaledW) / 2.f;
+                        float baselineY = colY + asc;
+                        for (uint32_t cp : t.cps) {
+                            const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                            if (!g || !g->isValid()) continue;
+                            if (g->getAtlasIndex() == atlasIdx
+                                && g->getWidth() > 0 && g->getHeight() > 0) {
+                                float gx = cursorX + g->getXoff() * s * xscale;
+                                float gy = baselineY + g->getYoff() * s;
+                                float gw = g->getWidth() * s * xscale;
+                                float gh = g->getHeight() * s;
+                                sgl_v2f_t2f(gx,      gy,      g->getU0(), g->getV0());
+                                sgl_v2f_t2f(gx + gw, gy,      g->getU1(), g->getV0());
+                                sgl_v2f_t2f(gx + gw, gy + gh, g->getU1(), g->getV1());
+                                sgl_v2f_t2f(gx,      gy + gh, g->getU0(), g->getV1());
+                            }
+                            cursorX += g->getAdvance() * s * xscale;
+                        }
+                        colY += cellH;
+                        break;
+                    }
+                }
+            }
+
+            sgl_end();
+            sgl_disable_texture();
+            internal::restoreCurrentPipeline();
+        }
+    }
+
 public:
     // -------------------------------------------------------------------------
     // Metrics (virtual - customizable in subclass)
@@ -1148,6 +1489,13 @@ protected:
     Direction alignH_ = Direction::Left;
     Direction alignV_ = Direction::Top;
     float lineHeight_ = 0;  // 0 = use font's default line height
+
+    // Vertical writing settings (default = horizontal, no behavior change)
+    WritingMode writingMode_         = WritingMode::Horizontal;
+    int         tcyDigitMax_         = 0;                // 0 → disabled
+    TcyMode     tcyDigitInMode_      = TcyMode::Combine; // digit count ≤ max
+    TcyMode     tcyDigitOverflowMode_= TcyMode::Rotate;  // digit count >  max
+    TcyMode     tcyLatinMode_        = TcyMode::Rotate;  // Latin letter runs
 
 public:
     // -------------------------------------------------------------------------
