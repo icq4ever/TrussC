@@ -69,7 +69,7 @@ void tcApp::draw() {
         setColor(0.10f);
         f.drawString(txt, anchorX, anchorY, Right, Top);
 
-        // Anchor marker (where (x,y) was passed to drawString)
+        // Anchor marker
         setColor(colors::red);
         drawCircle(anchorX, anchorY, 3);
 
@@ -80,7 +80,8 @@ void tcApp::draw() {
     };
 
     drawPanel(0, "CJK + brackets/punct", fontV,
-              "日本発、「縦書き」可能なフレームワーク（プログラミングの基盤となる技術）。開発者は著書『TrussCをはじめよう』を《MITライセンス》で公開。");
+              "日本発、「縦書き」可能なフレームワーク（プログラミングの基盤となる技術）。"
+              "開発者は著書『TrussCをはじめよう』を《MITライセンス》で公開。");
 
     drawPanel(1, "Latin = Rotate (default)", fontV,
               "TrussCで縦書きAPIを実装中、2026年5月。");

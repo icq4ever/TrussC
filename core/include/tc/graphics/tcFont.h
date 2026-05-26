@@ -907,19 +907,21 @@ public:
     virtual void drawString(const std::string& text, float x, float y) const {
         Direction h = getDefaultContext().getTextAlignH();
         Direction v = getDefaultContext().getTextAlignV();
+        const std::string wrapped = wrapTextIfEnabled(text);
         if (writingMode_ == WritingMode::VerticalRL) {
-            drawStringVerticalInternal(text, x, y, h, v);
+            drawStringVerticalInternal(wrapped, x, y, h, v);
         } else {
-            drawStringInternal(text, x, y, h, v);
+            drawStringInternal(wrapped, x, y, h, v);
         }
     }
 
     virtual void drawString(const std::string& text, float x, float y,
                             Direction h, Direction v) const {
+        const std::string wrapped = wrapTextIfEnabled(text);
         if (writingMode_ == WritingMode::VerticalRL) {
-            drawStringVerticalInternal(text, x, y, h, v);
+            drawStringVerticalInternal(wrapped, x, y, h, v);
         } else {
-            drawStringInternal(text, x, y, h, v);
+            drawStringInternal(wrapped, x, y, h, v);
         }
     }
 
@@ -943,6 +945,38 @@ public:
 
     TcyMode getTcyLatinMode() const { return tcyLatinMode_; }
     int     getTcyDigitMax() const { return tcyDigitMax_; }
+
+    // -------------------------------------------------------------------------
+    // Line wrapping (default: off — existing single-line behavior unchanged).
+    // Both writing modes use the same API:
+    //   horizontal → maxLineLength is the line width before wrapping
+    //   vertical   → maxLineLength is the column height before column-break
+    // -------------------------------------------------------------------------
+    void  enableWrap(bool enabled)       { wrapEnabled_ = enabled; }
+    bool  isWrapEnabled() const          { return wrapEnabled_; }
+    void  setMaxLineLength(float length) { maxLineLength_ = length; }
+    float getMaxLineLength() const       { return maxLineLength_; }
+
+    // When wrapping a Latin run with no break opportunity inside, insert '-'
+    // before the forced break instead of cutting silently. Default: off.
+    void setLatinHyphenation(bool enabled) { latinHyphenation_ = enabled; }
+    bool getLatinHyphenation() const       { return latinHyphenation_; }
+
+    // CJK kinsoku: when a 行頭禁則 character (、。」』）etc.) would otherwise
+    // start a new line, let it hang past the edge of the current line instead.
+    // Default: off (plain greedy wrap).
+    void setHangingPunctuation(bool enabled) { hangingPunctuation_ = enabled; }
+    bool getHangingPunctuation() const       { return hangingPunctuation_; }
+
+    // Which subset of the CJK kinsoku tables to consult during wrap.
+    //   Off (default)    — every CJK boundary is breakable, no kinsoku at all
+    //   PunctuationOnly  — only 、。, . : ; ? ! ， ． ： ； ？ ！ … ‥ block line-start
+    //   Standard         — full table (closing brackets + small kana + sound
+    //                       marks + iteration marks + punctuation)
+    // Affects both break-opportunity decisions and the hanging-punctuation
+    // overflow path (see setHangingPunctuation).
+    void         setKinsoku(KinsokuLevel level) { kinsokuLevel_ = level; }
+    KinsokuLevel getKinsoku() const             { return kinsokuLevel_; }
 
     // -------------------------------------------------------------------------
     // Internal drawing implementation
@@ -1379,6 +1413,320 @@ protected:
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Kinsoku-level-gated table lookups. When kinsokuLevel_ == Off, both return
+    // false unconditionally (Latin word integrity in isBreakable still applies,
+    // because that's a separate Latin-wrap rule, not kinsoku).
+    // -------------------------------------------------------------------------
+    bool kinsokuLineStart(uint32_t cp) const {
+        switch (kinsokuLevel_) {
+            case KinsokuLevel::Off:             return false;
+            case KinsokuLevel::PunctuationOnly: return isPunctuationOnlyLineStart(cp);
+            case KinsokuLevel::Standard:        return isLineStartProhibited(cp);
+        }
+        return false;
+    }
+    bool kinsokuLineEnd(uint32_t cp) const {
+        switch (kinsokuLevel_) {
+            case KinsokuLevel::Off:             return false;
+            case KinsokuLevel::PunctuationOnly: return false;  // no opening bracket subset for puncts-only
+            case KinsokuLevel::Standard:        return isLineEndProhibited(cp);
+        }
+        return false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Line wrap preprocessing — inserts '\n' (and '-' for hyphenation) into the
+    // input string so the rest of the pipeline keeps using the simple hard-newline
+    // logic it already has. Returns the input unchanged when wrap is disabled
+    // or maxLineLength <= 0.
+    // -------------------------------------------------------------------------
+    std::string wrapTextHorizontal(const std::string& text) const {
+        if (!wrapEnabled_ || maxLineLength_ <= 0 || !atlasManager_) return text;
+
+        const float s = 1.0f / dpiScale_;
+        const float spaceAdv = atlasManager_->getSpaceAdvance() * s;
+
+        // Decode all codepoints with byte ranges and per-glyph advances.
+        struct Cp { uint32_t cp; size_t byteStart; size_t byteEnd; float advance; };
+        std::vector<Cp> cps;
+        cps.reserve(text.size());
+        for (size_t i = 0; i < text.size(); ) {
+            size_t before = i;
+            uint32_t cp = decodeUTF8(text, i);
+            float adv = 0;
+            if (cp != '\n') {
+                if (cp == '\t') adv = spaceAdv * 4;
+                else {
+                    const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                    adv = (g && g->isValid()) ? g->getAdvance() * s : 0;
+                }
+            }
+            cps.push_back({cp, before, i, adv});
+        }
+
+        auto emitRange = [&](size_t from, size_t to, std::string& out) {
+            if (from >= to || from >= cps.size()) return;
+            size_t lastIdx = (to <= cps.size()) ? to - 1 : cps.size() - 1;
+            size_t bs = cps[from].byteStart;
+            size_t be = cps[lastIdx].byteEnd;
+            out.append(text, bs, be - bs);
+        };
+
+        // "Can we break the line immediately AFTER cps[i]?"
+        auto isBreakable = [&](size_t i) -> bool {
+            if (i + 1 >= cps.size()) return false;
+            uint32_t a = cps[i].cp;
+            uint32_t b = cps[i + 1].cp;
+            if (b == '\n') return false;            // hard newline handled separately
+            if (a == ' ' || a == '\t') return true; // after whitespace
+            if (a == '-') return true;              // after hyphen
+            const bool aCjk = isCjkChar(a);
+            const bool bCjk = isCjkChar(b);
+            if (aCjk || bCjk) {
+                if (kinsokuLineEnd(a)) return false;   // can't end on opener (when kinsoku active)
+                if (kinsokuLineStart(b)) return false; // can't start on kinsoku
+                return true;
+            }
+            return false;
+        };
+
+        std::string out;
+        out.reserve(text.size() + text.size() / 8);
+        size_t lineStart = 0;
+        while (lineStart < cps.size()) {
+            // Pass-through leading hard newline
+            if (cps[lineStart].cp == '\n') {
+                out += '\n';
+                ++lineStart;
+                continue;
+            }
+
+            float  width = 0;
+            size_t lastBreak = std::string::npos;
+            size_t i = lineStart;
+            bool   wrapped = false;
+
+            while (i < cps.size()) {
+                if (cps[i].cp == '\n') {
+                    emitRange(lineStart, i, out);
+                    out += '\n';
+                    lineStart = i + 1;
+                    wrapped = true;
+                    break;
+                }
+                const float nextW = width + cps[i].advance;
+                if (nextW > maxLineLength_ && i > lineStart) {
+                    // Kinsoku hanging: a 行頭禁則 char at the break point rides on
+                    // the current line even though it overflows.
+                    if (hangingPunctuation_ && kinsokuLineStart(cps[i].cp)) {
+                        emitRange(lineStart, i + 1, out);
+                        if (i + 1 < cps.size()) out += '\n';
+                        lineStart = i + 1;
+                        wrapped = true;
+                        break;
+                    }
+                    if (lastBreak != std::string::npos) {
+                        const size_t breakAt = lastBreak + 1;
+                        emitRange(lineStart, breakAt, out);
+                        out += '\n';
+                        lineStart = breakAt;
+                    } else {
+                        // No break opportunity — forced break before cps[i].
+                        emitRange(lineStart, i, out);
+                        if (latinHyphenation_) out += '-';
+                        out += '\n';
+                        lineStart = i;
+                    }
+                    wrapped = true;
+                    break;
+                }
+                width = nextW;
+                if (isBreakable(i)) lastBreak = i;
+                ++i;
+            }
+
+            if (!wrapped) {
+                emitRange(lineStart, cps.size(), out);
+                lineStart = cps.size();
+            }
+        }
+        return out;
+    }
+
+    // Vertical wrap: maxLineLength is the column-height budget. Tokenize the
+    // same way drawStringVerticalInternal does (so per-token vertical advance
+    // matches the actual layout: CJK = em, Latin/Digit runs depend on TcyMode),
+    // then greedy-wrap by inserting '\n' between tokens.
+    std::string wrapTextVertical(const std::string& text) const {
+        if (!wrapEnabled_ || maxLineLength_ <= 0 || !atlasManager_) return text;
+
+        const float s = 1.0f / dpiScale_;
+        const float em = (float)logicalSize_;
+        const float cellH = em;
+
+        enum class TK { Single, Latin, Digit, NL };
+        struct Tok { TK kind; size_t byteStart; size_t byteEnd; float advance; };
+        std::vector<Tok> toks;
+        toks.reserve(text.size());
+
+        // ---- Tokenize ----
+        for (size_t i = 0; i < text.size(); ) {
+            size_t before = i;
+            uint32_t cp = decodeUTF8(text, i);
+            if (cp == '\n') { toks.push_back({TK::NL, before, i, 0}); continue; }
+            if (cp == '\t') continue;
+            if (isAsciiDigit(cp)) {
+                if (!toks.empty() && toks.back().kind == TK::Digit)
+                    toks.back().byteEnd = i;
+                else
+                    toks.push_back({TK::Digit, before, i, 0});
+                continue;
+            }
+            if (isAsciiLetter(cp)) {
+                if (!toks.empty() && toks.back().kind == TK::Latin)
+                    toks.back().byteEnd = i;
+                else
+                    toks.push_back({TK::Latin, before, i, 0});
+                continue;
+            }
+            toks.push_back({TK::Single, before, i, 0});
+        }
+
+        auto runHorizWidth = [&](const Tok& t) -> float {
+            float w = 0;
+            for (size_t bi = t.byteStart; bi < t.byteEnd; ) {
+                uint32_t cp = decodeUTF8(text, bi);
+                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                if (g && g->isValid()) w += g->getAdvance() * s;
+            }
+            return w;
+        };
+        auto runCount = [&](const Tok& t) -> int {
+            int n = 0;
+            for (size_t bi = t.byteStart; bi < t.byteEnd; ) {
+                decodeUTF8(text, bi);
+                ++n;
+            }
+            return n;
+        };
+        auto firstCp = [&](const Tok& t) -> uint32_t {
+            size_t bi = t.byteStart;
+            if (bi >= text.size()) return 0;
+            return decodeUTF8(text, bi);
+        };
+
+        // ---- Per-token vertical advance ----
+        for (auto& t : toks) {
+            switch (t.kind) {
+                case TK::NL:     t.advance = 0;     break;
+                case TK::Single: t.advance = cellH; break;
+                case TK::Latin: {
+                    const int n = runCount(t);
+                    switch (tcyLatinMode_) {
+                        case TcyMode::Rotate:  t.advance = runHorizWidth(t); break;
+                        case TcyMode::Upright: t.advance = cellH * (float)n; break;
+                        case TcyMode::Combine: t.advance = cellH;            break;
+                    }
+                    break;
+                }
+                case TK::Digit: {
+                    const int n = runCount(t);
+                    const TcyMode m = (n <= tcyDigitMax_) ? tcyDigitInMode_
+                                                         : tcyDigitOverflowMode_;
+                    switch (m) {
+                        case TcyMode::Rotate:  t.advance = runHorizWidth(t); break;
+                        case TcyMode::Upright: t.advance = cellH * (float)n; break;
+                        case TcyMode::Combine: t.advance = cellH;            break;
+                    }
+                    break;
+                }
+            }
+        }
+
+        auto isBreakableAfter = [&](size_t i) -> bool {
+            if (i + 1 >= toks.size()) return false;
+            const Tok& a = toks[i];
+            const Tok& b = toks[i + 1];
+            if (a.kind == TK::NL || b.kind == TK::NL) return false;
+            if (a.kind == TK::Single && kinsokuLineEnd(firstCp(a))) return false;
+            if (b.kind == TK::Single && kinsokuLineStart(firstCp(b))) return false;
+            return true;
+        };
+
+        auto emitTokRange = [&](size_t from, size_t to, std::string& out) {
+            if (from >= to || from >= toks.size()) return;
+            if (to > toks.size()) to = toks.size();
+            size_t bs = toks[from].byteStart;
+            size_t be = toks[to - 1].byteEnd;
+            if (bs < be) out.append(text, bs, be - bs);
+        };
+
+        // ---- Greedy column wrap ----
+        std::string out;
+        out.reserve(text.size() + text.size() / 8);
+        size_t colStart = 0;
+        while (colStart < toks.size()) {
+            if (toks[colStart].kind == TK::NL) {
+                out += '\n';
+                ++colStart;
+                continue;
+            }
+            float  height = 0;
+            size_t lastBreak = std::string::npos;
+            size_t i = colStart;
+            bool   wrapped = false;
+            while (i < toks.size()) {
+                if (toks[i].kind == TK::NL) {
+                    emitTokRange(colStart, i, out);
+                    out += '\n';
+                    colStart = i + 1;
+                    wrapped = true;
+                    break;
+                }
+                const float nextH = height + toks[i].advance;
+                if (nextH > maxLineLength_ && i > colStart) {
+                    if (hangingPunctuation_
+                        && toks[i].kind == TK::Single
+                        && kinsokuLineStart(firstCp(toks[i]))) {
+                        emitTokRange(colStart, i + 1, out);
+                        if (i + 1 < toks.size()) out += '\n';
+                        colStart = i + 1;
+                        wrapped = true;
+                        break;
+                    }
+                    if (lastBreak != std::string::npos) {
+                        const size_t breakAt = lastBreak + 1;
+                        emitTokRange(colStart, breakAt, out);
+                        out += '\n';
+                        colStart = breakAt;
+                    } else {
+                        emitTokRange(colStart, i, out);
+                        out += '\n';
+                        colStart = i;
+                    }
+                    wrapped = true;
+                    break;
+                }
+                height = nextH;
+                if (isBreakableAfter(i)) lastBreak = i;
+                ++i;
+            }
+            if (!wrapped) {
+                emitTokRange(colStart, toks.size(), out);
+                colStart = toks.size();
+            }
+        }
+        return out;
+    }
+
+    std::string wrapTextIfEnabled(const std::string& text) const {
+        if (!wrapEnabled_) return text;
+        return (writingMode_ == WritingMode::VerticalRL)
+            ? wrapTextVertical(text)
+            : wrapTextHorizontal(text);
+    }
+
 public:
     // -------------------------------------------------------------------------
     // Metrics (virtual - customizable in subclass)
@@ -1386,12 +1734,14 @@ public:
     virtual float getWidth(const std::string& text) const {
         if (!atlasManager_) return 0;
 
+        const std::string src = wrapTextIfEnabled(text);
+
         float width = 0;
         float maxWidth = 0;
         const float s = 1.0f / dpiScale_;
 
-        for (size_t i = 0; i < text.size(); ) {
-            uint32_t codepoint = decodeUTF8(text, i);
+        for (size_t i = 0; i < src.size(); ) {
+            uint32_t codepoint = decodeUTF8(src, i);
 
             if (codepoint == '\n') {
                 if (width > maxWidth) maxWidth = width;
@@ -1418,8 +1768,9 @@ public:
     virtual float getHeight(const std::string& text) const {
         if (!atlasManager_) return 0;
 
+        const std::string src = wrapTextIfEnabled(text);
         int lines = 1;
-        for (char c : text) {
+        for (char c : src) {
             if (c == '\n') lines++;
         }
         return getLineHeight() * lines;
@@ -1496,6 +1847,13 @@ protected:
     TcyMode     tcyDigitInMode_      = TcyMode::Combine; // digit count ≤ max
     TcyMode     tcyDigitOverflowMode_= TcyMode::Rotate;  // digit count >  max
     TcyMode     tcyLatinMode_        = TcyMode::Rotate;  // Latin letter runs
+
+    // Line wrap settings (default = off, no behavior change)
+    bool         wrapEnabled_        = false;            // master toggle
+    float        maxLineLength_      = 0;                // pixels; horizontal: line width, vertical: column height
+    bool         latinHyphenation_   = false;            // insert '-' on forced Latin mid-word break
+    bool         hangingPunctuation_ = false;            // CJK kinsoku — let prohibited line-start chars hang past edge
+    KinsokuLevel kinsokuLevel_       = KinsokuLevel::Off;// which subset of kinsoku tables to consult
 
 public:
     // -------------------------------------------------------------------------

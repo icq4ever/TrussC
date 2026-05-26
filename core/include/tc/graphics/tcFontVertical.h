@@ -205,6 +205,100 @@ inline VertOffset getVerticalPunctOffset(uint32_t cp) {
     return {0, 0};
 }
 
+// ---------------------------------------------------------------------------
+// CJK-ness check used by the line-wrap break-opportunity logic.
+// True for ideographs, kana, fullwidth ASCII, CJK symbols/punctuation —
+// anything where a break between two adjacent characters is normal.
+// ---------------------------------------------------------------------------
+inline bool isCjkChar(uint32_t cp) {
+    if (isCjkIdeograph(cp))                            return true;
+    if (isHiragana(cp) || isKatakana(cp))              return true;
+    if (cp >= 0x3000 && cp <= 0x303F)                  return true;  // CJK symbols & punct
+    if (cp >= 0x3100 && cp <= 0x312F)                  return true;  // Bopomofo
+    if (cp >= 0x3300 && cp <= 0x33FF)                  return true;  // CJK Compatibility
+    if (cp >= 0xFF00 && cp <= 0xFFEF)                  return true;  // Halfwidth & Fullwidth
+    if (cp >= 0xAC00 && cp <= 0xD7AF)                  return true;  // Hangul
+    if (cp >= 0xFE10 && cp <= 0xFE4F)                  return true;  // Vertical forms
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// Kinsoku level — picks which subset of the prohibition tables is active.
+//   Off              : ignore tables entirely (every CJK boundary is breakable)
+//   PunctuationOnly  : only commas / periods / sentence-end marks
+//   Standard         : full set — closing brackets, small kana, sound marks,
+//                      iteration marks, punctuation
+// ---------------------------------------------------------------------------
+enum class KinsokuLevel {
+    Off,
+    PunctuationOnly,
+    Standard,
+};
+
+// Narrow subset used by KinsokuLevel::PunctuationOnly. CJK + halfwidth/fullwidth
+// commas / periods / colons / semicolons / question / exclamation, plus the
+// horizontal-ellipsis forms.
+inline bool isPunctuationOnlyLineStart(uint32_t cp) {
+    switch (cp) {
+        case 0x002C: case 0x002E:                            // , .
+        case 0x003A: case 0x003B:                            // : ;
+        case 0x003F: case 0x0021:                            // ? !
+        case 0xFF0C: case 0xFF0E: case 0xFF1A: case 0xFF1B:  // ， ． ： ；
+        case 0xFF1F: case 0xFF01:                            // ？ ！
+        case 0x3001: case 0x3002:                            // 、 。
+        case 0x2026: case 0x2025:                            // … ‥
+            return true;
+    }
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// CJK 行頭禁則 (line-start prohibition) — characters that should not start
+// a wrapped line. Conservative subset; tune by what real Japanese text needs.
+// ---------------------------------------------------------------------------
+inline bool isLineStartProhibited(uint32_t cp) {
+    switch (cp) {
+        // Closing brackets (CJK + halfwidth/fullwidth)
+        case 0x300D: case 0x300F: case 0x3009: case 0x300B:  // 」』〉》
+        case 0x3011: case 0x3015: case 0x3017: case 0x3019:  // 】〕〗〙
+        case 0x0029: case 0x005D: case 0x007D:               // ) ] }
+        case 0xFF09: case 0xFF3D: case 0xFF5D:               // ） ］ ｝
+        // Punctuation / sentence-end
+        case 0x002C: case 0x002E:                            // , .
+        case 0x003A: case 0x003B:                            // : ;
+        case 0x003F: case 0x0021:                            // ? !
+        case 0xFF0C: case 0xFF0E: case 0xFF1A: case 0xFF1B:  // ， ． ： ；
+        case 0xFF1F: case 0xFF01:                            // ？ ！
+        case 0x3001: case 0x3002:                            // 、 。
+        case 0x2026: case 0x2025:                            // … ‥
+        // Sound marks / continuation
+        case 0x30FC:                                         // ー
+        case 0x309D: case 0x309E: case 0x30FD: case 0x30FE:  // ゝゞヽヾ
+        // Small kana (cannot start a line)
+        case 0x3041: case 0x3043: case 0x3045: case 0x3047: case 0x3049:  // ぁぃぅぇぉ
+        case 0x3063: case 0x3083: case 0x3085: case 0x3087: case 0x308E:  // っゃゅょゎ
+        case 0x30A1: case 0x30A3: case 0x30A5: case 0x30A7: case 0x30A9:  // ァィゥェォ
+        case 0x30C3: case 0x30E3: case 0x30E5: case 0x30E7: case 0x30EE:  // ッャュョヮ
+            return true;
+    }
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// CJK 行末禁則 (line-end prohibition) — characters that should not end a
+// wrapped line. Mostly opening brackets.
+// ---------------------------------------------------------------------------
+inline bool isLineEndProhibited(uint32_t cp) {
+    switch (cp) {
+        case 0x300C: case 0x300E: case 0x3008: case 0x300A:  // 「『〈《
+        case 0x3010: case 0x3014: case 0x3016: case 0x3018:  // 【〔〖〘
+        case 0x0028: case 0x005B: case 0x007B:               // ( [ {
+        case 0xFF08: case 0xFF3B: case 0xFF5B:               // （ ［ ｛
+            return true;
+    }
+    return false;
+}
+
 } // namespace trussc
 
 namespace tc = trussc;
