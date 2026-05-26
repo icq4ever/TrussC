@@ -527,23 +527,88 @@ static void playbackDataCallback(ma_device* pDevice, void* pOutput, const void* 
 // ---------------------------------------------------------------------------
 
 bool AudioEngine::init() {
-    if (initialized_) return true;
+    // Zero-arg path: use whatever's currently in the runtime fields
+    // (defaults unless someone wrote to them first via init(settings)).
+    return init(AudioSettings{
+        .sampleRate   = sampleRate_,
+        .channels     = channels_,
+        .bufferSize   = bufferSize_,
+        .maxPolyphony = (int)playingSounds_.size(),
+        .deviceName   = std::string(),
+    });
+}
 
-    // Use whatever values were already in the runtime fields (defaults
-    // unless a future init(AudioSettings) wrote them first).
+bool AudioEngine::init(const AudioSettings& settings) {
+    if (initialized_) {
+        // Re-init while a device is running would tear down playing voices
+        // and is rarely what the user actually wants. Log + ignore.
+        printf("AudioEngine: init(settings) called after engine already "
+               "running — settings ignored (current: %d Hz, %d ch). "
+               "Call shutdown() first to reconfigure.\n",
+               sampleRate_, channels_);
+        return true;
+    }
+
+    // Commit settings to runtime fields BEFORE device init so the values
+    // are visible to anyone reading getSampleRate() during init (e.g. video
+    // resampler setup that happens to race with audio startup).
+    sampleRate_ = settings.sampleRate > 0 ? settings.sampleRate : DEFAULT_SAMPLE_RATE;
+    channels_   = settings.channels   > 0 ? settings.channels   : DEFAULT_CHANNELS;
+    bufferSize_ = settings.bufferSize  > 0 ? settings.bufferSize : DEFAULT_BUFFER_SIZE;
+
+    int polyphony = settings.maxPolyphony > 0
+                  ? settings.maxPolyphony
+                  : DEFAULT_MAX_PLAYING_SOUNDS;
+    if ((int)playingSounds_.size() != polyphony) {
+        playingSounds_.assign(polyphony, nullptr);
+    }
+
+    // Device selection — if the caller specified a deviceName, enumerate
+    // and find the matching ID. Empty string = system default.
+    ma_context context;
+    ma_device_id  selectedDeviceID;
+    ma_device_id* deviceIDPtr = nullptr;
+    bool contextOwned = false;
+    if (!settings.deviceName.empty()) {
+        if (ma_context_init(NULL, 0, NULL, &context) == MA_SUCCESS) {
+            contextOwned = true;
+            ma_device_info* infos = nullptr;
+            ma_uint32 count = 0;
+            if (ma_context_get_devices(&context, &infos, &count, NULL, NULL) == MA_SUCCESS) {
+                for (ma_uint32 i = 0; i < count; ++i) {
+                    if (settings.deviceName == infos[i].name) {
+                        selectedDeviceID = infos[i].id;
+                        deviceIDPtr = &selectedDeviceID;
+                        break;
+                    }
+                }
+            }
+            if (!deviceIDPtr) {
+                printf("AudioEngine: device '%s' not found, using system default\n",
+                       settings.deviceName.c_str());
+            }
+        }
+    }
+
     ma_device* device = new ma_device();
 
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
-    config.playback.format = ma_format_f32;
-    config.playback.channels = channels_;
-    config.sampleRate = sampleRate_;
-    config.dataCallback = playbackDataCallback;
-    config.pUserData = this;
+    config.playback.format     = ma_format_f32;
+    config.playback.channels   = channels_;
+    config.playback.pDeviceID  = deviceIDPtr;
+    config.sampleRate          = sampleRate_;
+    config.dataCallback        = playbackDataCallback;
+    config.pUserData           = this;
+    if (bufferSize_ > 0) {
+        config.periodSizeInFrames = bufferSize_;
+    }
 
-    ma_result result = ma_device_init(nullptr, &config, device);
+    ma_context* ctxArg = contextOwned ? &context : nullptr;
+    ma_result result = ma_device_init(ctxArg, &config, device);
     if (result != MA_SUCCESS) {
         printf("AudioEngine: failed to initialize device (error=%d)\n", result);
         delete device;
+        if (contextOwned) ma_context_uninit(&context);
         return false;
     }
 
@@ -552,15 +617,45 @@ bool AudioEngine::init() {
         printf("AudioEngine: failed to start device (error=%d)\n", result);
         ma_device_uninit(device);
         delete device;
+        if (contextOwned) ma_context_uninit(&context);
         return false;
     }
 
     device_ = device;
     initialized_ = true;
 
-    printf("AudioEngine: initialized (%d Hz, %d ch) [miniaudio]\n",
-           sampleRate_, channels_);
+    // The context can be released once ma_device_init has copied what it
+    // needs from it (the device keeps its own internal context state).
+    if (contextOwned) ma_context_uninit(&context);
+
+    printf("AudioEngine: initialized (%d Hz, %d ch, %d voices) [miniaudio]\n",
+           sampleRate_, channels_, (int)playingSounds_.size());
     return true;
+}
+
+std::vector<AudioDeviceInfo> AudioEngine::listDevices() {
+    std::vector<AudioDeviceInfo> result;
+
+    ma_context context;
+    if (ma_context_init(NULL, 0, NULL, &context) != MA_SUCCESS) {
+        return result;
+    }
+
+    ma_device_info* playbackInfos = nullptr;
+    ma_uint32 playbackCount = 0;
+    if (ma_context_get_devices(&context, &playbackInfos, &playbackCount,
+                                NULL, NULL) == MA_SUCCESS) {
+        result.reserve(playbackCount);
+        for (ma_uint32 i = 0; i < playbackCount; ++i) {
+            AudioDeviceInfo info;
+            info.name      = playbackInfos[i].name;
+            info.isDefault = (playbackInfos[i].isDefault != 0);
+            result.push_back(std::move(info));
+        }
+    }
+
+    ma_context_uninit(&context);
+    return result;
 }
 
 void AudioEngine::shutdown() {

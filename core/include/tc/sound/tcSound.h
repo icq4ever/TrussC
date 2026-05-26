@@ -461,6 +461,36 @@ struct PlayingSound {
 };
 
 // ---------------------------------------------------------------------------
+// AudioSettings — configuration for AudioEngine::init().
+//
+// Pass to AudioEngine::init(settings) before any Sound::load() / play()
+// call to override the engine defaults (sample rate, channel count,
+// device, polyphony).
+//
+// Once init() succeeds, the engine is locked in — calling init() again
+// with different settings is currently a no-op + warning (avoiding the
+// disruption of tearing down a running device while sounds are playing).
+//
+// Empty `deviceName` selects the system default playback device.
+// Use AudioEngine::listDevices() to enumerate available device names.
+// ---------------------------------------------------------------------------
+struct AudioSettings {
+    int sampleRate   = 96000;   // engine output sample rate (Hz)
+    int channels     = 2;       // engine output channel count (1 = mono, 2 = stereo)
+    int bufferSize   = 0;       // requested device buffer size in frames; 0 = let miniaudio choose
+    int maxPolyphony = 32;      // max simultaneously-playing Sound voices
+    std::string deviceName;     // playback device name; empty = system default
+};
+
+// ---------------------------------------------------------------------------
+// AudioDeviceInfo — entry in the list returned by AudioEngine::listDevices().
+// ---------------------------------------------------------------------------
+struct AudioDeviceInfo {
+    std::string name;           // device name (pass to AudioSettings::deviceName)
+    bool isDefault = false;     // true if this is the system default playback device
+};
+
+// ---------------------------------------------------------------------------
 // Audio Engine (singleton, miniaudio-based)
 // ---------------------------------------------------------------------------
 class AudioEngine {
@@ -494,9 +524,20 @@ public:
         return instance;
     }
 
-    // Initialize and shutdown (implementation in tcAudio_impl.cpp)
+    // Initialize and shutdown (implementation in tcAudio_impl.cpp).
+    //
+    // init() with no arguments uses the defaults (DEFAULT_SAMPLE_RATE etc.).
+    // init(settings) writes the runtime config from `settings`. If the
+    // engine is already running, init returns true immediately with a
+    // warning (silent re-init would tear down playing voices).
     bool init();
+    bool init(const AudioSettings& settings);
     void shutdown();
+
+    // Enumerate available playback devices. Names from this list are
+    // suitable for AudioSettings::deviceName. Returns an empty vector if
+    // device enumeration is unsupported on the current platform.
+    static std::vector<AudioDeviceInfo> listDevices();
 
     // Runtime engine configuration accessors. These reflect the values
     // passed to init(AudioSettings) — or the defaults if init() was called
