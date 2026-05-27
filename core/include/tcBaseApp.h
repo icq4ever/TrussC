@@ -7,6 +7,8 @@
 #include "tc/types/tcScrollContainer.h"
 #include "tc/types/tcScrollBar.h"
 #include "tc/types/tcTweenMod.h"
+#include "tc/sound/tcSound.h"      // AudioEngine + AudioOutBuffer / AudioInBuffer
+#include "tc/events/tcEventListener.h"
 #include <vector>
 #include <string>
 
@@ -24,6 +26,16 @@ namespace trussc {
 
 class App : public RectNode {
 public:
+    App() {
+        // Auto-subscribe the virtual audio hooks. Subclasses just override
+        // audioOut() / audioIn() — no need to write the listener boilerplate.
+        // EventListener members RAII out when App is destroyed.
+        audioOutListener_ = AudioEngine::getInstance().audioOut.listen(
+            [this](AudioOutBuffer& b) { audioOut(b); });
+        audioInListener_  = AudioEngine::getInstance().audioIn.listen(
+            [this](AudioInBuffer& b) { audioIn(b); });
+    }
+
     virtual ~App() = default;
 
     // -------------------------------------------------------------------------
@@ -131,6 +143,26 @@ public:
     /// Called on app exit (before cleanup)
     /// Use for resource release or settings save
     virtual void exit() {}
+
+    // -------------------------------------------------------------------------
+    // Audio callbacks (oF-style)
+    // -------------------------------------------------------------------------
+    //
+    // Override these to synthesize / process audio per device callback.
+    // Runs on the audio thread — keep work RT-safe (no allocations, no
+    // engine API calls, no heavy locks). Add to `buf.data`; zeroing it
+    // silences other Sound voices that have already been mixed.
+    //
+    // For multiple independent listeners (e.g. a Node-based synth tree),
+    // use `AudioEngine::getInstance().audioOut.listen(...)` directly
+    // alongside the App override.
+    virtual void audioOut(AudioOutBuffer& buf) { (void)buf; }
+    virtual void audioIn(const AudioInBuffer& buf) { (void)buf; }
+
+private:
+    EventListener audioOutListener_;
+    EventListener audioInListener_;
+public:
 
     // -------------------------------------------------------------------------
     // Event handlers (called by TrussC.h, dispatches to scene graph)
