@@ -124,23 +124,36 @@ endShape(true);                               // close the outline
 
 ### Path (accumulator class)
 `Path` collects vertices over multiple calls and can be drawn later,
-optionally many times. Methods chain naturally:
+optionally many times. Supports multiple **subpaths** (disjoint contours
+inside one Path — same model as SVG `<path>` with `M ... M ...`), so a
+single Path can hold an outer ring + its holes:
 ```cpp
 Path p;
-p.moveTo(50, 50);
+p.moveTo(50, 50);                       // start subpath 0
 p.lineTo(150, 50);
 p.bezierTo(cp1, cp2, end);              // Cubic
 p.quadBezierTo(cp, end);                // Quadratic
 p.curveTo(point);                       // Catmull-Rom (needs 4+ consecutive calls)
 p.arc(center, radius, angleBegin, angleEnd);
+p.close();                              // close current (last) subpath
+
+p.moveTo(80, 80);                       // start subpath 1 (e.g. a hole)
+p.lineTo(120, 80);
+p.lineTo(100, 120);
 p.close();
 
-p.draw();          // Fill (if fill enabled) and/or a 1px outline (if stroke enabled)
+p.draw();          // Fill (per-subpath triangle fan, convex-only) + 1px stroke
 p.drawStroke();    // Thick stroke via StrokeMesh, respects strokeWeight/Cap/Join
+p.drawFill();      // Concave + holes via earcut. Subpaths are grouped by
+                   // spatial containment — outer + direct children become
+                   // holes, grandchildren become separate islands.
 ```
-`p.draw()` is consistent with `drawCircle` / `drawRect` etc — its stroke
-mode is always a 1px line strip. Call `p.drawStroke()` when you want a
-weighted stroke with cap/join handling.
+- `p.draw()` mirrors `drawCircle` / `drawRect` etc: stroke is always 1px.
+  Fill is a per-subpath triangle fan — fine for convex shapes, not for
+  concave or holed ones.
+- `p.drawStroke()` strokes each subpath separately with cap/join.
+- `p.drawFill()` is what you want for text glyphs, SVG-like shapes,
+  anything with holes or concave outline.
 
 ### Curve Quality (Tolerance / Resolution)
 Curve tessellation has two modes, selected per-style:
@@ -244,21 +257,23 @@ falls back to rotating the upright glyph 90° CW otherwise. Latin /
 hyphenation work in horizontal wrap; kinsoku covers `、。」』）` and friends.
 
 #### Vector glyph paths
-For animation / scaling / rotation / hit-testing / stroke effects, get the
-glyph outline directly as `tc::Path` — crisp at any scale, atlas-free.
+For animation / scaling / rotation / hit-testing / stroke / fill, get the
+glyph outline directly as `tc::Path` — one Path per call, with one subpath
+per contour. Stays crisp at any scale, atlas-free.
 ```cpp
-auto paths = font.getStringPath("Hello", 100, 200);  // logical pixels
-setStrokeWeight(2);
-for (const auto& p : paths) p.drawStroke();
+Path text = font.getStringPath("Hello", 100, 200);   // logical pixels
+text.drawStroke();
+text.drawFill();                                     // holes auto-detected (e, a, O ...)
 
-auto contours = font.getGlyphPath(U'あ');            // em-normalized
-// contours[i].getVertices() — Vec3 in em units (1.0 = em), Y-down,
-// baseline at y=0, pen at x=0. Multiple contours for glyphs with holes.
+Path glyph = font.getGlyphPath(U'あ');                // em-normalized
+// glyph.getVertices() — Vec3 in em units (1.0 = em), Y-down, baseline at
+// y=0, pen at x=0. Multiple subpaths for glyphs with holes (日 / O / e ...).
+// Walk subpaths with glyph.getNumSubpaths() + glyph.getSubpathRange(i).
 ```
 `getStringPath` routes through the same layout pipeline as `drawString`
 — writing mode, alignment, wrap, kinsoku, TCY all apply transparently.
-For filled glyphs with holes (`O`, `日`, `あ`) a concave / even-odd
-tessellator is needed; stroke and convex fill work out of the box.
+`drawFill` uses earcut + spatial-containment grouping, so glyphs like
+`O` / `日` / `あ` render with their holes correctly punched out.
 
 ### Color
 ```cpp
