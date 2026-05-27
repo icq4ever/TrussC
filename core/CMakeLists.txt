@@ -212,6 +212,8 @@ elseif(TC_PLATFORM_WINDOWS)
         mf
         mfplat
         mfuuid
+        # DirectWrite for system font name resolution (tc::systemFontPath)
+        dwrite
     )
     # MSVC: ソースファイルをUTF-8として扱う
     # /wd4244, /wd4267: int/float, size_t/int 変換警告を無効化
