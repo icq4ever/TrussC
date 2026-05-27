@@ -38,6 +38,7 @@
 #include "stb/stb_truetype.h"
 
 #include "../utils/tcLog.h"
+#include "../utils/tcSystemFont.h"
 #include "../types/tcDirection.h"
 #include "../types/tcRectangle.h"
 #include "../../tcMath.h"  // Vec2
@@ -46,31 +47,44 @@
 // ---------------------------------------------------------------------------
 // System font paths - use these for cross-platform font loading
 // ---------------------------------------------------------------------------
+// Names are resolved at load time via tc::systemFontPath (CoreText / DirectWrite
+// / fontconfig per platform). Web keeps URLs since browsers don't expose system
+// fonts — Font::load handles URL inputs directly via emscripten_fetch.
 #ifdef __EMSCRIPTEN__
     // Web: Use Google Fonts via jsDelivr CDN (async load)
-    #define TC_FONT_SANS  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf"
-    #define TC_FONT_SERIF "https://cdn.jsdelivr.net/fontsource/fonts/noto-serif@latest/latin-400-normal.ttf"
-    #define TC_FONT_MONO  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-mono@latest/latin-400-normal.ttf"
+    #define TC_FONT_SANS     "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf"
+    #define TC_FONT_SERIF    "https://cdn.jsdelivr.net/fontsource/fonts/noto-serif@latest/latin-400-normal.ttf"
+    #define TC_FONT_MONO     "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-mono@latest/latin-400-normal.ttf"
+    #define TC_FONT_SANS_JA  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf"
+    #define TC_FONT_SERIF_JA "https://cdn.jsdelivr.net/fontsource/fonts/noto-serif-jp@latest/japanese-400-normal.ttf"
 #elif defined(_WIN32)
-    // Windows
-    #define TC_FONT_SANS  "C:/Windows/Fonts/segoeui.ttf"
-    #define TC_FONT_SERIF "C:/Windows/Fonts/times.ttf"
-    #define TC_FONT_MONO  "C:/Windows/Fonts/consola.ttf"
+    // Windows — resolved via DirectWrite (not yet implemented; falls back to path)
+    #define TC_FONT_SANS     "Segoe UI"
+    #define TC_FONT_SERIF    "Times New Roman"
+    #define TC_FONT_MONO     "Consolas"
+    #define TC_FONT_SANS_JA  "Yu Gothic"
+    #define TC_FONT_SERIF_JA "Yu Mincho"
 #elif defined(__APPLE__)
-    // macOS
-    #define TC_FONT_SANS  "/System/Library/Fonts/Helvetica.ttc"
-    #define TC_FONT_SERIF "/System/Library/Fonts/Times.ttc"
-    #define TC_FONT_MONO  "/System/Library/Fonts/Menlo.ttc"
+    // macOS — resolved via CoreText (PostScript / family names)
+    #define TC_FONT_SANS     "Helvetica"
+    #define TC_FONT_SERIF    "Times New Roman"
+    #define TC_FONT_MONO     "Menlo"
+    #define TC_FONT_SANS_JA  "HiraginoSans-W3"
+    #define TC_FONT_SERIF_JA "HiraMinProN-W3"
 #elif defined(__ANDROID__)
-    // Android system fonts (accessible from NDK without permissions)
-    #define TC_FONT_SANS  "/system/fonts/Roboto-Regular.ttf"
-    #define TC_FONT_SERIF "/system/fonts/NotoSerif-Regular.ttf"
-    #define TC_FONT_MONO  "/system/fonts/DroidSansMono.ttf"
+    // Android — name resolution not yet implemented; system_fonts path-based lookup planned
+    #define TC_FONT_SANS     "Roboto"
+    #define TC_FONT_SERIF    "Noto Serif"
+    #define TC_FONT_MONO     "Droid Sans Mono"
+    #define TC_FONT_SANS_JA  "Noto Sans CJK JP"
+    #define TC_FONT_SERIF_JA "Noto Serif CJK JP"
 #else
-    // Linux
-    #define TC_FONT_SANS  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    #define TC_FONT_SERIF "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"
-    #define TC_FONT_MONO  "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+    // Linux — resolved via fontconfig (not yet implemented; falls back to path)
+    #define TC_FONT_SANS     "DejaVu Sans"
+    #define TC_FONT_SERIF    "DejaVu Serif"
+    #define TC_FONT_MONO     "DejaVu Sans Mono"
+    #define TC_FONT_SANS_JA  "Noto Sans CJK JP"
+    #define TC_FONT_SERIF_JA "Noto Serif CJK JP"
 #endif
 
 namespace trussc {
@@ -772,26 +786,48 @@ public:
     // -------------------------------------------------------------------------
     // Load font
     // -------------------------------------------------------------------------
-    bool load(const std::string& path, int size) {
+    // Load a font. `nameOrPath` can be one of:
+    //   - A URL (Emscripten only, async load)
+    //   - A filesystem path
+    //   - A system font name (PostScript or family name) — resolved via
+    //     tc::systemFontPath when the path doesn't exist on disk. Lets users
+    //     write `font.load("HiraginoSans-W3", 24)` cross-platform.
+    bool load(const std::string& nameOrPath, int size) {
         // Render glyphs at physical pixel size for sharp text on HiDPI displays.
         // All metrics/drawing are scaled back to logical coordinates.
         dpiScale_ = sapp_dpi_scale();
         int physicalSize = (int)(size * dpiScale_ + 0.5f);
         logicalSize_ = size;
 
-        cacheKey_.fontPath = path;
-        cacheKey_.fontSize = physicalSize;
-
         // Create sampler and pipeline if not yet
         if (!resourcesInitialized_) {
             initResources();
         }
 
-        // Check if URL
-        if (isUrl(path)) {
+        // Resolve input to a concrete path (file / URL).
+        std::string actualPath = nameOrPath;
+        if (!isUrl(nameOrPath)) {
+            std::ifstream test(nameOrPath, std::ios::binary);
+            if (!test.good()) {
+                // Not a usable file path — try as a system font name.
+                std::string resolved = systemFontPath(nameOrPath);
+                if (!resolved.empty()) {
+                    actualPath = resolved;
+                    logNotice("Font") << "Resolved \"" << nameOrPath
+                                      << "\" → " << resolved;
+                }
+                // If resolution failed, fall through with the original input so
+                // the eventual load error mentions what the user actually asked for.
+            }
+        }
+
+        cacheKey_.fontPath = actualPath;
+        cacheKey_.fontSize = physicalSize;
+
+        if (isUrl(actualPath)) {
 #ifdef __EMSCRIPTEN__
             // Async load - returns immediately, font available after fetch completes
-            loadFromUrlAsync(path, physicalSize);
+            loadFromUrlAsync(actualPath, physicalSize);
             return true;  // Will be loaded asynchronously
 #else
             logError() << "Font: URL loading only supported in WebAssembly";
