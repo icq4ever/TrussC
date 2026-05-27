@@ -1216,6 +1216,14 @@ inline void ensureFontAtlas(int rows) {
     if (sizeOk && versionOk) return;
     if (!sg_isvalid()) return;
 
+    // Same-frame upload guard. sokol allows at most one sg_update_image per
+    // image per frame (VALIDATE_UPDIMG_ONCE). If we already uploaded this
+    // frame and the atlas size hasn't changed, defer to next frame — the
+    // stale fontAtlasVersion makes us try again on the next call.
+    // (When size changes we destroy + create a brand-new image below, so the
+    // guard only applies to the same-dimensions in-place path.)
+    if (sizeOk && internal::fontAtlasUploadFrame == getFrameCount()) return;
+
     // Regenerate pixel buffer. Use the LARGER of `rows` and the currently
     // allocated rows so a same-size in-place update stays the same size.
     int effRows = sizeOk ? internal::fontAtlasRows : rows;
@@ -1227,18 +1235,11 @@ inline void ensureFontAtlas(int rows) {
         // Same dimensions — upload via sg_update_image. The image identity
         // (sg_image handle) and view stay the same, so any queued sokol_gl
         // commands referencing them keep working.
-        // sokol allows at most one sg_update_image per image per frame.
-        // If we already uploaded this frame, defer to the next frame.
-        uint64_t curFrame = getFrameCount();
-        if (internal::fontAtlasUploadFrame == curFrame) {
-            delete[] pixels;
-            return;
-        }
         sg_image_data data = {};
         data.mip_levels[0].ptr  = pixels;
         data.mip_levels[0].size = dataBytes;
         sg_update_image(internal::fontTexture, &data);
-        internal::fontAtlasUploadFrame = curFrame;
+        internal::fontAtlasUploadFrame = getFrameCount();
     } else {
         // Size changed (or first allocation). Recreate the image.
         if (internal::fontAtlasInitialized) {
