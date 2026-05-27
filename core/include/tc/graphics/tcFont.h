@@ -47,6 +47,9 @@
 // ---------------------------------------------------------------------------
 // System font paths - use these for cross-platform font loading
 // ---------------------------------------------------------------------------
+// Names are resolved at load time via tc::systemFontPath (CoreText / DirectWrite
+// / fontconfig per platform). Web keeps URLs since browsers don't expose system
+// fonts — Font::load handles URL inputs directly via emscripten_fetch.
 #ifdef __EMSCRIPTEN__
     // Web: Use Google Fonts via jsDelivr CDN (async load)
     #define TC_FONT_SANS     "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf"
@@ -55,10 +58,10 @@
     #define TC_FONT_SANS_JA  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf"
     #define TC_FONT_SERIF_JA "https://cdn.jsdelivr.net/fontsource/fonts/noto-serif-jp@latest/japanese-400-normal.ttf"
 #elif defined(_WIN32)
-    // Windows
-    #define TC_FONT_SANS     "C:/Windows/Fonts/segoeui.ttf"
-    #define TC_FONT_SERIF    "C:/Windows/Fonts/times.ttf"
-    #define TC_FONT_MONO     "C:/Windows/Fonts/consola.ttf"
+    // Windows — resolved via DirectWrite (not yet implemented; falls back to path)
+    #define TC_FONT_SANS     "Segoe UI"
+    #define TC_FONT_SERIF    "Times New Roman"
+    #define TC_FONT_MONO     "Consolas"
     #define TC_FONT_SANS_JA  "Yu Gothic"
     #define TC_FONT_SERIF_JA "Yu Mincho"
 #elif defined(__APPLE__)
@@ -69,19 +72,19 @@
     #define TC_FONT_SANS_JA  "HiraginoSans-W3"
     #define TC_FONT_SERIF_JA "HiraMinProN-W3"
 #elif defined(__ANDROID__)
-    // Android system fonts (accessible from NDK without permissions)
-    #define TC_FONT_SANS     "/system/fonts/Roboto-Regular.ttf"
-    #define TC_FONT_SERIF    "/system/fonts/NotoSerif-Regular.ttf"
-    #define TC_FONT_MONO     "/system/fonts/DroidSansMono.ttf"
-    #define TC_FONT_SANS_JA  "/system/fonts/NotoSansCJK-Regular.ttc"
-    #define TC_FONT_SERIF_JA "/system/fonts/NotoSerifCJK-Regular.ttc"
+    // Android — name resolution not yet implemented; system_fonts path-based lookup planned
+    #define TC_FONT_SANS     "Roboto"
+    #define TC_FONT_SERIF    "Noto Serif"
+    #define TC_FONT_MONO     "Droid Sans Mono"
+    #define TC_FONT_SANS_JA  "Noto Sans CJK JP"
+    #define TC_FONT_SERIF_JA "Noto Serif CJK JP"
 #else
-    // Linux
-    #define TC_FONT_SANS     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    #define TC_FONT_SERIF    "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"
-    #define TC_FONT_MONO     "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
-    #define TC_FONT_SANS_JA  "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
-    #define TC_FONT_SERIF_JA "/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"
+    // Linux — resolved via fontconfig (not yet implemented; falls back to path)
+    #define TC_FONT_SANS     "DejaVu Sans"
+    #define TC_FONT_SERIF    "DejaVu Serif"
+    #define TC_FONT_MONO     "DejaVu Sans Mono"
+    #define TC_FONT_SANS_JA  "Noto Sans CJK JP"
+    #define TC_FONT_SERIF_JA "Noto Serif CJK JP"
 #endif
 
 namespace trussc {
