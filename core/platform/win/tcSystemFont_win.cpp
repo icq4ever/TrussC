@@ -20,7 +20,6 @@ using Microsoft::WRL::ComPtr;
 
 namespace {
 
-// UTF-8 → UTF-16 (wide) for DirectWrite APIs.
 std::wstring utf8ToWide(const std::string& s) {
     if (s.empty()) return L"";
     int n = ::MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.size(), nullptr, 0);
@@ -29,7 +28,6 @@ std::wstring utf8ToWide(const std::string& s) {
     return w;
 }
 
-// UTF-16 (wide) → UTF-8 for returning strings.
 std::string wideToUtf8(const wchar_t* w, int wlen) {
     if (!w || wlen <= 0) return "";
     int n = ::WideCharToMultiByte(CP_UTF8, 0, w, wlen, nullptr, 0, nullptr, nullptr);
@@ -48,12 +46,8 @@ ComPtr<IDWriteFactory> getFactory() {
     return factory;
 }
 
-// Get the on-disk file path backing the first font in `family`.
-std::string firstFontFilePath(IDWriteFontFamily* family) {
-    if (!family) return "";
-
-    ComPtr<IDWriteFont> font;
-    if (FAILED(family->GetFont(0, &font)) || !font) return "";
+std::string fontFilePath(IDWriteFont* font) {
+    if (!font) return "";
 
     ComPtr<IDWriteFontFace> face;
     if (FAILED(font->CreateFontFace(&face)) || !face) return "";
@@ -94,16 +88,60 @@ std::string systemFontPath(const std::string& name) {
     if (FAILED(factory->GetSystemFontCollection(&coll, FALSE)) || !coll) return "";
 
     std::wstring wname = utf8ToWide(name);
+
+    // Strategy 1: family name lookup
     UINT32 index = 0;
     BOOL exists = FALSE;
-    if (FAILED(coll->FindFamilyName(wname.c_str(), &index, &exists)) || !exists) {
-        return "";
+    if (SUCCEEDED(coll->FindFamilyName(wname.c_str(), &index, &exists)) && exists) {
+        ComPtr<IDWriteFontFamily> family;
+        if (SUCCEEDED(coll->GetFontFamily(index, &family))) {
+            ComPtr<IDWriteFont> font;
+            if (SUCCEEDED(family->GetFirstMatchingFont(
+                    DWRITE_FONT_WEIGHT_REGULAR,
+                    DWRITE_FONT_STRETCH_NORMAL,
+                    DWRITE_FONT_STYLE_NORMAL, &font))) {
+                std::string path = fontFilePath(font.Get());
+                if (!path.empty()) return path;
+            }
+        }
     }
 
-    ComPtr<IDWriteFontFamily> family;
-    if (FAILED(coll->GetFontFamily(index, &family))) return "";
+    // Strategy 2: PostScript name lookup (iterate all fonts)
+    UINT32 familyCount = coll->GetFontFamilyCount();
+    for (UINT32 fi = 0; fi < familyCount; fi++) {
+        ComPtr<IDWriteFontFamily> family;
+        if (FAILED(coll->GetFontFamily(fi, &family))) continue;
 
-    return firstFontFilePath(family.Get());
+        UINT32 fontCount = family->GetFontCount();
+        for (UINT32 gi = 0; gi < fontCount; gi++) {
+            ComPtr<IDWriteFont> font;
+            if (FAILED(family->GetFont(gi, &font))) continue;
+
+            ComPtr<IDWriteLocalizedStrings> psNames;
+            BOOL psExists = FALSE;
+            if (FAILED(font->GetInformationalStrings(
+                    DWRITE_INFORMATIONAL_STRING_POSTSCRIPT_NAME,
+                    &psNames, &psExists)) || !psExists) {
+                continue;
+            }
+
+            UINT32 count = psNames->GetCount();
+            for (UINT32 si = 0; si < count; si++) {
+                UINT32 len = 0;
+                psNames->GetStringLength(si, &len);
+                std::wstring psName(len + 1, 0);
+                psNames->GetString(si, psName.data(), len + 1);
+                psName.resize(len);
+
+                if (_wcsicmp(psName.c_str(), wname.c_str()) == 0) {
+                    std::string path = fontFilePath(font.Get());
+                    if (!path.empty()) return path;
+                }
+            }
+        }
+    }
+
+    return "";
 }
 
 std::vector<std::string> listSystemFonts() {
@@ -123,7 +161,6 @@ std::vector<std::string> listSystemFonts() {
         ComPtr<IDWriteLocalizedStrings> names;
         if (FAILED(family->GetFamilyNames(&names)) || !names) continue;
 
-        // Prefer en-us; fall back to index 0.
         UINT32 idx = 0;
         BOOL exists = FALSE;
         if (FAILED(names->FindLocaleName(L"en-us", &idx, &exists)) || !exists) {

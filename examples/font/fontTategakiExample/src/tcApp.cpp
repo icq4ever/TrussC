@@ -20,7 +20,7 @@ void tcApp::setup() {
     fontVupright.setTcyLatin(TcyMode::Upright);
     fontVupright.setTcyDigits(99, TcyMode::Upright, TcyMode::Upright);
 
-    fontLabel.load(TC_FONT_SANS, 13);
+    fontLabel.load(TC_FONT_SANS_JA, 13);
 
     logNotice("tcApp") << "Fonts loaded; vertical glyphs: "
                        << fontV.getLoadedGlyphCount();

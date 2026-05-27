@@ -208,6 +208,7 @@ elseif(TC_PLATFORM_WINDOWS)
         comdlg32
         shell32
         ole32
+        dwrite
         # Media Foundation (VideoPlayer)
         mf
         mfplat
