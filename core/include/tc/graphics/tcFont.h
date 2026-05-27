@@ -319,13 +319,17 @@ public:
     // -------------------------------------------------------------------------
     // Vector glyph outline (em-normalized, screen Y-down).
     //
-    // Returns one Path per contour. Coordinates are in em units (1.0 = em),
-    // so a glyph above the baseline has Y < 0. Each Path is closed (last
-    // segment returns to first vertex). For glyphs with no outline (e.g. the
-    // space character) returns an empty vector without logging.
+    // Returns a single Path with one subpath per contour (use moveTo to walk
+    // them). Coordinates are in em units (1.0 = em), so a glyph above the
+    // baseline has Y < 0. Each subpath is closed. Glyphs with no outline
+    // (e.g. the space character) return an empty Path without logging.
+    // Subpath layout matches stbtt's contour order — for TrueType fonts the
+    // outer ring comes first (CCW in font Y-up, CW in our screen Y-down),
+    // followed by holes (opposite winding). Path::drawFill() detects this
+    // via spatial containment so callers don't need to think about it.
     // -------------------------------------------------------------------------
-    std::vector<Path> getGlyphPath(uint32_t codepoint) const {
-        std::vector<Path> result;
+    Path getGlyphPath(uint32_t codepoint) const {
+        Path result;
         if (!loaded_) return result;
 
         int glyphIndex = stbtt_FindGlyphIndex(&fontInfo_, (int)codepoint);
@@ -346,26 +350,19 @@ public:
         // Multiply by emScale to get em units (1.0 = em); negate Y for screen Y-down.
         const float emScale = stbtt_ScaleForMappingEmToPixels(&fontInfo_, 1.0f);
 
-        Path current;
-        auto flush = [&]() {
-            if (!current.empty()) {
-                current.close();
-                result.push_back(std::move(current));
-                current = Path{};
-            }
-        };
-
+        bool subpathOpen = false;
         for (int i = 0; i < numVerts; i++) {
             const stbtt_vertex& v = vertices[i];
             const float x = (float)v.x * emScale;
             const float y = -(float)v.y * emScale;
             switch (v.type) {
                 case STBTT_vmove:
-                    flush();
-                    current.lineTo(x, y);  // first vertex of new contour
+                    if (subpathOpen) result.close();
+                    result.moveTo(x, y);
+                    subpathOpen = true;
                     break;
                 case STBTT_vline:
-                    current.lineTo(x, y);
+                    result.lineTo(x, y);
                     break;
                 case STBTT_vcurve: {
                     // Explicit resolution: Path's adaptive tessellation uses an
@@ -374,7 +371,7 @@ public:
                     // to straight chords. 12 segments is plenty for glyph quads.
                     const float cx = (float)v.cx * emScale;
                     const float cy = -(float)v.cy * emScale;
-                    current.quadBezierTo(Vec2{cx, cy}, Vec2{x, y}, 12);
+                    result.quadBezierTo(Vec2{cx, cy}, Vec2{x, y}, 12);
                     break;
                 }
                 case STBTT_vcubic: {
@@ -382,12 +379,12 @@ public:
                     const float cy  = -(float)v.cy * emScale;
                     const float cx1 = (float)v.cx1 * emScale;
                     const float cy1 = -(float)v.cy1 * emScale;
-                    current.bezierTo(Vec3{cx, cy, 0.f}, Vec3{cx1, cy1, 0.f}, Vec3{x, y, 0.f}, 16);
+                    result.bezierTo(Vec3{cx, cy, 0.f}, Vec3{cx1, cy1, 0.f}, Vec3{x, y, 0.f}, 16);
                     break;
                 }
             }
         }
-        flush();
+        if (subpathOpen) result.close();
 
         stbtt_FreeShape(&fontInfo_, vertices);
         return result;
@@ -1053,61 +1050,65 @@ public:
     // -------------------------------------------------------------------------
     // Vector glyph outlines (rotation / scaling / animation use cases).
     //
-    // getGlyphPath returns the contours of a single glyph in em-normalized
-    // coordinates (1.0 = em, screen Y-down, baseline at y=0, pen at x=0).
-    // One Path per contour — glyphs like 'O' or '日' produce multiple.
+    // getGlyphPath returns a single Path with one subpath per contour
+    // (em-normalized, 1.0 = em, screen Y-down, baseline at y=0, pen at x=0).
+    // Glyphs with holes like 'O' / '日' / 'あ' have multiple subpaths and
+    // render correctly with `path.drawFill()`.
     //
-    // getStringPath returns contours for the whole string, positioned with
-    // the same layout pipeline as drawString — writing mode, alignment, wrap,
-    // kinsoku, TCY all apply. Each Path is in logical pixel coordinates
-    // relative to (x, y).
+    // getStringPath returns a single Path containing every glyph's contours
+    // positioned with the same layout pipeline as drawString — writing mode,
+    // alignment, wrap, kinsoku, TCY all apply. Coordinates are in logical
+    // pixels relative to (x, y).
     // -------------------------------------------------------------------------
-    std::vector<Path> getGlyphPath(uint32_t codepoint) const {
+    Path getGlyphPath(uint32_t codepoint) const {
         if (!atlasManager_) return {};
         return atlasManager_->getGlyphPath(codepoint);
     }
 
-    std::vector<Path> getStringPath(const std::string& text, float x, float y,
-                                    Direction h, Direction v) const {
-        std::vector<Path> result;
+    Path getStringPath(const std::string& text, float x, float y,
+                       Direction h, Direction v) const {
+        Path result;
         if (!atlasManager_ || text.empty()) return result;
 
         const float em = (float)logicalSize_;
 
         forEachGlyph(text, x, y, h, v, [&](const PlacedGlyph& pg) {
-            std::vector<Path> contours = atlasManager_->getGlyphPath(pg.codepoint);
-            if (contours.empty()) return;
+            Path glyph = atlasManager_->getGlyphPath(pg.codepoint);
+            if (glyph.empty()) return;
 
             const float c  = std::cos(pg.rotationCw);
             const float si = std::sin(pg.rotationCw);
             const bool  rotated = (pg.rotationCw != 0.f);
 
-            for (Path& p : contours) {
-                for (Vec3& vert : p.getVertices()) {
-                    // em-normalized → logical pixels, with horizontal scale.
-                    float fx = vert.x * em * pg.scaleX;
-                    float fy = vert.y * em;
-                    // Translate to pen position.
-                    fx += pg.drawX;
-                    fy += pg.baselineY;
-                    // Rotate around pivot (matches emitPlacedGlyphsToAtlas math).
+            // Transform the glyph's vertices in place and append each subpath
+            // to result as its own subpath (moveTo at every contour start so
+            // glyph boundaries and holes survive the merge).
+            const size_t nSub = glyph.getNumSubpaths();
+            for (size_t si2 = 0; si2 < nSub; ++si2) {
+                auto [gs, ge] = glyph.getSubpathRange(si2);
+                if (ge - gs == 0) continue;
+                bool first = true;
+                for (size_t k = gs; k < ge; ++k) {
+                    Vec3& vert = glyph.getVertices()[k];
+                    float fx = vert.x * em * pg.scaleX + pg.drawX;
+                    float fy = vert.y * em            + pg.baselineY;
                     if (rotated) {
                         const float dx = fx - pg.pivotX;
                         const float dy = fy - pg.pivotY;
                         fx = pg.pivotX + c * dx - si * dy;
                         fy = pg.pivotY + si * dx + c * dy;
                     }
-                    vert.x = fx;
-                    vert.y = fy;
+                    if (first) { result.moveTo(fx, fy); first = false; }
+                    else       { result.lineTo(fx, fy); }
                 }
-                result.push_back(std::move(p));
+                if (glyph.isSubpathClosed(si2)) result.close();
             }
         });
 
         return result;
     }
 
-    std::vector<Path> getStringPath(const std::string& text, float x, float y) const {
+    Path getStringPath(const std::string& text, float x, float y) const {
         Direction h = getDefaultContext().getTextAlignH();
         Direction v = getDefaultContext().getTextAlignV();
         return getStringPath(text, x, y, h, v);

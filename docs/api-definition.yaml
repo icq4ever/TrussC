@@ -3733,13 +3733,13 @@ categories:
         snippet: "drawString(${1:\"Hello\"}, ${2:100}, ${3:100})"
 
       - name: getStringPath
-        return: "vector<Path>"
+        return: "Path"
         signatures:
           - params: "const string& text, float x, float y"
             params_simple: "text, x, y"
-        description: "Get text outline as vector paths. Stays crisp under scale / rotation; uses same layout as drawString."
-        description_ja: "テキストの輪郭をベクターパスで取得。拡大・回転に強く、drawString と同じレイアウト。"
-        description_ko: "텍스트 윤곽을 벡터 패스로 가져오기. 확대 / 회전에 강하고 drawString과 동일한 레이아웃."
+        description: "Get text outline as a Path (one subpath per contour). Stays crisp under scale / rotation; use drawStroke / drawFill (holes auto-detected for e, a, O, 日, etc.)."
+        description_ja: "テキストの輪郭を Path で取得 (1 contour = 1 subpath)。拡大・回転に強く、drawStroke / drawFill (e, a, O, 日 等の穴は自動検出) で描画。"
+        description_ko: "텍스트 윤곽을 Path로 가져오기 (1 contour = 1 subpath). 확대 / 회전에 강함. drawStroke / drawFill (구멍 자동 검출)."
         sketch: true
         snippet: "getStringPath(${1:\"Hello\"}, ${2:100}, ${3:100})"
 
@@ -9025,6 +9025,17 @@ types:
         description_ja: "全頂点をクリア"
         description_ko: "모든 정점을 지움"
         snippet: "clear()"
+      - name: moveTo
+        return: "void"
+        signatures:
+          - params: "float x, float y"
+          - params: "float x, float y, float z"
+          - params: "Vec2 p"
+          - params: "Vec3 p"
+        description: "Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes."
+        description_ja: "(x, y) で新しい subpath 開始。1 個の Path に複数の独立した contour を持てる (SVG の `M ... M ...` 相当)。Font::getGlyphPath が外枠と穴を 1 つの Path にまとめて drawFill が穴を検出できるようにする用途。"
+        description_ko: "(x, y)에서 새 subpath 시작. 한 Path에 여러 분리된 contour 보관 가능 (SVG의 M ... M ...). Font::getGlyphPath가 외곽선과 구멍을 한 Path로 묶어 drawFill이 구멍을 검출."
+        snippet: "moveTo(${1:x}, ${2:y})"
       - name: lineTo
         return: "void"
         signatures:
@@ -9104,10 +9115,26 @@ types:
         return: "void"
         signatures:
           - params: ""
-        description: "Draw the polyline"
-        description_ja: "ポリラインを描画"
-        description_ko: "폴리라인을 그림"
+        description: "Draw the polyline (fill + 1px stroke based on current style — fill uses triangle fan, convex only). For concave shapes / holes use drawFill."
+        description_ja: "ポリラインを描画 (現在の style で fill + 1px stroke。fill は triangle fan = 凸形状のみ)。凹形状や穴は drawFill を使う。"
+        description_ko: "폴리라인 그리기 (현재 스타일로 fill + 1px stroke, fill은 triangle fan = 볼록한 형태만). 오목한 형태나 구멍은 drawFill 사용."
         snippet: "draw()"
+      - name: drawFill
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Fill the path as a concave polygon with holes (earcut tessellation). Subpaths are grouped by spatial containment — outer ring + direct children become holes, grandchildren become separate filled islands. Use this for glyphs with holes (e, a, O, 日 ...) and any shape that drawString-style fill can't handle."
+        description_ja: "穴付き凹多角形として塗りつぶし (earcut)。subpath は包含関係でグループ化 — 外枠 + 直下の子が穴、孫は別の塗り島。穴付きグリフ (e, a, O, 日 等) や凹形状に使う。"
+        description_ko: "구멍 있는 오목 다각형 채우기 (earcut). subpath는 공간적 포함 관계로 그룹화 — 외곽선 + 직접 자식이 구멍, 손자는 별도 채우기 섬. 구멍 있는 글리프 (e, a, O, 日 등)와 오목한 형태에 사용."
+        snippet: "drawFill()"
+      - name: drawStroke
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Thick stroke via StrokeMesh (respects strokeWeight / strokeCap / strokeJoin), per-subpath. Use draw() for 1-pixel lines."
+        description_ja: "StrokeMesh による太いストローク (strokeWeight / Cap / Join 反映)、subpath 毎。1 ピクセル線は draw()。"
+        description_ko: "StrokeMesh로 두꺼운 stroke (strokeWeight / Cap / Join 적용), subpath 별. 1 픽셀 선은 draw()."
+        snippet: "drawStroke()"
       - name: getBounds
         return: "Rect"
         signatures:
@@ -9707,21 +9734,21 @@ types:
         description_ko: "텍스트를 그림"
         snippet: "drawString(${1:\"text\"}, ${2:x}, ${3:y})"
       - name: getGlyphPath
-        return: "vector<Path>"
+        return: "Path"
         signatures:
           - params: "uint32_t codepoint"
-        description: "Vector outline of a single glyph. Em-normalized (1.0 = em), screen Y-down, baseline at y=0, pen at x=0. One Path per contour."
-        description_ja: "単一グリフの輪郭パス。em 正規化 (1.0 = em)、画面 Y-down、ベースラインが y=0、ペン位置が x=0。輪郭ごとに 1 Path。"
-        description_ko: "단일 글리프 윤곽선 패스. em 정규화 (1.0 = em), 화면 Y-down, 기준선 y=0, 펜 위치 x=0. 윤곽선마다 1 Path."
+        description: "Vector outline of a single glyph as one Path with one subpath per contour. Em-normalized (1.0 = em), screen Y-down, baseline at y=0, pen at x=0. Use Path::drawFill() for filled rendering — holes (e, a, O, 日 ...) are auto-detected via earcut."
+        description_ja: "単一グリフの輪郭を Path として取得 (1 contour = 1 subpath)。em 正規化 (1.0 = em)、画面 Y-down、ベースライン y=0、ペン位置 x=0。drawFill() で塗り — 穴 (e, a, O, 日 等) は earcut で自動検出。"
+        description_ko: "단일 글리프 윤곽선 (1 contour = 1 subpath의 Path). em 정규화 (1.0 = em), 화면 Y-down, 기준선 y=0, 펜 위치 x=0. drawFill()로 채움 — 구멍 자동 검출."
         snippet: "getGlyphPath(${1:codepoint})"
       - name: getStringPath
-        return: "vector<Path>"
+        return: "Path"
         signatures:
           - params: "string text, float x, float y"
           - params: "string text, float x, float y, Direction h, Direction v"
-        description: "Vector outline of the whole string at (x, y). Uses the same layout pipeline as drawString (writing mode, alignment, wrap, kinsoku, TCY). Paths are in logical pixels — drawStroke / fill / further transform freely."
-        description_ja: "文字列全体の輪郭パスを (x, y) に配置して返す。drawString と同じレイアウトパイプライン (書字方向 / 揃え / 折返し / 禁則 / 縦中横) を経由。座標は論理ピクセル — drawStroke / fill / 変形を自由に。"
-        description_ko: "(x, y) 위치의 전체 문자열 윤곽선 패스. drawString과 동일한 레이아웃 파이프라인 (쓰기 모드, 정렬, 줄바꿈, 금칙, 다테추요코) 사용. 좌표는 논리 픽셀."
+        description: "Vector outline of the whole string at (x, y) as one Path containing every glyph's contours (one subpath each). Uses the same layout pipeline as drawString (writing mode, alignment, wrap, kinsoku, TCY). Logical pixels — drawStroke / drawFill / transform freely."
+        description_ja: "文字列全体の輪郭を 1 個の Path として返す (全グリフの contour が subpath として連結)。drawString と同じレイアウトパイプライン (書字方向 / 揃え / 折返し / 禁則 / 縦中横) 経由。座標は論理ピクセル — drawStroke / drawFill / 変形自由。"
+        description_ko: "(x, y) 위치의 전체 문자열 윤곽선을 단일 Path로 (모든 글리프 contour가 subpath로 연결). drawString과 동일한 레이아웃 파이프라인 사용. 좌표는 논리 픽셀."
         snippet: "getStringPath(${1:\"text\"}, ${2:x}, ${3:y})"
       - name: getWidth
         return: float
