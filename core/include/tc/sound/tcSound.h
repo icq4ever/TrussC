@@ -30,6 +30,7 @@
 #include <cmath>
 #include "../../tcMath.h"
 #include "../events/tcEvent.h"
+#include "../utils/tcLog.h"
 
 namespace trussc {
 
