@@ -3713,6 +3713,28 @@ categories:
         sketch: true
         snippet: "getSize()"
 
+      - name: systemFontPath
+        return: "string"
+        signatures:
+          - params: "const string& name"
+            params_simple: "name"
+        description: "Resolve a system font name (PostScript / family) to a file path. Returns empty string if not found. macOS uses CoreText; Linux/Windows currently stub."
+        description_ja: "システムフォント名（PostScript 名や family 名）をファイルパスに解決。見つからなければ空文字を返す。macOS は CoreText、Linux/Win は現状スタブ"
+        description_ko: "시스템 폰트 이름을 파일 경로로 변환"
+        sketch: false
+        snippet: "systemFontPath(${1:\"HiraginoSans-W3\"})"
+
+      - name: listSystemFonts
+        return: "vector<string>"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Enumerate names of all fonts known to the OS"
+        description_ja: "OS が認識している全フォント名を取得"
+        description_ko: "시스템에 설치된 모든 폰트 이름을 나열"
+        sketch: false
+        snippet: "listSystemFonts()"
+
   # ==========================================================================
   # Animation
   # ==========================================================================
@@ -7015,6 +7037,20 @@ constants:
     description: "System monospace font path (CDN URL on Web)"
     description_ja: "システムの等幅フォントパス（Webでは CDN URL）"
     description_ko: "시스템 고정폭 폰트 경로 (웹에서는 CDN URL)"
+    sketch: true
+
+  - name: FONT_SANS_JA
+    value: "string"
+    description: "Japanese sans-serif font (Hiragino Sans on macOS, Yu Gothic on Win, Noto Sans CJK JP on Linux/Android, Google Fonts CDN URL on Web)"
+    description_ja: "日本語のサンセリフフォント（macOS: ヒラギノ角ゴ / Win: 游ゴシック / Linux/Android: Noto Sans CJK JP / Web: Google Fonts CDN URL）"
+    description_ko: "일본어 산세리프 폰트"
+    sketch: true
+
+  - name: FONT_SERIF_JA
+    value: "string"
+    description: "Japanese serif font (Hiragino Mincho on macOS, Yu Mincho on Win, Noto Serif CJK JP on Linux/Android, Google Fonts CDN URL on Web)"
+    description_ja: "日本語のセリフフォント（macOS: ヒラギノ明朝 / Win: 游明朝 / Linux/Android: Noto Serif CJK JP / Web: Google Fonts CDN URL）"
+    description_ko: "일본어 세리프 폰트"
     sketch: true
 
   # Wave type constants for ChipSound

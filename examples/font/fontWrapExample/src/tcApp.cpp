@@ -3,9 +3,9 @@
 
 void tcApp::setup() {
     setFps(VSYNC);
-    fontH.load(TC_FONT_JP, 20);
+    fontH.load(TC_FONT_SANS_JA, 20);
     fontHen.load(TC_FONT_SANS, 18);
-    fontV.load(TC_FONT_JP, 22);
+    fontV.load(TC_FONT_SANS_JA, 22);
     fontV.setWritingMode(WritingMode::VerticalRL);
     fontLabel.load(TC_FONT_SANS, 13);
 }

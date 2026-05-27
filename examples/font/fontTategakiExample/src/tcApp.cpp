@@ -4,18 +4,18 @@
 void tcApp::setup() {
     setFps(VSYNC);
 
-    fontH.load(TC_FONT_JP, 24);
+    fontH.load(TC_FONT_SANS_JA, 24);
 
-    fontV.load(TC_FONT_JP, 24);
+    fontV.load(TC_FONT_SANS_JA, 24);
     fontV.setWritingMode(WritingMode::VerticalRL);
     // Defaults: Latin = Rotate, digits = Rotate (tcyDigitMax_ = 0)
 
-    fontVcombineDigit.load(TC_FONT_JP, 24);
+    fontVcombineDigit.load(TC_FONT_SANS_JA, 24);
     fontVcombineDigit.setWritingMode(WritingMode::VerticalRL);
     // 1-2 digit runs → Combine (squeezed into one cell); 3+ → Rotate
     fontVcombineDigit.setTcyDigits(2, TcyMode::Combine, TcyMode::Rotate);
 
-    fontVupright.load(TC_FONT_JP, 24);
+    fontVupright.load(TC_FONT_SANS_JA, 24);
     fontVupright.setWritingMode(WritingMode::VerticalRL);
     fontVupright.setTcyLatin(TcyMode::Upright);
     fontVupright.setTcyDigits(99, TcyMode::Upright, TcyMode::Upright);
