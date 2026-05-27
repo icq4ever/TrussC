@@ -22,6 +22,17 @@ void tcApp::setup() {
     // when the window isn't focused.
     setFps(60);
 
+    // Hook the engine's device-changed event BEFORE init() so we also
+    // observe the initial init's fire (not just subsequent re-inits).
+    audioDeviceListener = AudioEngine::getInstance().audioDeviceChanged.listen(
+        [this](AudioDeviceChangedArgs& a) {
+            lastDeviceEventMessage = format(
+                "device='{}' default={} {}Hz {}ch buf={} poly={}",
+                a.deviceName, a.isDefaultDevice ? "yes" : "no",
+                a.sampleRate, a.channels, a.bufferSize, a.maxPolyphony);
+            logNotice("audioDeviceChanged") << lastDeviceEventMessage;
+        });
+
     // Start with system defaults — gives us a known-good initial state.
     AudioEngine::getInstance().init();
 
@@ -205,6 +216,13 @@ void tcApp::draw() {
     ImGui::TextColored(lastInitOk ? ImVec4(0.4f, 0.9f, 0.4f, 1.0f)
                                    : ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
                        "%s", lastInitMessage.c_str());
+
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.6f, 0.7f, 1.0f, 1.0f),
+                       "Last audioDeviceChanged:");
+    ImGui::TextWrapped("%s", lastDeviceEventMessage.empty()
+                              ? "(not fired yet)"
+                              : lastDeviceEventMessage.c_str());
 
     ImGui::End();
     imguiEnd();

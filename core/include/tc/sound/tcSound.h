@@ -492,6 +492,28 @@ struct AudioDeviceInfo {
 };
 
 // ---------------------------------------------------------------------------
+// AudioDeviceChangedArgs — fired via AudioEngine::audioDeviceChanged at the
+// end of every successful init() call (initial init AND re-init).
+//
+// `deviceName` is the actual device that was opened. If the caller passed
+// an empty AudioSettings::deviceName to request the system default, this
+// field still reports the resolved device's real name — listeners never
+// see an empty string here.
+//
+// `isDefaultDevice` is true when the opened device is the OS's current
+// default playback device (regardless of whether the caller asked for it
+// by name or implicitly by passing empty deviceName).
+// ---------------------------------------------------------------------------
+struct AudioDeviceChangedArgs {
+    std::string deviceName;     // actual device name now active
+    bool        isDefaultDevice = false;
+    int         sampleRate = 0;
+    int         channels = 0;
+    int         bufferSize = 0;
+    int         maxPolyphony = 0;
+};
+
+// ---------------------------------------------------------------------------
 // AudioOutBuffer / AudioInBuffer — argument types for the audioOut /
 // audioIn event listeners. Buffer is interleaved float, frameCount frames
 // of `channels` floats each. Listeners on `AudioEngine::audioOut` should
@@ -590,6 +612,15 @@ public:
     //   });
     Event<AudioOutBuffer> audioOut;
     Event<AudioInBuffer>  audioIn;
+
+    // Fired on every successful init() — both the initial startup and any
+    // subsequent live re-init. The args carry the new device's real name
+    // (never empty), whether it's the system default, and the current
+    // sampleRate / channels / bufferSize / maxPolyphony. Listeners run on
+    // the thread that called init() (typically main), not the audio
+    // thread, so it's safe to call Sound::setChannelMap / setVolume / etc.
+    // from inside.
+    Event<AudioDeviceChangedArgs> audioDeviceChanged;
 
     // FFT analysis: Get latest audio samples (mono, left+right average)
     // numSamples: Number of samples to get (max ANALYSIS_BUFFER_SIZE)

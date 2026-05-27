@@ -660,6 +660,40 @@ bool AudioEngine::init(const AudioSettings& settings) {
 
     printf("AudioEngine: initialized (%d Hz, %d ch, %d voices) [miniaudio]\n",
            sampleRate_, channels_, (int)playingSounds_.size());
+
+    // Fire audioDeviceChanged with the resolved device's real info.
+    // ma_device's playback.name is populated by ma_device_init even when
+    // the caller didn't specify a device name (system default path).
+    AudioDeviceChangedArgs args;
+    args.deviceName   = std::string(device->playback.name);
+    args.sampleRate   = sampleRate_;
+    args.channels     = channels_;
+    args.bufferSize   = bufferSize_;
+    args.maxPolyphony = (int)playingSounds_.size();
+
+    // Determine whether the opened device is the OS default by comparing
+    // its device ID against the isDefault flag from the playback device
+    // enumeration. We compare ma_device_id by raw bytes because its
+    // contents vary by backend (CoreAudio uses UID strings, WASAPI uses
+    // wide strings, ALSA uses device strings, etc.).
+    args.isDefaultDevice = false;
+    {
+        ma_device_info* infos = nullptr;
+        ma_uint32 count = 0;
+        if (ma_context_get_devices(ctxArg, &infos, &count,
+                                    NULL, NULL) == MA_SUCCESS) {
+            for (ma_uint32 i = 0; i < count; ++i) {
+                if (std::memcmp(&infos[i].id, &device->playback.id,
+                                sizeof(ma_device_id)) == 0) {
+                    args.isDefaultDevice = (infos[i].isDefault != 0);
+                    break;
+                }
+            }
+        }
+    }
+
+    audioDeviceChanged.notify(args);
+
     return true;
 }
 

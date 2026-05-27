@@ -34,6 +34,12 @@ private:
 
     // Last init status (shown in UI).
     std::string lastInitMessage;
+
+    // Listener for AudioEngine::audioDeviceChanged — fires on initial
+    // init AND every successful re-init. Used here to log the new
+    // device info into the UI.
+    EventListener audioDeviceListener;
+    std::string lastDeviceEventMessage;
     bool lastInitOk = true;
 
     // Auto-stress mode: randomly switch settings every N seconds to verify
