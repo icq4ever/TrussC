@@ -227,10 +227,13 @@ elseif(TC_PLATFORM_LINUX)
     pkg_check_modules(FFMPEG REQUIRED libavcodec libavformat libswscale libavutil libswresample)
     # GStreamer for AAC audio decoding (Sound)
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0)
+    # fontconfig: system font name resolution (TC_FONT_SANS / *_JA defaults)
+    pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
     target_include_directories(TrussC PUBLIC
         ${GTK3_INCLUDE_DIRS}
         ${FFMPEG_INCLUDE_DIRS}
         ${GSTREAMER_INCLUDE_DIRS}
+        ${FONTCONFIG_INCLUDE_DIRS}
     )
     target_link_libraries(TrussC PUBLIC
         ${X11_LIBRARIES}
@@ -240,6 +243,7 @@ elseif(TC_PLATFORM_LINUX)
         ${GTK3_LIBRARIES}
         ${FFMPEG_LIBRARIES}
         ${GSTREAMER_LIBRARIES}
+        ${FONTCONFIG_LIBRARIES}
         pthread
         dl
     )
@@ -260,10 +264,12 @@ elseif(TC_PLATFORM_RASPBIAN)
     pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
     pkg_check_modules(FFMPEG REQUIRED libavcodec libavformat libswscale libavutil libswresample)
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0)
+    pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
     target_include_directories(TrussC PUBLIC
         ${GTK3_INCLUDE_DIRS}
         ${FFMPEG_INCLUDE_DIRS}
         ${GSTREAMER_INCLUDE_DIRS}
+        ${FONTCONFIG_INCLUDE_DIRS}
     )
     target_link_libraries(TrussC PUBLIC
         ${X11_LIBRARIES}
@@ -274,6 +280,7 @@ elseif(TC_PLATFORM_RASPBIAN)
         ${GTK3_LIBRARIES}
         ${FFMPEG_LIBRARIES}
         ${GSTREAMER_LIBRARIES}
+        ${FONTCONFIG_LIBRARIES}
         pthread
         dl
     )
