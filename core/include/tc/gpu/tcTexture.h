@@ -345,6 +345,10 @@ public:
                 if (v.id != 0) sg_destroy_view(v);
             }
             mipAttachmentViews_.clear();
+            for (sg_view v : mipSamplingViews_) {
+                if (v.id != 0) sg_destroy_view(v);
+            }
+            mipSamplingViews_.clear();
             sg_destroy_image(image_);
             allocated_ = false;
         }
@@ -529,6 +533,16 @@ public:
         return attachmentView_;
     }
 
+    // Per-mip texture view for sampling a single mip level. Needed when
+    // another mip of the same image is bound as a color attachment — using
+    // the full-chain view would trigger a validation error on D3D11/WebGPU.
+    sg_view getViewForMip(int level) const {
+        if ((int)mipSamplingViews_.size() > level && level >= 0) {
+            return mipSamplingViews_[level];
+        }
+        return view_;
+    }
+
 private:
     sg_image image_ = {};
     sg_view view_ = {};              // Texture view (for sampling)
@@ -558,6 +572,10 @@ private:
     // Per-mip color attachment views for 2D RenderTarget with mipLevels > 1.
     // Empty for mipLevels == 1 (use `attachmentView_` directly).
     std::vector<sg_view> mipAttachmentViews_;
+    // Per-mip sampling views (single-level texture views). Used by Fbo
+    // mipmap generation to avoid binding the full-chain view while another
+    // mip of the same image is a color attachment.
+    std::vector<sg_view> mipSamplingViews_;
 
     static int mipDim(int base, int mip) {
         int d = base >> mip;
@@ -695,6 +713,15 @@ private:
                     mip_att_desc.color_attachment.image = image_;
                     mip_att_desc.color_attachment.mip_level = level;
                     mipAttachmentViews_[level] = sg_make_view(&mip_att_desc);
+                }
+                // Single-level sampling views for mipmap generation passes
+                mipSamplingViews_.resize(numMipLevels_);
+                for (int level = 0; level < numMipLevels_; level++) {
+                    sg_view_desc mip_tex_desc = {};
+                    mip_tex_desc.texture.image = image_;
+                    mip_tex_desc.texture.mip_levels.base = level;
+                    mip_tex_desc.texture.mip_levels.count = 1;
+                    mipSamplingViews_[level] = sg_make_view(&mip_tex_desc);
                 }
             }
         }

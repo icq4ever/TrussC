@@ -109,6 +109,11 @@ public:
             // Non-MSAA case
             colorTexture_.allocate(w, h, format, TextureUsage::RenderTarget, 1, numMipLevels_);
 
+            // Scratch texture for mipmap generation (same specs as color)
+            if (mipmaps_) {
+                mipScratchTexture_.allocate(w, h, format, TextureUsage::RenderTarget, 1, numMipLevels_);
+            }
+
             // Depth buffer
             sg_image_desc depth_desc = {};
             depth_desc.usage.depth_stencil_attachment = true;
@@ -147,6 +152,7 @@ public:
             }
 
             colorTexture_.clear();
+            mipScratchTexture_.clear();
             allocated_ = false;
         }
         width_ = 0;
@@ -351,6 +357,9 @@ private:
 
     // Non-MSAA texture (always used, resolve target for MSAA)
     Texture colorTexture_;
+    // Scratch texture for mipmap generation (avoids sokol validation error
+    // when sampling and writing to different mips of the same image).
+    Texture mipScratchTexture_;
 
     // MSAA resources (only used when sampleCount > 1)
     sg_image msaaColorImage_ = {};
@@ -444,6 +453,8 @@ private:
     struct SharedMipResources {
         sg_shader shader = {};
         sg_pipeline pipeline = {};
+        sg_shader blitShader = {};
+        sg_pipeline blitPipeline = {};
         sg_buffer vbuf = {};
         sg_sampler sampler = {};
         bool initialized = false;
@@ -501,41 +512,73 @@ private:
         pip_desc.sample_count = 1;
         s.pipeline = sg_make_pipeline(&pip_desc);
 
+        // 1:1 blit pipeline for copying scratch mip → main mip
+        s.blitShader = sg_make_shader(tc_fbomip_blit_shader_desc(sg_query_backend()));
+        sg_pipeline_desc blit_pip_desc = {};
+        blit_pip_desc.shader = s.blitShader;
+        blit_pip_desc.layout.attrs[ATTR_tc_fbomip_blit_position].format = SG_VERTEXFORMAT_FLOAT2;
+        blit_pip_desc.layout.attrs[ATTR_tc_fbomip_blit_texcoord0].format = SG_VERTEXFORMAT_FLOAT2;
+        blit_pip_desc.primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP;
+        blit_pip_desc.colors[0].pixel_format = sgFormat;
+        blit_pip_desc.colors[0].blend.enabled = false;
+        blit_pip_desc.depth.pixel_format = SG_PIXELFORMAT_NONE;
+        blit_pip_desc.sample_count = 1;
+        s.blitPipeline = sg_make_pipeline(&blit_pip_desc);
+
         s.initialized = true;
     }
 
     // Downsample mip 0 into mips 1..N-1. Called from end() when the FBO was
-    // allocated with mipmaps = true. Each level is a separate render pass
-    // that samples the previous level via textureLod (one shared pipeline).
+    // allocated with mipmaps = true.
+    //
+    // sokol forbids sampling from an image that has a mip level bound as a
+    // color attachment in the same pass (even if different mip levels are
+    // involved). We work around this with a two-pass-per-level approach:
+    //   Pass 1 (downsample): main[level-1] → scratch[level]
+    //   Pass 2 (blit):       scratch[level] → main[level]
     void generateMipmaps_() {
         if (!mipmaps_ || numMipLevels_ <= 1) return;
         ensureSharedMip(format_);
         auto& s = getSharedMip(format_);
 
         for (int level = 1; level < numMipLevels_; level++) {
-            sg_pass pass = {};
-            pass.attachments.colors[0] = colorTexture_.getAttachmentViewForMip(level);
-            pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
-            sg_begin_pass(&pass);
+            // Pass 1: downsample main[level-1] → scratch[level]
+            {
+                sg_pass pass = {};
+                pass.attachments.colors[0] = mipScratchTexture_.getAttachmentViewForMip(level);
+                pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
+                sg_begin_pass(&pass);
 
-            sg_apply_pipeline(s.pipeline);
+                sg_apply_pipeline(s.pipeline);
 
-            sg_bindings bind = {};
-            bind.vertex_buffers[0] = s.vbuf;
-            bind.views[VIEW_tc_fbomip_srcTex] = colorTexture_.getView();
-            bind.samplers[SMP_tc_fbomip_srcSmp] = s.sampler;
-            sg_apply_bindings(&bind);
+                sg_bindings bind = {};
+                bind.vertex_buffers[0] = s.vbuf;
+                bind.views[VIEW_tc_fbomip_srcTex] = colorTexture_.getViewForMip(level - 1);
+                bind.samplers[SMP_tc_fbomip_srcSmp] = s.sampler;
+                sg_apply_bindings(&bind);
 
-            tc_fbomip_fs_params_t params;
-            params.srcMipLevel = (float)(level - 1);
-            params._pad0 = 0.0f;
-            params._pad1 = 0.0f;
-            params._pad2 = 0.0f;
-            sg_range r = { &params, sizeof(params) };
-            sg_apply_uniforms(UB_tc_fbomip_fs_params, &r);
+                sg_draw(0, 4, 1);
+                sg_end_pass();
+            }
 
-            sg_draw(0, 4, 1);
-            sg_end_pass();
+            // Pass 2: blit scratch[level] → main[level]
+            {
+                sg_pass pass = {};
+                pass.attachments.colors[0] = colorTexture_.getAttachmentViewForMip(level);
+                pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
+                sg_begin_pass(&pass);
+
+                sg_apply_pipeline(s.blitPipeline);
+
+                sg_bindings bind = {};
+                bind.vertex_buffers[0] = s.vbuf;
+                bind.views[VIEW_tc_fbomip_srcTex] = mipScratchTexture_.getViewForMip(level);
+                bind.samplers[SMP_tc_fbomip_srcSmp] = s.sampler;
+                sg_apply_bindings(&bind);
+
+                sg_draw(0, 4, 1);
+                sg_end_pass();
+            }
         }
     }
 

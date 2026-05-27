@@ -19,8 +19,9 @@
 //      between bright and dark colours read as too dark in lower mips —
 //      both noticeably wrong on textures that include high-contrast areas.
 //
-// `srcMipLevel` is a uniform so a single pipeline handles every level in
-// the chain.
+// The source mip level is selected via a per-mip texture view, not through
+// the LOD parameter. The `srcMipLevel` uniform is retained for padding but
+// no longer read by the shader.
 // =============================================================================
 
 @vs vs
@@ -38,13 +39,6 @@ void main() {
 layout(binding=0) uniform texture2D srcTex;
 layout(binding=0) uniform sampler   srcSmp;
 
-layout(binding=0) uniform fs_params {
-    float srcMipLevel;
-    float _pad0;
-    float _pad1;
-    float _pad2;
-};
-
 in vec2 uv;
 out vec4 frag_color;
 
@@ -54,15 +48,16 @@ vec3 srgb_to_linear(vec3 c) { return pow(c, vec3(2.2)); }
 vec3 linear_to_srgb(vec3 c) { return pow(c, vec3(1.0 / 2.2)); }
 
 void main() {
-    // Source mip size (mip 0 halved srcMipLevel times, floor at 1).
-    vec2 srcSize = max(vec2(textureSize(sampler2D(srcTex, srcSmp), int(srcMipLevel))), vec2(1.0));
+    // The bound view covers exactly one mip level (the source), so sample
+    // at LOD 0 — the view's base level is already the correct source mip.
+    vec2 srcSize = max(vec2(textureSize(sampler2D(srcTex, srcSmp), 0)), vec2(1.0));
     vec2 texel = 1.0 / srcSize;
 
     // Four bilinear taps at ±0.5 source texels = 4x4 source footprint.
-    vec4 s0 = textureLod(sampler2D(srcTex, srcSmp), uv + vec2(-0.5, -0.5) * texel, srcMipLevel);
-    vec4 s1 = textureLod(sampler2D(srcTex, srcSmp), uv + vec2( 0.5, -0.5) * texel, srcMipLevel);
-    vec4 s2 = textureLod(sampler2D(srcTex, srcSmp), uv + vec2(-0.5,  0.5) * texel, srcMipLevel);
-    vec4 s3 = textureLod(sampler2D(srcTex, srcSmp), uv + vec2( 0.5,  0.5) * texel, srcMipLevel);
+    vec4 s0 = textureLod(sampler2D(srcTex, srcSmp), uv + vec2(-0.5, -0.5) * texel, 0.0);
+    vec4 s1 = textureLod(sampler2D(srcTex, srcSmp), uv + vec2( 0.5, -0.5) * texel, 0.0);
+    vec4 s2 = textureLod(sampler2D(srcTex, srcSmp), uv + vec2(-0.5,  0.5) * texel, 0.0);
+    vec4 s3 = textureLod(sampler2D(srcTex, srcSmp), uv + vec2( 0.5,  0.5) * texel, 0.0);
 
     // Average in linear light, then encode back to sRGB. Alpha stays linear
     // (it's already a linear coverage value, not a perceptual quantity).
@@ -75,3 +70,20 @@ void main() {
 @end
 
 @program downsample vs fs
+
+// Simple 1:1 blit — copies a single-mip view into another texture at the
+// same resolution. Used to transfer mip data from the scratch image back
+// into the main FBO texture (see generateMipmaps_() in tcFbo.h).
+@fs blit_fs
+layout(binding=0) uniform texture2D srcTex;
+layout(binding=0) uniform sampler   srcSmp;
+
+in vec2 uv;
+out vec4 frag_color;
+
+void main() {
+    frag_color = textureLod(sampler2D(srcTex, srcSmp), uv, 0.0);
+}
+@end
+
+@program blit vs blit_fs
