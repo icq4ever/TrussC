@@ -25,8 +25,8 @@ void tcApp::draw() {
     fontLabel.drawString("Vector glyph paths — Font::getStringPath", 24, 22, Left, Top);
     setColor(0.55f);
     fontLabel.drawString(
-        "Each glyph contour is a tc::Path in logical pixels. "
-        "Crisp under arbitrary scale/rotation; same layout pipeline as drawString.",
+        "One Path per string, subpath per contour. drawStroke / drawFill / "
+        "transform freely; same layout pipeline as drawString.",
         24, 42, Left, Top);
 
     // =========================================================================
@@ -48,10 +48,10 @@ void tcApp::draw() {
     pushMatrix();
     translate(p1x + 20, p1y + 230);
     scale(2.4f, 2.4f);
-    auto p1Paths = fontDemo.getStringPath("TrussC", 0, 0, Left, Baseline);
+    Path p1Path = fontDemo.getStringPath("TrussC", 0, 0, Left, Baseline);
     setColor(0.85f, 0.92f, 1.0f);
     setStrokeWeight(1.2f);
-    for (const auto& p : p1Paths) p.drawStroke();
+    p1Path.drawStroke();
     popMatrix();
 
     setColor(0.5f);
@@ -59,7 +59,7 @@ void tcApp::draw() {
                          p1x + 12, p1y + p1h - 22, Left, Top);
 
     // =========================================================================
-    // Panel 2 (top-right): animated rotate + pulse scale
+    // Panel 2 (top-right): animated rotate + pulse scale (stroke)
     // =========================================================================
     const float p2x = p1x + p1w + 16, p2y = p1y, p2w = W - p2x - 24, p2h = p1h;
     setColor(0.12f, 0.14f, 0.18f);
@@ -74,10 +74,10 @@ void tcApp::draw() {
     rotate(spin_);
     scale(pulseScale, pulseScale);
 
-    auto spinPaths = fontDemo.getStringPath("TRUSSC", 0, 0, Center, Center);
+    Path spinPath = fontDemo.getStringPath("TRUSSC", 0, 0, Center, Center);
     setColor(0.95f, 0.75f, 0.40f);
     setStrokeWeight(1.0f);
-    for (const auto& p : spinPaths) p.drawStroke();
+    spinPath.drawStroke();
 
     popMatrix();
 
@@ -85,7 +85,7 @@ void tcApp::draw() {
     fontLabel.drawString("rotate(t) + scale(1.0..2.2)", p2x + 12, p2y + p2h - 22, Left, Top);
 
     // =========================================================================
-    // Panel 3 (bottom-left): vertical writing via getStringPath
+    // Panel 3 (bottom-left): vertical writing via getStringPath (stroke)
     // =========================================================================
     const float p3x = 24, p3y = p1y + p1h + 16, p3w = p1w, p3h = H - p3y - 24;
     setColor(0.12f, 0.14f, 0.18f);
@@ -94,10 +94,10 @@ void tcApp::draw() {
     pushMatrix();
     translate(p3x + p3w - 40, p3y + 24);
     scale(0.85f, 0.85f);
-    auto vPaths = fontV.getStringPath("猫も杓子もTrussC", 0, 0, Right, Top);
+    Path vPath = fontV.getStringPath("猫も杓子もTrussC", 0, 0, Right, Top);
     setColor(0.70f, 0.95f, 0.80f);
     setStrokeWeight(1.0f);
-    for (const auto& p : vPaths) p.drawStroke();
+    vPath.drawStroke();
     popMatrix();
 
     setColor(0.5f);
@@ -105,47 +105,48 @@ void tcApp::draw() {
                          p3x + 12, p3y + p3h - 22, Left, Top);
 
     // =========================================================================
-    // Panel 4 (bottom-right): per-glyph wiggle — getGlyphPath per codepoint
+    // Panel 4 (bottom-right): per-glyph wiggle with drawFill (e / a holes
+    // get punched automatically, no special code needed).
     // =========================================================================
     const float p4x = p2x, p4y = p3y, p4w = p2w, p4h = p3h;
     setColor(0.12f, 0.14f, 0.18f);
     drawRect(p4x, p4y, p4w, p4h);
 
     const string wiggleText = "Wave";
-    const float wcx = p4x + p4w / 2.f;
+    const float glyphScale = 2.0f;
+    const float wt = (float)getElapsedTime();
     const float wcy = p4y + p4h / 2.f;
-    auto wPaths = fontDemo.getStringPath(wiggleText, wcx, wcy, Center, Baseline);
+    const float wcx = p4x + p4w / 2.f;
+    const float em = 64.f;  // matches fontDemo.load(..., 64)
+    const float wiggleWidth = fontDemo.getWidth(wiggleText) * glyphScale;
+    float penX = wcx - wiggleWidth / 2.f;
 
-    // wPaths has multiple Path objects — we don't know which belong to which
-    // glyph from the flat vector. Use getGlyphPath per codepoint + manual
-    // composition to demonstrate that flow as well.
-    const float t = (float)getElapsedTime();
-    const float glyphW = fontDemo.getWidth(wiggleText);
-    float penX = wcx - glyphW * 1.3f / 2.f;  // hand layout at scale 1.3
-    setStrokeWeight(1.0f);
-    setColor(0.85f, 0.85f, 1.0f);
+    setStrokeWeight(0.4f);
     for (size_t i = 0; i < wiggleText.size(); i++) {
         const uint32_t cp = (uint32_t)(unsigned char)wiggleText[i];
-        const float yOff = 18.f * std::sin(t * 3.f + (float)i * 0.9f);
-        pushMatrix();
-        translate(penX, wcy + yOff);
-        scale(1.3f, 1.3f);
-        auto gp = fontDemo.getGlyphPath(cp);
-        // getGlyphPath returns em-normalized; scale to logicalSize before stroke.
-        for (auto& p : gp) {
-            for (auto& v : p.getVertices()) {
-                v.x *= 64.f;
-                v.y *= 64.f;
-            }
-            p.drawStroke();
+        const float yOff = 18.f * std::sin(wt * 3.f + (float)i * 0.9f);
+        const string oneChar(1, wiggleText[i]);
+        const float advance = fontDemo.getWidth(oneChar) * glyphScale;
+
+        // getGlyphPath is em-normalized. Transform vertices to logical pixels
+        // and the wiggle position; subpath structure is preserved so drawFill
+        // still finds the holes (e, a).
+        Path glyph = fontDemo.getGlyphPath(cp);
+        for (Vec3& v : glyph.getVertices()) {
+            v.x = v.x * em * glyphScale + penX;
+            v.y = v.y * em * glyphScale + wcy + yOff;
         }
-        popMatrix();
-        // advance using fontDemo.getWidth for a single char (approx).
-        penX += fontDemo.getWidth(string(1, wiggleText[i])) * 1.3f;
+
+        setColor(0.95f, 0.85f, 0.55f);
+        glyph.drawFill();
+        setColor(0.0f, 0.0f, 0.0f, 0.55f);
+        glyph.drawStroke();
+
+        penX += advance;
     }
 
     setColor(0.5f);
-    fontLabel.drawString("Per-glyph getGlyphPath + per-letter translate",
+    fontLabel.drawString("Per-glyph getGlyphPath + drawFill (holes auto-detected)",
                          p4x + 12, p4y + p4h - 22, Left, Top);
 
     // Footer stats
