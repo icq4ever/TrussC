@@ -1,11 +1,21 @@
 // =============================================================================
-// soundPlayerExample - Sound Player Sample
+// soundStreamExample - Streaming Sound Player Sample
+//
+// Demonstrates Sound::loadStream() — the file stays on disk and is decoded
+// on demand by a background StreamWorker thread into a small ring buffer.
+// Best for long files (BGM, podcasts) where full PCM in RAM is wasteful.
+//
+// Compare with soundPlayerExample (eager load, full PCM in RAM).
+//
+// Streaming constraints (vs eager load):
+//   - setSpeed() is ignored (decoder outputs engine-rate frames).
+//   - setPosition() incurs a seek + ring-buffer refill (~10 ms blackout).
+//   - Supported formats: WAV / MP3 / FLAC. (.ogg / .aac use load() instead.)
 //
 // Audio source:
 //   "113 2b loose-pants 4.2 mono" by astro_denticle
 //   https://freesound.org/
 //   License: CC0 (Public Domain)
-//   Thanks to astro_denticle for sharing this great beat loop!
 // =============================================================================
 
 #include "tcApp.h"
@@ -14,32 +24,38 @@
 void tcApp::setup() {
     setFps(VSYNC);
 
-    // Audio file path (CC0 sample audio in data folder)
-    musicPath = getDataPath("beat_loop.aac");
+    // WAV is supported by the streaming decoder (AAC is not — use load()
+    // for AAC sources).
+    musicPath = getDataPath("beat_loop.wav");
 
-    logNotice("tcApp") << "Trying to load: " << musicPath;
-    if (music.load(musicPath)) {
+    logNotice("tcApp") << "Trying to stream: " << musicPath;
+    if (music.loadStream(musicPath)) {
         musicLoaded = true;
         music.setLoop(true);
-        logNotice("tcApp") << "Music loaded: " << musicPath << " (" << music.getDuration() << " sec)";
+        logNotice("tcApp") << "Stream ready: " << musicPath
+                           << " (" << music.getDuration() << " sec, streaming="
+                           << (music.isStreaming() ? "yes" : "no") << ")";
     } else {
-        logNotice("tcApp") << "Music not found: " << musicPath << " - using test tone";
+        logWarning("tcApp") << "Stream load failed: " << musicPath
+                            << " - falling back to test tone (eager)";
         music.loadTestTone(440.0f, 3.0f);
         music.setLoop(true);
         musicLoaded = true;
     }
 
-    // Sound effect (using test tone)
-    sfx.loadTestTone(880.0f, 0.2f);  // A5 (880Hz), 0.2 seconds
+    // SFX is eager (short test tone) — proves eager + stream voices mix
+    // happily in the same engine.
+    sfx.loadTestTone(880.0f, 0.2f);
     sfxLoaded = true;
 
     logNotice("tcApp") << "=== Controls ===";
-    logNotice("tcApp") << "SPACE: Play/Stop music";
+    logNotice("tcApp") << "SPACE: Play/Stop streaming music";
     logNotice("tcApp") << "P: Pause/Resume music";
-    logNotice("tcApp") << "S: Play sound effect";
+    logNotice("tcApp") << "S: Play eager SFX";
     logNotice("tcApp") << "UP/DOWN: Volume control";
     logNotice("tcApp") << "LEFT/RIGHT: Pan control";
-    logNotice("tcApp") << "+/-: Speed control (-10 ~ +10, 0 = freeze, negative = reverse)";
+    logNotice("tcApp") << "[ / ]: Seek -5s / +5s";
+    logNotice("tcApp") << "+/-: Speed (0 ~ 10 on streams, 0 = freeze)";
     logNotice("tcApp") << "0: Reset speed to 1.0";
     logNotice("tcApp") << "================";
 }
@@ -49,33 +65,32 @@ void tcApp::draw() {
 
     float y = 50;
 
-    // Title
     setColor(colors::white);
-    drawBitmapString("TrussC Sound Player Example", 50, y);
+    drawBitmapString("TrussC Sound Stream Example", 50, y);
     y += 40;
 
-    // Control instructions
     setColor(0.7f);
     drawBitmapString("Controls:", 50, y);
     y += 25;
-    drawBitmapString("  SPACE - Play/Stop music", 50, y);
+    drawBitmapString("  SPACE - Play/Stop streaming music", 50, y);
     y += 20;
     drawBitmapString("  P - Pause/Resume music", 50, y);
     y += 20;
-    drawBitmapString("  S - Play sound effect", 50, y);
+    drawBitmapString("  S - Play eager SFX (separate voice)", 50, y);
     y += 20;
-    drawBitmapString("  UP/DOWN - Volume control", 50, y);
+    drawBitmapString("  UP/DOWN - Volume", 50, y);
     y += 20;
-    drawBitmapString("  LEFT/RIGHT - Pan control", 50, y);
+    drawBitmapString("  LEFT/RIGHT - Pan", 50, y);
     y += 20;
-    drawBitmapString("  +/- - Speed (-10 ~ +10, 0 = freeze, negative = reverse)", 50, y);
+    drawBitmapString("  [ / ] - Seek -5s / +5s", 50, y);
+    y += 20;
+    drawBitmapString("  +/- - Speed (0 ~ 10 on streams, 0 = freeze)", 50, y);
     y += 20;
     drawBitmapString("  0   - Reset speed to 1.0", 50, y);
     y += 40;
 
-    // Music status
     setColor(colors::white);
-    drawBitmapString("=== Music ===", 50, y);
+    drawBitmapString("=== Music (Streaming) ===", 50, y);
     y += 25;
 
     if (musicLoaded) {
@@ -86,6 +101,10 @@ void tcApp::draw() {
         y += 20;
 
         setColor(0.7f);
+        drawBitmapString(format("Mode: {}",
+                music.isStreaming() ? "Streaming" : "Eager (fallback)"), 50, y);
+        y += 20;
+
         drawBitmapString(format("Position: {:.1f} / {:.1f} sec",
                 music.getPosition(), music.getDuration()), 50, y);
         y += 20;
@@ -93,11 +112,11 @@ void tcApp::draw() {
         drawBitmapString(format("Volume: {:.0f}%", music.getVolume() * 100), 50, y);
         y += 20;
 
-        drawBitmapString(format("Pan: {:.1f} ({})", music.getPan(),
-                music.getPan() < -0.1f ? "Left" : music.getPan() > 0.1f ? "Right" : "Center"), 50, y);
+        drawBitmapString(format("Speed: {:.1f}x", music.getSpeed()), 50, y);
         y += 20;
 
-        drawBitmapString(format("Speed: {:.1f}x", music.getSpeed()), 50, y);
+        drawBitmapString(format("Pan: {:.1f} ({})", music.getPan(),
+                music.getPan() < -0.1f ? "Left" : music.getPan() > 0.1f ? "Right" : "Center"), 50, y);
         y += 20;
 
         drawBitmapString(std::string("Loop: ") + (music.isLoop() ? "ON" : "OFF"), 50, y);
@@ -119,23 +138,20 @@ void tcApp::draw() {
         y += 40;
     }
 
-    // Sound effect status
     setColor(colors::white);
-    drawBitmapString("=== Sound Effect ===", 50, y);
+    drawBitmapString("=== SFX (Eager) ===", 50, y);
     y += 25;
 
-    std::string status = sfx.isPlaying() ? "Playing" : "Ready";
+    std::string sfxStatus = sfx.isPlaying() ? "Playing" : "Ready";
     setColor(sfx.isPlaying() ? colors::lime : colors::gray);
-    drawBitmapString("Status: " + status, 50, y);
+    drawBitmapString("Status: " + sfxStatus, 50, y);
 
-    // FPS
     setColor(0.4f);
     drawBitmapString("FPS: " + std::to_string((int)getFrameRate()), 50, getWindowHeight() - 40);
 }
 
 void tcApp::keyPressed(int key) {
     if (key == ' ') {
-        // Space: Play/Stop music
         if (musicLoaded) {
             if (music.isPlaying() || music.isPaused()) {
                 music.stop();
@@ -147,7 +163,6 @@ void tcApp::keyPressed(int key) {
         }
     }
     else if (key == 'p' || key == 'P') {
-        // P: Pause/Resume
         if (musicLoaded) {
             if (music.isPaused()) {
                 music.resume();
@@ -159,51 +174,57 @@ void tcApp::keyPressed(int key) {
         }
     }
     else if (key == 's' || key == 'S') {
-        // S: Play sound effect
         if (sfxLoaded) {
             sfx.play();
             logNotice("tcApp") << "SFX playing";
         }
     }
     else if (key == SAPP_KEYCODE_UP) {
-        // Volume up
         float vol = music.getVolume() + 0.1f;
         if (vol > 1.0f) vol = 1.0f;
         music.setVolume(vol);
         logNotice("tcApp") << "Volume: " << (int)(vol * 100) << "%";
     }
     else if (key == SAPP_KEYCODE_DOWN) {
-        // Volume down
         float vol = music.getVolume() - 0.1f;
         if (vol < 0.0f) vol = 0.0f;
         music.setVolume(vol);
         logNotice("tcApp") << "Volume: " << (int)(vol * 100) << "%";
     }
     else if (key == SAPP_KEYCODE_LEFT) {
-        // Pan left
         float pan = music.getPan() - 0.1f;
         music.setPan(pan);
         logNotice("tcApp") << "Pan: " << music.getPan();
     }
     else if (key == SAPP_KEYCODE_RIGHT) {
-        // Pan right
         float pan = music.getPan() + 0.1f;
         music.setPan(pan);
         logNotice("tcApp") << "Pan: " << music.getPan();
     }
+    else if (key == '[') {
+        // Seek back 5 seconds
+        float newPos = music.getPosition() - 5.0f;
+        if (newPos < 0) newPos = 0;
+        music.setPosition(newPos);
+        logNotice("tcApp") << "Seek to " << newPos << "s";
+    }
+    else if (key == ']') {
+        // Seek forward 5 seconds
+        float newPos = music.getPosition() + 5.0f;
+        if (newPos > music.getDuration()) newPos = music.getDuration() - 0.1f;
+        music.setPosition(newPos);
+        logNotice("tcApp") << "Seek to " << newPos << "s";
+    }
     else if (key == '+' || key == '=' || key == SAPP_KEYCODE_KP_ADD) {
-        // Speed up (0.5 step — covers the [-10, +10] range without too
-        // much keymashing)
+        // Streams clamp negative to 0 internally — UI just feeds the value.
         music.setSpeed(music.getSpeed() + 0.5f);
         logNotice("tcApp") << "Speed: " << music.getSpeed() << "x";
     }
     else if (key == '-' || key == SAPP_KEYCODE_KP_SUBTRACT) {
-        // Speed down — goes negative for reverse playback on eager voices
         music.setSpeed(music.getSpeed() - 0.5f);
         logNotice("tcApp") << "Speed: " << music.getSpeed() << "x";
     }
     else if (key == '0') {
-        // Reset speed to 1.0 (quick recovery if you reverse off into a corner)
         music.setSpeed(1.0f);
         logNotice("tcApp") << "Speed reset to 1.0x";
     }

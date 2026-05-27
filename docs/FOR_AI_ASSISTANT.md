@@ -1,3 +1,11 @@
+<!--
+  ⚠️ This file is NOT human documentation.
+  It is a system prompt / cheatsheet designed to be loaded into an LLM
+  (Gemini Gem, custom GPT, Claude project, etc.) so the assistant can
+  generate idiomatic TrussC code. If you are a human looking for docs,
+  start with docs/GET_STARTED.md or docs/REFERENCE.md instead.
+-->
+
 You are a coding assistant for the TrussC framework.
 
 ## About TrussC
@@ -275,6 +283,23 @@ Path glyph = font.getGlyphPath(U'あ');                // em-normalized
 `drawFill` uses earcut + spatial-containment grouping, so glyphs like
 `O` / `日` / `あ` render with their holes correctly punched out.
 
+#### System fonts (no .ttf shipped)
+`Font::load` accepts a system font name (PostScript or family) directly
+— it resolves the name to a file path internally. The `TC_FONT_*` macros
+expand to the right name per platform, so the same source compiles on
+macOS / Windows / Linux without bundling font files.
+```cpp
+Font font;
+font.load(TC_FONT_SANS_JA, 24);          // HiraginoSans-W3 / Yu Gothic / Noto Sans JP
+font.load("HiraginoSans-W3", 24);        // Direct PostScript name (macOS)
+
+string path = systemFontPath("Helvetica");   // -> "/System/Library/Fonts/..." or ""
+auto names = listSystemFonts();              // all installed font names
+```
+Available macros: `TC_FONT_SANS`, `TC_FONT_SERIF`, `TC_FONT_MONO`,
+`TC_FONT_SANS_JA`, `TC_FONT_SERIF_JA`. Backends: CoreText (macOS/iOS),
+DirectWrite (Windows), fontconfig (Linux). Web falls back to a Noto CDN URL.
+
 ### Color
 ```cpp
 clear();                              // Transparent black (0,0,0,0)
@@ -333,12 +358,22 @@ addChild(child)         Add child node
 removeChild(child)      Remove child
 getChildren()           Returns COPY (safe to iterate during removal)
 destroy()               Mark for deferred removal (see below!)
+moveToFront()           Z-order: redraw last → on top of siblings
+moveToBack()            Z-order: redraw first → behind siblings
 setActive(false)        Skip update AND draw
 setVisible(false)       Skip draw only
 enableEvents()          Required to receive mouse events
 setPos(x, y)
 setRot(radians)
 setScale(s)
+```
+Z-order is the child list order — `moveToFront/Back` reorder siblings
+in place. Typical use: bring a clicked card to the top of a stack:
+```cpp
+bool onMousePress(Vec2 local, int button) override {
+    moveToFront();   // this node now draws above its siblings
+    return true;
+}
 ```
 
 ### RectNode Extras
@@ -395,17 +430,31 @@ img.draw(x, y, w, h);              // Scaled
 img.drawSubsection(dx, dy, dw, dh, sx, sy, sw, sh);  // Sprite sheet
 
 // Dynamic image
-img.allocate(256, 256, 4);          // RGBA
+img.allocate(256, 256, 4);                  // RGBA, no mipmaps
+img.allocate(256, 256, 4, /*mipmaps=*/true); // Chain rebuilt each update()
 img.setColor(x, y, Color(1,0,0));
 img.update();                       // Upload to GPU (once per frame!)
 img.save("output.png");
+
+// CPU-side transforms (operate on Pixels; cheap for U8, gamma-correct)
+img.halve();                        // 2x2 box-averaged half (mipmap step)
+img.resize(512, 512);               // BoxArea (down) / Catmull-Rom (up)
+img.crop(x, y, w, h);               // Clamp-to-edge for out-of-bounds
+img.mirror(true, false);            // L/R flip; (false,true) = V flip; both = 180°
+img.mirrorH();  img.mirrorV();      // shorthand
 ```
+- Use `mipmaps=true` for textures sampled at small / varying scales
+  (3D meshes, zoomed-out sprites) to avoid shimmering.
+- For per-frame heavy downscale, prefer rendering into a smaller `Fbo`
+  over `resize()` — `resize` runs on CPU.
 
 ### Fbo (Off-screen rendering)
 ```cpp
 Fbo fbo;
 fbo.allocate(512, 512);             // Basic
 fbo.allocate(512, 512, 4);          // With 4x MSAA
+fbo.allocate(512, 512, 1, TextureFormat::RGBA8, /*mipmaps=*/true);
+                                    // Mip chain auto-rebuilt at end()
 
 fbo.begin();                        // Preserve previous content (LOAD)
 fbo.begin(0.1f, 0.1f, 0.1f, 1.0f); // Clear with specified color
@@ -421,6 +470,9 @@ fbo.save("output.png");
 - `begin(r,g,b,a)` clears with specified color
 - Use `clear()` inside begin/end to clear to transparent black
 - Nested `begin()` is NOT supported. Must `end()` before another `begin()`.
+- `mipmaps=true` is for FBOs sampled at varying scales (post-process
+  bloom downsamples, 3D textures rendered into). Adds cost at every
+  `end()` — leave off for one-shot composites drawn at native size.
 
 ### Shader (sokol-shdc)
 Shaders use sokol-shdc format (`.glsl` file compiled to C header). Place `.glsl` in `src/shaders/`.
@@ -678,8 +730,18 @@ getGlobalMouseX() / getGlobalMouseY()
 isMousePressed()
 isKeyPressed(SAPP_KEYCODE_SPACE)         // exact key, left/right shift are different
 isShiftPressed() / isControlPressed()    // "either side" modifier checks
-isAltPressed()   / isSuperPressed()
+isAltPressed()   / isSuperPressed()      // Super = Cmd on macOS, Win key elsewhere
 getElapsedTime() / getDeltaTime() / getFrameRate()
+```
+Modifier helpers collapse left+right keycodes, so use them for chords
+instead of testing `LEFT_SHIFT` / `RIGHT_SHIFT` individually:
+```cpp
+void keyPressed(int key) {
+    if (key == SAPP_KEYCODE_S && isSuperPressed()) save();   // Cmd/Ctrl+S
+    if (key == SAPP_KEYCODE_Z && isSuperPressed()) {
+        isShiftPressed() ? redo() : undo();                  // Cmd+Shift+Z
+    }
+}
 ```
 
 ### Screenshot
@@ -745,10 +807,119 @@ Presets: `ping`, `success`, `complete`, `coin`, `error`, `warning`, `cancel`, `c
 ### Sound — File Playback
 ```cpp
 Sound sound;
-sound.load("bgm.wav");
+sound.load("bgm.wav");        // eager: decode all to RAM (short SFX)
 sound.play();
 sound.setVolume(0.8f);
 sound.setLoop(true);
+sound.setPan(-0.5f);          // -1 (L) ~ 0 (center) ~ +1 (R), ch0/ch1 only on multi-ch
+sound.setSpeed(1.5f);         // [-10, 10]: negative=reverse (eager only), 0=freeze
+sound.pause(); sound.resume();
+float pos = sound.getPosition();   // seconds
+float dur = sound.getDuration();
+sound.setPosition(5.0f);      // seek
+bool playing = sound.isPlaying();
+```
+
+### Sound::loadStream — Streaming Playback (long files)
+```cpp
+Sound music;
+music.loadStream("bgm.mp3");          // WAV / MP3 / FLAC supported (NOT OGG / AAC)
+music.loadStream("bgm.wav", 2);       // maxPolyphony = 2 (concurrent play() count)
+music.play();
+bool streaming = music.isStreaming(); // true after loadStream(), false after load()
+```
+For long files (BGM, podcasts). Keeps file open + decodes on demand into a small ring buffer. On Web, falls back to eager `load()` with a warning. Streams ignore reverse `setSpeed` (clamped to [0, 10]).
+
+### Channel Routing — Multichannel Output
+Per-Sound, three orthogonal knobs control how the source channels (N) map onto the device's output channels (M):
+
+```cpp
+// High-level preset:
+sound.setMixMode(MixMode::Auto);          // (default) mono broadcasts; multi 1:1 with truncation
+sound.setMixMode(MixMode::DownmixMono);   // sum all src ch / N, broadcast to all out ch
+
+// Explicit routing (wins over MixMode when non-empty):
+sound.setChannelMap({0, 1});              // L,R passthrough (default for stereo on stereo device)
+sound.setChannelMap({1, 0});              // L/R swap
+sound.setChannelMap({-1, -1, 0, 1});      // play only on 4ch device's ch2,3
+sound.setChannelMap({{0,1}, {0,1}});      // 2D: L+R mixed → both output ch
+sound.setChannelMap({{0,1,2,3}, {0,1,2,3}}); // 4ch source → stereo downmix
+
+// Per-output gain (multiplier, NO internal normalization):
+sound.setChannelGains({1.0f, 0.5f});      // R at half volume
+sound.setChannelGains({0, 0.5f, 1.0f, 0.5f}); // diamond on 4ch device
+
+sound.clearChannelMap();    // back to mixMode rules
+sound.clearChannelGains();  // back to uniform 1.0
+```
+
+Composition: `out[c] = (sum of mapped src ch) * channelGains[c] * pan_multiplier[c] * volume`. `pan` only multiplies ch0/ch1 (legacy stereo balance).
+
+### AudioEngine — Configuration & Device Selection
+```cpp
+auto& engine = AudioEngine::getInstance();
+
+// Configure BEFORE any Sound::load() / play() (or use defaults):
+AudioSettings as;
+as.sampleRate   = 48000;          // default 48000 (changed from old 96000)
+as.channels     = 2;
+as.bufferSize   = 256;            // 0 = let miniaudio choose
+as.maxPolyphony = 32;
+as.deviceName   = "";             // empty = system default
+engine.init(as);
+
+// Runtime accessors (work even before init — returns defaults):
+int rate = engine.getSampleRate();
+int ch   = engine.getChannels();
+
+// Device enumeration (works any time):
+for (auto& d : AudioEngine::listDevices()) {
+    if (d.isDefault) cout << d.name << " (default)\n";
+}
+
+// Live re-init: init(settings) on a running engine is re-entrant.
+// Stops device, migrates active voices to new rate, restarts.
+// ~30-100 ms audible gap; voices keep their playback position.
+engine.init({.sampleRate = 96000, .deviceName = "Built-in Output"});
+```
+
+### Real-time Audio I/O (synthesis / processing)
+Two entry points. Use either or both.
+
+```cpp
+// 1. Override App::audioOut for oF-style synthesis
+class tcApp : public App {
+    double phase = 0;
+    void audioOut(AudioOutBuffer& buf) override {
+        for (int i = 0; i < buf.frameCount; i++) {
+            float v = 0.3f * sinf(phase);
+            for (int c = 0; c < buf.channels; c++)
+                buf.data[i * buf.channels + c] += v;       // ADD, don't overwrite
+            phase += TAU * 440.0f / buf.sampleRate;
+        }
+    }
+};
+
+// 2. Event<AudioOutBuffer> for non-App-bound code, multiple listeners
+EventListener synthListener;
+synthListener = AudioEngine::getInstance().audioOut.listen(
+    [](AudioOutBuffer& buf) { /* ... */ });
+```
+`audioOut` runs on the audio thread. Keep it RT-safe: no allocations, no engine API calls, no heavy locks. ADD to `buf.data` (other Sound voices already mixed in).
+
+### audioDeviceChanged — Device / Rate Change Event
+Fires on every successful `init()` (initial AND re-init):
+```cpp
+EventListener routingListener;
+void setup() {
+    routingListener = AudioEngine::getInstance().audioDeviceChanged.listen(
+        [this](AudioDeviceChangedArgs& a) {
+            cout << "device=" << a.deviceName
+                 << (a.isDefaultDevice ? " (default)" : "")
+                 << ", " << a.sampleRate << "Hz, " << a.channels << "ch\n";
+            // re-tune Sound routing for new device geometry here
+        });
+}
 ```
 
 ### ChipSound — Procedural Sound

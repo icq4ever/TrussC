@@ -908,11 +908,15 @@ bool TCVideoPlayerImpl::loadAudioForPlayback() {
         return false;
     }
 
-    // Set up resampler: native → F32 interleaved stereo at AudioEngine::SAMPLE_RATE
+    // Set up resampler: native → F32 interleaved stereo at the engine's
+    // runtime sample rate. Read it once up front so all references in this
+    // function agree even if the engine were reconfigured mid-decode (it
+    // can't be today, but cheap to be defensive).
+    const int engineSampleRate = AudioEngine::getInstance().getSampleRate();
     SwrContext* swr = nullptr;
     AVChannelLayout outLayout = AV_CHANNEL_LAYOUT_STEREO;
     if (swr_alloc_set_opts2(&swr,
-            &outLayout,           AV_SAMPLE_FMT_FLT, AudioEngine::SAMPLE_RATE,
+            &outLayout,           AV_SAMPLE_FMT_FLT, engineSampleRate,
             &audioCtx->ch_layout, audioCtx->sample_fmt, audioCtx->sample_rate,
             0, nullptr) < 0 || swr_init(swr) < 0) {
         if (swr) swr_free(&swr);
@@ -924,7 +928,7 @@ bool TCVideoPlayerImpl::loadAudioForPlayback() {
     // Reserve estimated buffer space
     std::vector<float> samples;
     if (duration_ > 0)
-        samples.reserve((size_t)(duration_ * AudioEngine::SAMPLE_RATE * 2 * 1.05));
+        samples.reserve((size_t)(duration_ * engineSampleRate * 2 * 1.05));
 
     AVFrame* frame = av_frame_alloc();
     AVPacket* pkt  = av_packet_alloc();
@@ -932,7 +936,7 @@ bool TCVideoPlayerImpl::loadAudioForPlayback() {
     auto appendConverted = [&](int nbIn) {
         int outN = av_rescale_rnd(
             swr_get_delay(swr, audioCtx->sample_rate) + nbIn,
-            AudioEngine::SAMPLE_RATE, audioCtx->sample_rate, AV_ROUND_UP);
+            engineSampleRate, audioCtx->sample_rate, AV_ROUND_UP);
         std::vector<float> buf(outN * 2);
         uint8_t* outData[1] = { (uint8_t*)buf.data() };
         int n = swr_convert(swr, outData, outN,
@@ -974,7 +978,7 @@ bool TCVideoPlayerImpl::loadAudioForPlayback() {
     auto buf = std::make_shared<SoundBuffer>();
     buf->samples   = std::move(samples);
     buf->channels  = 2;
-    buf->sampleRate = AudioEngine::SAMPLE_RATE;
+    buf->sampleRate = engineSampleRate;
     buf->numSamples = buf->samples.size() / 2;
     audioBuffer_ = buf;
     audioSound_.loadFromBuffer(audioBuffer_);
