@@ -562,8 +562,8 @@ class tcApp : public App {
     }
 
     void draw() override {
-        clear(30);
-        setColor(255, 200, 100);
+        clear(0.12);
+        setColor(1.0, 0.78, 0.39);
         circle.drawTree();    // Draw with position/rotation applied
     }
 };
