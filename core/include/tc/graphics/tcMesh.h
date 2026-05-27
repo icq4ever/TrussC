@@ -441,16 +441,13 @@ public:
 
         // GPU PBR path: requires normals and a Material.
         // Evaluated per-pixel on the GPU via the meshPbr shader.
-        // Skipped for Points mode: per-pixel lighting on a point has no
-        // surface meaning, so point clouds always go through drawNoLighting().
-        if (mode_ != PrimitiveMode::Points &&
-            hasNormals() && normals_.size() >= vertices_.size() &&
+        if (hasNormals() && normals_.size() >= vertices_.size() &&
             internal::currentMaterial) {
             drawGpuPbr();
             return;
         }
 
-        // Normal drawing (no material set, no normals, or Points mode)
+        // Normal drawing (no material set or no normals)
         drawNoLighting();
     }
 
