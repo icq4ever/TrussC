@@ -38,38 +38,54 @@
 #include "stb/stb_truetype.h"
 
 #include "../utils/tcLog.h"
+#include "../utils/tcSystemFont.h"
 #include "../types/tcDirection.h"
 #include "../types/tcRectangle.h"
 #include "../../tcMath.h"  // Vec2
+#include "tcFontVertical.h"
+#include "tcPath.h"
 
 // ---------------------------------------------------------------------------
 // System font paths - use these for cross-platform font loading
 // ---------------------------------------------------------------------------
+// Names are resolved at load time via tc::systemFontPath (CoreText / DirectWrite
+// / fontconfig per platform). Web keeps URLs since browsers don't expose system
+// fonts — Font::load handles URL inputs directly via emscripten_fetch.
 #ifdef __EMSCRIPTEN__
     // Web: Use Google Fonts via jsDelivr CDN (async load)
-    #define TC_FONT_SANS  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf"
-    #define TC_FONT_SERIF "https://cdn.jsdelivr.net/fontsource/fonts/noto-serif@latest/latin-400-normal.ttf"
-    #define TC_FONT_MONO  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-mono@latest/latin-400-normal.ttf"
+    #define TC_FONT_SANS     "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/latin-400-normal.ttf"
+    #define TC_FONT_SERIF    "https://cdn.jsdelivr.net/fontsource/fonts/noto-serif@latest/latin-400-normal.ttf"
+    #define TC_FONT_MONO     "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-mono@latest/latin-400-normal.ttf"
+    #define TC_FONT_SANS_JA  "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf"
+    #define TC_FONT_SERIF_JA "https://cdn.jsdelivr.net/fontsource/fonts/noto-serif-jp@latest/japanese-400-normal.ttf"
 #elif defined(_WIN32)
-    // Windows
-    #define TC_FONT_SANS  "C:/Windows/Fonts/segoeui.ttf"
-    #define TC_FONT_SERIF "C:/Windows/Fonts/times.ttf"
-    #define TC_FONT_MONO  "C:/Windows/Fonts/consola.ttf"
+    // Windows — resolved via DirectWrite (not yet implemented; falls back to path)
+    #define TC_FONT_SANS     "Segoe UI"
+    #define TC_FONT_SERIF    "Times New Roman"
+    #define TC_FONT_MONO     "Consolas"
+    #define TC_FONT_SANS_JA  "Yu Gothic"
+    #define TC_FONT_SERIF_JA "Yu Mincho"
 #elif defined(__APPLE__)
-    // macOS
-    #define TC_FONT_SANS  "/System/Library/Fonts/Helvetica.ttc"
-    #define TC_FONT_SERIF "/System/Library/Fonts/Times.ttc"
-    #define TC_FONT_MONO  "/System/Library/Fonts/Menlo.ttc"
+    // macOS — resolved via CoreText (PostScript / family names)
+    #define TC_FONT_SANS     "Helvetica"
+    #define TC_FONT_SERIF    "Times New Roman"
+    #define TC_FONT_MONO     "Menlo"
+    #define TC_FONT_SANS_JA  "HiraginoSans-W3"
+    #define TC_FONT_SERIF_JA "HiraMinProN-W3"
 #elif defined(__ANDROID__)
-    // Android system fonts (accessible from NDK without permissions)
-    #define TC_FONT_SANS  "/system/fonts/Roboto-Regular.ttf"
-    #define TC_FONT_SERIF "/system/fonts/NotoSerif-Regular.ttf"
-    #define TC_FONT_MONO  "/system/fonts/DroidSansMono.ttf"
+    // Android — name resolution not yet implemented; system_fonts path-based lookup planned
+    #define TC_FONT_SANS     "Roboto"
+    #define TC_FONT_SERIF    "Noto Serif"
+    #define TC_FONT_MONO     "Droid Sans Mono"
+    #define TC_FONT_SANS_JA  "Noto Sans CJK JP"
+    #define TC_FONT_SERIF_JA "Noto Serif CJK JP"
 #else
-    // Linux
-    #define TC_FONT_SANS  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    #define TC_FONT_SERIF "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"
-    #define TC_FONT_MONO  "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+    // Linux — resolved via fontconfig (not yet implemented; falls back to path)
+    #define TC_FONT_SANS     "DejaVu Sans"
+    #define TC_FONT_SERIF    "DejaVu Serif"
+    #define TC_FONT_MONO     "DejaVu Sans Mono"
+    #define TC_FONT_SANS_JA  "Noto Sans CJK JP"
+    #define TC_FONT_SERIF_JA "Noto Serif CJK JP"
 #endif
 
 namespace trussc {
@@ -290,6 +306,99 @@ public:
 
     bool hasGlyph(uint32_t codepoint) const {
         return glyphs_.find(codepoint) != glyphs_.end();
+    }
+
+    // Check whether the underlying font file actually contains a glyph for
+    // this codepoint (vs. .notdef). Used by vertical writing to decide whether
+    // a CJK Compatibility Forms variant (U+FE10–FE4F) is usable.
+    bool fontHasGlyph(uint32_t codepoint) const {
+        if (!loaded_) return false;
+        return stbtt_FindGlyphIndex(&fontInfo_, (int)codepoint) != 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // Vector glyph outline (em-normalized, screen Y-down).
+    //
+    // Returns a single Path with one subpath per contour (use moveTo to walk
+    // them). Coordinates are in em units (1.0 = em), so a glyph above the
+    // baseline has Y < 0. Each subpath is closed. Glyphs with no outline
+    // (e.g. the space character) return an empty Path without logging.
+    // Subpath layout matches stbtt's contour order — for TrueType fonts the
+    // outer ring comes first (CCW in font Y-up, CW in our screen Y-down),
+    // followed by holes (opposite winding). Path::drawFill() detects this
+    // via spatial containment so callers don't need to think about it.
+    // -------------------------------------------------------------------------
+    Path getGlyphPath(uint32_t codepoint) const {
+        Path result;
+        if (!loaded_) return result;
+
+        int glyphIndex = stbtt_FindGlyphIndex(&fontInfo_, (int)codepoint);
+        if (glyphIndex == 0) {
+            logWarning() << "FontAtlasManager: no glyph for U+" << std::hex
+                         << codepoint << std::dec;
+            return result;
+        }
+
+        stbtt_vertex* vertices = nullptr;
+        const int numVerts = stbtt_GetGlyphShape(&fontInfo_, glyphIndex, &vertices);
+        if (numVerts <= 0 || !vertices) {
+            if (vertices) stbtt_FreeShape(&fontInfo_, vertices);
+            return result;  // valid but empty outline (space etc.)
+        }
+
+        // stbtt returns vertex coords in font design units, Y-up.
+        // Multiply by emScale to get em units (1.0 = em); negate Y for screen Y-down.
+        const float emScale = stbtt_ScaleForMappingEmToPixels(&fontInfo_, 1.0f);
+
+        bool subpathOpen = false;
+        for (int i = 0; i < numVerts; i++) {
+            const stbtt_vertex& v = vertices[i];
+            const float x = (float)v.x * emScale;
+            const float y = -(float)v.y * emScale;
+            switch (v.type) {
+                case STBTT_vmove:
+                    if (subpathOpen) result.close();
+                    result.moveTo(x, y);
+                    subpathOpen = true;
+                    break;
+                case STBTT_vline:
+                    result.lineTo(x, y);
+                    break;
+                case STBTT_vcurve: {
+                    // Explicit resolution: Path's adaptive tessellation uses an
+                    // absolute tolerance, but our coords are em-normalized
+                    // (~1.0 max), so without an explicit count curves collapse
+                    // to straight chords. 12 segments is plenty for glyph quads.
+                    const float cx = (float)v.cx * emScale;
+                    const float cy = -(float)v.cy * emScale;
+                    result.quadBezierTo(Vec2{cx, cy}, Vec2{x, y}, 12);
+                    break;
+                }
+                case STBTT_vcubic: {
+                    const float cx  = (float)v.cx  * emScale;
+                    const float cy  = -(float)v.cy * emScale;
+                    const float cx1 = (float)v.cx1 * emScale;
+                    const float cy1 = -(float)v.cy1 * emScale;
+                    result.bezierTo(Vec3{cx, cy, 0.f}, Vec3{cx1, cy1, 0.f}, Vec3{x, y, 0.f}, 16);
+                    break;
+                }
+            }
+        }
+        if (subpathOpen) result.close();
+
+        stbtt_FreeShape(&fontInfo_, vertices);
+        return result;
+    }
+
+    // Em-normalized horizontal advance for this codepoint (1.0 = em).
+    float getGlyphAdvanceEm(uint32_t codepoint) const {
+        if (!loaded_) return 0.f;
+        int glyphIndex = stbtt_FindGlyphIndex(&fontInfo_, (int)codepoint);
+        if (glyphIndex == 0) return 0.f;
+        int advanceWidth = 0, lsb = 0;
+        stbtt_GetGlyphHMetrics(&fontInfo_, glyphIndex, &advanceWidth, &lsb);
+        const float emScale = stbtt_ScaleForMappingEmToPixels(&fontInfo_, 1.0f);
+        return (float)advanceWidth * emScale;
     }
 
     // -------------------------------------------------------------------------
@@ -763,26 +872,48 @@ public:
     // -------------------------------------------------------------------------
     // Load font
     // -------------------------------------------------------------------------
-    bool load(const std::string& path, int size) {
+    // Load a font. `nameOrPath` can be one of:
+    //   - A URL (Emscripten only, async load)
+    //   - A filesystem path
+    //   - A system font name (PostScript or family name) — resolved via
+    //     tc::systemFontPath when the path doesn't exist on disk. Lets users
+    //     write `font.load("HiraginoSans-W3", 24)` cross-platform.
+    bool load(const std::string& nameOrPath, int size) {
         // Render glyphs at physical pixel size for sharp text on HiDPI displays.
         // All metrics/drawing are scaled back to logical coordinates.
         dpiScale_ = sapp_dpi_scale();
         int physicalSize = (int)(size * dpiScale_ + 0.5f);
         logicalSize_ = size;
 
-        cacheKey_.fontPath = path;
-        cacheKey_.fontSize = physicalSize;
-
         // Create sampler and pipeline if not yet
         if (!resourcesInitialized_) {
             initResources();
         }
 
-        // Check if URL
-        if (isUrl(path)) {
+        // Resolve input to a concrete path (file / URL).
+        std::string actualPath = nameOrPath;
+        if (!isUrl(nameOrPath)) {
+            std::ifstream test(nameOrPath, std::ios::binary);
+            if (!test.good()) {
+                // Not a usable file path — try as a system font name.
+                std::string resolved = systemFontPath(nameOrPath);
+                if (!resolved.empty()) {
+                    actualPath = resolved;
+                    logNotice("Font") << "Resolved \"" << nameOrPath
+                                      << "\" → " << resolved;
+                }
+                // If resolution failed, fall through with the original input so
+                // the eventual load error mentions what the user actually asked for.
+            }
+        }
+
+        cacheKey_.fontPath = actualPath;
+        cacheKey_.fontSize = physicalSize;
+
+        if (isUrl(actualPath)) {
 #ifdef __EMSCRIPTEN__
             // Async load - returns immediately, font available after fetch completes
-            loadFromUrlAsync(path, physicalSize);
+            loadFromUrlAsync(actualPath, physicalSize);
             return true;  // Will be loaded asynchronously
 #else
             logError() << "Font: URL loading only supported in WebAssembly";
@@ -898,38 +1029,213 @@ public:
     virtual void drawString(const std::string& text, float x, float y) const {
         Direction h = getDefaultContext().getTextAlignH();
         Direction v = getDefaultContext().getTextAlignV();
-        drawStringInternal(text, x, y, h, v);
+        const std::string wrapped = wrapTextIfEnabled(text);
+        if (writingMode_ == WritingMode::VerticalRL) {
+            drawStringVerticalInternal(wrapped, x, y, h, v);
+        } else {
+            drawStringInternal(wrapped, x, y, h, v);
+        }
     }
 
     virtual void drawString(const std::string& text, float x, float y,
                             Direction h, Direction v) const {
-        drawStringInternal(text, x, y, h, v);
+        const std::string wrapped = wrapTextIfEnabled(text);
+        if (writingMode_ == WritingMode::VerticalRL) {
+            drawStringVerticalInternal(wrapped, x, y, h, v);
+        } else {
+            drawStringInternal(wrapped, x, y, h, v);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Vector glyph outlines (rotation / scaling / animation use cases).
+    //
+    // getGlyphPath returns a single Path with one subpath per contour
+    // (em-normalized, 1.0 = em, screen Y-down, baseline at y=0, pen at x=0).
+    // Glyphs with holes like 'O' / '日' / 'あ' have multiple subpaths and
+    // render correctly with `path.drawFill()`.
+    //
+    // getStringPath returns a single Path containing every glyph's contours
+    // positioned with the same layout pipeline as drawString — writing mode,
+    // alignment, wrap, kinsoku, TCY all apply. Coordinates are in logical
+    // pixels relative to (x, y).
+    // -------------------------------------------------------------------------
+    Path getGlyphPath(uint32_t codepoint) const {
+        if (!atlasManager_) return {};
+        return atlasManager_->getGlyphPath(codepoint);
+    }
+
+    Path getStringPath(const std::string& text, float x, float y,
+                       Direction h, Direction v) const {
+        Path result;
+        if (!atlasManager_ || text.empty()) return result;
+
+        const float em = (float)logicalSize_;
+
+        forEachGlyph(text, x, y, h, v, [&](const PlacedGlyph& pg) {
+            Path glyph = atlasManager_->getGlyphPath(pg.codepoint);
+            if (glyph.empty()) return;
+
+            const float c  = std::cos(pg.rotationCw);
+            const float si = std::sin(pg.rotationCw);
+            const bool  rotated = (pg.rotationCw != 0.f);
+
+            // Transform the glyph's vertices in place and append each subpath
+            // to result as its own subpath (moveTo at every contour start so
+            // glyph boundaries and holes survive the merge).
+            const size_t nSub = glyph.getNumSubpaths();
+            for (size_t si2 = 0; si2 < nSub; ++si2) {
+                auto [gs, ge] = glyph.getSubpathRange(si2);
+                if (ge - gs == 0) continue;
+                bool first = true;
+                for (size_t k = gs; k < ge; ++k) {
+                    Vec3& vert = glyph.getVertices()[k];
+                    float fx = vert.x * em * pg.scaleX + pg.drawX;
+                    float fy = vert.y * em            + pg.baselineY;
+                    if (rotated) {
+                        const float dx = fx - pg.pivotX;
+                        const float dy = fy - pg.pivotY;
+                        fx = pg.pivotX + c * dx - si * dy;
+                        fy = pg.pivotY + si * dx + c * dy;
+                    }
+                    if (first) { result.moveTo(fx, fy); first = false; }
+                    else       { result.lineTo(fx, fy); }
+                }
+                if (glyph.isSubpathClosed(si2)) result.close();
+            }
+        });
+
+        return result;
+    }
+
+    Path getStringPath(const std::string& text, float x, float y) const {
+        Direction h = getDefaultContext().getTextAlignH();
+        Direction v = getDefaultContext().getTextAlignV();
+        return getStringPath(text, x, y, h, v);
+    }
+
+    // -------------------------------------------------------------------------
+    // Writing mode (default: Horizontal — existing behavior unchanged)
+    // -------------------------------------------------------------------------
+    void setWritingMode(WritingMode mode) { writingMode_ = mode; }
+    WritingMode getWritingMode() const { return writingMode_; }
+
+    // Tate-chu-yoko (縦中横) for runs of consecutive ASCII digits.
+    //   maxDigits == 0   → disabled, every run uses overflowMode
+    //   N digits ≤ max   → inMode (e.g. Combine to squeeze digits into one cell)
+    //   N digits  > max  → overflowMode (typically Rotate)
+    void setTcyDigits(int maxDigits, TcyMode inMode, TcyMode overflowMode) {
+        tcyDigitMax_ = maxDigits;
+        tcyDigitInMode_ = inMode;
+        tcyDigitOverflowMode_ = overflowMode;
+    }
+    // Tate-chu-yoko for runs of Latin letters (single mode, default Rotate).
+    void setTcyLatin(TcyMode mode) { tcyLatinMode_ = mode; }
+
+    TcyMode getTcyLatinMode() const { return tcyLatinMode_; }
+    int     getTcyDigitMax() const { return tcyDigitMax_; }
+
+    // -------------------------------------------------------------------------
+    // Line wrapping (default: off — existing single-line behavior unchanged).
+    // Both writing modes use the same API:
+    //   horizontal → maxLineLength is the line width before wrapping
+    //   vertical   → maxLineLength is the column height before column-break
+    // -------------------------------------------------------------------------
+    void  enableWrap(bool enabled)       { wrapEnabled_ = enabled; }
+    bool  isWrapEnabled() const          { return wrapEnabled_; }
+    void  setMaxLineLength(float length) { maxLineLength_ = length; }
+    float getMaxLineLength() const       { return maxLineLength_; }
+
+    // When wrapping a Latin run with no break opportunity inside, insert '-'
+    // before the forced break instead of cutting silently. Default: off.
+    void setLatinHyphenation(bool enabled) { latinHyphenation_ = enabled; }
+    bool getLatinHyphenation() const       { return latinHyphenation_; }
+
+    // CJK kinsoku: when a 行頭禁則 character (、。」』）etc.) would otherwise
+    // start a new line, let it hang past the edge of the current line instead.
+    // Default: off (plain greedy wrap).
+    void setHangingPunctuation(bool enabled) { hangingPunctuation_ = enabled; }
+    bool getHangingPunctuation() const       { return hangingPunctuation_; }
+
+    // Which subset of the CJK kinsoku tables to consult during wrap.
+    //   Off (default)    — every CJK boundary is breakable, no kinsoku at all
+    //   PunctuationOnly  — only 、。, . : ; ? ! ， ． ： ； ？ ！ … ‥ block line-start
+    //   Standard         — full table (closing brackets + small kana + sound
+    //                       marks + iteration marks + punctuation)
+    // Affects both break-opportunity decisions and the hanging-punctuation
+    // overflow path (see setHangingPunctuation).
+    void         setKinsoku(KinsokuLevel level) { kinsokuLevel_ = level; }
+    KinsokuLevel getKinsoku() const             { return kinsokuLevel_; }
+
+    // -------------------------------------------------------------------------
+    // Layout abstraction: PlacedGlyph + forEachGlyph*
+    //
+    // forEachGlyph computes glyph positions for the current writingMode/wrap/
+    // kinsoku/TCY settings and invokes visitor once per glyph. The visitor is
+    // backend-agnostic — atlas-quad emit, vector Path emit, hit testing, etc.
+    // share the same layout pass.
+    //
+    // PlacedGlyph fields:
+    //   codepoint  — final codepoint after vertical-form mapping (e.g. FE10-FE4F)
+    //   drawX/Y    — pen position; glyph xoff/yoff are added on top
+    //   rotationCw — 0 (upright) or TAU/4 (90° CW) in radians
+    //   pivotX/Y   — rotation center (used only when rotationCw != 0)
+    //   scaleX     — horizontal scale (1.0 normally, <1 for TCY Combine)
+    // -------------------------------------------------------------------------
+public:
+    struct PlacedGlyph {
+        uint32_t codepoint;
+        float    drawX;
+        float    baselineY;
+        float    rotationCw;
+        float    pivotX;
+        float    pivotY;
+        float    scaleX;
+    };
+    using GlyphVisitor = std::function<void(const PlacedGlyph&)>;
+
+    // Dispatches to horizontal/vertical layout based on writingMode_.
+    // Applies wrap preprocessing internally.
+    void forEachGlyph(const std::string& text, float x, float y,
+                      Direction h, Direction v,
+                      const GlyphVisitor& visitor) const {
+        const std::string wrapped = wrapTextIfEnabled(text);
+        if (writingMode_ == WritingMode::VerticalRL) {
+            forEachGlyphVertical(wrapped, x, y, h, v, visitor);
+        } else {
+            forEachGlyphHorizontal(wrapped, x, y, h, v, visitor);
+        }
+    }
+
+    // Convenience overload using current alignment settings.
+    void forEachGlyph(const std::string& text, float x, float y,
+                      const GlyphVisitor& visitor) const {
+        Direction h = getDefaultContext().getTextAlignH();
+        Direction v = getDefaultContext().getTextAlignV();
+        forEachGlyph(text, x, y, h, v, visitor);
     }
 
     // -------------------------------------------------------------------------
     // Internal drawing implementation
     // -------------------------------------------------------------------------
 protected:
-    void drawStringInternal(const std::string& text, float x, float y,
-                            Direction h, Direction v) const {
+    // Layout pass for horizontal writing mode. Text is assumed pre-wrapped.
+    void forEachGlyphHorizontal(const std::string& text, float x, float y,
+                                Direction h, Direction v,
+                                const GlyphVisitor& visitor) const {
         if (!atlasManager_ || text.empty()) return;
 
-        // Load required glyphs
+        // Preload required glyphs (atlas-side); cheap if already cached.
         for (size_t i = 0; i < text.size(); ) {
-            uint32_t codepoint = decodeUTF8(text, i);
-            if (codepoint != '\n' && codepoint != '\t') {
-                atlasManager_->getOrLoadGlyph(codepoint);
+            uint32_t cp = decodeUTF8(text, i);
+            if (cp != '\n' && cp != '\t') {
+                atlasManager_->getOrLoadGlyph(cp);
             }
         }
 
-        // Update textures
-        atlasManager_->ensureTexturesUpdated();
-
-        // DPI scale factor: atlas is rendered at physical pixels,
-        // but drawing uses logical coordinates
         const float s = 1.0f / dpiScale_;
 
-        // Pre-compute per-line widths for horizontal alignment
+        // Pre-compute per-line widths for horizontal alignment.
         std::vector<float> lineWidths;
         {
             float w = 0;
@@ -948,7 +1254,6 @@ protected:
             lineWidths.push_back(w);
         }
 
-        // Per-line horizontal offset
         auto lineOffsetX = [&](int lineIdx) -> float {
             float lw = (lineIdx < (int)lineWidths.size()) ? lineWidths[lineIdx] : 0;
             switch (h) {
@@ -958,11 +1263,9 @@ protected:
             }
         };
 
-        // Vertical offset (multi-line aware)
         float offsetY = 0;
         float totalTextH = getLineHeight() * lineWidths.size();
         float ascent = atlasManager_->getAscent() * s;
-
         switch (v) {
             case Direction::Top:      offsetY = 0; break;
             case Direction::Baseline: offsetY = -ascent; break;
@@ -971,15 +1274,47 @@ protected:
             default: break;
         }
 
-        // Draw per atlas
-        size_t atlasCount = atlasManager_->getAtlasCount();
-        for (size_t atlasIdx = 0; atlasIdx < atlasCount; atlasIdx++) {
+        int currentLine = 0;
+        float cursorX = x + lineOffsetX(0);
+        float cursorY = y + offsetY + ascent;
+
+        for (size_t i = 0; i < text.size(); ) {
+            uint32_t cp = decodeUTF8(text, i);
+            if (cp == '\n') {
+                currentLine++;
+                cursorX = x + lineOffsetX(currentLine);
+                cursorY += getLineHeight();
+                continue;
+            }
+            if (cp == '\t') {
+                cursorX += atlasManager_->getSpaceAdvance() * s * 4;
+                continue;
+            }
+            const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+            if (!g || !g->isValid()) continue;
+
+            visitor(PlacedGlyph{cp, cursorX, cursorY, 0.f, 0.f, 0.f, 1.f});
+
+            cursorX += g->getAdvance() * s;
+        }
+    }
+
+    // Unified atlas-quad emit for both horizontal and vertical layouts.
+    // Consumes PlacedGlyph stream produced by forEachGlyph*.
+    void emitPlacedGlyphsToAtlas(const std::vector<PlacedGlyph>& placed) const {
+        if (!atlasManager_ || placed.empty()) return;
+
+        atlasManager_->ensureTexturesUpdated();
+
+        const float s = 1.0f / dpiScale_;
+        const size_t atlasCount = atlasManager_->getAtlasCount();
+
+        for (size_t atlasIdx = 0; atlasIdx < atlasCount; ++atlasIdx) {
             const AtlasState& atlas = atlasManager_->getAtlas(atlasIdx);
             if (!atlas.isTextureValid()) continue;
 
             // Use FBO blend pipeline when inside FBO pass (font pipeline has
-            // dst_factor_alpha=ZERO which destroys the background alpha, causing
-            // color fringing when the FBO texture is composited to screen)
+            // dst_factor_alpha=ZERO which destroys background alpha).
             if (internal::inFboPass && internal::currentFboBlendPipeline.id != 0) {
                 sgl_load_pipeline(internal::currentFboBlendPipeline);
             } else {
@@ -993,49 +1328,637 @@ protected:
 
             sgl_begin_quads();
 
-            int currentLine = 0;
-            float cursorX = x + lineOffsetX(0);
-            float cursorY = y + offsetY + ascent;
+            for (const PlacedGlyph& pg : placed) {
+                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(pg.codepoint);
+                if (!g || !g->isValid() || g->getAtlasIndex() != atlasIdx) continue;
+                if (g->getWidth() <= 0 || g->getHeight() <= 0) continue;
 
-            for (size_t i = 0; i < text.size(); ) {
-                uint32_t codepoint = decodeUTF8(text, i);
+                float gx = pg.drawX + g->getXoff() * s * pg.scaleX;
+                float gy = pg.baselineY + g->getYoff() * s;
+                float gw = g->getWidth() * s * pg.scaleX;
+                float gh = g->getHeight() * s;
 
-                if (codepoint == '\n') {
-                    currentLine++;
-                    cursorX = x + lineOffsetX(currentLine);
-                    cursorY += getLineHeight();
-                    continue;
-                }
-                if (codepoint == '\t') {
-                    cursorX += atlasManager_->getSpaceAdvance() * s * 4;
-                    continue;
-                }
-
-                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(codepoint);
-                if (!g || !g->isValid() || g->getAtlasIndex() != atlasIdx) {
-                    if (g) cursorX += g->getAdvance() * s;
-                    continue;
-                }
-
-                if (g->getWidth() > 0 && g->getHeight() > 0) {
-                    float gx = cursorX + g->getXoff() * s;
-                    float gy = cursorY + g->getYoff() * s;
-                    float gw = g->getWidth() * s;
-                    float gh = g->getHeight() * s;
-
-                    sgl_v2f_t2f(gx, gy, g->getU0(), g->getV0());
-                    sgl_v2f_t2f(gx + gw, gy, g->getU1(), g->getV0());
+                if (pg.rotationCw == 0.f) {
+                    sgl_v2f_t2f(gx,      gy,      g->getU0(), g->getV0());
+                    sgl_v2f_t2f(gx + gw, gy,      g->getU1(), g->getV0());
                     sgl_v2f_t2f(gx + gw, gy + gh, g->getU1(), g->getV1());
-                    sgl_v2f_t2f(gx, gy + gh, g->getU0(), g->getV1());
+                    sgl_v2f_t2f(gx,      gy + gh, g->getU0(), g->getV1());
+                } else {
+                    // Rotate around pivot. Screen Y-down: positive rotationCw
+                    // rotates clockwise visually. Specialized for θ=π/2 this
+                    // is (px,py) → (cx-(py-cy), cy+(px-cx)) — matches the
+                    // original vertical-text emitRotated path.
+                    const float c = std::cos(pg.rotationCw);
+                    const float si = std::sin(pg.rotationCw);
+                    auto rot = [&](float px, float py, float& ox, float& oy) {
+                        float dx = px - pg.pivotX;
+                        float dy = py - pg.pivotY;
+                        ox = pg.pivotX + c * dx - si * dy;
+                        oy = pg.pivotY + si * dx + c * dy;
+                    };
+                    float v0x, v0y, v1x, v1y, v2x, v2y, v3x, v3y;
+                    rot(gx,      gy,      v0x, v0y);
+                    rot(gx + gw, gy,      v1x, v1y);
+                    rot(gx + gw, gy + gh, v2x, v2y);
+                    rot(gx,      gy + gh, v3x, v3y);
+                    sgl_v2f_t2f(v0x, v0y, g->getU0(), g->getV0());
+                    sgl_v2f_t2f(v1x, v1y, g->getU1(), g->getV0());
+                    sgl_v2f_t2f(v2x, v2y, g->getU1(), g->getV1());
+                    sgl_v2f_t2f(v3x, v3y, g->getU0(), g->getV1());
                 }
-
-                cursorX += g->getAdvance() * s;
             }
 
             sgl_end();
             sgl_disable_texture();
             internal::restoreCurrentPipeline();
         }
+    }
+
+    void drawStringInternal(const std::string& text, float x, float y,
+                            Direction h, Direction v) const {
+        if (!atlasManager_ || text.empty()) return;
+
+        std::vector<PlacedGlyph> placed;
+        placed.reserve(text.size());
+        forEachGlyphHorizontal(text, x, y, h, v,
+            [&](const PlacedGlyph& pg) { placed.push_back(pg); });
+
+        emitPlacedGlyphsToAtlas(placed);
+    }
+
+    // -------------------------------------------------------------------------
+    // Vertical text drawing (writingMode_ == VerticalRL).
+    //
+    // Coordinate convention with default alignment (Right, Top):
+    //   (x, y) = right-top corner of the first column.
+    // Columns flow right→left (Japanese books). Newlines start a new column.
+    // ---------------------------------------------------------------------
+    enum class VTokKind_ { Single, LatinRun, DigitRun, Newline };
+    struct VTok_ {
+        VTokKind_ kind;
+        std::vector<uint32_t> cps;  // for LatinRun / DigitRun
+        uint32_t cp = 0;            // for Single
+    };
+
+    // Layout pass for vertical writing mode. Text is assumed pre-wrapped.
+    void forEachGlyphVertical(const std::string& text, float x, float y,
+                              Direction h, Direction v,
+                              const GlyphVisitor& visitor) const {
+        if (!atlasManager_ || text.empty()) return;
+
+        const float s   = 1.0f / dpiScale_;
+        const float em  = (float)logicalSize_;
+        const float asc = atlasManager_->getAscent() * s;
+        const float colSpacing = getLineHeight();
+        const float cellH = em;  // CJK vertical advance per cell
+
+        // -------- Tokenize --------
+        std::vector<VTok_> toks;
+        toks.reserve(text.size());
+        for (size_t i = 0; i < text.size(); ) {
+            uint32_t cp = decodeUTF8(text, i);
+            if (cp == '\n') { toks.push_back({VTokKind_::Newline, {}, 0}); continue; }
+            if (cp == '\t') continue;  // ignored in vertical for now
+            if (isAsciiDigit(cp)) {
+                if (toks.empty() || toks.back().kind != VTokKind_::DigitRun)
+                    toks.push_back({VTokKind_::DigitRun, {}, 0});
+                toks.back().cps.push_back(cp);
+            } else if (isAsciiLetter(cp)) {
+                if (toks.empty() || toks.back().kind != VTokKind_::LatinRun)
+                    toks.push_back({VTokKind_::LatinRun, {}, 0});
+                toks.back().cps.push_back(cp);
+            } else {
+                toks.push_back({VTokKind_::Single, {}, cp});
+            }
+        }
+
+        // -------- Preload glyphs (incl. vertical-form variants) --------
+        for (auto& t : toks) {
+            if (t.kind == VTokKind_::Single) {
+                atlasManager_->getOrLoadGlyph(t.cp);
+                uint32_t vcp = getVerticalCodepoint(t.cp);
+                if (vcp != 0 && atlasManager_->fontHasGlyph(vcp)) {
+                    atlasManager_->getOrLoadGlyph(vcp);
+                }
+            } else if (t.kind == VTokKind_::LatinRun || t.kind == VTokKind_::DigitRun) {
+                for (uint32_t cp : t.cps) atlasManager_->getOrLoadGlyph(cp);
+            }
+        }
+
+        // -------- TCY mode selection per token --------
+        auto pickTcy = [&](const VTok_& t) -> TcyMode {
+            if (t.kind == VTokKind_::DigitRun) {
+                return ((int)t.cps.size() <= tcyDigitMax_) ? tcyDigitInMode_
+                                                           : tcyDigitOverflowMode_;
+            }
+            return tcyLatinMode_;
+        };
+
+        // Horizontal layout width of a run (sum of advances).
+        auto runHorizWidth = [&](const VTok_& t) -> float {
+            float w = 0;
+            for (uint32_t cp : t.cps) {
+                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                if (g && g->isValid()) w += g->getAdvance() * s;
+            }
+            return w;
+        };
+
+        // Token vertical advance in its column.
+        auto tokAdvance = [&](const VTok_& t) -> float {
+            if (t.kind == VTokKind_::Single)   return cellH;
+            if (t.kind == VTokKind_::Newline)  return 0;
+            const TcyMode m = pickTcy(t);
+            switch (m) {
+                case TcyMode::Rotate:  return runHorizWidth(t);
+                case TcyMode::Upright: return cellH * (float)t.cps.size();
+                case TcyMode::Combine: return cellH;
+            }
+            return cellH;
+        };
+
+        // -------- Column-height pass (for vertical alignment) --------
+        std::vector<float> colHeights;
+        {
+            float ch = 0;
+            for (const auto& t : toks) {
+                if (t.kind == VTokKind_::Newline) {
+                    colHeights.push_back(ch);
+                    ch = 0;
+                } else {
+                    ch += tokAdvance(t);
+                }
+            }
+            colHeights.push_back(ch);
+        }
+        const size_t numCols = colHeights.size();
+
+        // -------- Horizontal alignment of column block --------
+        // Columns are placed right→left; column 0 has its right edge at colX0.
+        // Total block horizontal extent ≈ numCols * colSpacing.
+        const float totalW = (float)numCols * colSpacing;
+        float colX0;  // right edge x of column 0
+        switch (h) {
+            case Direction::Right:  colX0 = x; break;
+            case Direction::Center: colX0 = x + totalW / 2.f - colSpacing / 2.f; break;
+            case Direction::Left:   colX0 = x + totalW - colSpacing; break;
+            default:                colX0 = x; break;
+        }
+
+        auto colYStart = [&](size_t i) -> float {
+            const float ch = (i < colHeights.size()) ? colHeights[i] : 0.f;
+            switch (v) {
+                case Direction::Top:      return y;
+                case Direction::Center:   return y - ch / 2.f;
+                case Direction::Bottom:   return y - ch;
+                case Direction::Baseline: return y;  // treat like Top
+                default:                  return y;
+            }
+        };
+
+        // -------- Layout pass: emit PlacedGlyph per glyph via visitor --------
+        size_t colIdx = 0;
+        float  colX        = colX0;
+        float  colCenterX  = colX - em / 2.f;
+        float  colY        = colYStart(0);
+
+        for (const auto& t : toks) {
+            if (t.kind == VTokKind_::Newline) {
+                colIdx++;
+                colX       -= colSpacing;
+                colCenterX  = colX - em / 2.f;
+                colY        = colYStart(colIdx);
+                continue;
+            }
+
+            if (t.kind == VTokKind_::Single) {
+                const uint32_t cp = t.cp;
+                const VertOrient vo = getVerticalOrientation(cp);
+                const uint32_t vcp = getVerticalCodepoint(cp);
+                const bool hasVert = (vcp != 0 && atlasManager_->fontHasGlyph(vcp));
+
+                if (vo == VertOrient::U
+                    || (vo == VertOrient::Tu)
+                    || (vo == VertOrient::Tr && hasVert)) {
+                    // Upright path.
+                    const uint32_t useCp = hasVert ? vcp : cp;
+                    const GlyphInfo* g = atlasManager_->getOrLoadGlyph(useCp);
+                    if (g && g->isValid()) {
+                        float drawX = colCenterX - g->getAdvance() * s / 2.f;
+                        float baselineY = colY + asc;
+                        // Fallback offset for Tu without vertical form.
+                        if (vo == VertOrient::Tu && !hasVert) {
+                            VertOffset off = getVerticalPunctOffset(cp);
+                            drawX     += off.dx * em;
+                            baselineY += off.dy * em;
+                        }
+                        visitor(PlacedGlyph{useCp, drawX, baselineY, 0.f, 0.f, 0.f, 1.f});
+                    }
+                } else {
+                    // Rotate 90° CW around cell center.
+                    const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                    if (g && g->isValid()) {
+                        float cx = colCenterX;
+                        float cy = colY + cellH / 2.f;
+                        float drawX = cx - g->getAdvance() * s / 2.f;
+                        float baselineY = cy - em / 2.f + asc;
+                        visitor(PlacedGlyph{cp, drawX, baselineY, QUARTER_TAU, cx, cy, 1.f});
+                    }
+                }
+                colY += cellH;
+                continue;
+            }
+
+            // ---- LatinRun / DigitRun ----
+            const TcyMode m = pickTcy(t);
+            const float rw = runHorizWidth(t);
+            switch (m) {
+                case TcyMode::Rotate: {
+                    float cx = colCenterX;
+                    float cy = colY + rw / 2.f;
+                    float cursorX   = cx - rw / 2.f;
+                    float baselineY = cy - em / 2.f + asc;
+                    for (uint32_t cp : t.cps) {
+                        const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                        if (!g || !g->isValid()) continue;
+                        visitor(PlacedGlyph{cp, cursorX, baselineY, QUARTER_TAU, cx, cy, 1.f});
+                        cursorX += g->getAdvance() * s;
+                    }
+                    colY += rw;
+                    break;
+                }
+                case TcyMode::Upright: {
+                    for (uint32_t cp : t.cps) {
+                        const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                        if (g && g->isValid()) {
+                            float drawX = colCenterX - g->getAdvance() * s / 2.f;
+                            float baselineY = colY + asc;
+                            visitor(PlacedGlyph{cp, drawX, baselineY, 0.f, 0.f, 0.f, 1.f});
+                        }
+                        colY += cellH;
+                    }
+                    break;
+                }
+                case TcyMode::Combine: {
+                    // Fit run horizontally into one em cell with x-scale only.
+                    const float xscale = (rw > em) ? em / rw : 1.f;
+                    const float scaledW = rw * xscale;
+                    const float cellLeft = colCenterX - em / 2.f;
+                    float cursorX = cellLeft + (em - scaledW) / 2.f;
+                    float baselineY = colY + asc;
+                    for (uint32_t cp : t.cps) {
+                        const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                        if (!g || !g->isValid()) continue;
+                        visitor(PlacedGlyph{cp, cursorX, baselineY, 0.f, 0.f, 0.f, xscale});
+                        cursorX += g->getAdvance() * s * xscale;
+                    }
+                    colY += cellH;
+                    break;
+                }
+            }
+        }
+    }
+
+    void drawStringVerticalInternal(const std::string& text, float x, float y,
+                                    Direction h, Direction v) const {
+        if (!atlasManager_ || text.empty()) return;
+
+        std::vector<PlacedGlyph> placed;
+        placed.reserve(text.size());
+        forEachGlyphVertical(text, x, y, h, v,
+            [&](const PlacedGlyph& pg) { placed.push_back(pg); });
+
+        emitPlacedGlyphsToAtlas(placed);
+    }
+
+    // -------------------------------------------------------------------------
+    // Kinsoku-level-gated table lookups. When kinsokuLevel_ == Off, both return
+    // false unconditionally (Latin word integrity in isBreakable still applies,
+    // because that's a separate Latin-wrap rule, not kinsoku).
+    // -------------------------------------------------------------------------
+    bool kinsokuLineStart(uint32_t cp) const {
+        switch (kinsokuLevel_) {
+            case KinsokuLevel::Off:             return false;
+            case KinsokuLevel::PunctuationOnly: return isPunctuationOnlyLineStart(cp);
+            case KinsokuLevel::Standard:        return isLineStartProhibited(cp);
+        }
+        return false;
+    }
+    bool kinsokuLineEnd(uint32_t cp) const {
+        switch (kinsokuLevel_) {
+            case KinsokuLevel::Off:             return false;
+            case KinsokuLevel::PunctuationOnly: return false;  // no opening bracket subset for puncts-only
+            case KinsokuLevel::Standard:        return isLineEndProhibited(cp);
+        }
+        return false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Line wrap preprocessing — inserts '\n' (and '-' for hyphenation) into the
+    // input string so the rest of the pipeline keeps using the simple hard-newline
+    // logic it already has. Returns the input unchanged when wrap is disabled
+    // or maxLineLength <= 0.
+    // -------------------------------------------------------------------------
+    std::string wrapTextHorizontal(const std::string& text) const {
+        if (!wrapEnabled_ || maxLineLength_ <= 0 || !atlasManager_) return text;
+
+        const float s = 1.0f / dpiScale_;
+        const float spaceAdv = atlasManager_->getSpaceAdvance() * s;
+
+        // Decode all codepoints with byte ranges and per-glyph advances.
+        struct Cp { uint32_t cp; size_t byteStart; size_t byteEnd; float advance; };
+        std::vector<Cp> cps;
+        cps.reserve(text.size());
+        for (size_t i = 0; i < text.size(); ) {
+            size_t before = i;
+            uint32_t cp = decodeUTF8(text, i);
+            float adv = 0;
+            if (cp != '\n') {
+                if (cp == '\t') adv = spaceAdv * 4;
+                else {
+                    const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                    adv = (g && g->isValid()) ? g->getAdvance() * s : 0;
+                }
+            }
+            cps.push_back({cp, before, i, adv});
+        }
+
+        auto emitRange = [&](size_t from, size_t to, std::string& out) {
+            if (from >= to || from >= cps.size()) return;
+            size_t lastIdx = (to <= cps.size()) ? to - 1 : cps.size() - 1;
+            size_t bs = cps[from].byteStart;
+            size_t be = cps[lastIdx].byteEnd;
+            out.append(text, bs, be - bs);
+        };
+
+        // "Can we break the line immediately AFTER cps[i]?"
+        auto isBreakable = [&](size_t i) -> bool {
+            if (i + 1 >= cps.size()) return false;
+            uint32_t a = cps[i].cp;
+            uint32_t b = cps[i + 1].cp;
+            if (b == '\n') return false;            // hard newline handled separately
+            if (a == ' ' || a == '\t') return true; // after whitespace
+            if (a == '-') return true;              // after hyphen
+            const bool aCjk = isCjkChar(a);
+            const bool bCjk = isCjkChar(b);
+            if (aCjk || bCjk) {
+                if (kinsokuLineEnd(a)) return false;   // can't end on opener (when kinsoku active)
+                if (kinsokuLineStart(b)) return false; // can't start on kinsoku
+                return true;
+            }
+            return false;
+        };
+
+        std::string out;
+        out.reserve(text.size() + text.size() / 8);
+        size_t lineStart = 0;
+        while (lineStart < cps.size()) {
+            // Pass-through leading hard newline
+            if (cps[lineStart].cp == '\n') {
+                out += '\n';
+                ++lineStart;
+                continue;
+            }
+
+            float  width = 0;
+            size_t lastBreak = std::string::npos;
+            size_t i = lineStart;
+            bool   wrapped = false;
+
+            while (i < cps.size()) {
+                if (cps[i].cp == '\n') {
+                    emitRange(lineStart, i, out);
+                    out += '\n';
+                    lineStart = i + 1;
+                    wrapped = true;
+                    break;
+                }
+                const float nextW = width + cps[i].advance;
+                if (nextW > maxLineLength_ && i > lineStart) {
+                    // Kinsoku hanging: 行頭禁則 chars at the break point ride on
+                    // the current line even though they overflow. Sweep across
+                    // runs (e.g. ）。 or 」」) so consecutive prohibited chars
+                    // hang together — otherwise the second one wraps alone.
+                    if (hangingPunctuation_ && kinsokuLineStart(cps[i].cp)) {
+                        size_t hangEnd = i + 1;
+                        while (hangEnd < cps.size()
+                               && cps[hangEnd].cp != '\n'
+                               && kinsokuLineStart(cps[hangEnd].cp)) {
+                            ++hangEnd;
+                        }
+                        emitRange(lineStart, hangEnd, out);
+                        if (hangEnd < cps.size()) out += '\n';
+                        lineStart = hangEnd;
+                        wrapped = true;
+                        break;
+                    }
+                    if (lastBreak != std::string::npos) {
+                        const size_t breakAt = lastBreak + 1;
+                        emitRange(lineStart, breakAt, out);
+                        out += '\n';
+                        lineStart = breakAt;
+                    } else {
+                        // No break opportunity — forced break before cps[i].
+                        emitRange(lineStart, i, out);
+                        if (latinHyphenation_) out += '-';
+                        out += '\n';
+                        lineStart = i;
+                    }
+                    wrapped = true;
+                    break;
+                }
+                width = nextW;
+                if (isBreakable(i)) lastBreak = i;
+                ++i;
+            }
+
+            if (!wrapped) {
+                emitRange(lineStart, cps.size(), out);
+                lineStart = cps.size();
+            }
+        }
+        return out;
+    }
+
+    // Vertical wrap: maxLineLength is the column-height budget. Tokenize the
+    // same way drawStringVerticalInternal does (so per-token vertical advance
+    // matches the actual layout: CJK = em, Latin/Digit runs depend on TcyMode),
+    // then greedy-wrap by inserting '\n' between tokens.
+    std::string wrapTextVertical(const std::string& text) const {
+        if (!wrapEnabled_ || maxLineLength_ <= 0 || !atlasManager_) return text;
+
+        const float s = 1.0f / dpiScale_;
+        const float em = (float)logicalSize_;
+        const float cellH = em;
+
+        enum class TK { Single, Latin, Digit, NL };
+        struct Tok { TK kind; size_t byteStart; size_t byteEnd; float advance; };
+        std::vector<Tok> toks;
+        toks.reserve(text.size());
+
+        // ---- Tokenize ----
+        for (size_t i = 0; i < text.size(); ) {
+            size_t before = i;
+            uint32_t cp = decodeUTF8(text, i);
+            if (cp == '\n') { toks.push_back({TK::NL, before, i, 0}); continue; }
+            if (cp == '\t') continue;
+            if (isAsciiDigit(cp)) {
+                if (!toks.empty() && toks.back().kind == TK::Digit)
+                    toks.back().byteEnd = i;
+                else
+                    toks.push_back({TK::Digit, before, i, 0});
+                continue;
+            }
+            if (isAsciiLetter(cp)) {
+                if (!toks.empty() && toks.back().kind == TK::Latin)
+                    toks.back().byteEnd = i;
+                else
+                    toks.push_back({TK::Latin, before, i, 0});
+                continue;
+            }
+            toks.push_back({TK::Single, before, i, 0});
+        }
+
+        auto runHorizWidth = [&](const Tok& t) -> float {
+            float w = 0;
+            for (size_t bi = t.byteStart; bi < t.byteEnd; ) {
+                uint32_t cp = decodeUTF8(text, bi);
+                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                if (g && g->isValid()) w += g->getAdvance() * s;
+            }
+            return w;
+        };
+        auto runCount = [&](const Tok& t) -> int {
+            int n = 0;
+            for (size_t bi = t.byteStart; bi < t.byteEnd; ) {
+                decodeUTF8(text, bi);
+                ++n;
+            }
+            return n;
+        };
+        auto firstCp = [&](const Tok& t) -> uint32_t {
+            size_t bi = t.byteStart;
+            if (bi >= text.size()) return 0;
+            return decodeUTF8(text, bi);
+        };
+
+        // ---- Per-token vertical advance ----
+        for (auto& t : toks) {
+            switch (t.kind) {
+                case TK::NL:     t.advance = 0;     break;
+                case TK::Single: t.advance = cellH; break;
+                case TK::Latin: {
+                    const int n = runCount(t);
+                    switch (tcyLatinMode_) {
+                        case TcyMode::Rotate:  t.advance = runHorizWidth(t); break;
+                        case TcyMode::Upright: t.advance = cellH * (float)n; break;
+                        case TcyMode::Combine: t.advance = cellH;            break;
+                    }
+                    break;
+                }
+                case TK::Digit: {
+                    const int n = runCount(t);
+                    const TcyMode m = (n <= tcyDigitMax_) ? tcyDigitInMode_
+                                                         : tcyDigitOverflowMode_;
+                    switch (m) {
+                        case TcyMode::Rotate:  t.advance = runHorizWidth(t); break;
+                        case TcyMode::Upright: t.advance = cellH * (float)n; break;
+                        case TcyMode::Combine: t.advance = cellH;            break;
+                    }
+                    break;
+                }
+            }
+        }
+
+        auto isBreakableAfter = [&](size_t i) -> bool {
+            if (i + 1 >= toks.size()) return false;
+            const Tok& a = toks[i];
+            const Tok& b = toks[i + 1];
+            if (a.kind == TK::NL || b.kind == TK::NL) return false;
+            if (a.kind == TK::Single && kinsokuLineEnd(firstCp(a))) return false;
+            if (b.kind == TK::Single && kinsokuLineStart(firstCp(b))) return false;
+            return true;
+        };
+
+        auto emitTokRange = [&](size_t from, size_t to, std::string& out) {
+            if (from >= to || from >= toks.size()) return;
+            if (to > toks.size()) to = toks.size();
+            size_t bs = toks[from].byteStart;
+            size_t be = toks[to - 1].byteEnd;
+            if (bs < be) out.append(text, bs, be - bs);
+        };
+
+        // ---- Greedy column wrap ----
+        std::string out;
+        out.reserve(text.size() + text.size() / 8);
+        size_t colStart = 0;
+        while (colStart < toks.size()) {
+            if (toks[colStart].kind == TK::NL) {
+                out += '\n';
+                ++colStart;
+                continue;
+            }
+            float  height = 0;
+            size_t lastBreak = std::string::npos;
+            size_t i = colStart;
+            bool   wrapped = false;
+            while (i < toks.size()) {
+                if (toks[i].kind == TK::NL) {
+                    emitTokRange(colStart, i, out);
+                    out += '\n';
+                    colStart = i + 1;
+                    wrapped = true;
+                    break;
+                }
+                const float nextH = height + toks[i].advance;
+                if (nextH > maxLineLength_ && i > colStart) {
+                    if (hangingPunctuation_
+                        && toks[i].kind == TK::Single
+                        && kinsokuLineStart(firstCp(toks[i]))) {
+                        // Sweep over consecutive 行頭禁則 chars so e.g. ）。
+                        // stays together at the column edge.
+                        size_t hangEnd = i + 1;
+                        while (hangEnd < toks.size()
+                               && toks[hangEnd].kind == TK::Single
+                               && kinsokuLineStart(firstCp(toks[hangEnd]))) {
+                            ++hangEnd;
+                        }
+                        emitTokRange(colStart, hangEnd, out);
+                        if (hangEnd < toks.size()) out += '\n';
+                        colStart = hangEnd;
+                        wrapped = true;
+                        break;
+                    }
+                    if (lastBreak != std::string::npos) {
+                        const size_t breakAt = lastBreak + 1;
+                        emitTokRange(colStart, breakAt, out);
+                        out += '\n';
+                        colStart = breakAt;
+                    } else {
+                        emitTokRange(colStart, i, out);
+                        out += '\n';
+                        colStart = i;
+                    }
+                    wrapped = true;
+                    break;
+                }
+                height = nextH;
+                if (isBreakableAfter(i)) lastBreak = i;
+                ++i;
+            }
+            if (!wrapped) {
+                emitTokRange(colStart, toks.size(), out);
+                colStart = toks.size();
+            }
+        }
+        return out;
+    }
+
+    std::string wrapTextIfEnabled(const std::string& text) const {
+        if (!wrapEnabled_) return text;
+        return (writingMode_ == WritingMode::VerticalRL)
+            ? wrapTextVertical(text)
+            : wrapTextHorizontal(text);
     }
 
 public:
@@ -1045,12 +1968,14 @@ public:
     virtual float getWidth(const std::string& text) const {
         if (!atlasManager_) return 0;
 
+        const std::string src = wrapTextIfEnabled(text);
+
         float width = 0;
         float maxWidth = 0;
         const float s = 1.0f / dpiScale_;
 
-        for (size_t i = 0; i < text.size(); ) {
-            uint32_t codepoint = decodeUTF8(text, i);
+        for (size_t i = 0; i < src.size(); ) {
+            uint32_t codepoint = decodeUTF8(src, i);
 
             if (codepoint == '\n') {
                 if (width > maxWidth) maxWidth = width;
@@ -1077,8 +2002,9 @@ public:
     virtual float getHeight(const std::string& text) const {
         if (!atlasManager_) return 0;
 
+        const std::string src = wrapTextIfEnabled(text);
         int lines = 1;
-        for (char c : text) {
+        for (char c : src) {
             if (c == '\n') lines++;
         }
         return getLineHeight() * lines;
@@ -1148,6 +2074,20 @@ protected:
     Direction alignH_ = Direction::Left;
     Direction alignV_ = Direction::Top;
     float lineHeight_ = 0;  // 0 = use font's default line height
+
+    // Vertical writing settings (default = horizontal, no behavior change)
+    WritingMode writingMode_         = WritingMode::Horizontal;
+    int         tcyDigitMax_         = 0;                // 0 → disabled
+    TcyMode     tcyDigitInMode_      = TcyMode::Combine; // digit count ≤ max
+    TcyMode     tcyDigitOverflowMode_= TcyMode::Rotate;  // digit count >  max
+    TcyMode     tcyLatinMode_        = TcyMode::Rotate;  // Latin letter runs
+
+    // Line wrap settings (default = off, no behavior change)
+    bool         wrapEnabled_        = false;            // master toggle
+    float        maxLineLength_      = 0;                // pixels; horizontal: line width, vertical: column height
+    bool         latinHyphenation_   = false;            // insert '-' on forced Latin mid-word break
+    bool         hangingPunctuation_ = false;            // CJK kinsoku — let prohibited line-start chars hang past edge
+    KinsokuLevel kinsokuLevel_       = KinsokuLevel::Off;// which subset of kinsoku tables to consult
 
 public:
     // -------------------------------------------------------------------------

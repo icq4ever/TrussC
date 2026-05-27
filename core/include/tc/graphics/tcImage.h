@@ -36,8 +36,12 @@ public:
         : pixels_(std::move(other.pixels_))
         , texture_(std::move(other.texture_))
         , dirty_(other.dirty_)
+        , mipmaps_(other.mipmaps_)
+        , usage_(other.usage_)
     {
         other.dirty_ = false;
+        other.mipmaps_ = false;
+        other.usage_ = TextureUsage::Immutable;
     }
 
     Image& operator=(Image&& other) noexcept {
@@ -45,15 +49,25 @@ public:
             pixels_ = std::move(other.pixels_);
             texture_ = std::move(other.texture_);
             dirty_ = other.dirty_;
+            mipmaps_ = other.mipmaps_;
+            usage_ = other.usage_;
             other.dirty_ = false;
+            other.mipmaps_ = false;
+            other.usage_ = TextureUsage::Immutable;
         }
         return *this;
     }
 
     // === File I/O ===
 
-    // Load image from file (relative paths resolved via getDataPath)
-    bool load(const fs::path& path) {
+    // Load image from file (relative paths resolved via getDataPath).
+    //
+    // `mipmaps=true` builds a full mip chain at load time. Recommended when
+    // the image will be sampled at varying scales (most commonly mapped
+    // onto a 3D surface that moves toward/away from the camera) — without
+    // mipmaps, small projected sizes shimmer/moiré. Costs about +33% GPU
+    // memory and a one-time CPU box-average to build the chain.
+    bool load(const fs::path& path, bool mipmaps = false) {
         clear();
 
         fs::path resolved = path.is_absolute() ? path : fs::path(getDataPath(path.string()));
@@ -61,20 +75,23 @@ public:
             return false;
         }
 
-        // Create immutable texture
-        texture_.allocate(pixels_, TextureUsage::Immutable);
+        mipmaps_ = mipmaps;
+        usage_ = TextureUsage::Immutable;
+        texture_.allocate(pixels_, TextureUsage::Immutable, mipmaps);
         return true;
     }
 
     // Load image from memory
-    bool loadFromMemory(const unsigned char* buffer, int len) {
+    bool loadFromMemory(const unsigned char* buffer, int len, bool mipmaps = false) {
         clear();
 
         if (!pixels_.loadFromMemory(buffer, len)) {
             return false;
         }
 
-        texture_.allocate(pixels_, TextureUsage::Immutable);
+        mipmaps_ = mipmaps;
+        usage_ = TextureUsage::Immutable;
+        texture_.allocate(pixels_, TextureUsage::Immutable, mipmaps);
         return true;
     }
 
@@ -86,12 +103,21 @@ public:
 
     // === Allocation / Deallocation ===
 
-    // Allocate empty image (for dynamic updates)
-    void allocate(int width, int height, int channels = 4) {
+    // Allocate empty image (for dynamic updates via setColor + update()).
+    //
+    // `mipmaps=true` builds a mip chain alongside the Dynamic texture; each
+    // subsequent `update()` regenerates the chain CPU-side (2x2 box average)
+    // and re-uploads every level. Costs a per-update CPU pass roughly equal
+    // to ~1/3 the base level size. Worth it when the image is sampled at
+    // varying scales (3D texture mapping, UI scaling) — otherwise leave off.
+    void allocate(int width, int height, int channels = 4, bool mipmaps = false) {
         clear();
         pixels_.allocate(width, height, channels);
-        // Create dynamic texture (can be updated later)
-        texture_.allocate(pixels_, TextureUsage::Dynamic);
+        mipmaps_ = mipmaps;
+        usage_ = TextureUsage::Dynamic;
+        // Dynamic so the texture can be re-uploaded with update(). When
+        // mipmaps=true, the underlying texture also carries a mip chain.
+        texture_.allocate(pixels_, TextureUsage::Dynamic, mipmaps);
     }
 
     // Release resources
@@ -99,6 +125,8 @@ public:
         pixels_.clear();
         texture_.clear();
         dirty_ = false;
+        mipmaps_ = false;
+        usage_ = TextureUsage::Immutable;
     }
 
     // === State ===
@@ -128,6 +156,52 @@ public:
         dirty_ = true;
     }
 
+    // === Image operations ===
+    //
+    // These all delegate to the matching Pixels method (which is where the
+    // gamma-correct math lives). Because they change pixel data and often
+    // image dimensions, the underlying GPU texture is rebuilt at the same
+    // time, preserving the usage (Immutable vs Dynamic) and `mipmaps` flag
+    // the Image was originally allocated/loaded with.
+
+    // Replace the buffer with its 2x2 box-averaged half. New dimensions are
+    // max(width/2, 1) x max(height/2, 1). Useful for cheap downsampling.
+    void halve() {
+        if (!pixels_.isAllocated()) return;
+        pixels_.halve();
+        rebuildTexture_();
+    }
+
+    // Replace the buffer with a quality-first (newW x newH) resampled
+    // version. Each axis is BoxArea on downscale, Catmull-Rom bicubic on
+    // upscale; computations run in linear light for U8 buffers.
+    void resize(int newW, int newH) {
+        if (!pixels_.isAllocated() || newW <= 0 || newH <= 0) return;
+        pixels_.resize(newW, newH);
+        rebuildTexture_();
+    }
+
+    // Replace the buffer with a (w x h) region starting at (x, y).
+    // clamp-to-edge for out-of-bounds samples so the destination is always
+    // exactly (w x h).
+    void crop(int x, int y, int w, int h) {
+        if (!pixels_.isAllocated() || w <= 0 || h <= 0) return;
+        pixels_.crop(x, y, w, h);
+        rebuildTexture_();
+    }
+
+    // Flip the image. `horizontal=true` mirrors left↔right, `vertical=true`
+    // mirrors top↔bottom. Both true is a 180° rotation. Size is unchanged,
+    // but the GPU texture is still pushed so the change is visible after
+    // the next draw (no need to call update() separately).
+    void mirror(bool horizontal, bool vertical) {
+        if (!pixels_.isAllocated() || (!horizontal && !vertical)) return;
+        pixels_.mirror(horizontal, vertical);
+        rebuildTexture_();
+    }
+    void mirrorH() { mirror(true, false); }
+    void mirrorV() { mirror(false, true); }
+
     // === Texture update ===
 
     // Apply pixel changes to texture
@@ -152,9 +226,28 @@ public:
     // draw() uses HasTexture default implementation
 
 private:
+    // Re-allocate the GPU texture from the current pixels_ contents using the
+    // Image's stored usage and mipmaps flag. Called by halve/resize/crop/
+    // mirror; works whether the Image was originally Immutable (load) or
+    // Dynamic (allocate).
+    //
+    // Immutable: `Texture::allocate(pixels, Immutable, ...)` uploads the
+    //   pixel data as part of allocation, so the texture is in sync with
+    //   pixels_ immediately and we can drop the dirty flag.
+    // Dynamic:  `Texture::allocate(pixels, Dynamic, ...)` only creates an
+    //   empty image; the actual pixel upload still has to go through a
+    //   later loadData() call inside a render pass. Keep dirty_=true so
+    //   the next update() pushes pixels_ over.
+    void rebuildTexture_() {
+        texture_.allocate(pixels_, usage_, mipmaps_);
+        dirty_ = (usage_ != TextureUsage::Immutable);
+    }
+
     Pixels pixels_;
     Texture texture_;
     bool dirty_ = false;
+    bool mipmaps_ = false;
+    TextureUsage usage_ = TextureUsage::Immutable;
 };
 
 } // namespace trussc

@@ -216,7 +216,7 @@ void tcApp::update() {
 }
 
 void tcApp::draw() {
-    clear(30);  // 背景色
+    clear(0.12);  // 背景色（0.0〜1.0 のグレースケール）
 
     setColor(colors::white);
     drawCircle(getWidth()/2, getHeight()/2, 100);

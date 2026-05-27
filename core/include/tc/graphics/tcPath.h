@@ -10,22 +10,38 @@
 #include <vector>
 #include <cmath>
 #include <deque>
+#include <array>
+#include <algorithm>
+#include <limits>
+#include "../../earcut/earcut.hpp"
 
 namespace trussc {
 
-// Path - Class that holds vertex array (with curve generation functionality)
+// Path — vertex container with optional curve generation. Supports multiple
+// **subpaths**: a single Path can contain several disjoint contours separated
+// by `moveTo()` (think SVG `<path>` with `M ... M ...`). Each subpath has its
+// own close state, so glyphs like `O` / `日` / `あ` (outer + holes) fit in one
+// Path. `draw()`, `drawStroke()`, `drawFill()`, `getPerimeter()` all iterate
+// subpaths internally; the legacy single-contour API (lineTo / close, no
+// moveTo) keeps working unchanged because the Path starts with a single
+// implicit subpath.
 class Path {
 public:
-    Path() : closed_(false) {}
+    Path() {
+        subpathStarts_.push_back(0);
+        subpathClosed_.push_back(false);
+    }
 
-    // Constructor (from vertex list)
-    Path(const std::vector<Vec2>& verts) : closed_(false) {
+    // Constructor (from vertex list) — single subpath, not closed.
+    Path(const std::vector<Vec2>& verts) : Path() {
         for (const auto& v : verts) {
             vertices_.push_back(Vec3{v.x, v.y, 0.0f});
         }
     }
 
-    Path(const std::vector<Vec3>& verts) : vertices_(verts), closed_(false) {}
+    Path(const std::vector<Vec3>& verts) : Path() {
+        vertices_ = verts;
+    }
 
     // Add vertex
     void addVertex(float x, float y) {
@@ -84,12 +100,48 @@ public:
         return vertices_[index];
     }
 
-    // Clear
+    // Clear (resets to a single empty open subpath).
     void clear() {
         vertices_.clear();
         curveVertices_.clear();
-        closed_ = false;
+        subpathStarts_.clear();
+        subpathClosed_.clear();
+        subpathStarts_.push_back(0);
+        subpathClosed_.push_back(false);
     }
+
+    // -------------------------------------------------------------------------
+    // Subpath API — call moveTo() to start a new disjoint contour. The first
+    // moveTo on an empty Path just places the starting vertex (it doesn't
+    // create a second subpath because subpath 0 is empty). Subsequent moveTo
+    // calls open a new subpath each time. close() / isClosed() / setClosed()
+    // operate on the **current** (last) subpath only — single-subpath callers
+    // see the original behavior. Use getNumSubpaths() / getSubpathRange(i) /
+    // isSubpathClosed(i) to walk subpaths in custom drawing code.
+    // -------------------------------------------------------------------------
+    void moveTo(float x, float y, float z = 0) {
+        if (!vertices_.empty() && vertices_.size() > subpathStarts_.back()) {
+            subpathStarts_.push_back(vertices_.size());
+            subpathClosed_.push_back(false);
+        }
+        vertices_.push_back(Vec3{x, y, z});
+        curveVertices_.clear();  // Catmull-Rom buffer is per-subpath
+    }
+    void moveTo(const Vec2& p) { moveTo(p.x, p.y, 0); }
+    void moveTo(const Vec3& p) { moveTo(p.x, p.y, p.z); }
+
+    size_t getNumSubpaths() const { return subpathStarts_.size(); }
+
+    // [start, end) index range into getVertices() for subpath i.
+    std::pair<size_t, size_t> getSubpathRange(size_t i) const {
+        const size_t s = subpathStarts_[i];
+        const size_t e = (i + 1 < subpathStarts_.size())
+                       ? subpathStarts_[i + 1]
+                       : vertices_.size();
+        return {s, e};
+    }
+
+    bool isSubpathClosed(size_t i) const { return subpathClosed_[i]; }
 
     // =========================================================================
     // Adding lines and curves
@@ -327,60 +379,185 @@ public:
         arc(Vec3{center.x, center.y, 0}, radius, angleBegin, angleEnd, clockwise);
     }
 
-    // Close/Open path
-    void close() {
-        closed_ = true;
-    }
+    // Close/Open path — operates on the current (last) subpath.
+    void close()                  { subpathClosed_.back() = true; }
+    void setClosed(bool closed)   { subpathClosed_.back() = closed; }
+    bool isClosed() const         { return subpathClosed_.back(); }
 
-    void setClosed(bool closed) {
-        closed_ = closed;
-    }
-
-    bool isClosed() const {
-        return closed_;
-    }
-
-    // Draw
+    // Draw — fill (per-subpath triangle fan) + 1px stroke (per-subpath line
+    // strip). Fill is convex-only; for concave / holed shapes call drawFill().
     void draw() const {
         if (vertices_.empty()) return;
-
-        size_t n = vertices_.size();
         auto& ctx = getDefaultContext();
         Color col = ctx.getColor();
 
-        // Fill mode: triangle fan (only convex shapes render correctly)
-        if (ctx.isFillEnabled() && n >= 3) {
-            sgl_begin_triangles();
-            sgl_c4f(col.r, col.g, col.b, col.a);
-            for (size_t i = 1; i < n - 1; i++) {
-                sgl_v3f(vertices_[0].x, vertices_[0].y, vertices_[0].z);
-                sgl_v3f(vertices_[i].x, vertices_[i].y, vertices_[i].z);
-                sgl_v3f(vertices_[i+1].x, vertices_[i+1].y, vertices_[i+1].z);
+        for (size_t si = 0; si < subpathStarts_.size(); ++si) {
+            auto [s, e] = getSubpathRange(si);
+            const size_t n = e - s;
+
+            if (ctx.isFillEnabled() && n >= 3) {
+                sgl_begin_triangles();
+                sgl_c4f(col.r, col.g, col.b, col.a);
+                for (size_t i = 1; i < n - 1; ++i) {
+                    sgl_v3f(vertices_[s].x,     vertices_[s].y,     vertices_[s].z);
+                    sgl_v3f(vertices_[s+i].x,   vertices_[s+i].y,   vertices_[s+i].z);
+                    sgl_v3f(vertices_[s+i+1].x, vertices_[s+i+1].y, vertices_[s+i+1].z);
+                }
+                sgl_end();
             }
-            sgl_end();
+
+            if (ctx.isStrokeEnabled() && n >= 2) {
+                sgl_c4f(col.r, col.g, col.b, col.a);
+                sgl_begin_line_strip();
+                for (size_t i = 0; i < n; ++i) {
+                    sgl_v3f(vertices_[s+i].x, vertices_[s+i].y, vertices_[s+i].z);
+                }
+                if (subpathClosed_[si] && n > 2) {
+                    sgl_v3f(vertices_[s].x, vertices_[s].y, vertices_[s].z);
+                }
+                sgl_end();
+            }
+        }
+    }
+
+    // Fill the path as a concave polygon with holes (earcut tessellation).
+    // Subpaths are grouped by spatial containment: each subpath at even
+    // nesting depth is treated as the outer ring of a polygon, and direct
+    // children at the next odd depth become its holes. Grandchildren (depth
+    // +2) become their own outers — i.e. an island inside a hole renders as
+    // a separate filled region, matching SVG / PostScript even-odd fill.
+    // Use draw() with `fill` enabled for the fast convex-only fan path.
+    void drawFill() const {
+        if (vertices_.empty()) return;
+        const size_t N = subpathStarts_.size();
+        auto& ctx = getDefaultContext();
+        Color col = ctx.getColor();
+
+        struct SubInfo {
+            size_t s, e;
+            float minX, minY, maxX, maxY;
+            int parent = -1;
+            int depth  = 0;
+        };
+        std::vector<SubInfo> info(N);
+        for (size_t i = 0; i < N; ++i) {
+            auto [s, e] = getSubpathRange(i);
+            info[i].s = s; info[i].e = e;
+            if (e - s == 0) {
+                info[i].minX = info[i].minY = 0;
+                info[i].maxX = info[i].maxY = 0;
+                continue;
+            }
+            float mnX = vertices_[s].x, mxX = mnX;
+            float mnY = vertices_[s].y, mxY = mnY;
+            for (size_t k = s + 1; k < e; ++k) {
+                mnX = std::min(mnX, vertices_[k].x);
+                mxX = std::max(mxX, vertices_[k].x);
+                mnY = std::min(mnY, vertices_[k].y);
+                mxY = std::max(mxY, vertices_[k].y);
+            }
+            info[i].minX = mnX; info[i].maxX = mxX;
+            info[i].minY = mnY; info[i].maxY = mxY;
         }
 
-        // Stroke mode: line strip
-        if (ctx.isStrokeEnabled() && n >= 2) {
-            sgl_c4f(col.r, col.g, col.b, col.a);
-            sgl_begin_line_strip();
-            for (size_t i = 0; i < n; i++) {
-                sgl_v3f(vertices_[i].x, vertices_[i].y, vertices_[i].z);
+        // Point-in-polygon (ray casting) — used to detect subpath containment.
+        auto pointInRing = [&](float px, float py, const SubInfo& r) -> bool {
+            if (px < r.minX || px > r.maxX || py < r.minY || py > r.maxY) return false;
+            bool inside = false;
+            const size_t n = r.e - r.s;
+            for (size_t k = 0, j = n - 1; k < n; j = k++) {
+                const Vec3& a = vertices_[r.s + k];
+                const Vec3& b = vertices_[r.s + j];
+                const bool cross = ((a.y > py) != (b.y > py)) &&
+                                   (px < (b.x - a.x) * (py - a.y) / (b.y - a.y) + a.x);
+                if (cross) inside = !inside;
             }
-            if (closed_ && n > 2) {
-                sgl_v3f(vertices_[0].x, vertices_[0].y, vertices_[0].z);
+            return inside;
+        };
+
+        // For each subpath, find its smallest enclosing subpath. We pick the
+        // candidate parent with the smallest bbox area (cheap proxy that's
+        // correct as long as the rings aren't pathologically interleaved —
+        // good enough for font glyphs).
+        for (size_t i = 0; i < N; ++i) {
+            if (info[i].e - info[i].s < 3) continue;
+            const float px = vertices_[info[i].s].x;
+            const float py = vertices_[info[i].s].y;
+            float bestBboxArea = std::numeric_limits<float>::infinity();
+            for (size_t j = 0; j < N; ++j) {
+                if (j == i || info[j].e - info[j].s < 3) continue;
+                if (!pointInRing(px, py, info[j])) continue;
+                const float a = (info[j].maxX - info[j].minX) *
+                                (info[j].maxY - info[j].minY);
+                if (a < bestBboxArea) { bestBboxArea = a; info[i].parent = (int)j; }
             }
-            sgl_end();
         }
+
+        // Resolve depth iteratively (parent chain length).
+        for (size_t i = 0; i < N; ++i) {
+            int d = 0;
+            int p = info[i].parent;
+            while (p >= 0) { ++d; p = info[p].parent; }
+            info[i].depth = d;
+        }
+
+        using Point   = std::array<float, 2>;
+        using Ring    = std::vector<Point>;
+        using Polygon = std::vector<Ring>;
+
+        sgl_begin_triangles();
+        sgl_c4f(col.r, col.g, col.b, col.a);
+        for (size_t i = 0; i < N; ++i) {
+            if (info[i].depth % 2 != 0) continue;        // skip holes
+            if (info[i].e - info[i].s < 3) continue;
+
+            Polygon poly;
+            poly.emplace_back();
+            for (size_t k = info[i].s; k < info[i].e; ++k) {
+                poly.back().push_back({vertices_[k].x, vertices_[k].y});
+            }
+
+            // Direct-child holes.
+            for (size_t j = 0; j < N; ++j) {
+                if (info[j].parent != (int)i) continue;
+                if (info[j].depth != info[i].depth + 1) continue;
+                if (info[j].e - info[j].s < 3) continue;
+                poly.emplace_back();
+                for (size_t k = info[j].s; k < info[j].e; ++k) {
+                    poly.back().push_back({vertices_[k].x, vertices_[k].y});
+                }
+            }
+
+            // Tessellate. Earcut returns indices into the flat (outer + holes)
+            // vertex list in `poly` traversal order.
+            std::vector<uint32_t> tris = mapbox::earcut<uint32_t>(poly);
+            std::vector<Point> flat;
+            flat.reserve(tris.size());  // upper bound
+            for (const Ring& r : poly) for (const Point& p : r) flat.push_back(p);
+
+            for (size_t t = 0; t + 2 < tris.size(); t += 3) {
+                const Point& a = flat[tris[t]];
+                const Point& b = flat[tris[t + 1]];
+                const Point& c = flat[tris[t + 2]];
+                sgl_v2f(a[0], a[1]);
+                sgl_v2f(b[0], b[1]);
+                sgl_v2f(c[0], c[1]);
+            }
+        }
+        sgl_end();
     }
 
     // Draw the path as a thick stroke (StrokeMesh, respects strokeWeight /
     // strokeCap / strokeJoin). Use draw() for 1-pixel line rendering.
     void drawStroke() const {
         if (vertices_.empty()) return;
-        beginStroke();
-        for (const auto& v : vertices_) vertex(v);
-        endStroke(closed_);
+        for (size_t si = 0; si < subpathStarts_.size(); ++si) {
+            auto [s, e] = getSubpathRange(si);
+            if (e - s < 2) continue;
+            beginStroke();
+            for (size_t i = s; i < e; ++i) vertex(vertices_[i]);
+            endStroke(subpathClosed_[si]);
+        }
     }
 
     // Get bounding box as Rect
@@ -399,29 +576,34 @@ public:
         return Rect{minX, minY, maxX - minX, maxY - minY};
     }
 
-    // Calculate length (line length)
+    // Calculate length (sum over all subpaths).
     float getPerimeter() const {
         if (vertices_.size() < 2) return 0;
         float len = 0;
-        for (size_t i = 1; i < vertices_.size(); i++) {
-            float dx = vertices_[i].x - vertices_[i-1].x;
-            float dy = vertices_[i].y - vertices_[i-1].y;
-            float dz = vertices_[i].z - vertices_[i-1].z;
-            len += sqrt(dx*dx + dy*dy + dz*dz);
-        }
-        if (closed_ && vertices_.size() > 2) {
-            float dx = vertices_[0].x - vertices_.back().x;
-            float dy = vertices_[0].y - vertices_.back().y;
-            float dz = vertices_[0].z - vertices_.back().z;
-            len += sqrt(dx*dx + dy*dy + dz*dz);
+        for (size_t si = 0; si < subpathStarts_.size(); ++si) {
+            auto [s, e] = getSubpathRange(si);
+            if (e - s < 2) continue;
+            for (size_t i = s + 1; i < e; ++i) {
+                float dx = vertices_[i].x - vertices_[i-1].x;
+                float dy = vertices_[i].y - vertices_[i-1].y;
+                float dz = vertices_[i].z - vertices_[i-1].z;
+                len += sqrt(dx*dx + dy*dy + dz*dz);
+            }
+            if (subpathClosed_[si] && e - s > 2) {
+                float dx = vertices_[s].x   - vertices_[e-1].x;
+                float dy = vertices_[s].y   - vertices_[e-1].y;
+                float dz = vertices_[s].z   - vertices_[e-1].z;
+                len += sqrt(dx*dx + dy*dy + dz*dz);
+            }
         }
         return len;
     }
 
 private:
-    std::vector<Vec3> vertices_;
-    std::deque<Vec3> curveVertices_;  // Buffer for curveTo
-    bool closed_;
+    std::vector<Vec3>   vertices_;
+    std::deque<Vec3>    curveVertices_;       // Buffer for curveTo
+    std::vector<size_t> subpathStarts_;       // Always non-empty; [0] = 0
+    std::vector<bool>   subpathClosed_;       // Same size as subpathStarts_
 
     // Catmull-Rom spline interpolation
     static Vec3 catmullRom(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t) {

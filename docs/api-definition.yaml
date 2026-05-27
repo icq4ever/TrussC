@@ -692,6 +692,69 @@ categories:
         sketch: true
         snippet: "getBitmapStringBBox(${1:\"text\"}, ${2:x}, ${3:y})"
 
+      # ---------------------------------------------------------------------
+      # Bitmap font extension API (tc::bitmapfont:: namespace)
+      # ---------------------------------------------------------------------
+      # Addons / app code can register their own glyphs for any Unicode
+      # codepoint. drawBitmapString picks them up automatically. ASCII
+      # (U+0020-U+007E) is built in; codepoints with no glyph registered
+      # fall back to a TOFU □ marker.
+
+      - name: bitmapfont::registerGlyph
+        return: "void"
+        signatures:
+          - params: "const bitmapfont::Glyph& g"
+            params_simple: "glyph"
+        description: "Register a bitmap glyph for a Unicode codepoint (extends drawBitmapString)"
+        description_ja: "Unicode コードポイントにビットマップグリフを登録 (drawBitmapString を拡張)"
+        description_ko: "유니코드 코드포인트에 비트맵 글리프 등록 (drawBitmapString 확장)"
+        sketch: false
+        snippet: "bitmapfont::registerGlyph({${1:cp}, ${2:data}, bitmapfont::Width::${3:Fullwidth}})"
+
+      - name: bitmapfont::registerGlyphs
+        return: "void"
+        signatures:
+          - params: "const bitmapfont::Glyph (&glyphs)[N]"
+            params_simple: "glyphs[]"
+        description: "Register a batch of bitmap glyphs at once"
+        description_ja: "複数のビットマップグリフを一括登録"
+        description_ko: "여러 비트맵 글리프를 한 번에 등록"
+        sketch: false
+        snippet: "bitmapfont::registerGlyphs(${1:GLYPHS})"
+
+      - name: bitmapfont::updateGlyph
+        return: "void"
+        signatures:
+          - params: "uint32_t cp, const uint8_t* newData"
+            params_simple: "codepoint, data"
+        description: "Swap an already-registered glyph's pixel data (atlas cell unchanged). Useful for per-frame animation."
+        description_ja: "登録済みグリフのピクセルデータだけ差し替え（アトラス位置は維持）。フレームごとのアニメーションに便利"
+        description_ko: "이미 등록된 글리프의 픽셀 데이터만 교체 (아틀라스 위치 유지). 프레임 애니메이션에 유용"
+        sketch: false
+        snippet: "bitmapfont::updateGlyph(${1:0xE000}, ${2:newData})"
+
+      - name: bitmapfont::compile8x13
+        return: "std::array<uint8_t, 13>"
+        signatures:
+          - params: "const char* const (&rows)[13]"
+            params_simple: "rows"
+        description: "Compile-time ASCII art -> packed halfwidth (8x13) glyph bytes. '#' = lit, '.' = empty."
+        description_ja: "ASCII アートをコンパイル時に半角 (8x13) パックバイトに変換。'#' = 描画、'.' = 透明"
+        description_ko: "ASCII 아트를 컴파일 타임에 반각 (8x13) 패킹된 바이트로 변환. '#' = 채움, '.' = 빈 칸"
+        sketch: false
+        snippet: "bitmapfont::compile8x13({${1:rows}})"
+
+      - name: bitmapfont::compile16x13
+        return: "std::array<uint8_t, 26>"
+        signatures:
+          - params: "const char* const (&rows)[13]"
+            params_simple: "rows"
+        description: "Compile-time ASCII art -> packed fullwidth (16x13) glyph bytes. '#' = lit, '.' = empty."
+        description_ja: "ASCII アートをコンパイル時に全角 (16x13) パックバイトに変換。'#' = 描画、'.' = 透明"
+        description_ko: "ASCII 아트를 컴파일 타임에 전각 (16x13) 패킹된 바이트로 변환. '#' = 채움, '.' = 빈 칸"
+        sketch: false
+        snippet: "bitmapfont::compile16x13({${1:rows}})"
+
       - name: setBitmapLineHeight
         return: "void"
         signatures:
@@ -3748,6 +3811,17 @@ categories:
         sketch: true
         snippet: "drawString(${1:\"Hello\"}, ${2:100}, ${3:100})"
 
+      - name: getStringPath
+        return: "Path"
+        signatures:
+          - params: "const string& text, float x, float y"
+            params_simple: "text, x, y"
+        description: "Get text outline as a Path (one subpath per contour). Stays crisp under scale / rotation; use drawStroke / drawFill (holes auto-detected for e, a, O, 日, etc.)."
+        description_ja: "テキストの輪郭を Path で取得 (1 contour = 1 subpath)。拡大・回転に強く、drawStroke / drawFill (e, a, O, 日 等の穴は自動検出) で描画。"
+        description_ko: "텍스트 윤곽을 Path로 가져오기 (1 contour = 1 subpath). 확대 / 회전에 강함. drawStroke / drawFill (구멍 자동 검출)."
+        sketch: true
+        snippet: "getStringPath(${1:\"Hello\"}, ${2:100}, ${3:100})"
+
       - name: getWidth
         return: "float"
         signatures:
@@ -3791,6 +3865,28 @@ categories:
         description_ko: "폰트 크기를 얻음"
         sketch: true
         snippet: "getSize()"
+
+      - name: systemFontPath
+        return: "string"
+        signatures:
+          - params: "const string& name"
+            params_simple: "name"
+        description: "Resolve a system font name (PostScript / family) to a file path. Returns empty string if not found. macOS uses CoreText; Linux/Windows currently stub."
+        description_ja: "システムフォント名（PostScript 名や family 名）をファイルパスに解決。見つからなければ空文字を返す。macOS は CoreText、Linux/Win は現状スタブ"
+        description_ko: "시스템 폰트 이름을 파일 경로로 변환"
+        sketch: false
+        snippet: "systemFontPath(${1:\"HiraginoSans-W3\"})"
+
+      - name: listSystemFonts
+        return: "vector<string>"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Enumerate names of all fonts known to the OS"
+        description_ja: "OS が認識している全フォント名を取得"
+        description_ko: "시스템에 설치된 모든 폰트 이름을 나열"
+        sketch: false
+        snippet: "listSystemFonts()"
 
   # ==========================================================================
   # Animation
@@ -7038,6 +7134,43 @@ constants:
     sketch: true
 
   # Font path constants
+  # WritingMode constants — Font::setWritingMode
+  - name: "WritingMode::Horizontal"
+    value: "0"
+    description: "Left-to-right horizontal text (default)"
+    description_ja: "左から右の横書き（デフォルト）"
+    description_ko: "왼쪽에서 오른쪽 가로쓰기 (기본값)"
+    sketch: true
+
+  - name: "WritingMode::VerticalRL"
+    value: "1"
+    description: "Top-to-bottom columns, columns flow right-to-left (Japanese tategaki)"
+    description_ja: "上から下に列、列は右から左へ流れる（縦書き）"
+    description_ko: "위에서 아래로 열, 열은 오른쪽에서 왼쪽으로 (일본어 세로쓰기)"
+    sketch: true
+
+  # TcyMode constants — Font::setTcyDigits / setTcyLatin (tate-chu-yoko)
+  - name: "TcyMode::Rotate"
+    value: "0"
+    description: "Rotate the whole Latin / digit run 90 degrees CW so it reads top-to-bottom"
+    description_ja: "Latin / 数字の連続を 90度 CW 回転して上から下に流す"
+    description_ko: "라틴 / 숫자 연속을 90도 시계방향 회전"
+    sketch: true
+
+  - name: "TcyMode::Upright"
+    value: "1"
+    description: "Each glyph upright, one per CJK-sized cell (一文字ずつ正立)"
+    description_ja: "1文字ずつ正立で縦に並べる"
+    description_ko: "각 글리프를 한 셀씩 정립으로 배치"
+    sketch: true
+
+  - name: "TcyMode::Combine"
+    value: "2"
+    description: "Squeeze a Latin / digit run into a single CJK cell (true 縦中横)"
+    description_ja: "Latin / 数字の連続を 1セルに圧縮して縦書きの中に埋め込む (縦中横)"
+    description_ko: "라틴 / 숫자 연속을 한 셀에 압축 (다테추요코)"
+    sketch: true
+
   - name: FONT_SANS
     value: "string"
     description: "System sans-serif font path (CDN URL on Web)"
@@ -7057,6 +7190,20 @@ constants:
     description: "System monospace font path (CDN URL on Web)"
     description_ja: "システムの等幅フォントパス（Webでは CDN URL）"
     description_ko: "시스템 고정폭 폰트 경로 (웹에서는 CDN URL)"
+    sketch: true
+
+  - name: FONT_SANS_JA
+    value: "string"
+    description: "Japanese sans-serif font (Hiragino Sans on macOS, Yu Gothic on Win, Noto Sans CJK JP on Linux/Android, Google Fonts CDN URL on Web)"
+    description_ja: "日本語のサンセリフフォント（macOS: ヒラギノ角ゴ / Win: 游ゴシック / Linux/Android: Noto Sans CJK JP / Web: Google Fonts CDN URL）"
+    description_ko: "일본어 산세리프 폰트"
+    sketch: true
+
+  - name: FONT_SERIF_JA
+    value: "string"
+    description: "Japanese serif font (Hiragino Mincho on macOS, Yu Mincho on Win, Noto Serif CJK JP on Linux/Android, Google Fonts CDN URL on Web)"
+    description_ja: "日本語のセリフフォント（macOS: ヒラギノ明朝 / Win: 游明朝 / Linux/Android: Noto Serif CJK JP / Web: Google Fonts CDN URL）"
+    description_ko: "일본어 세리프 폰트"
     sketch: true
 
   # Wave type constants for ChipSound
@@ -8277,6 +8424,54 @@ types:
         description_ja: "指定位置のピクセル色を設定"
         description_ko: "지정 위치의 픽셀 색상을 설정"
         snippet: "setColor(${1:x}, ${2:y}, ${3:color})"
+      - name: halve
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Replace with 2x2 box-averaged half. Gamma-correct for U8."
+        description_ja: "2x2 ボックス平均で半分に縮小 (U8 はガンマ補正)"
+        description_ko: "2x2 박스 평균으로 절반 크기로 축소 (U8은 감마 보정)"
+        snippet: "halve()"
+      - name: resize
+        return: "void"
+        signatures:
+          - params: "int newWidth, int newHeight"
+        description: "Quality resize: BoxArea on downscale, Catmull-Rom bicubic on upscale, gamma-correct for U8."
+        description_ja: "高品質リサイズ (縮小=BoxArea / 拡大=Catmull-Rom bicubic、 U8はガンマ補正)"
+        description_ko: "고품질 리사이즈 (축소=BoxArea / 확대=Catmull-Rom 바이큐빅, U8 감마 보정)"
+        snippet: "resize(${1:newWidth}, ${2:newHeight})"
+      - name: crop
+        return: "void"
+        signatures:
+          - params: "int x, int y, int w, int h"
+        description: "Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge."
+        description_ja: "(x, y) から (w x h) を切り出し。 範囲外は最近房 (clamp-to-edge)"
+        description_ko: "(x, y)에서 (w x h) 영역 자르기. 범위 밖은 클램프-투-엣지"
+        snippet: "crop(${1:x}, ${2:y}, ${3:w}, ${4:h})"
+      - name: mirror
+        return: "void"
+        signatures:
+          - params: "bool horizontal, bool vertical"
+        description: "Flip in place. Both true is 180°."
+        description_ja: "in-place 反転。 両方 true で 180度回転"
+        description_ko: "in-place 뒤집기. 둘 다 true는 180도 회전"
+        snippet: "mirror(${1:horizontal}, ${2:vertical})"
+      - name: mirrorH
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Mirror horizontally (alias for mirror(true, false))"
+        description_ja: "水平反転 (mirror(true, false) のエイリアス)"
+        description_ko: "수평 뒤집기 (mirror(true, false) 별칭)"
+        snippet: "mirrorH()"
+      - name: mirrorV
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Mirror vertically (alias for mirror(false, true))"
+        description_ja: "垂直反転 (mirror(false, true) のエイリアス)"
+        description_ko: "수직 뒤집기 (mirror(false, true) 별칭)"
+        snippet: "mirrorV()"
       - name: load
         return: bool
         signatures:
@@ -8403,17 +8598,19 @@ types:
         return: bool
         signatures:
           - params: "string path"
-        description: "Load image from file"
-        description_ja: "ファイルから画像を読み込む"
-        description_ko: "파일에서 이미지를 로드"
+          - params: "string path, bool mipmaps"
+        description: "Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface)."
+        description_ja: "ファイルから画像を読み込む。`mipmaps=true` でミップマップ連鎖を構築 (3D サーフェスなど縮小サンプル用途で推奨)"
+        description_ko: "파일에서 이미지를 로드. `mipmaps=true` 시 밉맵 체인 생성 (3D 표면 등 축소 샘플링 용도 권장)"
         snippet: "load(${1:\"path\"})"
       - name: loadFromMemory
         return: bool
         signatures:
           - params: "const uint8_t* buffer, int len"
-        description: "Load image from memory"
-        description_ja: "メモリから画像を読み込む"
-        description_ko: "메모리에서 이미지를 로드"
+          - params: "const uint8_t* buffer, int len, bool mipmaps"
+        description: "Load image from memory. `mipmaps=true` builds a mip chain."
+        description_ja: "メモリから画像を読み込む。`mipmaps=true` でミップマップ連鎖を構築"
+        description_ko: "메모리에서 이미지를 로드. `mipmaps=true` 시 밉맵 체인 생성"
         sketch: false
         snippet: "loadFromMemory(${1:buffer}, ${2:len})"
       - name: save
@@ -8429,9 +8626,10 @@ types:
         signatures:
           - params: "int width, int height"
           - params: "int width, int height, int channels"
-        description: "Allocate empty image for dynamic updates"
-        description_ja: "動的更新用に空の画像を確保"
-        description_ko: "동적 업데이트용 빈 이미지를 할당"
+          - params: "int width, int height, int channels, bool mipmaps"
+        description: "Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update()."
+        description_ja: "動的更新用に空の画像を確保。`mipmaps=true` で update() ごとに連鎖が再生成される"
+        description_ko: "동적 업데이트용 빈 이미지를 할당. `mipmaps=true` 시 update()마다 체인이 갱신됨"
         snippet: "allocate(${1:width}, ${2:height})"
       - name: clear
         return: "void"
@@ -8441,6 +8639,54 @@ types:
         description_ja: "画像リソースを解放"
         description_ko: "이미지 리소스를 해제"
         snippet: "clear()"
+      - name: halve
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Replace with 2x2 box-averaged half. Gamma-correct for U8."
+        description_ja: "2x2 ボックス平均で半分に縮小 (U8 はガンマ補正)"
+        description_ko: "2x2 박스 평균으로 절반 크기로 축소 (U8은 감마 보정)"
+        snippet: "halve()"
+      - name: resize
+        return: "void"
+        signatures:
+          - params: "int newWidth, int newHeight"
+        description: "Quality resize: BoxArea on downscale, Catmull-Rom bicubic on upscale, gamma-correct for U8. Use FBO sampling for fast paths."
+        description_ja: "高品質リサイズ (縮小=BoxArea / 拡大=Catmull-Rom bicubic、 U8はガンマ補正)。 高速版が必要なら FBO 経由で"
+        description_ko: "고품질 리사이즈 (축소=BoxArea / 확대=Catmull-Rom 바이큐빅, U8 감마 보정). 빠른 경로는 FBO 활용"
+        snippet: "resize(${1:newWidth}, ${2:newHeight})"
+      - name: crop
+        return: "void"
+        signatures:
+          - params: "int x, int y, int w, int h"
+        description: "Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge."
+        description_ja: "(x, y) から (w x h) を切り出し。 範囲外は最近房 (clamp-to-edge) で埋める"
+        description_ko: "(x, y)에서 (w x h) 영역 자르기. 범위 밖은 클램프-투-엣지로 채움"
+        snippet: "crop(${1:x}, ${2:y}, ${3:w}, ${4:h})"
+      - name: mirror
+        return: "void"
+        signatures:
+          - params: "bool horizontal, bool vertical"
+        description: "Flip the image. `horizontal=true` mirrors left-right; `vertical=true` mirrors top-bottom; both true is 180°."
+        description_ja: "画像を反転。 horizontal=true で左右、 vertical=true で上下、 両方 true で 180度回転"
+        description_ko: "이미지 뒤집기. horizontal=true 좌우, vertical=true 상하, 둘 다 true는 180도 회전"
+        snippet: "mirror(${1:horizontal}, ${2:vertical})"
+      - name: mirrorH
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Mirror horizontally (alias for mirror(true, false))"
+        description_ja: "水平反転 (mirror(true, false) のエイリアス)"
+        description_ko: "수평 뒤집기 (mirror(true, false) 별칭)"
+        snippet: "mirrorH()"
+      - name: mirrorV
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Mirror vertically (alias for mirror(false, true))"
+        description_ja: "垂直反転 (mirror(false, true) のエイリアス)"
+        description_ko: "수직 뒤집기 (mirror(false, true) 별칭)"
+        snippet: "mirrorV()"
       - name: isAllocated
         return: bool
         signatures:
@@ -8774,9 +9020,12 @@ types:
         return: "void"
         signatures:
           - params: "int width, int height"
-        description: "Allocate framebuffer"
-        description_ja: "フレームバッファを確保"
-        description_ko: "프레임버퍼를 할당"
+          - params: "int width, int height, int sampleCount"
+          - params: "int width, int height, int sampleCount, TextureFormat format"
+          - params: "int width, int height, int sampleCount, TextureFormat format, bool mipmaps"
+        description: "Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end()."
+        description_ja: "フレームバッファを確保。`mipmaps=true` でミップマップ連鎖が end() で自動更新される"
+        description_ko: "프레임버퍼를 할당. `mipmaps=true` 시 end()마다 밉맵 체인이 자동 갱신됨"
         snippet: "allocate(${1:width}, ${2:height})"
       - name: begin
         return: "void"
@@ -8951,6 +9200,17 @@ types:
         description_ja: "全頂点をクリア"
         description_ko: "모든 정점을 지움"
         snippet: "clear()"
+      - name: moveTo
+        return: "void"
+        signatures:
+          - params: "float x, float y"
+          - params: "float x, float y, float z"
+          - params: "Vec2 p"
+          - params: "Vec3 p"
+        description: "Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes."
+        description_ja: "(x, y) で新しい subpath 開始。1 個の Path に複数の独立した contour を持てる (SVG の `M ... M ...` 相当)。Font::getGlyphPath が外枠と穴を 1 つの Path にまとめて drawFill が穴を検出できるようにする用途。"
+        description_ko: "(x, y)에서 새 subpath 시작. 한 Path에 여러 분리된 contour 보관 가능 (SVG의 M ... M ...). Font::getGlyphPath가 외곽선과 구멍을 한 Path로 묶어 drawFill이 구멍을 검출."
+        snippet: "moveTo(${1:x}, ${2:y})"
       - name: lineTo
         return: "void"
         signatures:
@@ -9030,10 +9290,26 @@ types:
         return: "void"
         signatures:
           - params: ""
-        description: "Draw the polyline"
-        description_ja: "ポリラインを描画"
-        description_ko: "폴리라인을 그림"
+        description: "Draw the polyline (fill + 1px stroke based on current style — fill uses triangle fan, convex only). For concave shapes / holes use drawFill."
+        description_ja: "ポリラインを描画 (現在の style で fill + 1px stroke。fill は triangle fan = 凸形状のみ)。凹形状や穴は drawFill を使う。"
+        description_ko: "폴리라인 그리기 (현재 스타일로 fill + 1px stroke, fill은 triangle fan = 볼록한 형태만). 오목한 형태나 구멍은 drawFill 사용."
         snippet: "draw()"
+      - name: drawFill
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Fill the path as a concave polygon with holes (earcut tessellation). Subpaths are grouped by spatial containment — outer ring + direct children become holes, grandchildren become separate filled islands. Use this for glyphs with holes (e, a, O, 日 ...) and any shape that drawString-style fill can't handle."
+        description_ja: "穴付き凹多角形として塗りつぶし (earcut)。subpath は包含関係でグループ化 — 外枠 + 直下の子が穴、孫は別の塗り島。穴付きグリフ (e, a, O, 日 等) や凹形状に使う。"
+        description_ko: "구멍 있는 오목 다각형 채우기 (earcut). subpath는 공간적 포함 관계로 그룹화 — 외곽선 + 직접 자식이 구멍, 손자는 별도 채우기 섬. 구멍 있는 글리프 (e, a, O, 日 등)와 오목한 형태에 사용."
+        snippet: "drawFill()"
+      - name: drawStroke
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Thick stroke via StrokeMesh (respects strokeWeight / strokeCap / strokeJoin), per-subpath. Use draw() for 1-pixel lines."
+        description_ja: "StrokeMesh による太いストローク (strokeWeight / Cap / Join 反映)、subpath 毎。1 ピクセル線は draw()。"
+        description_ko: "StrokeMesh로 두꺼운 stroke (strokeWeight / Cap / Join 적용), subpath 별. 1 픽셀 선은 draw()."
+        snippet: "drawStroke()"
       - name: getBounds
         return: "Rect"
         signatures:
@@ -9632,6 +9908,23 @@ types:
         description_ja: "テキストを描画"
         description_ko: "텍스트를 그림"
         snippet: "drawString(${1:\"text\"}, ${2:x}, ${3:y})"
+      - name: getGlyphPath
+        return: "Path"
+        signatures:
+          - params: "uint32_t codepoint"
+        description: "Vector outline of a single glyph as one Path with one subpath per contour. Em-normalized (1.0 = em), screen Y-down, baseline at y=0, pen at x=0. Use Path::drawFill() for filled rendering — holes (e, a, O, 日 ...) are auto-detected via earcut."
+        description_ja: "単一グリフの輪郭を Path として取得 (1 contour = 1 subpath)。em 正規化 (1.0 = em)、画面 Y-down、ベースライン y=0、ペン位置 x=0。drawFill() で塗り — 穴 (e, a, O, 日 等) は earcut で自動検出。"
+        description_ko: "단일 글리프 윤곽선 (1 contour = 1 subpath의 Path). em 정규화 (1.0 = em), 화면 Y-down, 기준선 y=0, 펜 위치 x=0. drawFill()로 채움 — 구멍 자동 검출."
+        snippet: "getGlyphPath(${1:codepoint})"
+      - name: getStringPath
+        return: "Path"
+        signatures:
+          - params: "string text, float x, float y"
+          - params: "string text, float x, float y, Direction h, Direction v"
+        description: "Vector outline of the whole string at (x, y) as one Path containing every glyph's contours (one subpath each). Uses the same layout pipeline as drawString (writing mode, alignment, wrap, kinsoku, TCY). Logical pixels — drawStroke / drawFill / transform freely."
+        description_ja: "文字列全体の輪郭を 1 個の Path として返す (全グリフの contour が subpath として連結)。drawString と同じレイアウトパイプライン (書字方向 / 揃え / 折返し / 禁則 / 縦中横) 経由。座標は論理ピクセル — drawStroke / drawFill / 変形自由。"
+        description_ko: "(x, y) 위치의 전체 문자열 윤곽선을 단일 Path로 (모든 글리프 contour가 subpath로 연결). drawString과 동일한 레이아웃 파이프라인 사용. 좌표는 논리 픽셀."
+        snippet: "getStringPath(${1:\"text\"}, ${2:x}, ${3:y})"
       - name: getWidth
         return: float
         signatures:
@@ -9700,6 +9993,42 @@ types:
         description_ko: "아틀라스 페이지 수를 얻음"
         sketch: true
         snippet: "getAtlasCount()"
+      - name: setWritingMode
+        return: void
+        signatures:
+          - params: "WritingMode mode"
+        description: "Switch between horizontal and vertical (tategaki) writing. Default is Horizontal (existing behavior unchanged)."
+        description_ja: "横書き / 縦書きを切り替え。デフォルトは Horizontal (既存挙動と同じ)"
+        description_ko: "가로쓰기 / 세로쓰기 전환. 기본값은 Horizontal"
+        sketch: true
+        snippet: "setWritingMode(${1:WritingMode::VerticalRL})"
+      - name: getWritingMode
+        return: WritingMode
+        signatures:
+          - params: ""
+        description: "Current writing mode"
+        description_ja: "現在の書字方向を取得"
+        description_ko: "현재 쓰기 방향을 얻음"
+        sketch: true
+        snippet: "getWritingMode()"
+      - name: setTcyDigits
+        return: void
+        signatures:
+          - params: "int maxDigits, TcyMode inMode, TcyMode overflowMode"
+        description: "Tate-chu-yoko config for ASCII digit runs in vertical text. Runs with <= maxDigits use inMode (typically Combine — squeezed into one cell); longer runs fall back to overflowMode (typically Rotate)."
+        description_ja: "縦書きで連続する ASCII 数字の縦中横設定。maxDigits 桁以内なら inMode (通常 Combine = 1セルに圧縮)、超えたら overflowMode (通常 Rotate)"
+        description_ko: "세로쓰기에서 연속된 ASCII 숫자의 다테추요코 설정"
+        sketch: true
+        snippet: "setTcyDigits(${1:2}, ${2:TcyMode::Combine}, ${3:TcyMode::Rotate})"
+      - name: setTcyLatin
+        return: void
+        signatures:
+          - params: "TcyMode mode"
+        description: "Tate-chu-yoko mode for Latin letter runs in vertical text. Default is Rotate (whole run rotated 90 CW)."
+        description_ja: "縦書きで連続する Latin 文字の表示方式。デフォルトは Rotate (連続を 90度 CW 回転)"
+        description_ko: "세로쓰기에서 연속된 라틴 문자의 표시 방식"
+        sketch: true
+        snippet: "setTcyLatin(${1:TcyMode::Rotate})"
 
   - name: FileWriter
     description: "Streaming file writer with immediate flush"

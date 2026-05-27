@@ -131,10 +131,16 @@ public:
         createResources(nullptr);
     }
 
-    // Allocate empty texture with explicit pixel format
+    // Allocate empty texture with explicit pixel format.
+    //
+    // `mipLevels` > 1 allocates a mip chain. With usage = RenderTarget this
+    // lets each mip level be used as a render attachment (see
+    // `getAttachmentViewForMip(level)`); the sampler is automatically set to
+    // trilinear filtering. mipLevels = 1 keeps the historical behavior.
     void allocate(int width, int height, TextureFormat format,
                   TextureUsage usage = TextureUsage::Immutable,
-                  int sampleCount = 1) {
+                  int sampleCount = 1,
+                  int mipLevels = 1) {
         clear();
 
         width_ = width;
@@ -142,6 +148,8 @@ public:
         channels_ = channelCount(format);
         usage_ = usage;
         sampleCount_ = sampleCount;
+        numMipLevels_ = mipLevels < 1 ? 1 : mipLevels;
+        mipmapped_ = numMipLevels_ > 1;
         pixelFormat_ = toSokolFormat(format);
 
         createResources(nullptr);
@@ -298,8 +306,13 @@ public:
         return pixelFormat_ >= SG_PIXELFORMAT_BC1_RGBA;
     }
 
-    // Allocate texture from Pixels (auto-detects F32 → RGBA32F)
-    // mipmaps: generate mip chain for smooth downscaling (Immutable only)
+    // Allocate texture from Pixels (auto-detects F32 → RGBA32F).
+    //
+    // `mipmaps=true` builds a full mip chain. Supported for Immutable
+    // (chain is generated from initial pixels at allocation) and Dynamic
+    // (chain is regenerated each time `loadData(pixels)` is called).
+    // Stream usage keeps mipmaps off — the per-frame upload cost would
+    // dominate any sampling benefit.
     void allocate(const Pixels& pixels, TextureUsage usage = TextureUsage::Immutable,
                   bool mipmaps = false) {
         clear();
@@ -308,7 +321,16 @@ public:
         height_ = pixels.getHeight();
         channels_ = pixels.getChannels();
         usage_ = usage;
-        mipmapped_ = (mipmaps && usage == TextureUsage::Immutable);
+        const bool mipmapSupported = (usage == TextureUsage::Immutable ||
+                                      usage == TextureUsage::Dynamic);
+        mipmapped_ = mipmaps && mipmapSupported;
+        if (mipmapped_) {
+            numMipLevels_ = 1 + (int)std::floor(std::log2((float)std::max(width_, height_)));
+            if (numMipLevels_ > SG_MAX_MIPMAPS) numMipLevels_ = SG_MAX_MIPMAPS;
+            if (numMipLevels_ < 1) numMipLevels_ = 1;
+        } else {
+            numMipLevels_ = 1;
+        }
 
         if (pixels.isFloat()) {
             pixelFormat_ = SG_PIXELFORMAT_RGBA32F;
@@ -333,6 +355,14 @@ public:
                 if (v.id != 0) sg_destroy_view(v);
             }
             cubeFaceAttachmentViews_.clear();
+            for (sg_view v : mipAttachmentViews_) {
+                if (v.id != 0) sg_destroy_view(v);
+            }
+            mipAttachmentViews_.clear();
+            for (sg_view v : mipSamplingViews_) {
+                if (v.id != 0) sg_destroy_view(v);
+            }
+            mipSamplingViews_.clear();
             sg_destroy_image(image_);
             allocated_ = false;
         }
@@ -362,6 +392,63 @@ public:
     // === Data update (except Immutable) ===
 
     void loadData(const Pixels& pixels) {
+        // Dynamic + mipmaps: D3D11 only allows a single mip level on
+        // DYNAMIC-usage textures, so we can't use sg_update_image with a
+        // full mip chain. Instead we destroy the current image and recreate
+        // it as immutable with all mip levels baked in from CPU data.
+        // The view and sampler are also rebuilt so handles stay consistent.
+        if (mipmapped_ && allocated_ && usage_ != TextureUsage::Immutable) {
+            if (pixels.getWidth() != width_ ||
+                pixels.getHeight() != height_ ||
+                pixels.getChannels() != channels_) return;
+
+            uint64_t currentFrame = sapp_frame_count();
+            if (lastUpdateFrame_ == currentFrame) {
+                logWarning() << "[Texture] loadData() called twice in same frame, skipped";
+                return;
+            }
+            lastUpdateFrame_ = currentFrame;
+
+            const size_t bpp = computeBytesPerPixel();
+
+            sg_image_desc img_desc = {};
+            img_desc.width  = width_;
+            img_desc.height = height_;
+            img_desc.pixel_format = (pixelFormat_ != SG_PIXELFORMAT_NONE)
+                                  ? pixelFormat_
+                                  : ((channels_ == 4) ? SG_PIXELFORMAT_RGBA8 : SG_PIXELFORMAT_R8);
+            img_desc.num_mipmaps  = numMipLevels_;
+
+            img_desc.data.mip_levels[0].ptr  = pixels.getDataVoid();
+            img_desc.data.mip_levels[0].size = (size_t)width_ * height_ * bpp;
+
+            // Lower mip levels: chain Pixels::halve() starting from a clone of
+            // the source. halve() is gamma-correct for U8 buffers (matches the
+            // FBO mipmap convention); F32 buffers are averaged directly.
+            // mipChain entries keep the data alive for the sg_make_image call
+            // below — the pointers we hand to sg_image_data must remain valid
+            // until sg_make_image returns.
+            std::vector<Pixels> mipChain;
+            mipChain.reserve(numMipLevels_ > 1 ? numMipLevels_ - 1 : 0);
+            Pixels current = pixels.clone();
+            for (int level = 1; level < numMipLevels_; level++) {
+                current.halve();
+                mipChain.emplace_back(current.clone());
+                img_desc.data.mip_levels[level].ptr  = mipChain.back().getDataVoid();
+                img_desc.data.mip_levels[level].size = mipChain.back().getTotalBytes();
+            }
+
+            // Tear down old GPU resources and rebuild.
+            sg_destroy_view(view_);
+            sg_destroy_image(image_);
+
+            image_ = sg_make_image(&img_desc);
+
+            sg_view_desc view_desc = {};
+            view_desc.texture.image = image_;
+            view_ = sg_make_view(&view_desc);
+            return;
+        }
         loadData(pixels.getDataVoid(), pixels.getWidth(), pixels.getHeight(), pixels.getChannels());
     }
 
@@ -507,6 +594,26 @@ public:
     // For RenderTarget: attachment view (used as render target in FBO)
     sg_view getAttachmentView() const { return attachmentView_; }
 
+    // Per-mip color attachment view (only populated when allocated with
+    // mipLevels > 1 and usage = RenderTarget). For mipLevels == 1 the
+    // single `attachmentView_` is returned regardless of `level`.
+    sg_view getAttachmentViewForMip(int level) const {
+        if ((int)mipAttachmentViews_.size() > level && level >= 0) {
+            return mipAttachmentViews_[level];
+        }
+        return attachmentView_;
+    }
+
+    // Per-mip texture view for sampling a single mip level. Needed when
+    // another mip of the same image is bound as a color attachment — using
+    // the full-chain view would trigger a validation error on D3D11/WebGPU.
+    sg_view getViewForMip(int level) const {
+        if ((int)mipSamplingViews_.size() > level && level >= 0) {
+            return mipSamplingViews_[level];
+        }
+        return view_;
+    }
+
 private:
     sg_image image_ = {};
     sg_view view_ = {};              // Texture view (for sampling)
@@ -533,6 +640,13 @@ private:
     bool isCubemap_ = false;
     int numMipLevels_ = 1;
     std::vector<sg_view> cubeFaceAttachmentViews_;
+    // Per-mip color attachment views for 2D RenderTarget with mipLevels > 1.
+    // Empty for mipLevels == 1 (use `attachmentView_` directly).
+    std::vector<sg_view> mipAttachmentViews_;
+    // Per-mip sampling views (single-level texture views). Used by Fbo
+    // mipmap generation to avoid binding the full-chain view while another
+    // mip of the same image is a color attachment.
+    std::vector<sg_view> mipSamplingViews_;
 
     static int mipDim(int base, int mip) {
         int d = base >> mip;
@@ -596,8 +710,9 @@ private:
         bool isFloat = (pixelFormat_ == SG_PIXELFORMAT_RGBA32F);
         size_t dataSize = (size_t)width_ * height_ * bpp;
 
-        // Storage for mip chain data (kept alive until sg_make_image copies them)
-        std::vector<std::vector<uint8_t>> mipStorage;
+        // Storage for mip chain Pixels (kept alive until sg_make_image
+        // copies them). Used by the Immutable + auto-mipmap path below.
+        std::vector<Pixels> mipChain;
 
         switch (usage_) {
             case TextureUsage::Immutable:
@@ -605,32 +720,41 @@ private:
                     img_desc.data.mip_levels[0].ptr = initialData;
                     img_desc.data.mip_levels[0].size = dataSize;
 
-                    // Generate mip chain
+                    // Generate mip chain via chained Pixels::halve().
+                    // Pixels::halve is gamma-correct for U8 (matches the FBO
+                    // mipmap downsample) and direct-average for F32 (assumed
+                    // already linear). Restricted to channels_ == 4 same as
+                    // before, since Pixels currently only handles 4-channel
+                    // RGBA / RGBAF32 here.
                     if (mipmapped_ && channels_ == 4) {
                         int numLevels = 1 + (int)std::floor(std::log2((float)std::max(width_, height_)));
                         if (numLevels > SG_MAX_MIPMAPS) numLevels = SG_MAX_MIPMAPS;
                         img_desc.num_mipmaps = numLevels;
 
-                        const void* prevData = initialData;
-                        int mipW = width_;
-                        int mipH = height_;
-                        mipStorage.resize(numLevels - 1);
-
+                        Pixels current;
+                        if (isFloat) {
+                            current.setFromFloats(static_cast<const float*>(initialData),
+                                                  width_, height_, channels_);
+                        } else {
+                            current.setFromPixels(static_cast<const unsigned char*>(initialData),
+                                                  width_, height_, channels_);
+                        }
+                        mipChain.reserve(numLevels - 1);
                         for (int level = 1; level < numLevels; level++) {
-                            mipStorage[level - 1] = generateMipLevel(prevData, mipW, mipH, channels_, isFloat);
-                            mipW = std::max(mipW / 2, 1);
-                            mipH = std::max(mipH / 2, 1);
-
-                            size_t mipSize = mipStorage[level - 1].size();
-                            img_desc.data.mip_levels[level].ptr = mipStorage[level - 1].data();
-                            img_desc.data.mip_levels[level].size = mipSize;
-
-                            prevData = mipStorage[level - 1].data();
+                            current.halve();
+                            mipChain.emplace_back(current.clone());
+                            img_desc.data.mip_levels[level].ptr  = mipChain.back().getDataVoid();
+                            img_desc.data.mip_levels[level].size = mipChain.back().getTotalBytes();
                         }
                     }
                 }
                 break;
             case TextureUsage::Dynamic:
+                // D3D11's DYNAMIC usage only supports a single mip level.
+                // When mipmaps are requested we still allocate the base
+                // image as a plain dynamic texture (1 mip); the full mip
+                // chain is built on each loadData() call by recreating the
+                // image as immutable with all levels baked in.
                 img_desc.usage.dynamic_update = true;
                 break;
             case TextureUsage::Stream:
@@ -640,6 +764,7 @@ private:
                 img_desc.usage.color_attachment = true;
                 img_desc.usage.resolve_attachment = true;  // Can also be used as MSAA resolve target
                 img_desc.sample_count = sampleCount_;
+                img_desc.num_mipmaps = numMipLevels_;
                 break;
         }
 
@@ -650,11 +775,36 @@ private:
         view_desc.texture.image = image_;
         view_ = sg_make_view(&view_desc);
 
-        // Create attachment view for RenderTarget
+        // Create attachment view for RenderTarget. `attachmentView_` always
+        // targets mip 0 (preserves the existing single-attachment API).
+        // For mipLevels > 1, also build a per-mip attachment view list so
+        // callers can render into each level individually (see
+        // `getAttachmentViewForMip()`), used by Fbo to generate mipmaps.
         if (usage_ == TextureUsage::RenderTarget) {
             sg_view_desc att_desc = {};
             att_desc.color_attachment.image = image_;
             attachmentView_ = sg_make_view(&att_desc);
+            if (numMipLevels_ > 1) {
+                // Independent views per mip level (mip 0 is also a fresh view,
+                // not aliased to `attachmentView_`, so clear() can destroy
+                // both without a double-free).
+                mipAttachmentViews_.resize(numMipLevels_);
+                for (int level = 0; level < numMipLevels_; level++) {
+                    sg_view_desc mip_att_desc = {};
+                    mip_att_desc.color_attachment.image = image_;
+                    mip_att_desc.color_attachment.mip_level = level;
+                    mipAttachmentViews_[level] = sg_make_view(&mip_att_desc);
+                }
+                // Single-level sampling views for mipmap generation passes
+                mipSamplingViews_.resize(numMipLevels_);
+                for (int level = 0; level < numMipLevels_; level++) {
+                    sg_view_desc mip_tex_desc = {};
+                    mip_tex_desc.texture.image = image_;
+                    mip_tex_desc.texture.mip_levels.base = level;
+                    mip_tex_desc.texture.mip_levels.count = 1;
+                    mipSamplingViews_[level] = sg_make_view(&mip_tex_desc);
+                }
+            }
         }
 
         // Create sampler
@@ -766,49 +916,9 @@ private:
         internal::restoreCurrentPipeline();
     }
 
-    // Box filter: downsample by 2x in each dimension
-    // Supports RGBA8 (isFloat=false) and RGBA32F (isFloat=true)
-    static std::vector<uint8_t> generateMipLevel(
-            const void* src, int srcW, int srcH, int channels, bool isFloat) {
-        int dstW = std::max(srcW / 2, 1);
-        int dstH = std::max(srcH / 2, 1);
-        size_t bytesPerPixel = channels * (isFloat ? sizeof(float) : 1);
-        std::vector<uint8_t> dst(dstW * dstH * bytesPerPixel);
-
-        for (int y = 0; y < dstH; y++) {
-            for (int x = 0; x < dstW; x++) {
-                int sx = x * 2;
-                int sy = y * 2;
-                // Clamp to source bounds for odd dimensions
-                int sx1 = std::min(sx + 1, srcW - 1);
-                int sy1 = std::min(sy + 1, srcH - 1);
-
-                if (isFloat) {
-                    const float* s = static_cast<const float*>(src);
-                    float* d = reinterpret_cast<float*>(dst.data());
-                    int dIdx = (y * dstW + x) * channels;
-                    for (int c = 0; c < channels; c++) {
-                        float v00 = s[(sy  * srcW + sx ) * channels + c];
-                        float v10 = s[(sy  * srcW + sx1) * channels + c];
-                        float v01 = s[(sy1 * srcW + sx ) * channels + c];
-                        float v11 = s[(sy1 * srcW + sx1) * channels + c];
-                        d[dIdx + c] = (v00 + v10 + v01 + v11) * 0.25f;
-                    }
-                } else {
-                    const uint8_t* s = static_cast<const uint8_t*>(src);
-                    int dIdx = (y * dstW + x) * channels;
-                    for (int c = 0; c < channels; c++) {
-                        int v00 = s[(sy  * srcW + sx ) * channels + c];
-                        int v10 = s[(sy  * srcW + sx1) * channels + c];
-                        int v01 = s[(sy1 * srcW + sx ) * channels + c];
-                        int v11 = s[(sy1 * srcW + sx1) * channels + c];
-                        dst[dIdx + c] = (uint8_t)((v00 + v10 + v01 + v11 + 2) / 4);
-                    }
-                }
-            }
-        }
-        return dst;
-    }
+    // Mipmap chain generation lives in Pixels::halve (gamma-correct for U8,
+    // direct-average for F32). The old static generateMipLevel() helper that
+    // used to live here has been folded into that single implementation.
 
     void moveFrom(Texture&& other) {
         image_ = other.image_;
@@ -821,6 +931,8 @@ private:
         sampleCount_ = other.sampleCount_;
         allocated_ = other.allocated_;
         mipmapped_ = other.mipmapped_;
+        numMipLevels_ = other.numMipLevels_;
+        mipAttachmentViews_ = std::move(other.mipAttachmentViews_);
         usage_ = other.usage_;
         lastUpdateFrame_ = other.lastUpdateFrame_;
         pixelFormat_ = other.pixelFormat_;
@@ -840,6 +952,8 @@ private:
         other.sampleCount_ = 1;
         other.allocated_ = false;
         other.mipmapped_ = false;
+        other.numMipLevels_ = 1;
+        other.mipAttachmentViews_.clear();
         other.pixelFormat_ = SG_PIXELFORMAT_NONE;
     }
 };

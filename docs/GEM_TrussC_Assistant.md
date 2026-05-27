@@ -124,23 +124,36 @@ endShape(true);                               // close the outline
 
 ### Path (accumulator class)
 `Path` collects vertices over multiple calls and can be drawn later,
-optionally many times. Methods chain naturally:
+optionally many times. Supports multiple **subpaths** (disjoint contours
+inside one Path — same model as SVG `<path>` with `M ... M ...`), so a
+single Path can hold an outer ring + its holes:
 ```cpp
 Path p;
-p.moveTo(50, 50);
+p.moveTo(50, 50);                       // start subpath 0
 p.lineTo(150, 50);
 p.bezierTo(cp1, cp2, end);              // Cubic
 p.quadBezierTo(cp, end);                // Quadratic
 p.curveTo(point);                       // Catmull-Rom (needs 4+ consecutive calls)
 p.arc(center, radius, angleBegin, angleEnd);
+p.close();                              // close current (last) subpath
+
+p.moveTo(80, 80);                       // start subpath 1 (e.g. a hole)
+p.lineTo(120, 80);
+p.lineTo(100, 120);
 p.close();
 
-p.draw();          // Fill (if fill enabled) and/or a 1px outline (if stroke enabled)
+p.draw();          // Fill (per-subpath triangle fan, convex-only) + 1px stroke
 p.drawStroke();    // Thick stroke via StrokeMesh, respects strokeWeight/Cap/Join
+p.drawFill();      // Concave + holes via earcut. Subpaths are grouped by
+                   // spatial containment — outer + direct children become
+                   // holes, grandchildren become separate islands.
 ```
-`p.draw()` is consistent with `drawCircle` / `drawRect` etc — its stroke
-mode is always a 1px line strip. Call `p.drawStroke()` when you want a
-weighted stroke with cap/join handling.
+- `p.draw()` mirrors `drawCircle` / `drawRect` etc: stroke is always 1px.
+  Fill is a per-subpath triangle fan — fine for convex shapes, not for
+  concave or holed ones.
+- `p.drawStroke()` strokes each subpath separately with cap/join.
+- `p.drawFill()` is what you want for text glyphs, SVG-like shapes,
+  anything with holes or concave outline.
 
 ### Curve Quality (Tolerance / Resolution)
 Curve tessellation has two modes, selected per-style:
@@ -175,13 +188,92 @@ setStrokeWeight(2.0f); // Affects drawStroke / beginStroke
 
 ### Text
 ```cpp
-drawBitmapString("Hello", x, y);              // Built-in bitmap font
+drawBitmapString("Hello", x, y);              // Built-in bitmap font (ASCII)
 drawBitmapString("Hello", x, y, 2.0f);        // Scaled
+// drawBitmapString takes UTF-8 and mixes halfwidth (8x13) + fullwidth
+// (16x13) glyphs. Codepoints with no glyph registered render as TOFU □.
 
 Font font;
 font.load("myfont.ttf", 24);                  // TrueType font
 font.drawString("Hello", x, y);
 ```
+
+#### Extending drawBitmapString
+ASCII is built in. Apps / addons register additional glyphs for any
+Unicode codepoint via `tc::bitmapfont::`. The atlas is allocated **lazily**
+and grows tier-by-tier — headless apps and apps that never call
+`drawBitmapString` pay 0 KB of GPU memory.
+
+```cpp
+using namespace bitmapfont;
+
+constexpr auto HEART = compile16x13({
+    "................",
+    ".##.##.##.##....",
+    ".###############",
+    "..############..",
+    "...##########...",
+    "....########....",
+    ".....######.....",
+    "......####......",
+    ".......##.......",
+    "................",
+    "................",
+    "................",
+    "................",
+});
+
+void setup() {
+    static constexpr Glyph GLYPHS[] = {
+        { 0x2665, HEART.data(), Width::Fullwidth },  // ♥
+    };
+    registerGlyphs(GLYPHS);
+}
+```
+
+Key API:
+- `registerGlyph(Glyph)` / `registerGlyphs(Glyph[])`
+- `updateGlyph(cp, newData)` — swap a registered glyph's data (animation)
+- `compile8x13(rows)` / `compile16x13(rows)` — constexpr ASCII-art builders
+- `Width::Halfwidth` (8x13) / `Width::Fullwidth` (16x13)
+
+PUA (U+E000–U+F8FF) is the convention for custom logos / icons / animation
+frames. Bulk packs (e.g. kana) live in separate addons — see
+`tcxBitmapStringKana` for the pattern.
+
+#### Vertical writing (tategaki) / wrap / kinsoku
+```cpp
+font.setWritingMode(WritingMode::VerticalRL);   // top→bottom, cols right→left
+font.enableWrap(true);
+font.setMaxLineLength(380);                     // px — column height in vertical
+font.setKinsoku(KinsokuLevel::Standard);        // 行頭/行末禁則
+font.setHangingPunctuation(true);               // ぶら下げ
+font.setTcyDigits(2, TcyMode::Combine, TcyMode::Rotate);  // 縦中横 — digits
+font.setTcyLatin(TcyMode::Rotate);              // Latin runs in vertical text
+```
+Default is horizontal — existing `drawString` calls are unchanged. Vertical
+mode handles Unicode vertical-form glyphs (U+FE10–FE4F) when present and
+falls back to rotating the upright glyph 90° CW otherwise. Latin /
+hyphenation work in horizontal wrap; kinsoku covers `、。」』）` and friends.
+
+#### Vector glyph paths
+For animation / scaling / rotation / hit-testing / stroke / fill, get the
+glyph outline directly as `tc::Path` — one Path per call, with one subpath
+per contour. Stays crisp at any scale, atlas-free.
+```cpp
+Path text = font.getStringPath("Hello", 100, 200);   // logical pixels
+text.drawStroke();
+text.drawFill();                                     // holes auto-detected (e, a, O ...)
+
+Path glyph = font.getGlyphPath(U'あ');                // em-normalized
+// glyph.getVertices() — Vec3 in em units (1.0 = em), Y-down, baseline at
+// y=0, pen at x=0. Multiple subpaths for glyphs with holes (日 / O / e ...).
+// Walk subpaths with glyph.getNumSubpaths() + glyph.getSubpathRange(i).
+```
+`getStringPath` routes through the same layout pipeline as `drawString`
+— writing mode, alignment, wrap, kinsoku, TCY all apply transparently.
+`drawFill` uses earcut + spatial-containment grouping, so glyphs like
+`O` / `日` / `あ` render with their holes correctly punched out.
 
 ### Color
 ```cpp
