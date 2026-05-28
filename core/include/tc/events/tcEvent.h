@@ -48,6 +48,28 @@ namespace EventPriority {
     constexpr int AfterApp = 200;
 }
 
+// Audio listener priorities for AudioEngine::audioOut.
+// Use these so that synth / effector / monitor addons (tcxSynth-*, tcxAudioEffector,
+// tcxScope, ...) compose deterministically even when the user instantiates them
+// in arbitrary order. The numeric gap leaves room for sub-categories (early effect
+// vs late effect, etc.) without renumbering the well-known ones.
+//
+// Recommended use:
+//   - Generator (oscillators / synths)  → produces audio into the buffer
+//   - Effect    (reverb / filter / EQ)  → reads + writes the buffer
+//   - Monitor   (scope / FFT / record)  → reads only, ideally last
+//
+// Listeners with no priority specified fall in `App = 100`, which equals
+// `Generator`. That matches the most common "user wrote a synth callback in
+// audioOut" case — explicit values are only needed for effect / monitor.
+namespace audio {
+namespace priority {
+    constexpr int Generator = 100;   // == EventPriority::App; the default
+    constexpr int Effect    = 500;
+    constexpr int Monitor   = 900;
+}
+}
+
 // ---------------------------------------------------------------------------
 // Event<T> - Event with arguments
 // ---------------------------------------------------------------------------
