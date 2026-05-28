@@ -21,6 +21,39 @@
 - `Tween<T>` (as TweenFloat, TweenVec2, TweenVec3, TweenColor)
 - Sound, MicInput
 
+## Lua module sandboxing
+
+`tcxLua::getLuaState()` accepts a `LuaModulePreferences` struct that controls which
+Lua standard libraries are loaded. The defaults are:
+
+| Module | Default | Notes |
+|--------|---------|-------|
+| `base`, `math`, `string`, `table`, `coroutine` | **on** | Safe core set |
+| `io`, `package` | **off** | Opening these is effectively granting **arbitrary code execution** to whatever Lua you load — `io.popen` runs shell commands, `package.loadlib` loads any native library |
+| `os`, `debug`, `bit32`, `ffi`, `utf8` | **off** | Off for similar reasons (`os.execute`, `os.remove`, etc.) |
+
+If your app only runs Lua scripts you authored and ship yourself, opting back in is fine:
+
+```cpp
+tcxLua lua;
+tcxLua::LuaModulePreferences prefs;
+prefs.io = true;
+prefs.package = true;   // needed for `require` of external Lua modules
+auto state = lua.getLuaState(prefs);
+```
+
+**Do NOT enable `io` / `package` if any of these are true:**
+
+- The Lua source can be edited by the end-user (hot-reload from disk, in-app script editor)
+- The app downloads, fetches, or otherwise loads Lua from untrusted sources
+- Your app ships pre-compiled Lua that you cannot guarantee hasn't been tampered with
+
+In those cases, enabling `io` / `package` lets the script `io.popen("rm -rf ~")` or
+load arbitrary native code via `package.loadlib`. Stick with the default safe set.
+
+See [issue #80](https://github.com/TrussC-org/TrussC/issues/80) for the
+historical context — these were on by default until 2026-05-27 (PR #97).
+
 ## Known Issues
 
 - Default value is not treated perfectly now ([Issue#1](https://github.com/funatsufumiya/tcxLua/issues/1)). So you may need additional values when using methods for example:
