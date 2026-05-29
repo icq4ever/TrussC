@@ -32,8 +32,9 @@ void tcApp::draw() {
 
     view.begin();
     pushMatrix();
-    rotateY(getElapsedTimef() * 0.3f);
-    if (!colored) setColor(0.8f, 0.85f, 1.0f);
+    // Start a quarter-turn in so we open facing the front of the cloud.
+    rotateY(getElapsedTimef() * 0.3f + TAU * 0.25f);
+    if (!colored) setColor(0.55f, 0.75f, 1.0f);
     cloud.draw();
     popMatrix();
     view.end();

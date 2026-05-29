@@ -21,6 +21,6 @@ private:
     shared_ptr<SyntheticDepthCamera> camera;
     EasyCam view;
     Mesh cloud;
-    bool colored = true;
+    bool colored = false;   // uniform color by default (clearer shape); C toggles depth-keyed
     int step = 1;
 };
