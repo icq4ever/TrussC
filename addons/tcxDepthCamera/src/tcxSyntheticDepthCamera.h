@@ -60,13 +60,24 @@ protected:
     StreamFreshness captureInto(DepthFrame& dst) override {
         const int w = width_;
         const int h = height_;
+        const bool wantDepth = isDepthEnabled();
+        const bool wantColor = isColorEnabled();
+
         dst.w = w;
         dst.h = h;
         dst.depthScale = 0.001f;  // store as mm
-        dst.depth.resize(static_cast<size_t>(w) * h);
-        if (!dst.color.isAllocated() ||
-            dst.color.getWidth() != w || dst.color.getHeight() != h) {
-            dst.color.allocate(w, h, 4);
+
+        // Only produce the enabled streams (mirrors a real device not
+        // transferring disabled ones).
+        if (wantDepth) dst.depth.resize(static_cast<size_t>(w) * h);
+        else           dst.depth.clear();
+        if (wantColor) {
+            if (!dst.color.isAllocated() ||
+                dst.color.getWidth() != w || dst.color.getHeight() != h) {
+                dst.color.allocate(w, h, 4);
+            }
+        } else if (dst.color.isAllocated()) {
+            dst.color = Pixels{};
         }
 
         // Intrinsics for a ~moderate FOV pinhole (drives default deprojection).
@@ -83,30 +94,34 @@ protected:
         const float cxs = 0.25f * std::sin(phase);
         const float cys = 0.15f * std::cos(phase * 1.3f);
 
-        uint8_t* col = dst.color.getData();
-        for (int y = 0; y < h; ++y) {
-            for (int x = 0; x < w; ++x) {
-                const float u = static_cast<float>(x) / w - 0.5f;
-                const float v = static_cast<float>(y) / h - 0.5f;
+        if (wantDepth || wantColor) {
+            uint8_t* col = wantColor ? dst.color.getData() : nullptr;
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    const float u = static_cast<float>(x) / w - 0.5f;
+                    const float v = static_cast<float>(y) / h - 0.5f;
 
-                float d = 2.5f + 0.15f * std::sin(u * 12.0f + phase) *
-                                          std::sin(v * 12.0f + phase * 0.8f);
-                const float dd = std::sqrt((u - cxs) * (u - cxs) +
-                                           (v - cys) * (v - cys));
-                if (dd < sphereR) {
-                    d = 1.3f - std::sqrt(sphereR * sphereR - dd * dd);
+                    float d = 2.5f + 0.15f * std::sin(u * 12.0f + phase) *
+                                              std::sin(v * 12.0f + phase * 0.8f);
+                    const float dd = std::sqrt((u - cxs) * (u - cxs) +
+                                               (v - cys) * (v - cys));
+                    if (dd < sphereR) {
+                        d = 1.3f - std::sqrt(sphereR * sphereR - dd * dd);
+                    }
+
+                    const size_t i = static_cast<size_t>(y) * w + x;
+                    if (wantDepth) dst.depth[i] = static_cast<uint16_t>(d * 1000.0f);
+
+                    if (wantColor) {
+                        float t = (d - 1.0f) / 1.8f;
+                        if (t < 0.0f) t = 0.0f;
+                        if (t > 1.0f) t = 1.0f;
+                        col[i * 4 + 0] = static_cast<uint8_t>((1.0f - t) * 255.0f);
+                        col[i * 4 + 1] = static_cast<uint8_t>((0.3f + 0.4f * t) * 255.0f);
+                        col[i * 4 + 2] = static_cast<uint8_t>(t * 255.0f);
+                        col[i * 4 + 3] = 255;
+                    }
                 }
-
-                const size_t i = static_cast<size_t>(y) * w + x;
-                dst.depth[i] = static_cast<uint16_t>(d * 1000.0f);  // mm
-
-                float t = (d - 1.0f) / 1.8f;
-                if (t < 0.0f) t = 0.0f;
-                if (t > 1.0f) t = 1.0f;
-                col[i * 4 + 0] = static_cast<uint8_t>((1.0f - t) * 255.0f);
-                col[i * 4 + 1] = static_cast<uint8_t>((0.3f + 0.4f * t) * 255.0f);
-                col[i * 4 + 2] = static_cast<uint8_t>(t * 255.0f);
-                col[i * 4 + 3] = 255;
             }
         }
 
@@ -117,8 +132,8 @@ protected:
         }
 
         StreamFreshness fresh;
-        fresh.depth = true;
-        fresh.color = true;
+        fresh.depth = wantDepth;
+        fresh.color = wantColor;
         return fresh;
     }
 

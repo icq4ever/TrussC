@@ -111,6 +111,25 @@ public:
     bool isThreaded() const { return threaded_; }
 
     // -------------------------------------------------------------------------
+    // Stream enable / disable
+    // -------------------------------------------------------------------------
+    // Which streams to request from the device. ALL OFF by default - enable the
+    // ones you use. Disabling a stream means the device need not transfer or
+    // capture it at all (saving USB bandwidth / power), which is stronger than
+    // just not reading it.
+    //
+    // Call before setup(). Whether a backend can toggle live depends on its SDK
+    // (some need a reconfigure / restart): override these to honor live toggling
+    // or to warn + no-op when the hardware can't. A backend fills only the
+    // enabled streams in captureInto().
+    virtual void enableDepth(bool on = true)    { depthEnabled_ = on; }
+    virtual void enableColor(bool on = true)    { colorEnabled_ = on; }
+    virtual void enableInfrared(bool on = true) { infraredEnabled_ = on; }
+    bool isDepthEnabled()    const { return depthEnabled_; }
+    bool isColorEnabled()    const { return colorEnabled_; }
+    bool isInfraredEnabled() const { return infraredEnabled_; }
+
+    // -------------------------------------------------------------------------
     // Sensor info (a device property, not frame data)
     // -------------------------------------------------------------------------
     virtual DepthSensorType getSensorType() const { return DepthSensorType::Unknown; }
@@ -130,6 +149,7 @@ public:
 
     // Distance along the optical axis at (x, y) in meters. 0 = invalid / no data.
     float getDistanceAt(int x, int y) const {
+        if (!depthEnabled_) { warnOnce(warnedDepth_, "depth", "enableDepth"); return 0.0f; }
         const DepthFrame& f = *front_;
         if (x < 0 || y < 0 || x >= f.w || y >= f.h) return 0.0f;
         const size_t i = static_cast<size_t>(y) * f.w + x;
@@ -159,8 +179,11 @@ public:
     // -------------------------------------------------------------------------
     // Color / IR (optional; registered to the depth resolution)
     // -------------------------------------------------------------------------
-    bool          hasColor()       const { return front_->hasColor(); }
-    const Pixels& getColorPixels() const { return front_->color; }
+    bool          hasColor()       const { return colorEnabled_ && front_->hasColor(); }
+    const Pixels& getColorPixels() const {
+        if (!colorEnabled_) warnOnce(warnedColor_, "color", "enableColor");
+        return front_->color;
+    }
 
     // Normalized UV into the color image for depth pixel (x, y). Color is
     // registered to depth, so it is simply the normalized depth coordinate.
@@ -178,8 +201,11 @@ public:
         return c.getColor(x, y);
     }
 
-    bool          hasInfrared()       const { return front_->hasInfrared(); }
-    const Pixels& getInfraredPixels() const { return front_->ir; }
+    bool          hasInfrared()       const { return infraredEnabled_ && front_->hasInfrared(); }
+    const Pixels& getInfraredPixels() const {
+        if (!infraredEnabled_) warnOnce(warnedInfrared_, "infrared", "enableInfrared");
+        return front_->ir;
+    }
 
     // -------------------------------------------------------------------------
     // Mesh / point cloud
@@ -242,6 +268,15 @@ private:
         }
     }
 
+    // One-time warning when a disabled stream is read.
+    void warnOnce(bool& warned, const char* stream, const char* enableFn) const {
+        if (warned) return;
+        warned = true;
+        logWarning("tcxDepthCamera")
+            << stream << " stream is disabled; call " << enableFn
+            << "() before setup() to use it.";
+    }
+
     DepthFrame buffers_[3];
     DepthFrame* front_;
     DepthFrame* back_;
@@ -252,6 +287,14 @@ private:
     StreamFreshness freshness_{};  // current frame's flags, main thread only
     bool backReady_ = false;       // guarded by mutex_
     bool threaded_ = false;
+
+    // Stream enables (all off by default; enable what you use before setup()).
+    bool depthEnabled_ = false;
+    bool colorEnabled_ = false;
+    bool infraredEnabled_ = false;
+    mutable bool warnedDepth_ = false;
+    mutable bool warnedColor_ = false;
+    mutable bool warnedInfrared_ = false;
 };
 
 } // namespace tcx

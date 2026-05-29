@@ -5,6 +5,8 @@ void tcApp::setup() {
 
     camera = make_shared<SyntheticDepthCamera>(640, 480);
     camera->setThreaded(true);   // grab on a background thread (before setup)
+    camera->enableDepth();       // streams are all off by default; enable what we use
+    camera->enableColor();
     camera->setup();
 
     view.setDistance(400.0f);
