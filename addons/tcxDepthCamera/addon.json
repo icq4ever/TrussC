@@ -1,0 +1,17 @@
+{
+  "description": "Unified interface for depth / point-cloud cameras (Orbbec, Kinect, RealSense, ...)",
+  "author": "tettou771",
+  "license": "MIT",
+  "category": "3d",
+  "keywords": [
+    "depth",
+    "depthcamera",
+    "pointcloud",
+    "rgbd",
+    "tof",
+    "stereo",
+    "orbbec",
+    "kinect",
+    "realsense"
+  ]
+}

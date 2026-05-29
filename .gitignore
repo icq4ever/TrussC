@@ -112,6 +112,7 @@ addons/*
 !addons/tcxWebSocket
 !addons/tcxGltf
 !addons/tcxObj
+!addons/tcxDepthCamera
 
 # =============================================================================
 # trusscli / Project Generator (built binary + build artifacts in tools/)
