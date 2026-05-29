@@ -3072,9 +3072,11 @@ categories:
         signatures:
           - params: "const void* src, size_t nbytes, vector<uint8_t>& out, Codec codec"
             params_simple: "src, nbytes, out, codec"
-        description: "Compress a byte buffer into out with the given codec (Codec::None or Codec::LZ4). Returns false on failure"
-        description_ja: "バイト列を指定コーデック（Codec::None / Codec::LZ4）で out に圧縮する。失敗時 false"
-        description_ko: "지정한 코덱(Codec::None / Codec::LZ4)으로 바이트 버퍼를 out에 압축. 실패 시 false"
+          - params: "const void* src, size_t nbytes, void* dst, size_t dstCapacity, Codec codec"
+            params_simple: "src, nbytes, dst, dstCapacity, codec"
+        description: "Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). The vector form resizes out and returns bool; the raw form writes into dst (capacity dstCapacity) and returns the number of bytes written (or -1), useful for compressing into a region of a buffer / parallel chunks"
+        description_ja: "バイト列を指定コーデック（Codec::None / Codec::LZ4）で圧縮する。vector版は out をリサイズして bool を返す。raw版は dst（容量 dstCapacity）に書き込み、書き込みバイト数（失敗 -1）を返す（バッファの一部への圧縮・並列チャンク向け）"
+        description_ko: "지정한 코덱(Codec::None / Codec::LZ4)으로 바이트 버퍼를 압축. vector형은 out을 리사이즈하고 bool 반환, raw형은 dst(용량 dstCapacity)에 써서 바이트 수(실패 -1) 반환 (버퍼 일부 압축·병렬 청크용)"
         sketch: false
         snippet: "compress(${1:src}, ${2:nbytes}, ${3:out}, ${4:Codec::LZ4})"
 
@@ -3083,9 +3085,11 @@ categories:
         signatures:
           - params: "const void* src, size_t nbytes, vector<uint8_t>& out, size_t decompressedSize, Codec codec"
             params_simple: "src, nbytes, out, decompressedSize, codec"
-        description: "Decompress a byte buffer into out; decompressedSize is the known original (decompressed) byte count. Returns false on failure"
-        description_ja: "バイト列を out に展開する。decompressedSize は元の（展開後）バイト数。失敗時 false"
-        description_ko: "바이트 버퍼를 out으로 해제. decompressedSize는 원본(해제 후) 바이트 수. 실패 시 false"
+          - params: "const void* src, size_t nbytes, void* dst, size_t dstCapacity, Codec codec"
+            params_simple: "src, nbytes, dst, dstCapacity, codec"
+        description: "Decompress a byte buffer; decompressedSize is the known original byte count. The vector form resizes out and returns bool; the raw form writes into dst (capacity dstCapacity) and returns bytes written (or -1) - it can write into a region of an existing buffer (dst + offset), enabling parallel per-chunk decompression"
+        description_ja: "バイト列を展開する。decompressedSize は元の（展開後）バイト数。vector版は out をリサイズして bool を返す。raw版は dst（容量 dstCapacity）に書き込みバイト数（失敗 -1）を返し、既存バッファの途中（dst + offset）にも書ける（並列チャンク展開向け）"
+        description_ko: "바이트 버퍼를 해제. decompressedSize는 원본 바이트 수. vector형은 out을 리사이즈하고 bool 반환, raw형은 dst(용량 dstCapacity)에 써서 바이트 수(실패 -1) 반환하며 기존 버퍼 일부(dst + offset)에도 쓸 수 있음 (병렬 청크 해제용)"
         sketch: false
         snippet: "decompress(${1:src}, ${2:nbytes}, ${3:out}, ${4:decompressedSize}, ${5:Codec::LZ4})"
 
