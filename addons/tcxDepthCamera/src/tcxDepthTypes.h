@@ -89,21 +89,34 @@ struct StreamFreshness {
 // for recording); long-range LiDAR can use a coarser scale (e.g. 0.01 = cm,
 // reaching ~655 m) without changing the meters-based API.
 struct DepthFrame {
-    int   w = 0;
+    int   w = 0;                        // depth resolution
     int   h = 0;
     float depthScale = 0.001f;          // meters per depth unit (mm by default)
 
     std::vector<uint16_t> depth;        // w*h, 0 = invalid / no data
     std::vector<Vec3>     world;        // optional precomputed world (m); empty -> deproject
-    Pixels color;                       // optional RGBA, registered to depth (w x h)
+
+    // Color is kept at its NATIVE full resolution (not downsampled to depth).
+    // The depth->color mapping is computed on demand from colorIntrinsics +
+    // depthToColor (a depth pixel deprojects to 3D, transforms into color-camera
+    // space, then projects into the color image) - see getColorTexCoordAt().
+    // colorUV may hold a precomputed per-depth-pixel UV (e.g. from an SDK); when
+    // empty the mapping is computed from the calibration. Nothing is registered
+    // automatically; use registerColorToDepth() if you want a depth-aligned image.
+    Pixels color;                       // optional RGBA, NATIVE color resolution
+    DepthIntrinsics colorIntrinsics;    // color camera intrinsics (color res)
+    Mat4 depthToColor;                  // depth-cam space -> color-cam space (identity = same cam)
+    std::vector<Vec2> colorUV;          // optional per-depth-pixel UV into color (0-1)
+
     Pixels ir;                          // optional single-channel active brightness
 
-    DepthIntrinsics intrinsics;
+    DepthIntrinsics intrinsics;         // depth camera intrinsics
     double timestamp = 0.0;             // seconds (capture time)
 
     bool hasColor()    const { return color.isAllocated(); }
     bool hasInfrared() const { return ir.isAllocated(); }
     bool hasWorld()    const { return !world.empty(); }
+    bool hasColorUV()  const { return !colorUV.empty(); }
 };
 
 // Options for DepthCamera::toMesh(). Everything is built in a single pass over

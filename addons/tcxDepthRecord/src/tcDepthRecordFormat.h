@@ -50,10 +50,15 @@ struct TcdcHeader {
     std::int32_t  width;
     std::int32_t  height;
     float         depthScale;
-    // intrinsics
+    // depth intrinsics
     std::int32_t  inWidth;
     std::int32_t  inHeight;
     float fx, fy, cx, cy, k1, k2, k3, p1, p2;
+    // color intrinsics (native color resolution) + depth->color extrinsic
+    std::int32_t  cinWidth;
+    std::int32_t  cinHeight;
+    float cfx, cfy, ccx, ccy, ck1, ck2, ck3, cp1, cp2;
+    float depthToColor[16];      // row-major 4x4
     std::uint32_t frameCount;    // patched on stop()
     std::uint64_t indexOffset;   // patched on stop() (0 = no index)
 };
@@ -80,6 +85,11 @@ inline TcdcHeader makeHeader(const DepthFrame& f, std::uint8_t streamFlags,
     h.inWidth = in.width; h.inHeight = in.height;
     h.fx = in.fx; h.fy = in.fy; h.cx = in.cx; h.cy = in.cy;
     h.k1 = in.k1; h.k2 = in.k2; h.k3 = in.k3; h.p1 = in.p1; h.p2 = in.p2;
+    const DepthIntrinsics& ci = f.colorIntrinsics;
+    h.cinWidth = ci.width; h.cinHeight = ci.height;
+    h.cfx = ci.fx; h.cfy = ci.fy; h.ccx = ci.cx; h.ccy = ci.cy;
+    h.ck1 = ci.k1; h.ck2 = ci.k2; h.ck3 = ci.k3; h.cp1 = ci.p1; h.cp2 = ci.p2;
+    for (int i = 0; i < 16; ++i) h.depthToColor[i] = f.depthToColor.m[i];
     h.frameCount = 0;
     h.indexOffset = 0;
     return h;
@@ -91,6 +101,11 @@ inline void applyIntrinsics(const TcdcHeader& h, DepthFrame& f) {
     in.width = h.inWidth; in.height = h.inHeight;
     in.fx = h.fx; in.fy = h.fy; in.cx = h.cx; in.cy = h.cy;
     in.k1 = h.k1; in.k2 = h.k2; in.k3 = h.k3; in.p1 = h.p1; in.p2 = h.p2;
+    DepthIntrinsics& ci = f.colorIntrinsics;
+    ci.width = h.cinWidth; ci.height = h.cinHeight;
+    ci.fx = h.cfx; ci.fy = h.cfy; ci.cx = h.ccx; ci.cy = h.ccy;
+    ci.k1 = h.ck1; ci.k2 = h.ck2; ci.k3 = h.ck3; ci.p1 = h.cp1; ci.p2 = h.cp2;
+    for (int i = 0; i < 16; ++i) f.depthToColor.m[i] = h.depthToColor[i];
 }
 
 template <class T> void wr(std::ostream& o, const T& v) {

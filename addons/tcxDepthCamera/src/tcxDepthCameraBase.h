@@ -198,28 +198,66 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    // Color / IR (optional; registered to the depth resolution)
+    // Color / IR (color is NATIVE full resolution; mapping is computed on demand)
     // -------------------------------------------------------------------------
     bool          hasColor()       const { return colorEnabled_ && front_->hasColor(); }
-    const Pixels& getColorPixels() const {
+    const Pixels& getColorPixels() const {   // native full-resolution color
         if (!colorEnabled_) warnOnce(warnedColor_, "color", "enableColor");
         return front_->color;
     }
 
-    // Normalized UV into the color image for depth pixel (x, y). Color is
-    // registered to depth, so it is simply the normalized depth coordinate.
+    // Normalized UV (0-1) into the (full-resolution) color image for depth pixel
+    // (x, y). Uses a precomputed colorUV map if present, else projects: deproject
+    // the depth pixel to 3D, transform into color-camera space (depthToColor),
+    // and project with colorIntrinsics. Computed lazily - only when you ask.
     Vec2 getColorTexCoordAt(int x, int y) const {
         const DepthFrame& f = *front_;
         if (f.w <= 0 || f.h <= 0) return Vec2{0, 0};
-        return Vec2{(x + 0.5f) / f.w, (y + 0.5f) / f.h};
+        const size_t i = static_cast<size_t>(y) * f.w + x;
+        if (i < f.colorUV.size()) return f.colorUV[i];     // precomputed map
+
+        const Vec3 pd = getWorldCoordinateAt(x, y);        // depth-camera space (m)
+        if (pd.z <= 0.0f) return Vec2{0, 0};               // invalid depth
+        const Vec3 pc = f.depthToColor * pd;               // color-camera space
+        if (pc.z <= 0.0f) return Vec2{0, 0};
+
+        const DepthIntrinsics& ci = f.colorIntrinsics;
+        const float cw = ci.width  > 0 ? static_cast<float>(ci.width)  : static_cast<float>(f.color.getWidth());
+        const float ch = ci.height > 0 ? static_cast<float>(ci.height) : static_cast<float>(f.color.getHeight());
+        if (ci.fx == 0.0f || ci.fy == 0.0f || cw <= 0.0f || ch <= 0.0f) return Vec2{0, 0};
+        const float u = (pc.x / pc.z) * ci.fx + ci.cx;
+        const float v = (pc.y / pc.z) * ci.fy + ci.cy;
+        return Vec2{u / cw, v / ch};
     }
+
+    // Sampled color for depth pixel (x, y): the full-res color sampled at its
+    // projected UV.
     Color getColorAt(int x, int y) const {
         const Pixels& c = front_->color;
         if (!c.isAllocated()) return Color{0, 0, 0, 1};
-        if (x < 0 || y < 0 || x >= c.getWidth() || y >= c.getHeight()) {
+        const Vec2 uv = getColorTexCoordAt(x, y);
+        const int cx = static_cast<int>(uv.x * c.getWidth());
+        const int cy = static_cast<int>(uv.y * c.getHeight());
+        if (cx < 0 || cy < 0 || cx >= c.getWidth() || cy >= c.getHeight()) {
             return Color{0, 0, 0, 1};
         }
-        return c.getColor(x, y);
+        return c.getColor(cx, cy);
+    }
+
+    // Opt-in: build a depth-resolution color image by sampling the full-res
+    // color through the depth->color mapping (the old "registered" image). Not
+    // done automatically - call it only if you actually want it.
+    Pixels registerColorToDepth() const {
+        const DepthFrame& f = *front_;
+        Pixels out;
+        if (!f.color.isAllocated() || f.w <= 0 || f.h <= 0) return out;
+        out.allocate(f.w, f.h, 4);
+        for (int y = 0; y < f.h; ++y) {
+            for (int x = 0; x < f.w; ++x) {
+                out.setColor(x, y, getColorAt(x, y));
+            }
+        }
+        return out;
     }
 
     bool          hasInfrared()       const { return infraredEnabled_ && front_->hasInfrared(); }
