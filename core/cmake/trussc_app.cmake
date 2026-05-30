@@ -700,9 +700,13 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
         set(_TC_APK_STAGING "${CMAKE_CURRENT_BINARY_DIR}/apk_staging")
         set(_TC_LIB_DIR "${_TC_APK_STAGING}/lib/arm64-v8a")
 
-        # Generate AndroidManifest.xml from template
-        # Android package name segments must start with a letter
-        string(REGEX REPLACE "^([^a-zA-Z])" "app\\1" _TC_SAFE_NAME "${PROJECT_NAME}")
+        # Generate AndroidManifest.xml from template.
+        # The package segment must be a valid Java identifier: only [A-Za-z0-9_]
+        # and must start with a letter/underscore. Sanitise the project name so
+        # hyphenated names (e.g. "example-basic") don't produce an invalid
+        # package like com.trussc.example-basic.
+        string(REGEX REPLACE "[^a-zA-Z0-9_]" "_" _TC_SAFE_NAME "${PROJECT_NAME}")
+        string(REGEX REPLACE "^([^a-zA-Z_])" "app\\1" _TC_SAFE_NAME "${_TC_SAFE_NAME}")
         set(TC_APP_PACKAGE "com.trussc.${_TC_SAFE_NAME}")
         set(TC_APP_LIB_NAME "${PROJECT_NAME}")
         # Allow projects to ship their own manifest under android/. If
@@ -725,13 +729,76 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
         # only projects keep hasCode="false" and the existing build path.
         set(_TC_JAVA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android/java")
         set(_TC_RES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android/res")
+
+        # Collect android/java and android/res from the project AND every
+        # loaded addon. An addon may ship `<addon>/android/java/*.java`
+        # (e.g. a DeviceAdminReceiver) and `<addon>/android/res/`; these are
+        # compiled and packaged alongside the project's own.
+        #
+        # Manifest entries are NOT injected: the app's AndroidManifest.xml is
+        # the single source of truth (so the app can deliberately restrict
+        # which permissions ship). Instead, an addon may *advertise* the
+        # manifest lines it needs by shipping `<addon>/android/manifest/*.xml`
+        # fragments. At configure time those are gathered into a single
+        # advisory file and surfaced via a message — the user pastes (and
+        # trims) them into their own manifest by hand.
+        set(_TC_ANDROID_JAVA_DIRS "")
+        set(_TC_ANDROID_RES_DIRS "")
+        set(_TC_ANDROID_MANIFEST_HINTS "")  # "<addon>|<fragment-path>" pairs
         if(EXISTS "${_TC_JAVA_SRC_DIR}")
+            list(APPEND _TC_ANDROID_JAVA_DIRS "${_TC_JAVA_SRC_DIR}")
+        endif()
+        if(EXISTS "${_TC_RES_DIR}")
+            list(APPEND _TC_ANDROID_RES_DIRS "${_TC_RES_DIR}")
+        endif()
+        foreach(_TC_A ${_TC_LOADED_ADDONS})
+            get_filename_component(_TC_AP "${TRUSSC_DIR}/../addons/${_TC_A}" ABSOLUTE)
+            if(EXISTS "${_TC_AP}/android/java")
+                list(APPEND _TC_ANDROID_JAVA_DIRS "${_TC_AP}/android/java")
+                message(STATUS "[${PROJECT_NAME}] Addon Java: ${_TC_A}/android/java")
+            endif()
+            if(EXISTS "${_TC_AP}/android/res")
+                list(APPEND _TC_ANDROID_RES_DIRS "${_TC_AP}/android/res")
+                message(STATUS "[${PROJECT_NAME}] Addon res: ${_TC_A}/android/res")
+            endif()
+            if(EXISTS "${_TC_AP}/android/manifest")
+                file(GLOB _TC_MF "${_TC_AP}/android/manifest/*.xml")
+                foreach(_TC_MFF ${_TC_MF})
+                    list(APPEND _TC_ANDROID_MANIFEST_HINTS "${_TC_A}|${_TC_MFF}")
+                endforeach()
+            endif()
+        endforeach()
+
+        if(_TC_ANDROID_JAVA_DIRS)
             set(TC_APP_HAS_CODE "true")
         else()
             set(TC_APP_HAS_CODE "false")
         endif()
         set(_TC_MANIFEST_OUT "${CMAKE_CURRENT_BINARY_DIR}/AndroidManifest.xml")
         configure_file("${_TC_MANIFEST_TEMPLATE}" "${_TC_MANIFEST_OUT}" @ONLY)
+
+        # Advisory: addons that ship manifest fragments don't edit the app
+        # manifest themselves. Gather them into one file and tell the user, so
+        # they can copy in only what they want (e.g. drop a permission they'd
+        # rather not request).
+        if(_TC_ANDROID_MANIFEST_HINTS)
+            set(_TC_MANIFEST_HINT_OUT "${CMAKE_CURRENT_BINARY_DIR}/REQUIRED_MANIFEST_SNIPPET.xml")
+            set(_TC_HINT_BODY "<!-- Manifest lines requested by addons. Paste the parts you want\n     into your app's android/AndroidManifest.xml. Nothing here is\n     applied automatically. -->\n")
+            set(_TC_HINT_ADDONS "")
+            foreach(_TC_PAIR ${_TC_ANDROID_MANIFEST_HINTS})
+                string(REPLACE "|" ";" _TC_PARTS "${_TC_PAIR}")
+                list(GET _TC_PARTS 0 _TC_HA)
+                list(GET _TC_PARTS 1 _TC_HF)
+                file(READ "${_TC_HF}" _TC_HFC)
+                string(APPEND _TC_HINT_BODY "\n<!-- from ${_TC_HA} -->\n${_TC_HFC}\n")
+                list(APPEND _TC_HINT_ADDONS "${_TC_HA}")
+            endforeach()
+            file(WRITE "${_TC_MANIFEST_HINT_OUT}" "${_TC_HINT_BODY}")
+            list(REMOVE_DUPLICATES _TC_HINT_ADDONS)
+            string(REPLACE ";" ", " _TC_HINT_ADDONS_STR "${_TC_HINT_ADDONS}")
+            message(NOTICE "[${PROJECT_NAME}] Addon(s) request AndroidManifest entries: ${_TC_HINT_ADDONS_STR}")
+            message(NOTICE "[${PROJECT_NAME}]   Review and copy as needed: ${_TC_MANIFEST_HINT_OUT}")
+        endif()
 
         # Output .so directly into staging
         file(MAKE_DIRECTORY "${_TC_LIB_DIR}")
@@ -790,10 +857,10 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
             set(_TC_APK_OUT "${_TC_APK_DIR}/${PROJECT_NAME}.apk")
 
             # Optional Java + res integration (DeviceAdminReceiver etc.)
-            # Only kicks in when the project ships android/java/.
+            # Kicks in when the project OR any loaded addon ships android/java/.
             set(_TC_PRE_CMDS)
             set(_TC_AAPT_EXTRA_ARGS)
-            if(EXISTS "${_TC_JAVA_SRC_DIR}")
+            if(_TC_ANDROID_JAVA_DIRS)
                 find_program(_TC_JAVAC javac)
                 find_program(_TC_D8 d8 HINTS "${ANDROID_BUILD_TOOLS_DIR}")
                 if(NOT _TC_JAVAC OR "${_TC_JAVAC}" MATCHES "NOTFOUND$")
@@ -808,7 +875,12 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
                     message(FATAL_ERROR "[${PROJECT_NAME}] jar (from JDK) not found")
                 endif()
 
-                file(GLOB_RECURSE _TC_JAVA_SRCS "${_TC_JAVA_SRC_DIR}/*.java")
+                # Glob .java across the project + all contributing addons.
+                set(_TC_JAVA_SRCS "")
+                foreach(_TC_JD ${_TC_ANDROID_JAVA_DIRS})
+                    file(GLOB_RECURSE _TC_JD_SRCS "${_TC_JD}/*.java")
+                    list(APPEND _TC_JAVA_SRCS ${_TC_JD_SRCS})
+                endforeach()
                 set(_TC_CLASSES_DIR "${CMAKE_CURRENT_BINARY_DIR}/java_classes")
                 set(_TC_CLASSES_JAR "${CMAKE_CURRENT_BINARY_DIR}/classes.jar")
                 # classes.dex is dropped at the apk_staging root — aapt will
@@ -828,12 +900,13 @@ message(\"  [HotReload] Generated \${DEF_FILE} with \${SYM_COUNT} symbols\")
                         --no-desugaring
                         "${_TC_CLASSES_JAR}"
                 )
-                message(STATUS "[${PROJECT_NAME}] Java compile enabled (${_TC_JAVA_SRC_DIR})")
+                message(STATUS "[${PROJECT_NAME}] Java compile enabled (${_TC_ANDROID_JAVA_DIRS})")
             endif()
-            if(EXISTS "${_TC_RES_DIR}")
-                list(APPEND _TC_AAPT_EXTRA_ARGS -S "${_TC_RES_DIR}")
-                message(STATUS "[${PROJECT_NAME}] Android res dir enabled (${_TC_RES_DIR})")
-            endif()
+            # aapt accepts repeated -S; pass each project/addon res dir.
+            foreach(_TC_RD ${_TC_ANDROID_RES_DIRS})
+                list(APPEND _TC_AAPT_EXTRA_ARGS -S "${_TC_RD}")
+                message(STATUS "[${PROJECT_NAME}] Android res dir enabled (${_TC_RD})")
+            endforeach()
 
             add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                 ${_TC_PRE_CMDS}
