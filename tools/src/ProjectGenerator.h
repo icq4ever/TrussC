@@ -83,6 +83,8 @@ private:
     // CMakeLists.txt is copied as-is from template (no modifications)
     void writeCMakePresets(const std::string& destPath);
 
-    // Run cmake --preset for enabled cross-compile targets (iOS, Android)
-    void runCrossCompilePresets(const std::string& path);
+    // Run cmake --preset for enabled cross-compile targets (iOS, Android).
+    // Returns false if any preset failed to configure, so callers can fail
+    // the whole generate/update instead of silently leaving no build files.
+    bool runCrossCompilePresets(const std::string& path);
 };
