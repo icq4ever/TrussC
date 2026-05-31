@@ -7,9 +7,9 @@
 void tcApp::setup() {
     setFps(VSYNC);
 
-    // Get device list
-    serial.listDevices();
-    deviceList = serial.getDeviceList();
+    // Print available devices to the log, and grab the list to connect with.
+    serial.printDevices();
+    deviceList = serial.listDevices();
 
     // Set target device path (e.g., Arduino)
     // serialDevicePath = "/dev/tty.usbserial-A10172HG";
@@ -73,7 +73,7 @@ void tcApp::update() {
         // If not connected, retry every 10 seconds
         float now = getElapsedTime();
         if (now - timeLastTryConnect > 10.0f) {
-            deviceList = serial.getDeviceList();
+            deviceList = serial.listDevices();
             timeLastTryConnect = now;
 
             int baud = 9600;

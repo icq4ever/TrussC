@@ -102,17 +102,19 @@ public:
     // Device Enumeration
     // ---------------------------------------------------------------------------
 
-    // Print available serial devices to console
-    void listDevices() {
-        auto devices = getDeviceList();
+    // Print available serial devices to the log.
+    static void printDevices() {
+        auto devices = listDevices();
         logNotice() << "Serial devices:";
         for (const auto& dev : devices) {
             logNotice() << "  [" << dev.deviceId << "] " << dev.devicePath;
         }
     }
 
-    // Get list of available serial devices
-    std::vector<SerialDeviceInfo> getDeviceList() {
+    // Get the list of available serial devices. Follows the TrussC convention
+    // (AudioEngine::listDevices(), MidiIn::listDevices(), ...): returns a
+    // vector. Use printDevices() to log them instead.
+    static std::vector<SerialDeviceInfo> listDevices() {
         std::vector<SerialDeviceInfo> devices;
 
 #if defined(_WIN32)
@@ -178,6 +180,10 @@ public:
 
         return devices;
     }
+
+    // Deprecated alias for listDevices().
+    [[deprecated("Use listDevices() instead. Will be removed in v1.0.0")]]
+    std::vector<SerialDeviceInfo> getDeviceList() { return listDevices(); }
 
     // ---------------------------------------------------------------------------
     // Connection
@@ -334,7 +340,7 @@ public:
 
     // Connect by specifying device index
     bool setup(int deviceIndex, int baudRate) {
-        auto devices = getDeviceList();
+        auto devices = listDevices();
         if (deviceIndex < 0 || deviceIndex >= (int)devices.size()) {
             logError() << "Serial: device index " << deviceIndex << " out of range (0-" << (int)devices.size() - 1 << ")";
             return false;
