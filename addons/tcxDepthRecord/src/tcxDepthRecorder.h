@@ -1,7 +1,7 @@
 #pragma once
 
 // =============================================================================
-// tcDepthRecorder.h - record any DepthCamera to a .tcdc file
+// tcxDepthRecorder.h - record any DepthCamera to a .tcdc file
 // =============================================================================
 //
 //   DepthRecorder rec;
@@ -20,7 +20,7 @@
 //
 // =============================================================================
 
-#include "tcDepthRecordFormat.h"
+#include "tcxDepthRecordFormat.h"
 
 #include <cstddef>
 #include <filesystem>

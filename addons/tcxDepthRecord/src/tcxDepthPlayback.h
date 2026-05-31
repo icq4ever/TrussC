@@ -1,7 +1,7 @@
 #pragma once
 
 // =============================================================================
-// tcDepthPlayback.h - replay a .tcdc recording AS a DepthCamera
+// tcxDepthPlayback.h - replay a .tcdc recording AS a DepthCamera
 // =============================================================================
 //
 //   shared_ptr<DepthCamera> cam = make_shared<PlaybackDepthCamera>("clip.tcdc");
@@ -18,7 +18,7 @@
 //
 // =============================================================================
 
-#include "tcDepthRecordFormat.h"
+#include "tcxDepthRecordFormat.h"
 
 #include <cstring>
 #include <filesystem>

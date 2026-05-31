@@ -1,0 +1,5 @@
+# FetchContent / downloaded dependencies (only if you add a root CMakeLists.txt)
+libs/
+
+# OS / editor cruft
+.DS_Store

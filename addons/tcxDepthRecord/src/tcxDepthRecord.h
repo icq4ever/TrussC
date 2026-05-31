@@ -25,12 +25,12 @@
 // can be added later without a format change.
 //
 // Headers:
-//   tcDepthRecordFormat.h - the .tcdc format + read/write helpers
-//   tcDepthRecorder.h     - DepthRecorder (sink)
-//   tcDepthPlayback.h     - PlaybackDepthCamera (source : DepthCamera)
+//   tcxDepthRecordFormat.h - the .tcdc format + read/write helpers
+//   tcxDepthRecorder.h     - DepthRecorder (sink)
+//   tcxDepthPlayback.h     - PlaybackDepthCamera (source : DepthCamera)
 //
 // =============================================================================
 
-#include "tcDepthRecordFormat.h"
-#include "tcDepthRecorder.h"
-#include "tcDepthPlayback.h"
+#include "tcxDepthRecordFormat.h"
+#include "tcxDepthRecorder.h"
+#include "tcxDepthPlayback.h"

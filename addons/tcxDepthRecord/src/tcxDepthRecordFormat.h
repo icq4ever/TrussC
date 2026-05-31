@@ -1,7 +1,7 @@
 #pragma once
 
 // =============================================================================
-// tcDepthRecordFormat.h - .tcdc on-disk format for depth recordings
+// tcxDepthRecordFormat.h - .tcdc on-disk format for depth recordings
 // =============================================================================
 //
 // TCDC = "TrussC Depth Container" — a TLV container that can hold depth, color,
