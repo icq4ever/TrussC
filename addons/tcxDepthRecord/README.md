@@ -31,6 +31,9 @@ if (p->isFrameNew()) p->toMesh({.colors = true}).draw();
 
 ## The `.tcdc` format
 
+`.tcdc` = **TrussC Depth Container** — a TLV container (depth, color, and anything
+an addon adds).
+
 ```
 [Header]    magic/version, resolution, intrinsics, depth->color extrinsic,
             codec ids, STREAM MANIFEST (which block types the file contains),

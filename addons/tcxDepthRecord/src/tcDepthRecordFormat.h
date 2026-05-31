@@ -4,6 +4,9 @@
 // tcDepthRecordFormat.h - .tcdc on-disk format for depth recordings
 // =============================================================================
 //
+// TCDC = "TrussC Depth Container" — a TLV container that can hold depth, color,
+// and (via addon block types) anything else.
+//
 //   [Header]    magic/version, resolution, intrinsics, depth->color extrinsic,
 //               codec ids, a STREAM MANIFEST (which block types the file
 //               contains), frameCount, indexOffset (patched on close)
