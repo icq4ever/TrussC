@@ -42,6 +42,9 @@ public:
     // Drag & drop
     Event<DragDropEventArgs> filesDropped;
 
+    // Clipboard paste (Cmd+V / Ctrl+V / browser paste); args.text holds the content
+    Event<ClipboardPastedEventArgs> clipboardPasted;
+
     // Console input (commands from stdin)
     Event<ConsoleEventArgs> console;
 

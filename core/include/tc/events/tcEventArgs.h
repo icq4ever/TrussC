@@ -81,6 +81,18 @@ struct DragDropEventArgs {
 };
 
 // ---------------------------------------------------------------------------
+// Clipboard paste event arguments
+// ---------------------------------------------------------------------------
+// Fired on the platform paste gesture (macOS: Cmd+V, others: Ctrl+V, Web:
+// browser 'paste' event). `text` is the pasted clipboard content, already
+// read for you — no need to call getClipboardString() yourself. This is the
+// only reliable way to read the clipboard on the Web platform, where arbitrary
+// getClipboardString() calls are blocked by the browser.
+struct ClipboardPastedEventArgs {
+    std::string text;  // Pasted clipboard content
+};
+
+// ---------------------------------------------------------------------------
 // Touch point (single finger)
 // ---------------------------------------------------------------------------
 struct TouchPoint {

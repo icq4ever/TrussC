@@ -2474,6 +2474,14 @@ namespace internal {
                 if (appFilesDroppedFunc) appFilesDroppedFunc(args.files);
                 break;
             }
+            case SAPP_EVENTTYPE_CLIPBOARD_PASTED: {
+                // Read the clipboard now — on Web this is the only moment the
+                // content is reliably available. App-level only (no Node dispatch).
+                ClipboardPastedEventArgs args;
+                args.text = getClipboardString();
+                events().clipboardPasted.notify(args);
+                break;
+            }
             case SAPP_EVENTTYPE_QUIT_REQUESTED: {
                 // Notify exitRequested event - listeners can cancel by setting args.cancel = true
                 ExitRequestEventArgs args;
