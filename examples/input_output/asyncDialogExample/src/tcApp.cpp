@@ -166,8 +166,8 @@ void tcApp::keyPressed(int key) {
     }
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
-    int hit = hitTest(pos.x, pos.y);
+void tcApp::mousePressed(const MouseEventArgs& e) {
+    int hit = hitTest(e.pos.x, e.pos.y);
     if (hit >= 0) {
         triggerAction(hit);
     }

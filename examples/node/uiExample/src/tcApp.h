@@ -39,15 +39,15 @@ public:
 protected:
     bool isPressed_ = false;
 
-    bool onMousePress(Vec2 local, int button) override {
+    bool onMousePress(const MouseEventArgs& e) override {
         isPressed_ = true;
-        return RectNode::onMousePress(local, button);
+        return RectNode::onMousePress(e);
     }
 
-    bool onMouseRelease(Vec2 local, int button) override {
+    bool onMouseRelease(const MouseEventArgs& e) override {
         if (isPressed_ && isMouseOver() && onClick) onClick();
         isPressed_ = false;
-        return RectNode::onMouseRelease(local, button);
+        return RectNode::onMouseRelease(e);
     }
 };
 
@@ -91,28 +91,26 @@ public:
 protected:
     bool isDragging_ = false;
 
-    bool onMousePress(Vec2 local, int button) override {
+    bool onMousePress(const MouseEventArgs& e) override {
         isDragging_ = true;
-        updateValue(local.x);
+        updateValue(e.pos.x);
         return true;
     }
 
-    bool onMouseRelease(Vec2 local, int button) override {
-        (void)local; (void)button;
+    bool onMouseRelease(const MouseEventArgs& e) override {
+        (void)e;
         isDragging_ = false;
         return true;
     }
 
-    bool onMouseDrag(Vec2 local, int button) override {
-        (void)button;
-        if (isDragging_) updateValue(local.x);
+    bool onMouseDrag(const MouseEventArgs& e) override {
+        if (isDragging_) updateValue(e.pos.x);
         return true;
     }
 
-    bool onMouseScroll(Vec2 local, Vec2 scroll) override {
-        (void)local;
+    bool onMouseScroll(const ScrollEventArgs& e) override {
         float old = value;
-        value = clamp(value + scroll.y * 0.05f, 0.0f, 1.0f);
+        value = clamp(value + e.scroll.y * 0.05f, 0.0f, 1.0f);
         if (value != old && onValueChanged) onValueChanged(getValue());
         return true;
     }

@@ -50,16 +50,16 @@ public:
     }
 
 protected:
-    bool onMousePress(Vec2 local, int button) override {
-        (void)local; (void)button;
+    bool onMousePress(const MouseEventArgs& e) override {
+        (void)e;
         isPressed = true;
         count++;
         logNotice("Button") << label << " pressed! count = " << count;
         return true;  // Consume event
     }
 
-    bool onMouseRelease(Vec2 local, int button) override {
-        (void)local; (void)button;
+    bool onMouseRelease(const MouseEventArgs& e) override {
+        (void)e;
         isPressed = false;
         return true;
     }

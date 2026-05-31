@@ -56,14 +56,14 @@ void tcApp::draw() {
     drawBitmapString(info, 10, 20);
 }
 
-void tcApp::mouseMoved(Vec2 pos) {
-    history.push_back(pos);
+void tcApp::mouseMoved(const MouseEventArgs& e) {
+    history.push_back(e.pos);
     if (history.size() > maxHistory) {
         history.erase(history.begin());
     }
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
+void tcApp::mousePressed(const MouseEventArgs& e) {
     useStroke = !useStroke;
 }
 

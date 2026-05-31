@@ -176,22 +176,22 @@ void tcApp::drawGoboContent() {
     goboFbo.end();
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
-    if (button == 1) {  // right button for projector drag
+void tcApp::mousePressed(const MouseEventArgs& e) {
+    if (e.button == MouseButton::Right) {  // right button for projector drag
         isDraggingProjector = true;
     }
 }
 
-void tcApp::mouseReleased(Vec2 pos, int button) {
-    if (button == 1) {
+void tcApp::mouseReleased(const MouseEventArgs& e) {
+    if (e.button == MouseButton::Right) {
         isDraggingProjector = false;
     }
 }
 
-void tcApp::mouseDragged(Vec2 pos, int button) {
-    if (isDraggingProjector && button == 1) {
-        float normX = (pos.x / getWidth() - 0.5f) * 2.0f;
-        float normY = (pos.y / getHeight() - 0.5f) * 2.0f;
+void tcApp::mouseDragged(const MouseEventArgs& e) {
+    if (isDraggingProjector && e.button == MouseButton::Right) {
+        float normX = (e.pos.x / getWidth() - 0.5f) * 2.0f;
+        float normY = (e.pos.y / getHeight() - 0.5f) * 2.0f;
         projectorX = normX * 300.0f;
         projectorZ = 200.0f + normY * 300.0f;
     }

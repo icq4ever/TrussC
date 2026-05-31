@@ -12,24 +12,24 @@ public:
     void setup() override;
     void draw() override;
 
-    void mousePressed(Vec2 pos, int button) override;
-    void mouseReleased(Vec2 pos, int button) override;
-    void mouseMoved(Vec2 pos) override;
-    void mouseDragged(Vec2 pos, int button) override;
-    void mouseScrolled(Vec2 delta) override;
+    void mousePressed(const MouseEventArgs& e) override;
+    void mouseReleased(const MouseEventArgs& e) override;
+    void mouseMoved(const MouseEventArgs& e) override;
+    void mouseDragged(const MouseEventArgs& e) override;
+    void mouseScrolled(const ScrollEventArgs& e) override;
 
 private:
     // Drag trail
     struct DragPoint {
         float x, y;
-        int button;
+        MouseButton button;
     };
     std::vector<DragPoint> dragTrail;
 
     // Click positions
     struct ClickPoint {
         float x, y;
-        int button;
+        MouseButton button;
         float alpha;  // For fade out
     };
     std::vector<ClickPoint> clickPoints;

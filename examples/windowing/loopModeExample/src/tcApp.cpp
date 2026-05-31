@@ -129,7 +129,7 @@ void tcApp::keyPressed(int key) {
     }
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
+void tcApp::mousePressed(const MouseEventArgs& e) {
     // In event-driven mode, redraw on click
     if (mode == 3) {
         redraw();

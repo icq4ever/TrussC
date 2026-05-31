@@ -123,35 +123,35 @@ public:
         setColor(1.0f, 0.78f, 0.4f);
     }
 
-    void mousePressed(Vec2 pos, int button) override {
-        if (button == MOUSE_BUTTON_LEFT) {
+    void mousePressed(const MouseEventArgs& e) override {
+        if (e.button == MouseButton::Left) {
             // Start dragging if body exists at point
-            box2d::Body* body = world.getBodyAtPoint(pos.x, pos.y);
+            box2d::Body* body = world.getBodyAtPoint(e.pos.x, e.pos.y);
             if (body) {
-                world.startDrag(body, pos.x, pos.y);
+                world.startDrag(body, e.pos.x, e.pos.y);
             } else {
                 // Otherwise add a circle
-                addCircle(pos.x, pos.y, randomFloat(15, 40));
+                addCircle(e.pos.x, e.pos.y, randomFloat(15, 40));
             }
         }
-        else if (button == MOUSE_BUTTON_RIGHT) {
-            addRect(pos.x, pos.y, randomFloat(30, 60), randomFloat(20, 40));
+        else if (e.button == MouseButton::Right) {
+            addRect(e.pos.x, e.pos.y, randomFloat(30, 60), randomFloat(20, 40));
         }
-        else if (button == MOUSE_BUTTON_MIDDLE) {
+        else if (e.button == MouseButton::Middle) {
             // Middle click: add random polygon (3-8 sides)
             int sides = 3 + rand() % 6;
-            addPolygon(pos.x, pos.y, randomFloat(20, 40), sides);
+            addPolygon(e.pos.x, e.pos.y, randomFloat(20, 40), sides);
         }
     }
 
-    void mouseDragged(Vec2 pos, int button) override {
-        if (button == MOUSE_BUTTON_LEFT) {
-            world.updateDrag(pos.x, pos.y);
+    void mouseDragged(const MouseEventArgs& e) override {
+        if (e.button == MouseButton::Left) {
+            world.updateDrag(e.pos.x, e.pos.y);
         }
     }
 
-    void mouseReleased(Vec2 pos, int button) override {
-        if (button == MOUSE_BUTTON_LEFT) {
+    void mouseReleased(const MouseEventArgs& e) override {
+        if (e.button == MouseButton::Left) {
             world.endDrag();
         }
     }

@@ -33,9 +33,9 @@ void tcApp::draw() {
             auto& p1 = dragTrail[i];
 
             // Change color by button
-            if (p1.button == MOUSE_BUTTON_LEFT) {
+            if (p1.button == MouseButton::Left) {
                 setColor(colors::red);
-            } else if (p1.button == MOUSE_BUTTON_MIDDLE) {
+            } else if (p1.button == MouseButton::Middle) {
                 setColor(colors::green);
             } else {
                 setColor(colors::blue);
@@ -46,9 +46,9 @@ void tcApp::draw() {
 
     // Draw click positions (with fade out)
     for (auto& cp : clickPoints) {
-        if (cp.button == MOUSE_BUTTON_LEFT) {
+        if (cp.button == MouseButton::Left) {
             setColor(1.0f, 0.4f, 0.4f, cp.alpha);
-        } else if (cp.button == MOUSE_BUTTON_MIDDLE) {
+        } else if (cp.button == MouseButton::Middle) {
             setColor(0.4f, 1.0f, 0.4f, cp.alpha);
         } else {
             setColor(0.4f, 0.4f, 1.0f, cp.alpha);
@@ -118,27 +118,29 @@ void tcApp::draw() {
     drawBitmapString("Right", w - 120, 75);
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
+void tcApp::mousePressed(const MouseEventArgs& e) {
     isDragging = true;
-    currentButton = button;
+    currentButton = (int)e.button;
     dragTrail.clear();
-    dragTrail.push_back({pos.x, pos.y, button});
+    dragTrail.push_back({e.pos.x, e.pos.y, e.button});
 
-    clickPoints.push_back({pos.x, pos.y, button, 1.0f});
+    clickPoints.push_back({e.pos.x, e.pos.y, e.button, 1.0f});
 }
 
-void tcApp::mouseReleased(Vec2 pos, int button) {
+void tcApp::mouseReleased(const MouseEventArgs& e) {
+    (void)e;
     isDragging = false;
     currentButton = -1;
 }
 
-void tcApp::mouseMoved(Vec2 pos) {
+void tcApp::mouseMoved(const MouseEventArgs& e) {
+    (void)e;
     // Nothing to do on move
 }
 
-void tcApp::mouseDragged(Vec2 pos, int button) {
+void tcApp::mouseDragged(const MouseEventArgs& e) {
     if (isDragging) {
-        dragTrail.push_back({pos.x, pos.y, button});
+        dragTrail.push_back({e.pos.x, e.pos.y, e.button});
 
         // Remove old points if trail gets too long
         if (dragTrail.size() > 500) {
@@ -147,9 +149,9 @@ void tcApp::mouseDragged(Vec2 pos, int button) {
     }
 }
 
-void tcApp::mouseScrolled(Vec2 delta) {
-    scrollX += delta.x;
-    scrollY += delta.y;
+void tcApp::mouseScrolled(const ScrollEventArgs& e) {
+    scrollX += e.scroll.x;
+    scrollY += e.scroll.y;
 
     // Range limit (corresponds to size 10-300: scrollY = -20 to 125)
     if (scrollY < -20) scrollY = -20;

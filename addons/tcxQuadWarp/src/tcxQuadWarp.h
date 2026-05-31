@@ -38,9 +38,9 @@ public:
     tc::Vec2 dstPoints[4];
 
 private:
-    void onMouseMoved(tc::MouseMoveEventArgs& e);
+    void onMouseMoved(tc::MouseEventArgs& e);
     void onMousePressed(tc::MouseEventArgs& e);
-    void onMouseDragged(tc::MouseDragEventArgs& e);
+    void onMouseDragged(tc::MouseEventArgs& e);
     void onMouseReleased(tc::MouseEventArgs& e);
     void onKeyPressed(tc::KeyEventArgs& e);
 

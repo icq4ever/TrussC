@@ -18,8 +18,8 @@ public:
 
     // Input events (override only what you need)
     void keyPressed(int key) override;
-    void mousePressed(Vec2 pos, int button) override;
-    void mouseDragged(Vec2 pos, int button) override;
+    void mousePressed(const MouseEventArgs& e) override;
+    void mouseDragged(const MouseEventArgs& e) override;
 
 private:
     Path wave;  // For testing

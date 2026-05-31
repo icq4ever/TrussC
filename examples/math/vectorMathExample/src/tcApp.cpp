@@ -337,11 +337,11 @@ void tcApp::keyPressed(int key) {
     }
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
+void tcApp::mousePressed(const MouseEventArgs& e) {
     if (mode_ == 3) {
         // Spawn particles
         for (int i = 0; i < 20; i++) {
-            spawnParticle(pos.x, pos.y);
+            spawnParticle(e.pos.x, e.pos.y);
         }
     }
 }

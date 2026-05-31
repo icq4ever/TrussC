@@ -15,9 +15,9 @@ public:
     void update() override;
     void draw() override;
 
-    void mouseDragged(Vec2 pos, int button) override;
-    void mousePressed(Vec2 pos, int button) override;
-    void mouseReleased(Vec2 pos, int button) override;
+    void mouseDragged(const MouseEventArgs& e) override;
+    void mousePressed(const MouseEventArgs& e) override;
+    void mouseReleased(const MouseEventArgs& e) override;
 
 private:
     EasyCam cam;

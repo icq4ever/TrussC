@@ -29,8 +29,8 @@ void tcApp::setupListeners() {
     if (mouseListenerActive) {
         mouseListener = events().mousePressed.listen([this](MouseEventArgs& e) {
             std::stringstream ss;
-            ss << "[MouseEvent] button=" << e.button;
-            ss << " pos=(" << (int)e.x << "," << (int)e.y << ")";
+            ss << "[MouseEvent] button=" << (int)e.button;
+            ss << " pos=(" << (int)e.pos.x << "," << (int)e.pos.y << ")";
             addLog(ss.str());
         });
     }
@@ -38,7 +38,7 @@ void tcApp::setupListeners() {
     // Scroll listener (always enabled)
     scrollListener = events().mouseScrolled.listen([this](ScrollEventArgs& e) {
         std::stringstream ss;
-        ss << "[ScrollEvent] dx=" << e.scrollX << " dy=" << e.scrollY;
+        ss << "[ScrollEvent] dx=" << e.scroll.x << " dy=" << e.scroll.y;
         addLog(ss.str());
     });
 }
@@ -108,8 +108,8 @@ void tcApp::keyPressed(int key) {
         if (mouseListenerActive) {
             mouseListener = events().mousePressed.listen([this](MouseEventArgs& e) {
                 std::stringstream ss;
-                ss << "[MouseEvent] button=" << e.button;
-                ss << " pos=(" << (int)e.x << "," << (int)e.y << ")";
+                ss << "[MouseEvent] button=" << (int)e.button;
+                ss << " pos=(" << (int)e.pos.x << "," << (int)e.pos.y << ")";
                 addLog(ss.str());
             });
             addLog(">> Mouse listener ENABLED");
