@@ -126,6 +126,13 @@ sysex**, so sysex (e.g. Launchpad Programmer mode) is native-only.
 
 ## Android note
 
+> **Status: experimental.** Device *enumeration* works (`listDevices()` returns
+> the connected device), but *opening* a port currently fails inside libremidi's
+> AMidi backend on recent Android: it can't find the `MidiDeviceCallback` class
+> from its native thread (JNI classloader) and reports empty port names. So
+> Android builds and enumerates, but send/receive isn't functional yet — it
+> needs upstream libremidi fixes. The notes below are for when that lands.
+
 libremidi's Android backend uses **AMidi**, which requires **API level 31+**
 (Android 12+) and a small Java glue class. tcxMidi handles most of it:
 

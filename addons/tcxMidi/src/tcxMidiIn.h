@@ -24,6 +24,7 @@
 #include "tc/utils/tcLog.h"
 
 #include <libremidi/libremidi.hpp>
+#include "tcxMidiApi.h"
 
 #include <atomic>
 #include <memory>
@@ -53,7 +54,7 @@ public:
     // Available input ports, in port-number order (see MidiDeviceInfo).
     static std::vector<MidiDeviceInfo> listDevices() {
         std::vector<MidiDeviceInfo> devices;
-        libremidi::observer obs;
+        libremidi::observer obs{{}, libremidi::observer_configuration_for(platformMidiApi())};
         auto ports = obs.get_input_ports();
         for (int i = 0; i < static_cast<int>(ports.size()); ++i) {
             devices.push_back({i, ports[i].display_name});
@@ -67,7 +68,7 @@ public:
 
     // Open by port index.
     bool openPort(int index) {
-        libremidi::observer obs;
+        libremidi::observer obs{{}, libremidi::observer_configuration_for(platformMidiApi())};
         auto ports = obs.get_input_ports();
         if (index < 0 || index >= static_cast<int>(ports.size())) {
             trussc::logError("tcxMidiIn") << "openPort: index " << index
@@ -79,7 +80,7 @@ public:
 
     // Open the first port whose name contains `nameContains` (case-sensitive).
     bool openPort(const std::string& nameContains) {
-        libremidi::observer obs;
+        libremidi::observer obs{{}, libremidi::observer_configuration_for(platformMidiApi())};
         auto ports = obs.get_input_ports();
         for (int i = 0; i < static_cast<int>(ports.size()); ++i) {
             if (ports[i].display_name.find(nameContains) != std::string::npos) {
@@ -94,7 +95,8 @@ public:
     // Create a virtual input port (CoreMIDI / ALSA / JACK; not on Windows).
     bool openVirtualPort(const std::string& name = "TrussC Input") {
         closePort();
-        midiIn_ = std::make_unique<libremidi::midi_in>(makeConfig());
+        midiIn_ = std::make_unique<libremidi::midi_in>(
+            makeConfig(), libremidi::midi_in_configuration_for(platformMidiApi()));
         auto err = midiIn_->open_virtual_port(name);
         if (err != stdx::error{}) {
             trussc::logError("tcxMidiIn") << "openVirtualPort failed: " << name;
@@ -176,7 +178,8 @@ private:
 
     bool openInputPort(const libremidi::input_port& port, int index) {
         closePort();
-        midiIn_ = std::make_unique<libremidi::midi_in>(makeConfig());
+        midiIn_ = std::make_unique<libremidi::midi_in>(
+            makeConfig(), libremidi::midi_in_configuration_for(platformMidiApi()));
         auto err = midiIn_->open_port(port);
         if (err != stdx::error{}) {
             trussc::logError("tcxMidiIn") << "open_port failed: " << port.display_name;

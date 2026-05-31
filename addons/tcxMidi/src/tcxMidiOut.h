@@ -15,6 +15,7 @@
 #include "tc/utils/tcLog.h"
 
 #include <libremidi/libremidi.hpp>
+#include "tcxMidiApi.h"
 
 #include <memory>
 #include <string>
@@ -35,7 +36,7 @@ public:
     // -------------------------------------------------------------------------
     static std::vector<MidiDeviceInfo> listDevices() {
         std::vector<MidiDeviceInfo> devices;
-        libremidi::observer obs;
+        libremidi::observer obs{{}, libremidi::observer_configuration_for(platformMidiApi())};
         auto ports = obs.get_output_ports();
         for (int i = 0; i < static_cast<int>(ports.size()); ++i) {
             devices.push_back({i, ports[i].display_name});
@@ -47,7 +48,7 @@ public:
     // Open / close
     // -------------------------------------------------------------------------
     bool openPort(int index) {
-        libremidi::observer obs;
+        libremidi::observer obs{{}, libremidi::observer_configuration_for(platformMidiApi())};
         auto ports = obs.get_output_ports();
         if (index < 0 || index >= static_cast<int>(ports.size())) {
             trussc::logError("tcxMidiOut") << "openPort: index " << index
@@ -58,7 +59,7 @@ public:
     }
 
     bool openPort(const std::string& nameContains) {
-        libremidi::observer obs;
+        libremidi::observer obs{{}, libremidi::observer_configuration_for(platformMidiApi())};
         auto ports = obs.get_output_ports();
         for (int i = 0; i < static_cast<int>(ports.size()); ++i) {
             if (ports[i].display_name.find(nameContains) != std::string::npos) {
@@ -72,7 +73,8 @@ public:
 
     bool openVirtualPort(const std::string& name = "TrussC Output") {
         closePort();
-        midiOut_ = std::make_unique<libremidi::midi_out>();
+        midiOut_ = std::make_unique<libremidi::midi_out>(
+            libremidi::output_configuration{}, libremidi::midi_out_configuration_for(platformMidiApi()));
         auto err = midiOut_->open_virtual_port(name);
         if (err != stdx::error{}) {
             trussc::logError("tcxMidiOut") << "openVirtualPort failed: " << name;
@@ -182,7 +184,8 @@ private:
 
     bool openOutputPort(const libremidi::output_port& port, int index) {
         closePort();
-        midiOut_ = std::make_unique<libremidi::midi_out>();
+        midiOut_ = std::make_unique<libremidi::midi_out>(
+            libremidi::output_configuration{}, libremidi::midi_out_configuration_for(platformMidiApi()));
         auto err = midiOut_->open_port(port);
         if (err != stdx::error{}) {
             trussc::logError("tcxMidiOut") << "open_port failed: " << port.display_name;
