@@ -572,34 +572,33 @@ inline int runHotReloadApp(const WindowSettings& settings) {
         g_host.guest.unload();
     };
 
-    internal::appKeyPressedFunc = [](int key) {
+    internal::appKeyPressedFunc = [](const KeyEventArgs& e) {
         App* app = g_host.getApp();
-        if (app) app->handleKeyPressed(key);
+        if (app) app->handleKeyPressed(e);
     };
-    internal::appKeyReleasedFunc = [](int key) {
+    internal::appKeyReleasedFunc = [](const KeyEventArgs& e) {
         App* app = g_host.getApp();
-        if (app) app->handleKeyReleased(key);
+        if (app) app->handleKeyReleased(e);
     };
-    internal::appMousePressedFunc = [](int x, int y, int button) {
+    internal::appMousePressedFunc = [](const MouseEventArgs& e) {
         App* app = g_host.getApp();
-        if (app) app->handleMousePressed(x, y, button);
+        if (app) app->handleMousePressed(e);
     };
-    internal::appMouseReleasedFunc = [](int x, int y, int button) {
+    internal::appMouseReleasedFunc = [](const MouseEventArgs& e) {
         App* app = g_host.getApp();
-        if (app) app->handleMouseReleased(x, y, button);
+        if (app) app->handleMouseReleased(e);
     };
-    internal::appMouseMovedFunc = [](int x, int y) {
+    internal::appMouseMovedFunc = [](const MouseEventArgs& e) {
         App* app = g_host.getApp();
-        if (app) app->handleMouseMoved(x, y);
+        if (app) app->handleMouseMoved(e);
     };
-    internal::appMouseDraggedFunc = [](int x, int y, int button) {
+    internal::appMouseDraggedFunc = [](const MouseEventArgs& e) {
         App* app = g_host.getApp();
-        if (app) app->handleMouseDragged(x, y, button);
+        if (app) app->handleMouseDragged(e);
     };
-    internal::appMouseScrolledFunc = [](float dx, float dy) {
+    internal::appMouseScrolledFunc = [](const ScrollEventArgs& e) {
         App* app = g_host.getApp();
-        if (app) app->handleMouseScrolled(dx, dy,
-            (int)internal::mouseX, (int)internal::mouseY);
+        if (app) app->handleMouseScrolled(e);
     };
     internal::appWindowResizedFunc = [](int w, int h) {
         App* app = g_host.getApp();

@@ -612,19 +612,38 @@ private:
     // Event dispatch (called by App only via friend access)
     // -------------------------------------------------------------------------
 
-    // Dispatch mouse event to tree (for 2D mode)
-    // screenX, screenY: screen coordinates
+    // Build a copy of `s` with pos / delta expressed in THIS node's local space.
+    // globalPos / globalDelta / button / modifiers are preserved.
+    MouseEventArgs localizeMouse(const MouseEventArgs& s) {
+        MouseEventArgs a = s;
+        Vec3 lp = globalToLocal(Vec3(s.globalPos.x, s.globalPos.y, 0));
+        Vec3 lpPrev = globalToLocal(Vec3(s.globalPos.x - s.globalDelta.x,
+                                         s.globalPos.y - s.globalDelta.y, 0));
+        a.pos = Vec2(lp.x, lp.y);
+        a.delta = Vec2(lp.x - lpPrev.x, lp.y - lpPrev.y);
+        return a;
+    }
+
+    ScrollEventArgs localizeScroll(const ScrollEventArgs& s) {
+        ScrollEventArgs a = s;
+        Vec3 lp = globalToLocal(Vec3(s.globalPos.x, s.globalPos.y, 0));
+        a.pos = Vec2(lp.x, lp.y);
+        return a;
+    }
+
+    // Dispatch mouse event to tree (for 2D mode). `e` is in screen space
+    // (pos == globalPos); each node receives a copy localized to its space.
     // return: node that handled event (nullptr if not handled)
-    Ptr dispatchMousePress(float screenX, float screenY, int button) {
-        Ray globalRay = Ray::fromScreenPoint2D(screenX, screenY);
+    Ptr dispatchMousePress(const MouseEventArgs& e) {
+        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
         HitResult result = findHitNode(globalRay);
 
         if (result.hit()) {
-            Vec2 local(result.localPoint.x, result.localPoint.y);
-            if (result.node->onMousePress(local, button)) {
+            MouseEventArgs local = result.node->localizeMouse(e);
+            if (result.node->onMousePress(local)) {
                 // Set grabbed node for drag tracking
                 internal::grabbedNode = result.node.get();
-                internal::grabbedButton = button;
+                internal::grabbedButton = static_cast<int>(e.button);
                 return result.node;
             }
         }
@@ -632,12 +651,11 @@ private:
         return nullptr;
     }
 
-    Ptr dispatchMouseRelease(float screenX, float screenY, int button) {
+    Ptr dispatchMouseRelease(const MouseEventArgs& e) {
         // Send release to grabbed node if it exists
-        if (internal::grabbedNode && internal::grabbedButton == button) {
-            Vec3 lp = internal::grabbedNode->globalToLocal(Vec3(screenX, screenY, 0));
-            Vec2 local(lp.x, lp.y);
-            internal::grabbedNode->onMouseRelease(local, button);
+        if (internal::grabbedNode && internal::grabbedButton == static_cast<int>(e.button)) {
+            MouseEventArgs local = internal::grabbedNode->localizeMouse(e);
+            internal::grabbedNode->onMouseRelease(local);
 
             Ptr result = std::dynamic_pointer_cast<Node>(
                 internal::grabbedNode->shared_from_this());
@@ -650,12 +668,12 @@ private:
         }
 
         // Fallback: send to hit node
-        Ray globalRay = Ray::fromScreenPoint2D(screenX, screenY);
+        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
         HitResult result = findHitNode(globalRay);
 
         if (result.hit()) {
-            Vec2 local(result.localPoint.x, result.localPoint.y);
-            if (result.node->onMouseRelease(local, button)) {
+            MouseEventArgs local = result.node->localizeMouse(e);
+            if (result.node->onMouseRelease(local)) {
                 return result.node;
             }
         }
@@ -663,20 +681,20 @@ private:
         return nullptr;
     }
 
-    Ptr dispatchMouseMove(float screenX, float screenY) {
+    Ptr dispatchMouseMove(const MouseEventArgs& e) {
         // Send drag event to grabbed node
         if (internal::grabbedNode) {
-            Vec3 lp = internal::grabbedNode->globalToLocal(Vec3(screenX, screenY, 0));
-            Vec2 local(lp.x, lp.y);
-            internal::grabbedNode->onMouseDrag(local, internal::grabbedButton);
+            MouseEventArgs local = internal::grabbedNode->localizeMouse(e);
+            local.button = static_cast<MouseButton>(internal::grabbedButton);
+            internal::grabbedNode->onMouseDrag(local);
         }
 
         // Also send move event to hit node (for hover, etc.)
-        Ray globalRay = Ray::fromScreenPoint2D(screenX, screenY);
+        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
         HitResult result = findHitNode(globalRay);
 
         if (result.hit()) {
-            Vec2 local(result.localPoint.x, result.localPoint.y);
+            MouseEventArgs local = result.node->localizeMouse(e);
             if (result.node->onMouseMove(local)) {
                 return result.node;
             }
@@ -685,19 +703,16 @@ private:
         return nullptr;
     }
 
-    Ptr dispatchMouseScroll(float screenX, float screenY, Vec2 scroll) {
-        Ray globalRay = Ray::fromScreenPoint2D(screenX, screenY);
+    Ptr dispatchMouseScroll(const ScrollEventArgs& e) {
+        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
         HitResult result = findHitNode(globalRay);
 
         if (result.hit()) {
             // Bubble up from hit node to ancestors until consumed
             Node* current = result.node.get();
             while (current) {
-                // Convert screen coords to current node's local coords
-                Vec3 lp = current->globalToLocal(Vec3(screenX, screenY, 0));
-                Vec2 local(lp.x, lp.y);
-
-                if (current->onMouseScroll(local, scroll)) {
+                ScrollEventArgs local = current->localizeScroll(e);
+                if (current->onMouseScroll(local)) {
                     // Event consumed
                     return std::dynamic_pointer_cast<Node>(
                         current->shared_from_this());
@@ -712,13 +727,13 @@ private:
     }
 
     // Dispatch key press to all nodes
-    bool dispatchKeyPress(int key) {
-        return dispatchKeyPressRecursive(key);
+    bool dispatchKeyPress(const KeyEventArgs& e) {
+        return dispatchKeyPressRecursive(e);
     }
 
     // Dispatch key release to all nodes
-    bool dispatchKeyRelease(int key) {
-        return dispatchKeyReleaseRecursive(key);
+    bool dispatchKeyRelease(const KeyEventArgs& e) {
+        return dispatchKeyReleaseRecursive(e);
     }
 
     // Update hover state (call once per frame)
@@ -743,11 +758,11 @@ private:
     }
 
     // Recursive dispatch of key events
-    bool dispatchKeyPressRecursive(int key) {
+    bool dispatchKeyPressRecursive(const KeyEventArgs& e) {
         if (!isActive_) return false;
 
         // Process self
-        if (onKeyPress(key)) {
+        if (onKeyPress(e)) {
             return true;  // Consumed
         }
 
@@ -755,7 +770,7 @@ private:
         auto childrenSnapshot = children_;
         for (auto& child : childrenSnapshot) {
             if (child->isDead()) continue;
-            if (child->dispatchKeyPressRecursive(key)) {
+            if (child->dispatchKeyPressRecursive(e)) {
                 return true;
             }
         }
@@ -763,17 +778,17 @@ private:
         return false;
     }
 
-    bool dispatchKeyReleaseRecursive(int key) {
+    bool dispatchKeyReleaseRecursive(const KeyEventArgs& e) {
         if (!isActive_) return false;
 
-        if (onKeyRelease(key)) {
+        if (onKeyRelease(e)) {
             return true;
         }
 
         auto childrenSnapshot = children_;
         for (auto& child : childrenSnapshot) {
             if (child->isDead()) continue;
-            if (child->dispatchKeyReleaseRecursive(key)) {
+            if (child->dispatchKeyReleaseRecursive(e)) {
                 return true;
             }
         }
@@ -870,47 +885,41 @@ protected:
         return false;
     }
 
-    // Mouse events (delivered in local coordinates)
-    // Return true to consume the event (prevents propagation to parent)
-    virtual bool onMousePress(Vec2 local, int button) {
-        (void)local;
-        (void)button;
+    // Mouse events. `e` is localized to this node (e.pos in local space,
+    // e.globalPos in screen space). Return true to consume (stops propagation).
+    virtual bool onMousePress(const MouseEventArgs& e) {
+        (void)e;
         return false;
     }
 
-    virtual bool onMouseRelease(Vec2 local, int button) {
-        (void)local;
-        (void)button;
+    virtual bool onMouseRelease(const MouseEventArgs& e) {
+        (void)e;
         return false;
     }
 
-    virtual bool onMouseMove(Vec2 local) {
-        (void)local;
+    virtual bool onMouseMove(const MouseEventArgs& e) {
+        (void)e;
         return false;
     }
 
-    virtual bool onMouseDrag(Vec2 local, int button) {
-        (void)local;
-        (void)button;
+    virtual bool onMouseDrag(const MouseEventArgs& e) {
+        (void)e;
         return false;
     }
 
-    virtual bool onMouseScroll(Vec2 local, Vec2 scroll) {
-        (void)local;
-        (void)scroll;
+    virtual bool onMouseScroll(const ScrollEventArgs& e) {
+        (void)e;
         return false;
     }
 
-    // Key events (broadcast to all nodes)
-    virtual bool onKeyPress(int key) {
-        (void)key;
-        return false;
-    }
+    // Key events (broadcast to all nodes). The rich form (canonical) carries
+    // modifiers + isRepeat; the simple int form is a convenience the default
+    // rich impl forwards to — override either.
+    virtual bool onKeyPress(const KeyEventArgs& e) { return onKeyPress(e.key); }
+    virtual bool onKeyPress(int key) { (void)key; return false; }
 
-    virtual bool onKeyRelease(int key) {
-        (void)key;
-        return false;
-    }
+    virtual bool onKeyRelease(const KeyEventArgs& e) { return onKeyRelease(e.key); }
+    virtual bool onKeyRelease(int key) { (void)key; return false; }
 
     // Mouse Enter/Leave (called when hover state changes)
     virtual void onMouseEnter() {}

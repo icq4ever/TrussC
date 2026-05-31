@@ -73,40 +73,37 @@ public:
     // Keyboard events (traditional style)
     // -------------------------------------------------------------------------
 
-    virtual void keyPressed(int key) {
-        (void)key;
-    }
+    // Rich form (canonical): carries modifiers + isRepeat. The simple int form
+    // is a convenience that the default rich impl forwards to — override either.
+    virtual void keyPressed(const KeyEventArgs& e) { keyPressed(e.key); }
+    virtual void keyPressed(int key) { (void)key; }
 
-    virtual void keyReleased(int key) {
-        (void)key;
-    }
+    virtual void keyReleased(const KeyEventArgs& e) { keyReleased(e.key); }
+    virtual void keyReleased(int key) { (void)key; }
 
     // -------------------------------------------------------------------------
-    // Mouse events (delivered in screen coordinates)
+    // Mouse events
     // -------------------------------------------------------------------------
+    // Args carry pos (== screen at app level), globalPos, delta, button and
+    // modifiers. See MouseEventArgs / ScrollEventArgs for the coordinate rules.
 
-    virtual void mousePressed(Vec2 pos, int button) {
-        (void)pos;
-        (void)button;
-    }
+    // Rich form (canonical) + simple form (convenience, oF-style). The default
+    // rich impl forwards to the simple one — override either. The simple form
+    // gets screen-space pos (== e.pos at app level) and an int button.
+    virtual void mousePressed(const MouseEventArgs& e) { mousePressed(e.pos, (int)e.button); }
+    virtual void mousePressed(Vec2 pos, int button) { (void)pos; (void)button; }
 
-    virtual void mouseReleased(Vec2 pos, int button) {
-        (void)pos;
-        (void)button;
-    }
+    virtual void mouseReleased(const MouseEventArgs& e) { mouseReleased(e.pos, (int)e.button); }
+    virtual void mouseReleased(Vec2 pos, int button) { (void)pos; (void)button; }
 
-    virtual void mouseMoved(Vec2 pos) {
-        (void)pos;
-    }
+    virtual void mouseMoved(const MouseEventArgs& e) { mouseMoved(e.pos); }
+    virtual void mouseMoved(Vec2 pos) { (void)pos; }
 
-    virtual void mouseDragged(Vec2 pos, int button) {
-        (void)pos;
-        (void)button;
-    }
+    virtual void mouseDragged(const MouseEventArgs& e) { mouseDragged(e.pos, (int)e.button); }
+    virtual void mouseDragged(Vec2 pos, int button) { (void)pos; (void)button; }
 
-    virtual void mouseScrolled(Vec2 delta) {
-        (void)delta;
-    }
+    virtual void mouseScrolled(const ScrollEventArgs& e) { mouseScrolled(e.scroll); }
+    virtual void mouseScrolled(Vec2 delta) { (void)delta; }
 
     // -------------------------------------------------------------------------
     // Touch events (multi-touch, used on Android/iOS)
@@ -168,39 +165,39 @@ public:
     // Event handlers (called by TrussC.h, dispatches to scene graph)
     // -------------------------------------------------------------------------
 
-    void handleKeyPressed(int key) {
-        keyPressed(key);
-        dispatchKeyPress(key);
+    void handleKeyPressed(const KeyEventArgs& e) {
+        keyPressed(e);
+        dispatchKeyPress(e);
     }
 
-    void handleKeyReleased(int key) {
-        keyReleased(key);
-        dispatchKeyRelease(key);
+    void handleKeyReleased(const KeyEventArgs& e) {
+        keyReleased(e);
+        dispatchKeyRelease(e);
     }
 
-    void handleMousePressed(int x, int y, int button) {
-        mousePressed(Vec2(x, y), button);
-        dispatchMousePress((float)x, (float)y, button);
+    void handleMousePressed(const MouseEventArgs& e) {
+        mousePressed(e);
+        dispatchMousePress(e);
     }
 
-    void handleMouseReleased(int x, int y, int button) {
-        mouseReleased(Vec2(x, y), button);
-        dispatchMouseRelease((float)x, (float)y, button);
+    void handleMouseReleased(const MouseEventArgs& e) {
+        mouseReleased(e);
+        dispatchMouseRelease(e);
     }
 
-    void handleMouseMoved(int x, int y) {
-        mouseMoved(Vec2(x, y));
-        dispatchMouseMove((float)x, (float)y);
+    void handleMouseMoved(const MouseEventArgs& e) {
+        mouseMoved(e);
+        dispatchMouseMove(e);
     }
 
-    void handleMouseDragged(int x, int y, int button) {
-        mouseDragged(Vec2(x, y), button);
-        dispatchMouseMove((float)x, (float)y);
+    void handleMouseDragged(const MouseEventArgs& e) {
+        mouseDragged(e);
+        dispatchMouseMove(e);  // drag + hover share the node-tree move dispatch
     }
 
-    void handleMouseScrolled(float dx, float dy, int mouseX, int mouseY) {
-        mouseScrolled(Vec2(dx, dy));
-        dispatchMouseScroll((float)mouseX, (float)mouseY, Vec2(dx, dy));
+    void handleMouseScrolled(const ScrollEventArgs& e) {
+        mouseScrolled(e);
+        dispatchMouseScroll(e);
     }
 
     void handleWindowResized(int width, int height) {

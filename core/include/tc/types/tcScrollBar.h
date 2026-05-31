@@ -196,31 +196,29 @@ protected:
     // Mouse events for drag scrolling
     // -------------------------------------------------------------------------
 
-    bool onMousePress(Vec2 local, int button) override {
-        if (button != 0 || !container_) return false;
+    bool onMousePress(const MouseEventArgs& e) override {
+        if (e.button != MouseButton::Left || !container_) return false;
 
         isDragging_ = true;
         // Store offset from bar origin to click position
-        dragOffset_ = (direction_ == Vertical) ? local.y : local.x;
+        dragOffset_ = (direction_ == Vertical) ? e.pos.y : e.pos.x;
         return true;
     }
 
-    bool onMouseRelease(Vec2 local, int button) override {
-        (void)local;
-        if (button == 0) {
+    bool onMouseRelease(const MouseEventArgs& e) override {
+        if (e.button == MouseButton::Left) {
             isDragging_ = false;
         }
         return true;
     }
 
-    bool onMouseDrag(Vec2 local, int button) override {
-        (void)button;
+    bool onMouseDrag(const MouseEventArgs& e) override {
         if (!isDragging_ || !container_) return false;
 
         if (direction_ == Vertical) {
-            handleVerticalDrag(local.y);
+            handleVerticalDrag(e.pos.y);
         } else {
-            handleHorizontalDrag(local.x);
+            handleHorizontalDrag(e.pos.x);
         }
         return true;
     }

@@ -1965,10 +1965,12 @@ constexpr int KEY_F10 = SAPP_KEYCODE_F10;
 constexpr int KEY_F11 = SAPP_KEYCODE_F11;
 constexpr int KEY_F12 = SAPP_KEYCODE_F12;
 
-// Mouse buttons
-constexpr int MOUSE_BUTTON_LEFT = SAPP_MOUSEBUTTON_LEFT;
-constexpr int MOUSE_BUTTON_RIGHT = SAPP_MOUSEBUTTON_RIGHT;
-constexpr int MOUSE_BUTTON_MIDDLE = SAPP_MOUSEBUTTON_MIDDLE;
+// Mouse buttons (legacy int constants, for the simple App::mousePressed(Vec2, int)
+// form. Derived from the MouseButton enum so there is a single source of truth;
+// for the MouseEventArgs::button enum itself, use MouseButton::Left etc.)
+constexpr int MOUSE_BUTTON_LEFT = (int)MouseButton::Left;
+constexpr int MOUSE_BUTTON_RIGHT = (int)MouseButton::Right;
+constexpr int MOUSE_BUTTON_MIDDLE = (int)MouseButton::Middle;
 
 // ---------------------------------------------------------------------------
 // Window settings
@@ -2040,13 +2042,13 @@ namespace internal {
     inline void (*appUpdateFunc)() = nullptr;
     inline void (*appDrawFunc)() = nullptr;
     inline void (*appCleanupFunc)() = nullptr;
-    inline void (*appKeyPressedFunc)(int) = nullptr;
-    inline void (*appKeyReleasedFunc)(int) = nullptr;
-    inline void (*appMousePressedFunc)(int, int, int) = nullptr;
-    inline void (*appMouseReleasedFunc)(int, int, int) = nullptr;
-    inline void (*appMouseMovedFunc)(int, int) = nullptr;
-    inline void (*appMouseDraggedFunc)(int, int, int) = nullptr;
-    inline void (*appMouseScrolledFunc)(float, float) = nullptr;
+    inline void (*appKeyPressedFunc)(const KeyEventArgs&) = nullptr;
+    inline void (*appKeyReleasedFunc)(const KeyEventArgs&) = nullptr;
+    inline void (*appMousePressedFunc)(const MouseEventArgs&) = nullptr;
+    inline void (*appMouseReleasedFunc)(const MouseEventArgs&) = nullptr;
+    inline void (*appMouseMovedFunc)(const MouseEventArgs&) = nullptr;
+    inline void (*appMouseDraggedFunc)(const MouseEventArgs&) = nullptr;
+    inline void (*appMouseScrolledFunc)(const ScrollEventArgs&) = nullptr;
     inline void (*appWindowResizedFunc)(int, int) = nullptr;
     inline void (*appFilesDroppedFunc)(const std::vector<std::string>&) = nullptr;
 } // namespace internal
@@ -2274,15 +2276,14 @@ namespace internal {
                 args.super = hasModSuper;
                 events().keyPressed.notify(args);
 
-                // Track key state
+                // Track key state (only on first press, not auto-repeat)
                 if (!ev->key_repeat) {
                     keysPressed.insert(ev->key_code);
                 }
 
-                // Legacy callback (for compatibility)
-                if (!ev->key_repeat && appKeyPressedFunc) {
-                    appKeyPressedFunc(ev->key_code);
-                }
+                // Forward to App / Node tree. Fire on auto-repeat too
+                // (args.isRepeat lets handlers filter if they don't want it).
+                if (appKeyPressedFunc) appKeyPressedFunc(args);
                 break;
             }
             case SAPP_EVENTTYPE_KEY_UP: {
@@ -2298,7 +2299,7 @@ namespace internal {
                 // Track key state
                 keysPressed.erase(ev->key_code);
 
-                if (appKeyReleasedFunc) appKeyReleasedFunc(ev->key_code);
+                if (appKeyReleasedFunc) appKeyReleasedFunc(args);
                 break;
             }
             case SAPP_EVENTTYPE_MOUSE_DOWN: {
@@ -2308,17 +2309,17 @@ namespace internal {
                 mouseButton = ev->mouse_button;
                 mousePressed = true;
 
+                // App-level args: no node transform, so pos == globalPos.
                 MouseEventArgs args;
-                args.x = mouseX;
-                args.y = mouseY;
-                args.button = ev->mouse_button;
+                args.pos = args.globalPos = Vec2(mouseX, mouseY);
+                args.button = static_cast<MouseButton>(ev->mouse_button);
                 args.shift = hasModShift;
                 args.ctrl = hasModCtrl;
                 args.alt = hasModAlt;
                 args.super = hasModSuper;
                 events().mousePressed.notify(args);
 
-                if (appMousePressedFunc) appMousePressedFunc((int)mouseX, (int)mouseY, ev->mouse_button);
+                if (appMousePressedFunc) appMousePressedFunc(args);
                 break;
             }
             case SAPP_EVENTTYPE_MOUSE_UP: {
@@ -2329,16 +2330,15 @@ namespace internal {
                 mousePressed = false;
 
                 MouseEventArgs args;
-                args.x = mouseX;
-                args.y = mouseY;
-                args.button = ev->mouse_button;
+                args.pos = args.globalPos = Vec2(mouseX, mouseY);
+                args.button = static_cast<MouseButton>(ev->mouse_button);
                 args.shift = hasModShift;
                 args.ctrl = hasModCtrl;
                 args.alt = hasModAlt;
                 args.super = hasModSuper;
                 events().mouseReleased.notify(args);
 
-                if (appMouseReleasedFunc) appMouseReleasedFunc((int)mouseX, (int)mouseY, ev->mouse_button);
+                if (appMouseReleasedFunc) appMouseReleasedFunc(args);
                 break;
             }
             case SAPP_EVENTTYPE_MOUSE_MOVE: {
@@ -2347,35 +2347,36 @@ namespace internal {
                 mouseX = ev->mouse_x * scale;
                 mouseY = ev->mouse_y * scale;
 
+                MouseEventArgs args;
+                args.pos = args.globalPos = Vec2(mouseX, mouseY);
+                args.delta = args.globalDelta = Vec2(mouseX - prevX, mouseY - prevY);
+                args.shift = hasModShift;
+                args.ctrl = hasModCtrl;
+                args.alt = hasModAlt;
+                args.super = hasModSuper;
+
                 if (currentMouseButton >= 0) {
-                    MouseDragEventArgs args;
-                    args.x = mouseX;
-                    args.y = mouseY;
-                    args.deltaX = mouseX - prevX;
-                    args.deltaY = mouseY - prevY;
-                    args.button = currentMouseButton;
+                    args.button = static_cast<MouseButton>(currentMouseButton);
                     events().mouseDragged.notify(args);
-
-                    if (appMouseDraggedFunc) appMouseDraggedFunc((int)mouseX, (int)mouseY, currentMouseButton);
+                    if (appMouseDraggedFunc) appMouseDraggedFunc(args);
                 } else {
-                    MouseMoveEventArgs args;
-                    args.x = mouseX;
-                    args.y = mouseY;
-                    args.deltaX = mouseX - prevX;
-                    args.deltaY = mouseY - prevY;
+                    args.button = MouseButton::None;
                     events().mouseMoved.notify(args);
-
-                    if (appMouseMovedFunc) appMouseMovedFunc((int)mouseX, (int)mouseY);
+                    if (appMouseMovedFunc) appMouseMovedFunc(args);
                 }
                 break;
             }
             case SAPP_EVENTTYPE_MOUSE_SCROLL: {
                 ScrollEventArgs args;
-                args.scrollX = ev->scroll_x;
-                args.scrollY = ev->scroll_y;
+                args.pos = args.globalPos = Vec2(mouseX, mouseY);
+                args.scroll = Vec2(ev->scroll_x, ev->scroll_y);
+                args.shift = hasModShift;
+                args.ctrl = hasModCtrl;
+                args.alt = hasModAlt;
+                args.super = hasModSuper;
                 events().mouseScrolled.notify(args);
 
-                if (appMouseScrolledFunc) appMouseScrolledFunc(ev->scroll_x, ev->scroll_y);
+                if (appMouseScrolledFunc) appMouseScrolledFunc(args);
                 break;
             }
             // Touch events (Android/iOS)
@@ -2417,19 +2418,20 @@ namespace internal {
                         mousePressed = true;
 
                         MouseEventArgs margs;
-                        margs.x = tx; margs.y = ty; margs.button = 0;
+                        margs.pos = margs.globalPos = Vec2(tx, ty);
+                        margs.button = MouseButton::Left;
                         events().mousePressed.notify(margs);
-                        if (appMousePressedFunc) appMousePressedFunc((int)tx, (int)ty, 0);
+                        if (appMousePressedFunc) appMousePressedFunc(margs);
                     } else if (ev->type == SAPP_EVENTTYPE_TOUCHES_MOVED) {
                         float prevX = mouseX, prevY = mouseY;
                         mouseX = tx; mouseY = ty;
 
-                        MouseDragEventArgs margs;
-                        margs.x = tx; margs.y = ty;
-                        margs.deltaX = tx - prevX; margs.deltaY = ty - prevY;
-                        margs.button = 0;
+                        MouseEventArgs margs;
+                        margs.pos = margs.globalPos = Vec2(tx, ty);
+                        margs.delta = margs.globalDelta = Vec2(tx - prevX, ty - prevY);
+                        margs.button = MouseButton::Left;
                         events().mouseDragged.notify(margs);
-                        if (appMouseDraggedFunc) appMouseDraggedFunc((int)tx, (int)ty, 0);
+                        if (appMouseDraggedFunc) appMouseDraggedFunc(margs);
                     } else {
                         currentMouseButton = -1;
                         mouseX = tx; mouseY = ty;
@@ -2437,9 +2439,10 @@ namespace internal {
                         mousePressed = false;
 
                         MouseEventArgs margs;
-                        margs.x = tx; margs.y = ty; margs.button = 0;
+                        margs.pos = margs.globalPos = Vec2(tx, ty);
+                        margs.button = MouseButton::Left;
                         events().mouseReleased.notify(margs);
-                        if (appMouseReleasedFunc) appMouseReleasedFunc((int)tx, (int)ty, 0);
+                        if (appMouseReleasedFunc) appMouseReleasedFunc(margs);
                     }
                 }
                 break;
@@ -2539,26 +2542,26 @@ sapp_desc buildAppDescriptor(const WindowSettings& settings = WindowSettings()) 
     // NOTE: events().xxx.notify() is already called in the sokol event handler
     // above (with full modifier info). These legacy callbacks only forward to
     // the App subclass methods — do NOT re-notify events here.
-    internal::appKeyPressedFunc = [](int key) {
-        if (app) app->handleKeyPressed(key);
+    internal::appKeyPressedFunc = [](const KeyEventArgs& e) {
+        if (app) app->handleKeyPressed(e);
     };
-    internal::appKeyReleasedFunc = [](int key) {
-        if (app) app->handleKeyReleased(key);
+    internal::appKeyReleasedFunc = [](const KeyEventArgs& e) {
+        if (app) app->handleKeyReleased(e);
     };
-    internal::appMousePressedFunc = [](int x, int y, int button) {
-        if (app) app->handleMousePressed(x, y, button);
+    internal::appMousePressedFunc = [](const MouseEventArgs& e) {
+        if (app) app->handleMousePressed(e);
     };
-    internal::appMouseReleasedFunc = [](int x, int y, int button) {
-        if (app) app->handleMouseReleased(x, y, button);
+    internal::appMouseReleasedFunc = [](const MouseEventArgs& e) {
+        if (app) app->handleMouseReleased(e);
     };
-    internal::appMouseMovedFunc = [](int x, int y) {
-        if (app) app->handleMouseMoved(x, y);
+    internal::appMouseMovedFunc = [](const MouseEventArgs& e) {
+        if (app) app->handleMouseMoved(e);
     };
-    internal::appMouseDraggedFunc = [](int x, int y, int button) {
-        if (app) app->handleMouseDragged(x, y, button);
+    internal::appMouseDraggedFunc = [](const MouseEventArgs& e) {
+        if (app) app->handleMouseDragged(e);
     };
-    internal::appMouseScrolledFunc = [](float dx, float dy) {
-        if (app) app->handleMouseScrolled(dx, dy, internal::mouseX, internal::mouseY);
+    internal::appMouseScrolledFunc = [](const ScrollEventArgs& e) {
+        if (app) app->handleMouseScrolled(e);
     };
     internal::appWindowResizedFunc = [](int w, int h) {
         if (app) app->handleWindowResized(w, h);

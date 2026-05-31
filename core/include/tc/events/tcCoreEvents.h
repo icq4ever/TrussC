@@ -29,11 +29,11 @@ public:
     Event<KeyEventArgs> keyPressed;
     Event<KeyEventArgs> keyReleased;
 
-    // Mouse
+    // Mouse (all share MouseEventArgs; button == None during a plain move)
     Event<MouseEventArgs> mousePressed;
     Event<MouseEventArgs> mouseReleased;
-    Event<MouseMoveEventArgs> mouseMoved;
-    Event<MouseDragEventArgs> mouseDragged;
+    Event<MouseEventArgs> mouseMoved;
+    Event<MouseEventArgs> mouseDragged;
     Event<ScrollEventArgs> mouseScrolled;
 
     // Window

@@ -6,8 +6,19 @@
 
 #include <vector>
 #include <string>
+#include "tcMath.h"   // Vec2
 
 namespace trussc {
+
+// ---------------------------------------------------------------------------
+// Mouse button identifier (values match SAPP_MOUSEBUTTON_*)
+// ---------------------------------------------------------------------------
+enum class MouseButton {
+    Left   = 0,      // SAPP_MOUSEBUTTON_LEFT
+    Right  = 1,      // SAPP_MOUSEBUTTON_RIGHT
+    Middle = 2,      // SAPP_MOUSEBUTTON_MIDDLE
+    None   = 0x100,  // SAPP_MOUSEBUTTON_INVALID (no button; e.g. during a plain move)
+};
 
 // ---------------------------------------------------------------------------
 // Key event arguments
@@ -22,12 +33,22 @@ struct KeyEventArgs {
 };
 
 // ---------------------------------------------------------------------------
-// Mouse button event arguments
+// Mouse event arguments (pressed / released / moved / dragged)
 // ---------------------------------------------------------------------------
+// Coordinate convention:
+//   - `pos`       : position in the receiving node's LOCAL space.
+//   - `globalPos` : position in SCREEN space.
+//   When handled at app level (events().mouseXxx or App::mouseXxx) there is no
+//   node transform, so `pos == globalPos`. Inside a Node's onMouseXxx the two
+//   differ by that node's transform.
+//   - `delta`/`globalDelta` follow the same local/screen split (movement since
+//   the previous event). `button` is None during a plain move.
 struct MouseEventArgs {
-    float x = 0.0f;           // Mouse X coordinate
-    float y = 0.0f;           // Mouse Y coordinate
-    int button = 0;           // Button number
+    Vec2 pos;                 // Local position (== globalPos at app level)
+    Vec2 globalPos;           // Screen position
+    Vec2 delta;               // Movement since last event, local space
+    Vec2 globalDelta;         // Movement since last event, screen space
+    MouseButton button = MouseButton::None;
     bool shift = false;
     bool ctrl = false;
     bool alt = false;
@@ -35,32 +56,16 @@ struct MouseEventArgs {
 };
 
 // ---------------------------------------------------------------------------
-// Mouse move event arguments
-// ---------------------------------------------------------------------------
-struct MouseMoveEventArgs {
-    float x = 0.0f;           // Current X coordinate
-    float y = 0.0f;           // Current Y coordinate
-    float deltaX = 0.0f;      // Delta X
-    float deltaY = 0.0f;      // Delta Y
-};
-
-// ---------------------------------------------------------------------------
-// Mouse drag event arguments
-// ---------------------------------------------------------------------------
-struct MouseDragEventArgs {
-    float x = 0.0f;
-    float y = 0.0f;
-    float deltaX = 0.0f;
-    float deltaY = 0.0f;
-    int button = 0;           // Button being dragged
-};
-
-// ---------------------------------------------------------------------------
 // Mouse scroll event arguments
 // ---------------------------------------------------------------------------
 struct ScrollEventArgs {
-    float scrollX = 0.0f;     // Horizontal scroll amount
-    float scrollY = 0.0f;     // Vertical scroll amount
+    Vec2 pos;                 // Local position of the cursor (== globalPos at app level)
+    Vec2 globalPos;           // Screen position of the cursor
+    Vec2 scroll;              // Scroll amount (x: horizontal, y: vertical)
+    bool shift = false;
+    bool ctrl = false;
+    bool alt = false;
+    bool super = false;
 };
 
 // ---------------------------------------------------------------------------
