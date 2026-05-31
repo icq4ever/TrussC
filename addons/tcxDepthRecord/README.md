@@ -32,33 +32,55 @@ if (p->isFrameNew()) p->toMesh({.colors = true}).draw();
 ## The `.tcdc` format
 
 ```
-[FileHeader]   magic/version, resolution, depthScale, intrinsics, stream flags,
-               codec ids, frameCount, indexOffset (patched on stop)
-[Frame] x N    timestamp + present-stream blocks, each independently compressed
-[Index]        { timestamp, fileOffset } x N   (for seek / scrub)
+[Header]    magic/version, resolution, intrinsics, depth->color extrinsic,
+            codec ids, STREAM MANIFEST (which block types the file contains),
+            frameCount, indexOffset (patched on stop)
+[Frame] x N timestamp + a sequence of TLV blocks { type:u8, length:u32, value },
+            read until the next frame's offset
+[Index]     { timestamp, fileOffset } x N   (for seek / scrub)
 ```
 
-- **Intra-only**: every frame is independently (de)compressed, so any frame is a
-  seek target (scrubbing is just an index lookup). No inter-frame deltas.
-- **Depth**: hi/lo byte-plane split + LZ4 (`HiloLZ4`) — lossless, fast. The high
-  bytes are nearly constant across a depth image so LZ4 crushes them; invalid
-  (0) pixels vanish in both planes.
-- **Color**: LZ4 over the (depth-registered) RGBA image — lossless.
-- **World** is *not* stored: `getWorldCoordinateAt()` recomputes it from the
-  stored intrinsics (distortion-aware), keeping files small.
-- Codecs are tagged in the header, so QOI / JPEG-XS / zstd can be added later
-  without changing the format.
+- **TLV blocks + skip-unknown**: each block is Type/Length/Value, so a reader
+  parses the types it knows (depth/color) and *skips any it doesn't* by length.
+  Addons can add block types (`>= 0x80`, e.g. body / hand tracking) and an
+  official player still plays depth/color, ignoring them — forward-compatible.
+- **Stream manifest** in the header lists every block type present, so a reader
+  knows what's inside up front: `hasBlockType()`, `getBlockTypes()`,
+  `hasUnknownBlocks()` ("playable, but contains streams this build can't decode").
+- **Intra-only**: every frame is an independent seek target (scrub = index lookup).
+- **Depth** = hi/lo byte-plane split + LZ4 (lossless); **color** = LZ4 over the
+  native-resolution RGBA (lossless). Via core `tc::compress` (no third-party libs;
+  shares the one vendored lz4). Codecs are tagged → QOI / JPEG-XS / zstd later.
+- **World** is not stored: recomputed from intrinsics on playback.
+- **Record selection**: `start(path, REC_DEPTH)` records depth only; default
+  `REC_ALL` (depth + color).
 
-Compression goes through TrussC core's `tc::compress`, so this addon links no
-third-party libraries (and shares the single vendored lz4 — no duplicate
-symbols).
+### Extending with custom streams (addons)
+
+Bones / hand tracking / etc. are NOT in the official format. An addon subclasses
+the recorder/player and uses the extension hooks:
+
+```cpp
+struct BodyRecorder : DepthRecorder {
+    void writeExtraBlocks(const DepthCamera& cam) override {
+        // serialize as<IBodyTracking>(cam)->getBodies() ...
+        writeBlock(0x80, bytes.data(), bytes.size());   // custom block type
+    }
+};
+struct BodyPlayback : PlaybackDepthCamera {  // also implements the addon's IBodyTracking
+    bool decodesBlockType(uint8_t t) const override { return t == 0x80; }
+    bool readExtraBlock(uint8_t t, const uint8_t* d, uint32_t n, double ts) override { ... }
+};
+```
+
+The official player still plays such a file's depth/color (the `0x80` block is
+skipped); only the addon's player decodes the extra stream.
 
 ## Notes / roadmap
 
 - Playback loops by default (`setLoop(false)` to stop at the end). Frames are
   served one-per-`update()`; real-time pacing from timestamps is a future option.
-- Infrared and the SDK-precomputed `world` image are not yet serialized (depth +
-  color in v1).
+- Infrared is not yet serialized (depth + color in v1; IR/custom via blocks later).
 - Endianness: little-endian host assumed (no byte-swap in v1).
 
 See `example-record/` (records the SyntheticDepthCamera, then plays it back).
