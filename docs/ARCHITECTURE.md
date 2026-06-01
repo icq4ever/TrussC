@@ -266,6 +266,22 @@ bool onKeyPress(int key) override;
 bool onKeyRelease(int key) override;
 ```
 
+Each mouse handler also has a **rich overload** carrying screen-space
+position, movement delta and modifier keys — override either form (the rich
+default forwards to the simple one):
+
+```cpp
+bool onMousePress (const MouseEventArgs& e) override;     // .pos .globalPos .button .shift/.ctrl/.alt/.super
+bool onMouseMove  (const MouseMoveEventArgs& e) override; // + .delta / .globalDelta
+bool onMouseDrag  (const MouseDragEventArgs& e) override; // + .delta + .button
+bool onMouseScroll(const ScrollEventArgs& e) override;    // .scroll
+```
+
+One struct per event kind (no meaningless fields); `button` is an `int`
+(compare with `MOUSE_BUTTON_*`). The legacy scalar mirrors
+(`x`/`y`/`deltaX`/`deltaY`/`scrollX`/`scrollY`) remain for source
+compatibility and are slated for removal at v1.0.
+
 ### C. Timer System
 
 Safe delayed execution on main thread, bound to Node lifecycle.
