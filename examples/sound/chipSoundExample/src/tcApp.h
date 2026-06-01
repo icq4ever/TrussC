@@ -48,7 +48,7 @@ public:
     }
 
 protected:
-    bool onMousePress(Vec2 local, int button) override {
+    bool onMousePress(const MouseEventArgs& e) override {
         if (isLoop) {
             // Toggle for loop sounds
             if (sound.isPlaying()) {
@@ -62,7 +62,7 @@ protected:
             sound.play();
             playEndTime = getElapsedTime() + sound.getDuration();
         }
-        return RectNode::onMousePress(local, button);
+        return RectNode::onMousePress(e);
     }
 };
 

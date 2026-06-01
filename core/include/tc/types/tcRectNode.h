@@ -192,45 +192,44 @@ protected:
     // Mouse events (fire events)
     // -------------------------------------------------------------------------
 
-    bool onMousePress(Vec2 local, int button) override {
-        MouseEventArgs args;
-        args.x = local.x;
-        args.y = local.y;
-        args.button = button;
+    // These override the rich form and fire the corresponding Event. They also
+    // forward to the simple (Vec2,int) virtual so that a subclass which overrode
+    // the legacy simple form (pre-rich, oF-style) still gets called.
+    bool onMousePress(const MouseEventArgs& e) override {
+        MouseEventArgs args = e;  // already localized to this node
         mousePressed.notify(args);
+        onMousePress(e.pos, e.button);  // legacy subclass hook
         return true;  // Consume event
     }
 
-    bool onMouseRelease(Vec2 local, int button) override {
-        MouseEventArgs args;
-        args.x = local.x;
-        args.y = local.y;
-        args.button = button;
+    bool onMouseRelease(const MouseEventArgs& e) override {
+        MouseEventArgs args = e;
         mouseReleased.notify(args);
+        onMouseRelease(e.pos, e.button);  // legacy subclass hook
         return true;
     }
 
-    bool onMouseDrag(Vec2 local, int button) override {
-        MouseDragEventArgs args;
-        args.x = local.x;
-        args.y = local.y;
-        args.button = button;
-        args.deltaX = local.x - getMouseX();  // Simple delta
-        args.deltaY = local.y - getMouseY();
+    bool onMouseDrag(const MouseDragEventArgs& e) override {
+        MouseDragEventArgs args = e;
         mouseDragged.notify(args);
+        onMouseDrag(e.pos, e.button);  // legacy subclass hook
         return true;
     }
 
-    bool onMouseScroll(Vec2 local, Vec2 scroll) override {
-        (void)local;
-        ScrollEventArgs args;
-        args.scrollX = scroll.x;
-        args.scrollY = scroll.y;
+    bool onMouseScroll(const ScrollEventArgs& e) override {
+        ScrollEventArgs args = e;
         mouseScrolled.notify(args);
-        // Return false to allow bubbling to parent (e.g., ScrollContainer)
-        // Override and return true to consume the event
-        return false;
+        // Return false to allow bubbling to parent (e.g., ScrollContainer).
+        // The legacy hook may return true to consume.
+        return onMouseScroll(e.pos, e.scroll);
     }
+
+    // Bring the simple-form overloads into scope so the same-named rich
+    // overrides above don't hide them (name hiding across overload sets).
+    using Node::onMousePress;
+    using Node::onMouseRelease;
+    using Node::onMouseDrag;
+    using Node::onMouseScroll;
 
     // -------------------------------------------------------------------------
     // Drawing helpers
@@ -309,14 +308,14 @@ public:
     }
 
 protected:
-    bool onMousePress(Vec2 local, int button) override {
+    bool onMousePress(const MouseEventArgs& e) override {
         isPressed_ = true;
-        return RectNode::onMousePress(local, button);  // Also fire parent's event
+        return RectNode::onMousePress(e);  // Also fire parent's event
     }
 
-    bool onMouseRelease(Vec2 local, int button) override {
+    bool onMouseRelease(const MouseEventArgs& e) override {
         isPressed_ = false;
-        return RectNode::onMouseRelease(local, button);
+        return RectNode::onMouseRelease(e);
     }
 
 private:

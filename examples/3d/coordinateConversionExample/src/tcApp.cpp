@@ -68,10 +68,10 @@ void tcApp::keyPressed(int key) {
     if (key == KEY_ESCAPE) sapp_request_quit();
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
+void tcApp::mousePressed(const MouseEventArgs& e) {
     // Record click for screenToWorld demo (cam handles its own input)
-    if (button == MOUSE_BUTTON_LEFT) {
-        clickScreenPos = pos;
+    if (e.button == MOUSE_BUTTON_LEFT) {
+        clickScreenPos = e.pos;
         pendingClick = true;
     }
 }

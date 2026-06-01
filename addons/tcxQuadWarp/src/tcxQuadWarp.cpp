@@ -108,9 +108,9 @@ void QuadWarp::setInputEnabled(bool enabled) {
 void QuadWarp::onMouseMoved(tc::MouseMoveEventArgs& e) {
     hoverIndex_ = -1;
     float minDist = anchorSize_;
-    
+
     for (int i = 0; i < 4; i++) {
-        float d = tc::Vec2(e.x, e.y).distance(dstPoints[i]);
+        float d = e.pos.distance(dstPoints[i]);
         if (d < minDist) {
             minDist = d;
             hoverIndex_ = i;
@@ -128,7 +128,7 @@ void QuadWarp::onMousePressed(tc::MouseEventArgs& e) {
     } else {
         float minDist = anchorSize_;
         for (int i = 0; i < 4; i++) {
-            float d = tc::Vec2(e.x, e.y).distance(dstPoints[i]);
+            float d = e.pos.distance(dstPoints[i]);
             if (d < minDist) {
                 minDist = d;
                 newSelection = i;
@@ -143,8 +143,8 @@ void QuadWarp::onMousePressed(tc::MouseEventArgs& e) {
 
 void QuadWarp::onMouseDragged(tc::MouseDragEventArgs& e) {
     if (selectedIndex_ == -1) return;
-    
-    dstPoints[selectedIndex_].set(e.x, e.y);
+
+    dstPoints[selectedIndex_].set(e.pos.x, e.pos.y);
 }
 
 void QuadWarp::onMouseReleased(tc::MouseEventArgs& e) {

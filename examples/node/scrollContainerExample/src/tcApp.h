@@ -92,9 +92,9 @@ public:
     }
 
 protected:
-    bool onMousePress(Vec2 local, int button) override {
+    bool onMousePress(const MouseEventArgs& e) override {
         logNotice("ListItem") << "Clicked: " << label;
-        return RectNode::onMousePress(local, button);
+        return RectNode::onMousePress(e);
     }
 };
 

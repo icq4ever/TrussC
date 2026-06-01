@@ -86,26 +86,24 @@ inline void registerDebuggerTools() {
         .bind<float, float, int>([](float x, float y, int button) {
             // If button is pressed, treat as drag
             if (button >= 0) {
-                MouseDragEventArgs args;
-                args.x = x;
-                args.y = y;
-                args.deltaX = 0;
-                args.deltaY = 0;
+                MouseEventArgs args;
+                args.pos = args.globalPos = Vec2(x, y);
                 args.button = button;
-                events().mouseDragged.notify(args);
+                args.syncLegacy();
+                MouseDragEventArgs dragArgs = toDragArgs(args);
+                events().mouseDragged.notify(dragArgs);
 
                 if (::trussc::internal::appMouseDraggedFunc)
-                    ::trussc::internal::appMouseDraggedFunc((int)x, (int)y, button);
+                    ::trussc::internal::appMouseDraggedFunc(args);
             } else {
-                MouseMoveEventArgs args;
-                args.x = x;
-                args.y = y;
-                args.deltaX = 0;
-                args.deltaY = 0;
-                events().mouseMoved.notify(args);
+                MouseEventArgs args;
+                args.pos = args.globalPos = Vec2(x, y);
+                args.syncLegacy();
+                MouseMoveEventArgs moveArgs = toMoveArgs(args);
+                events().mouseMoved.notify(moveArgs);
 
                 if (::trussc::internal::appMouseMovedFunc)
-                    ::trussc::internal::appMouseMovedFunc((int)x, (int)y);
+                    ::trussc::internal::appMouseMovedFunc(args);
             }
 
             // Update global mouse state
@@ -122,17 +120,17 @@ inline void registerDebuggerTools() {
         .bind<float, float, int>([](float x, float y, int button) {
             // Press
             MouseEventArgs args;
-            args.x = x;
-            args.y = y;
+            args.pos = args.globalPos = Vec2(x, y);
             args.button = button;
+            args.syncLegacy();
             events().mousePressed.notify(args);
             if (::trussc::internal::appMousePressedFunc)
-                ::trussc::internal::appMousePressedFunc((int)x, (int)y, button);
+                ::trussc::internal::appMousePressedFunc(args);
 
             // Release
             events().mouseReleased.notify(args);
             if (::trussc::internal::appMouseReleasedFunc)
-                ::trussc::internal::appMouseReleasedFunc((int)x, (int)y, button);
+                ::trussc::internal::appMouseReleasedFunc(args);
 
             return json{{"status", "ok"}};
         });
@@ -142,11 +140,12 @@ inline void registerDebuggerTools() {
         .arg<float>("dy", "Vertical scroll delta")
         .bind<float, float>([](float dx, float dy) {
             ScrollEventArgs args;
-            args.scrollX = dx;
-            args.scrollY = dy;
+            args.pos = args.globalPos = Vec2(::trussc::internal::mouseX, ::trussc::internal::mouseY);
+            args.scroll = Vec2(dx, dy);
+            args.syncLegacy();
             events().mouseScrolled.notify(args);
             if (::trussc::internal::appMouseScrolledFunc)
-                ::trussc::internal::appMouseScrolledFunc(dx, dy);
+                ::trussc::internal::appMouseScrolledFunc(args);
             return json{{"status", "ok"}};
         });
 
@@ -159,7 +158,7 @@ inline void registerDebuggerTools() {
             args.key = key;
             events().keyPressed.notify(args);
             if (::trussc::internal::appKeyPressedFunc)
-                ::trussc::internal::appKeyPressedFunc(key);
+                ::trussc::internal::appKeyPressedFunc(args);
             return json{{"status", "ok"}};
         });
 
@@ -170,7 +169,7 @@ inline void registerDebuggerTools() {
             args.key = key;
             events().keyReleased.notify(args);
             if (::trussc::internal::appKeyReleasedFunc)
-                ::trussc::internal::appKeyReleasedFunc(key);
+                ::trussc::internal::appKeyReleasedFunc(args);
             return json{{"status", "ok"}};
         });
 

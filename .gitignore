@@ -101,6 +101,7 @@ addons/**/*.vcxproj
 
 addons/*
 !addons/tcxBox2d
+!addons/tcxMidi
 !addons/tcxCurl
 !addons/tcxImGui
 !addons/tcxHap
@@ -112,6 +113,8 @@ addons/*
 !addons/tcxWebSocket
 !addons/tcxGltf
 !addons/tcxObj
+!addons/tcxDepthCamera
+!addons/tcxDepthRecord
 
 # =============================================================================
 # trusscli / Project Generator (built binary + build artifacts in tools/)

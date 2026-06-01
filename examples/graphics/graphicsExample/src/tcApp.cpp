@@ -188,11 +188,11 @@ void tcApp::keyPressed(int key) {
     }
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
-    logVerbose("tcApp") << "mousePressed: " << pos.x << ", " << pos.y << " button=" << button;
+void tcApp::mousePressed(const MouseEventArgs& e) {
+    logVerbose("tcApp") << "mousePressed: " << e.pos.x << ", " << e.pos.y << " button=" << (int)e.button;
 }
 
-void tcApp::mouseDragged(Vec2 pos, int button) {
-    (void)pos; (void)button;
+void tcApp::mouseDragged(const MouseDragEventArgs& e) {
+    (void)e;
     // Mouse position can be obtained via getMouseX/Y, so nothing here
 }

@@ -33,6 +33,7 @@ void setup() {
     sgdesc.environment = sglue_environment();
     sgdesc.logger.func = slog_func;
     sgdesc.pipeline_pool_size = 256;  // default 64 is too small when FBOs are used
+    sgdesc.buffer_pool_size = 10000;  // default 128 too small with many meshes (only CPU slot table, not GPU memory)
     sgdesc.image_pool_size = 10000;
     sgdesc.view_pool_size = 10000;
     sgdesc.sampler_pool_size = 10000;

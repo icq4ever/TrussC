@@ -1,6 +1,17 @@
 #include "tcApp.h"
 
-void tcApp::setup() {}
+void tcApp::setup() {
+    // Listen for the platform paste gesture instead of polling a key ourselves.
+    // This fires on Cmd+V (macOS) / Ctrl+V (Win/Linux) / browser paste (Web),
+    // and works on the Web where reading the clipboard on demand is blocked.
+    pasteListener_ = events().clipboardPasted.listen(this, &tcApp::onClipboardPasted);
+}
+
+void tcApp::onClipboardPasted(ClipboardPastedEventArgs& e) {
+    if (!e.text.empty()) {
+        pastedLines_.push_back(e.text);
+    }
+}
 
 void tcApp::draw() {
     clear(0.12f);
@@ -10,7 +21,7 @@ void tcApp::draw() {
     drawBitmapString("Clipboard Example", 20, 30);
 
     setColor(0.6f);
-    drawBitmapString("1-3: Select  C: Copy  V: Paste", 20, 55);
+    drawBitmapString("1-3: Select  C: Copy  Cmd/Ctrl+V: Paste", 20, 55);
 
     float y = 100;
     for (int i = 0; i < 3; i++) {
@@ -45,13 +56,8 @@ void tcApp::keyPressed(int key) {
     if (key >= '1' && key <= '3') {
         selected_ = key - '0';
     }
-    else if ((key == 'c' || key == 'C') && selected_ > 0) {
+    else if (key == 'C' && selected_ > 0) {
         setClipboardString(presets_[selected_ - 1]);
     }
-    else if (key == 'v' || key == 'V') {
-        string clip = getClipboardString();
-        if (!clip.empty()) {
-            pastedLines_.push_back(clip);
-        }
-    }
+    // Paste is handled by the clipboardPasted event (Cmd+V / Ctrl+V), not here.
 }

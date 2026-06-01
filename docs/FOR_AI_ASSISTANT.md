@@ -408,6 +408,7 @@ bool onMousePress(Vec2 local, int button) override;
 bool onMouseRelease(Vec2 local, int button) override;
 bool onMouseDrag(Vec2 local, int button) override;
 bool onMouseMove(Vec2 local) override;
+bool onMouseScroll(Vec2 local, Vec2 scroll) override;
 bool onMouseEnter() override;
 bool onMouseLeave() override;
 ```
@@ -418,6 +419,29 @@ void keyPressed(int key) override;
 void mousePressed(Vec2 pos, int button) override;
 void mouseDragged(Vec2 pos, int button) override;
 ```
+
+#### Rich form (dual API)
+Every mouse handler also has a rich overload that takes a per-kind args
+struct. Override **either** the simple `(Vec2, int)` form above (oF-style,
+the default) **or** the rich form — the rich default just forwards to the
+simple one, so existing simple overrides keep working.
+```cpp
+bool onMousePress (const MouseEventArgs& e) override;   // pressed / released
+bool onMouseMove  (const MouseMoveEventArgs& e) override;
+bool onMouseDrag  (const MouseDragEventArgs& e) override;
+bool onMouseScroll(const ScrollEventArgs& e) override;
+// App-level: mousePressed(const MouseEventArgs&), mouseMoved(const MouseMoveEventArgs&), etc.
+```
+There is one struct per event kind so no field is ever meaningless. Fields:
+- `pos` — local position (in the receiving node's space). `globalPos` — screen space.
+- `delta` / `globalDelta` — movement since the last event (move/drag only).
+- `button` — `int`, compare with `MOUSE_BUTTON_LEFT/RIGHT/MIDDLE` (press/drag).
+- `scroll` — `Vec2` scroll amount (ScrollEventArgs).
+- `shift` / `ctrl` / `alt` / `super` — modifier keys, on every kind.
+
+> Legacy scalar mirrors (`x`/`y`/`deltaX`/`deltaY`/`scrollX`/`scrollY`) are
+> kept for source compatibility and slated for removal at v1.0 — prefer the
+> Vec2 fields in new code.
 
 ## GPU Resources
 

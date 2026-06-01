@@ -156,18 +156,16 @@ protected:
     // Mouse scroll event - accumulate for processing in update
     // -------------------------------------------------------------------------
 
-    bool onMouseScroll(Vec2 local, Vec2 scroll) override {
-        (void)local;
-
+    bool onMouseScroll(const ScrollEventArgs& e) override {
         bool canScroll = false;
 
         if (verticalScroll_ && maxScrollY_ > 0) {
-            accumulatedScrollY_ += scroll.y;
+            accumulatedScrollY_ += e.scroll.y;
             canScroll = true;
         }
 
         if (horizontalScroll_ && maxScrollX_ > 0) {
-            accumulatedScrollX_ += scroll.x;
+            accumulatedScrollX_ += e.scroll.x;
             canScroll = true;
         }
 

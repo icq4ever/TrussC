@@ -29,7 +29,7 @@ public:
     Event<KeyEventArgs> keyPressed;
     Event<KeyEventArgs> keyReleased;
 
-    // Mouse
+    // Mouse (one struct per kind so no field is ever meaningless)
     Event<MouseEventArgs> mousePressed;
     Event<MouseEventArgs> mouseReleased;
     Event<MouseMoveEventArgs> mouseMoved;
@@ -41,6 +41,9 @@ public:
 
     // Drag & drop
     Event<DragDropEventArgs> filesDropped;
+
+    // Clipboard paste (Cmd+V / Ctrl+V / browser paste); args.text holds the content
+    Event<ClipboardPastedEventArgs> clipboardPasted;
 
     // Console input (commands from stdin)
     Event<ConsoleEventArgs> console;

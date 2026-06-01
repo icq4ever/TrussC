@@ -186,20 +186,20 @@ public:
 
         // Subscribe to mouse events
         listenerMoved_ = events().mouseMoved.listen([this](MouseMoveEventArgs& e) {
-            lastMouseX_ = e.x;
-            lastMouseY_ = e.y;
+            lastMouseX_ = e.pos.x;
+            lastMouseY_ = e.pos.y;
         });
         listenerPressed_ = events().mousePressed.listen([this](MouseEventArgs& e) {
-            onMousePressed(e.x, e.y, e.button);
+            onMousePressed(e.pos.x, e.pos.y, e.button);
         });
         listenerReleased_ = events().mouseReleased.listen([this](MouseEventArgs& e) {
-            onMouseReleased(e.x, e.y, e.button);
+            onMouseReleased(e.pos.x, e.pos.y, e.button);
         });
         listenerDragged_ = events().mouseDragged.listen([this](MouseDragEventArgs& e) {
-            onMouseDragged(e.x, e.y, e.button);
+            onMouseDragged(e.pos.x, e.pos.y, e.button);
         });
         listenerScrolled_ = events().mouseScrolled.listen([this](ScrollEventArgs& e) {
-            onMouseScrolled(e.scrollX, e.scrollY);
+            onMouseScrolled(e.scroll.x, e.scroll.y);
         });
     }
 
@@ -274,18 +274,18 @@ private:
         lastMouseX_ = x;
         lastMouseY_ = y;
 
-        if (button == MOUSE_BUTTON_LEFT) {
+        if (button == (int)MOUSE_BUTTON_LEFT) {
             isDragging_ = true;
-        } else if (button == MOUSE_BUTTON_MIDDLE) {
+        } else if (button == (int)MOUSE_BUTTON_MIDDLE) {
             isPanning_ = true;
         }
     }
 
     void onMouseReleased(float x, float y, int button) {
         (void)x; (void)y;
-        if (button == MOUSE_BUTTON_LEFT) {
+        if (button == (int)MOUSE_BUTTON_LEFT) {
             isDragging_ = false;
-        } else if (button == MOUSE_BUTTON_MIDDLE) {
+        } else if (button == (int)MOUSE_BUTTON_MIDDLE) {
             isPanning_ = false;
         }
     }
@@ -294,7 +294,7 @@ private:
         float dx = x - lastMouseX_;
         float dy = y - lastMouseY_;
 
-        if (isDragging_ && button == MOUSE_BUTTON_LEFT) {
+        if (isDragging_ && button == (int)MOUSE_BUTTON_LEFT) {
             // Rotation (Y drag for elevation, X drag for azimuth)
             rotationY_ -= dx * 0.01f * sensitivity_;
             rotationX_ += dy * 0.01f * sensitivity_;  // Intuitive up/down
@@ -303,7 +303,7 @@ private:
             float maxAngle = 1.4f;
             if (rotationX_ > maxAngle) rotationX_ = maxAngle;
             if (rotationX_ < -maxAngle) rotationX_ = -maxAngle;
-        } else if (isPanning_ && button == MOUSE_BUTTON_MIDDLE) {
+        } else if (isPanning_ && button == (int)MOUSE_BUTTON_MIDDLE) {
             Vec3 right, forward;
             getOrbitAxes(right, forward);
 

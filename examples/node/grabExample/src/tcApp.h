@@ -51,30 +51,28 @@ protected:
     Vec2 pendingDragPos_;
     bool hasPendingDrag_ = false;
 
-    bool onMousePress(Vec2 local, int button) override {
-        if (button == 0) {
+    bool onMousePress(const MouseEventArgs& e) override {
+        if (e.button == MOUSE_BUTTON_LEFT) {
             isDragging_ = true;
-            dragOffset_ = local;
+            dragOffset_ = e.pos;
             hasPendingDrag_ = false;
             return true;  // Grab
         }
         return false;
     }
 
-    bool onMouseRelease(Vec2 local, int button) override {
-        (void)local;
-        if (button == 0) {
+    bool onMouseRelease(const MouseEventArgs& e) override {
+        if (e.button == MOUSE_BUTTON_LEFT) {
             isDragging_ = false;
             hasPendingDrag_ = false;
         }
         return true;
     }
 
-    bool onMouseDrag(Vec2 local, int button) override {
-        (void)button;
+    bool onMouseDrag(const MouseDragEventArgs& e) override {
         if (isDragging_) {
             // Store latest position for processing in update
-            pendingDragPos_ = local;
+            pendingDragPos_ = e.pos;
             hasPendingDrag_ = true;
             return true;
         }
@@ -157,20 +155,19 @@ protected:
     vector<Vec2> pendingPoints_;  // Accumulated points for this frame
     bool isDrawing_ = false;
 
-    bool onMousePress(Vec2 local, int button) override {
-        if (button == 0) {
+    bool onMousePress(const MouseEventArgs& e) override {
+        if (e.button == MOUSE_BUTTON_LEFT) {
             isDrawing_ = true;
             currentLine_.clear();
             pendingPoints_.clear();
-            currentLine_.push_back(local);
+            currentLine_.push_back(e.pos);
             return true;  // Grab
         }
         return false;
     }
 
-    bool onMouseRelease(Vec2 local, int button) override {
-        (void)local;
-        if (button == 0 && isDrawing_) {
+    bool onMouseRelease(const MouseEventArgs& e) override {
+        if (e.button == MOUSE_BUTTON_LEFT && isDrawing_) {
             isDrawing_ = false;
             // Process any remaining pending points
             for (const auto& pt : pendingPoints_) {
@@ -185,11 +182,10 @@ protected:
         return true;
     }
 
-    bool onMouseDrag(Vec2 local, int button) override {
-        (void)button;
+    bool onMouseDrag(const MouseDragEventArgs& e) override {
         if (isDrawing_) {
             // Accumulate points for processing in update
-            pendingPoints_.push_back(local);
+            pendingPoints_.push_back(e.pos);
             return true;
         }
         return false;

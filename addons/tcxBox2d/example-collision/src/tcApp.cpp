@@ -120,25 +120,25 @@ void tcApp::draw() {
     drawBitmapString("  Balls: " + std::to_string(balls.size()), 10, 140);
 }
 
-void tcApp::mousePressed(Vec2 pos, int button) {
-    if (button == MOUSE_BUTTON_LEFT) {
-        box2d::Body* body = world.getBodyAtPoint(pos);
+void tcApp::mousePressed(const MouseEventArgs& e) {
+    if (e.button == MOUSE_BUTTON_LEFT) {
+        box2d::Body* body = world.getBodyAtPoint(e.pos);
         if (body) {
-            world.startDrag(body, pos);
+            world.startDrag(body, e.pos);
         } else {
-            addBall(pos.x, pos.y);
+            addBall(e.pos.x, e.pos.y);
         }
     }
 }
 
-void tcApp::mouseDragged(Vec2 pos, int button) {
-    if (button == MOUSE_BUTTON_LEFT) {
-        world.updateDrag(pos);
+void tcApp::mouseDragged(const MouseDragEventArgs& e) {
+    if (e.button == MOUSE_BUTTON_LEFT) {
+        world.updateDrag(e.pos);
     }
 }
 
-void tcApp::mouseReleased(Vec2 pos, int button) {
-    if (button == MOUSE_BUTTON_LEFT) {
+void tcApp::mouseReleased(const MouseEventArgs& e) {
+    if (e.button == MOUSE_BUTTON_LEFT) {
         world.endDrag();
     }
 }

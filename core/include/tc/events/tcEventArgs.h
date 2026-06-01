@@ -6,8 +6,19 @@
 
 #include <vector>
 #include <string>
+#include "tcMath.h"   // Vec2
 
 namespace trussc {
+
+// ---------------------------------------------------------------------------
+// Mouse button identifier (values match SAPP_MOUSEBUTTON_*)
+// ---------------------------------------------------------------------------
+enum class MouseButton {
+    Left   = 0,      // SAPP_MOUSEBUTTON_LEFT
+    Right  = 1,      // SAPP_MOUSEBUTTON_RIGHT
+    Middle = 2,      // SAPP_MOUSEBUTTON_MIDDLE
+    None   = 0x100,  // SAPP_MOUSEBUTTON_INVALID (no button; e.g. during a plain move)
+};
 
 // ---------------------------------------------------------------------------
 // Key event arguments
@@ -22,46 +33,134 @@ struct KeyEventArgs {
 };
 
 // ---------------------------------------------------------------------------
-// Mouse button event arguments
+// Mouse event arguments
 // ---------------------------------------------------------------------------
+// There is one struct per event kind so that no field is ever meaningless
+// (a move carries no button, a press carries no delta, etc.).
+//
+// Coordinate convention (the rich Vec2 fields):
+//   - `pos`       : position in the receiving node's LOCAL space.
+//   - `globalPos` : position in SCREEN space.
+//   When handled at app level (events().mouseXxx or App::mouseXxx) there is no
+//   node transform, so `pos == globalPos`. Inside a Node's onMouseXxx the two
+//   differ by that node's transform.
+//   - `delta`/`globalDelta` follow the same local/screen split (movement since
+//   the previous event).
+//
+// Legacy scalar fields (`x`/`y`/`deltaX`/`deltaY`/`scrollX`/`scrollY` and the
+// int `button`) mirror the Vec2 fields and are kept for source compatibility
+// with pre-rich code. They are synced from the canonical Vec2 fields via
+// syncLegacy(). These mirrors are scheduled to be removed at v1.0 (a migration
+// guide will accompany the cut); new code should prefer the Vec2 forms.
+// `button` stays an int (compare with MOUSE_BUTTON_*, consistent with KEY_*);
+// the MouseButton enum is the type-safe source of those constants.
+
+// Mouse pressed / released
 struct MouseEventArgs {
-    float x = 0.0f;           // Mouse X coordinate
-    float y = 0.0f;           // Mouse Y coordinate
-    int button = 0;           // Button number
+    // Legacy mirrors (source-compat; removed at v1.0)
+    float x = 0.0f;           // == pos.x
+    float y = 0.0f;           // == pos.y
+    int button = 0;           // MOUSE_BUTTON_* (left/right/middle)
     bool shift = false;
     bool ctrl = false;
     bool alt = false;
     bool super = false;
+    // Rich (canonical)
+    Vec2 pos;                 // Local position (== globalPos at app level)
+    Vec2 globalPos;           // Screen position
+    // Note: press/release carry no movement; `delta`/`globalDelta` exist only
+    // because this struct doubles as the internal dispatch carrier and are
+    // always (0,0) on a press/release.
+    Vec2 delta;
+    Vec2 globalDelta;
+
+    // Sync legacy scalar mirrors from the canonical Vec2 fields.
+    void syncLegacy() { x = pos.x; y = pos.y; }
 };
 
-// ---------------------------------------------------------------------------
-// Mouse move event arguments
-// ---------------------------------------------------------------------------
+// Mouse moved (no button)
 struct MouseMoveEventArgs {
-    float x = 0.0f;           // Current X coordinate
-    float y = 0.0f;           // Current Y coordinate
-    float deltaX = 0.0f;      // Delta X
-    float deltaY = 0.0f;      // Delta Y
+    // Legacy mirrors (source-compat; removed at v1.0)
+    float x = 0.0f;           // == pos.x
+    float y = 0.0f;           // == pos.y
+    float deltaX = 0.0f;      // == delta.x
+    float deltaY = 0.0f;      // == delta.y
+    bool shift = false;
+    bool ctrl = false;
+    bool alt = false;
+    bool super = false;
+    // Rich (canonical)
+    Vec2 pos;
+    Vec2 globalPos;
+    Vec2 delta;               // Movement since last event, local space
+    Vec2 globalDelta;         // Movement since last event, screen space
+
+    void syncLegacy() { x = pos.x; y = pos.y; deltaX = delta.x; deltaY = delta.y; }
 };
 
-// ---------------------------------------------------------------------------
-// Mouse drag event arguments
-// ---------------------------------------------------------------------------
+// Mouse dragged (move with a button held)
 struct MouseDragEventArgs {
-    float x = 0.0f;
-    float y = 0.0f;
-    float deltaX = 0.0f;
-    float deltaY = 0.0f;
-    int button = 0;           // Button being dragged
+    // Legacy mirrors (source-compat; removed at v1.0)
+    float x = 0.0f;           // == pos.x
+    float y = 0.0f;           // == pos.y
+    float deltaX = 0.0f;      // == delta.x
+    float deltaY = 0.0f;      // == delta.y
+    int button = 0;           // MOUSE_BUTTON_* being dragged
+    bool shift = false;
+    bool ctrl = false;
+    bool alt = false;
+    bool super = false;
+    // Rich (canonical)
+    Vec2 pos;
+    Vec2 globalPos;
+    Vec2 delta;
+    Vec2 globalDelta;
+
+    void syncLegacy() { x = pos.x; y = pos.y; deltaX = delta.x; deltaY = delta.y; }
 };
 
 // ---------------------------------------------------------------------------
 // Mouse scroll event arguments
 // ---------------------------------------------------------------------------
 struct ScrollEventArgs {
-    float scrollX = 0.0f;     // Horizontal scroll amount
-    float scrollY = 0.0f;     // Vertical scroll amount
+    // Legacy mirrors (source-compat; removed at v1.0)
+    float scrollX = 0.0f;     // == scroll.x
+    float scrollY = 0.0f;     // == scroll.y
+    bool shift = false;
+    bool ctrl = false;
+    bool alt = false;
+    bool super = false;
+    // Rich (canonical)
+    Vec2 pos;                 // Local position of the cursor (== globalPos at app level)
+    Vec2 globalPos;           // Screen position of the cursor
+    Vec2 scroll;              // Scroll amount (x: horizontal, y: vertical)
+
+    void syncLegacy() { scrollX = scroll.x; scrollY = scroll.y; }
 };
+
+// ---------------------------------------------------------------------------
+// Carrier -> per-event converters
+// ---------------------------------------------------------------------------
+// The dispatch plumbing flows a single rich MouseEventArgs "carrier"; the
+// move/drag public boundaries build their specific type from it here.
+inline MouseMoveEventArgs toMoveArgs(const MouseEventArgs& m) {
+    MouseMoveEventArgs a;
+    a.pos = m.pos; a.globalPos = m.globalPos;
+    a.delta = m.delta; a.globalDelta = m.globalDelta;
+    a.shift = m.shift; a.ctrl = m.ctrl; a.alt = m.alt; a.super = m.super;
+    a.syncLegacy();
+    return a;
+}
+
+inline MouseDragEventArgs toDragArgs(const MouseEventArgs& m) {
+    MouseDragEventArgs a;
+    a.pos = m.pos; a.globalPos = m.globalPos;
+    a.delta = m.delta; a.globalDelta = m.globalDelta;
+    a.button = m.button;
+    a.shift = m.shift; a.ctrl = m.ctrl; a.alt = m.alt; a.super = m.super;
+    a.syncLegacy();
+    return a;
+}
 
 // ---------------------------------------------------------------------------
 // Window resize event arguments
@@ -78,6 +177,18 @@ struct DragDropEventArgs {
     std::vector<std::string> files;  // Dropped file paths
     float x = 0.0f;
     float y = 0.0f;
+};
+
+// ---------------------------------------------------------------------------
+// Clipboard paste event arguments
+// ---------------------------------------------------------------------------
+// Fired on the platform paste gesture (macOS: Cmd+V, others: Ctrl+V, Web:
+// browser 'paste' event). `text` is the pasted clipboard content, already
+// read for you — no need to call getClipboardString() yourself. This is the
+// only reliable way to read the clipboard on the Web platform, where arbitrary
+// getClipboardString() calls are blocked by the browser.
+struct ClipboardPastedEventArgs {
+    std::string text;  // Pasted clipboard content
 };
 
 // ---------------------------------------------------------------------------

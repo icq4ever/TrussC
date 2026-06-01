@@ -163,7 +163,6 @@ private:
     sg_view view_ = {};
     bool textureValid_ = false;
     bool textureDirty_ = false;
-    uint64_t lastUpdateFrame_ = 0;  // Last update frame number
 
     // CPU-side pixel data (for expansion/update)
     std::vector<uint8_t> pixels_;  // RGBA
@@ -743,11 +742,13 @@ private:
     }
 
     void updateAtlasTexture(AtlasState& atlas) {
-        // Skip if already updated this frame
-        uint64_t currentFrame = sapp_frame_count();
-        if (atlas.textureValid_ && atlas.lastUpdateFrame_ == currentFrame) {
-            return;
-        }
+        // Re-upload whenever the atlas is dirty (only reached via
+        // ensureTexturesUpdated, which already gates on textureDirty_). No
+        // once-per-frame throttle: glyphs may be added across several draw calls
+        // in one frame (e.g. text rendered into multiple FBOs at setup), and
+        // each needs its new glyphs on the GPU before its draw. Deferred
+        // destruction (pendingDestroys_, freed next frame after the commands
+        // referencing the old view are consumed) keeps mid-frame recreate safe.
 
         // Defer destruction of existing resources
         if (atlas.textureValid_) {
@@ -773,7 +774,6 @@ private:
         atlas.view_ = sg_make_view(&view_desc);
 
         atlas.textureValid_ = true;
-        atlas.lastUpdateFrame_ = currentFrame;
         atlas.textureDirty_ = false;
     }
 };

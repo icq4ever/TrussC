@@ -579,7 +579,9 @@ string ProjectGenerator::generate() {
         }
 
         // Configure cross-compile presets
-        runCrossCompilePresets(destPath);
+        if (!runCrossCompilePresets(destPath)) {
+            return "cross-compile preset configure failed (see log above)";
+        }
 
         log("Done!");
         return "";  // Success
@@ -659,7 +661,9 @@ string ProjectGenerator::update(const string& projectPath_) {
         }
 
         // Configure cross-compile presets
-        runCrossCompilePresets(projectPath);
+        if (!runCrossCompilePresets(projectPath)) {
+            return "cross-compile preset configure failed (see log above)";
+        }
 
         log("Update complete!");
         return "";
@@ -983,7 +987,7 @@ void ProjectGenerator::generateWebBuildFiles(const string& path) {
 //
 // Unix Makefiles (macOS/Linux) and Ninja both support CMAKE_EXPORT_COMPILE_COMMANDS.
 // Visual Studio generator does NOT support compile_commands.json.
-void ProjectGenerator::runCrossCompilePresets(const string& path) {
+bool ProjectGenerator::runCrossCompilePresets(const string& path) {
     // Collect presets to configure
     vector<string> presets;
 
@@ -999,6 +1003,7 @@ void ProjectGenerator::runCrossCompilePresets(const string& path) {
         return "build-" + preset;
     };
 
+    bool ok = true;
     for (auto& preset : presets) {
         // Clean existing build directory to avoid stale cache
         string buildDir = path + "/" + getBuildDir(preset);
@@ -1012,9 +1017,11 @@ void ProjectGenerator::runCrossCompilePresets(const string& path) {
         auto [result, output] = executeCommand(cmd);
         if (!output.empty()) log(output);
         if (result != 0) {
-            log("WARNING: cmake --preset " + preset + " failed (non-fatal)");
+            log("ERROR: cmake --preset " + preset + " failed");
+            ok = false;
         }
     }
+    return ok;
 }
 
 void ProjectGenerator::runCMakeConfigure(const string& path) {
