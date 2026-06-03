@@ -18,19 +18,37 @@
 // v1 limitations:
 //   - Swapchain target only. Drawing PBR mesh inside an Fbo pass will trigger
 //     a sokol_gfx pipeline format mismatch. Phase 4 will add per-target cache.
-//   - Immediate-mode sg_draw; ordering with sokol_gl is "PBR below 2D overlay".
-//     See plan for the deferred-layer optimization (Phase later).
+//   - Swapchain PBR draws are deferred into the per-layer flush
+//     (flushDeferredShaderDraws) so they composite with sokol_gl 2D in
+//     submission order — a 2D background drawn before a PBR mesh now stays
+//     behind it. FBO-pass PBR draws remain immediate.
 //
 // =============================================================================
 
 #include <cstring>
 #include <map>
+#include <vector>
 
 #include "tc/gpu/shaders/meshPbr.glsl.h"
 #include "tc/gpu/shaders/shadowDepth.glsl.h"
 
 namespace trussc {
 namespace internal {
+
+// A fully-resolved PBR mesh draw, captured at submission time (pipeline +
+// bindings + packed uniforms) so it can be replayed later. Used to defer
+// swapchain PBR draws into the same per-layer flush as sokol_gl 2D and deferred
+// shaders, so everything composites in submission order. See PbrPipeline::drawMesh.
+struct PbrDrawCommand {
+    sg_pipeline        pip;
+    sg_bindings        bind;
+    tc_pbr_vs_params_t vsp;
+    tc_pbr_fs_params_t fsp;
+    int                indexCount;
+    int                vertexCount;
+};
+struct DeferredPbrDraw { int layerId; PbrDrawCommand cmd; };
+inline std::vector<DeferredPbrDraw> deferredPbrDraws;
 
 class PbrPipeline {
 public:
@@ -91,17 +109,10 @@ public:
             sampleCount = sapp_sample_count();
         }
 
-        // Ensure we are inside a render pass
-        if (!internal::inFboPass) {
-            ensureSwapchainPass();
-        }
-
-        // Flush any pending sokol_gl commands so they are drawn *before* this
-        // PBR mesh. This preserves "drawBox → mesh.draw() → drawBox" intent
-        // where the first drawBox should appear beneath the PBR mesh.
-        sgl_draw();
-
-        sg_apply_pipeline(getPipeline(colorFmt, sampleCount));
+        // Resolve the pipeline now; GPU submission happens at the end of this
+        // function — deferred for the swapchain (so it composites with sokol_gl
+        // in submission order), immediate inside an FBO pass.
+        sg_pipeline pip = getPipeline(colorFmt, sampleCount);
 
         // --- Bindings -------------------------------------------------------
         sg_bindings bind = {};
@@ -206,7 +217,7 @@ public:
             bind.samplers[SMP_tc_pbr_shadowMapSmp] = fallbackSampler_;
         }
 
-        sg_apply_bindings(&bind);
+        // (bindings applied later, in executePbrDraw)
 
         // --- vs_params ------------------------------------------------------
         tc_pbr_vs_params_t vsp = {};
@@ -223,9 +234,6 @@ public:
         std::memcpy(vsp.model,     modelT.m,     sizeof(vsp.model));
         std::memcpy(vsp.viewProj,  viewProjT.m,  sizeof(vsp.viewProj));
         std::memcpy(vsp.normalMat, normalMatT.m, sizeof(vsp.normalMat));
-
-        sg_range vsRange = { &vsp, sizeof(vsp) };
-        sg_apply_uniforms(UB_tc_pbr_vs_params, &vsRange);
 
         // --- fs_params ------------------------------------------------------
         tc_pbr_fs_params_t fsp = {};
@@ -340,15 +348,34 @@ public:
             fsp.shadowParams[0] = -1.0f;
         }
 
-        sg_range fsRange = { &fsp, sizeof(fsp) };
-        sg_apply_uniforms(UB_tc_pbr_fs_params, &fsRange);
-
-        // --- Draw -----------------------------------------------------------
-        if (mesh.getGpuIndexCount() > 0) {
-            sg_draw(0, mesh.getGpuIndexCount(), 1);
+        // --- Submit ---------------------------------------------------------
+        // Package the fully-resolved draw. Inside an FBO pass we submit it
+        // immediately (that pass is self-contained). For the swapchain we DEFER
+        // it: append to deferredPbrDraws and bump the sokol_gl layer so any 2D
+        // drawn after this mesh composites on top of it (same trick the deferred
+        // shaders use). flushDeferredShaderDraws() replays it per layer.
+        PbrDrawCommand cmd{ pip, bind, vsp, fsp,
+                            mesh.getGpuIndexCount(), mesh.getGpuVertexCount() };
+        if (internal::inFboPass) {
+            sgl_draw();   // keep prior sokol_gl beneath this mesh in the FBO pass
+            executePbrDraw(cmd);
         } else {
-            sg_draw(0, mesh.getGpuVertexCount(), 1);
+            internal::deferredPbrDraws.push_back({ internal::sglLayerNext, cmd });
+            internal::sglLayerNext++;
+            sgl_layer(internal::sglLayerNext);
         }
+    }
+
+    // Submit a packaged PBR draw to the GPU. Used immediately for FBO passes and
+    // replayed from flushDeferredShaderDraws() for the swapchain.
+    void executePbrDraw(const PbrDrawCommand& c) {
+        sg_apply_pipeline(c.pip);
+        sg_apply_bindings(&c.bind);
+        sg_range vr{ &c.vsp, sizeof(c.vsp) };
+        sg_apply_uniforms(UB_tc_pbr_vs_params, &vr);
+        sg_range fr{ &c.fsp, sizeof(c.fsp) };
+        sg_apply_uniforms(UB_tc_pbr_fs_params, &fr);
+        sg_draw(0, c.indexCount > 0 ? c.indexCount : c.vertexCount, 1);
     }
 
 private:

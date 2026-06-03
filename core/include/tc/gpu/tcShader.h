@@ -496,10 +496,20 @@ inline void flushDeferredShaderDraws() {
                 draw.shader->executeDeferredDraw(draw.vertices, draw.type);
             }
         }
+
+        // Deferred PBR mesh draws — same per-layer ordering, so PBR composites
+        // with sokol_gl 2D in submission order (a 2D background drawn first
+        // stays behind the meshes).
+        for (auto& d : internal::deferredPbrDraws) {
+            if (d.layerId == layer) {
+                internal::getPbrPipeline().executePbrDraw(d.cmd);
+            }
+        }
     }
 
     // Clear deferred draws for next frame
     internal::deferredShaderDraws.clear();
+    internal::deferredPbrDraws.clear();
 
     // Reset layer for next frame
     internal::sglLayerNext = 0;
