@@ -616,16 +616,24 @@ private:
     // Event dispatch (called by App only via friend access)
     // -------------------------------------------------------------------------
 
-    // Build a copy of `s` with pos / delta expressed in THIS node's local space.
-    // globalPos / globalDelta / button / modifiers are preserved.
+    // Press/release: lean args carry no movement, so only pos is localized.
     MouseEventArgs localizeMouse(const MouseEventArgs& s) {
         MouseEventArgs a = s;
+        Vec3 lp = globalToLocal(Vec3(s.globalPos.x, s.globalPos.y, 0));
+        a.pos = Vec2(lp.x, lp.y);
+        a.syncLegacy();
+        return a;
+    }
+
+    // Move/drag carrier: localize pos AND the movement delta into this node's
+    // local space. globalPos / globalDelta / button / modifiers are preserved.
+    MouseEventRaw localizeMouse(const MouseEventRaw& s) {
+        MouseEventRaw a = s;
         Vec3 lp = globalToLocal(Vec3(s.globalPos.x, s.globalPos.y, 0));
         Vec3 lpPrev = globalToLocal(Vec3(s.globalPos.x - s.globalDelta.x,
                                          s.globalPos.y - s.globalDelta.y, 0));
         a.pos = Vec2(lp.x, lp.y);
         a.delta = Vec2(lp.x - lpPrev.x, lp.y - lpPrev.y);
-        a.syncLegacy();
         return a;
     }
 
@@ -687,10 +695,10 @@ private:
         return nullptr;
     }
 
-    Ptr dispatchMouseMove(const MouseEventArgs& e) {
+    Ptr dispatchMouseMove(const MouseEventRaw& e) {
         // Send drag event to grabbed node
         if (internal::grabbedNode) {
-            MouseEventArgs local = internal::grabbedNode->localizeMouse(e);
+            MouseEventRaw local = internal::grabbedNode->localizeMouse(e);
             local.button = internal::grabbedButton;
             internal::grabbedNode->onMouseDrag(toDragArgs(local));
         }
@@ -700,7 +708,7 @@ private:
         HitResult result = findHitNode(globalRay);
 
         if (result.hit()) {
-            MouseEventArgs local = result.node->localizeMouse(e);
+            MouseEventRaw local = result.node->localizeMouse(e);
             if (result.node->onMouseMove(toMoveArgs(local))) {
                 return result.node;
             }
