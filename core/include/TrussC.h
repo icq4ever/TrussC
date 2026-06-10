@@ -801,7 +801,11 @@ namespace internal {
                 sgl_load_pipeline(blendPipelines[static_cast<int>(BlendMode::Alpha)]);
             }
             sgl_matrix_mode_projection();
-            sgl_ortho(0.0f, viewW, viewH, 0.0f, -farDist, farDist);
+            // Ortho volume CENTERED on the camera: the lookat below moves the
+            // world center to the view origin, so the volume must span
+            // [-W/2, W/2] x [H/2, -H/2] (Y flipped) — a [0, W] x [H, 0] volume
+            // here double-offsets everything by half a screen.
+            sgl_ortho(-viewW / 2.0f, viewW / 2.0f, viewH / 2.0f, -viewH / 2.0f, -farDist, farDist);
             sgl_matrix_mode_modelview();
             sgl_load_identity();
             // Camera position (for consistent Z behavior with perspective)
@@ -812,7 +816,7 @@ namespace internal {
             );
 
             // Save matrices for worldToScreen/screenToWorld
-            currentProjectionMatrix = Mat4::ortho(0.0f, viewW, viewH, 0.0f, -farDist, farDist);
+            currentProjectionMatrix = Mat4::ortho(-viewW / 2.0f, viewW / 2.0f, viewH / 2.0f, -viewH / 2.0f, -farDist, farDist);
             currentViewMatrix = Mat4::lookAt(
                 Vec3(eyeX, eyeY, dist),
                 Vec3(eyeX, eyeY, 0.0f),
