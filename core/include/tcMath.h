@@ -410,7 +410,9 @@ struct Quaternion {
         return Quaternion(std::cos(halfAngle), a.x * s, a.y * s, a.z * s);
     }
 
-    // Create from Euler angles (pitch=X, yaw=Y, roll=Z, applied in ZYX order)
+    // Create from Euler angles (pitch=X, yaw=Y, roll=Z).
+    // Composition is Ry(yaw) * Rx(pitch) * Rz(roll) — the same Y-X-Z
+    // convention Unity uses. toEuler() below is its exact inverse.
     static Quaternion fromEuler(float pitch, float yaw, float roll) {
         float cp = std::cos(pitch * 0.5f);
         float sp = std::sin(pitch * 0.5f);
@@ -430,27 +432,32 @@ struct Quaternion {
         return fromEuler(euler.x, euler.y, euler.z);
     }
 
-    // Convert to Euler angles (pitch=X, yaw=Y, roll=Z)
+    // Convert to Euler angles (pitch=X, yaw=Y, roll=Z) — the exact inverse of
+    // fromEuler's Ry * Rx * Rz composition. (The previous extraction used a
+    // different convention's formulas, so fromEuler(toEuler(q)) drifted for
+    // compound rotations.) Derived from the rotation matrix of Ry*Rx*Rz:
+    //   M12 = -sin(p),  M02 = sin(y)cos(p),  M22 = cos(y)cos(p)
+    //   M10 = cos(p)sin(r),  M11 = cos(p)cos(r)
     Vec3 toEuler() const {
         Vec3 euler;
 
-        // Roll (Z)
-        float sinr_cosp = 2.0f * (w * z + x * y);
-        float cosr_cosp = 1.0f - 2.0f * (y * y + z * z);
-        euler.z = std::atan2(sinr_cosp, cosr_cosp);
-
         // Pitch (X)
         float sinp = 2.0f * (w * x - y * z);
-        if (std::abs(sinp) >= 1.0f) {
-            euler.x = std::copysign(QUARTER_TAU, sinp); // Gimbal lock
-        } else {
-            euler.x = std::asin(sinp);
+        if (std::abs(sinp) >= 0.9999f) {
+            // Gimbal lock: pitch = +-90deg, yaw and roll share one degree of
+            // freedom — put it all in yaw, set roll to 0.
+            euler.x = std::copysign(QUARTER_TAU, sinp);
+            euler.y = std::atan2(2.0f * (x * y - w * z), 1.0f - 2.0f * (y * y + z * z));
+            euler.z = 0.0f;
+            return euler;
         }
+        euler.x = std::asin(sinp);
 
-        // Yaw (Y)
-        float siny_cosp = 2.0f * (w * y + z * x);
-        float cosy_cosp = 1.0f - 2.0f * (x * x + y * y);
-        euler.y = std::atan2(siny_cosp, cosy_cosp);
+        // Yaw (Y): atan2(M02, M22)
+        euler.y = std::atan2(2.0f * (x * z + w * y), 1.0f - 2.0f * (x * x + y * y));
+
+        // Roll (Z): atan2(M10, M11)
+        euler.z = std::atan2(2.0f * (x * y + w * z), 1.0f - 2.0f * (x * x + z * z));
 
         return euler;
     }
