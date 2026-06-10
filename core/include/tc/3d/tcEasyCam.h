@@ -242,21 +242,26 @@ public:
             lastMouseX_ = e.pos.x;
             lastMouseY_ = e.pos.y;
         });
+        // The camera CONSUMES the gestures it claims (same consume + capture
+        // contract as other overlay consumers): a press that starts an orbit /
+        // pan owns the whole gesture, so the node tree never sees a click,
+        // drag or release that was camera input.
         listenerPressed_ = events().mousePressed.listen([this](MouseEventArgs& e) {
             // Gestures are claimed at press time: no modifier, no camera.
             if (!modifierHeld(e.shift, e.ctrl, e.alt, e.super)) return;
-            onMousePressed(e.pos.x, e.pos.y, e.button);
+            if (onMousePressed(e.pos.x, e.pos.y, e.button)) e.consumed = true;
         });
         listenerReleased_ = events().mouseReleased.listen([this](MouseEventArgs& e) {
-            // Never gated — a release must always end an in-flight gesture.
-            onMouseReleased(e.pos.x, e.pos.y, e.button);
+            // Never gated on the modifier — a release must always be able to
+            // end an in-flight gesture (even if the modifier was let go).
+            if (onMouseReleased(e.pos.x, e.pos.y, e.button)) e.consumed = true;
         });
         listenerDragged_ = events().mouseDragged.listen([this](MouseDragEventArgs& e) {
-            onMouseDragged(e.pos.x, e.pos.y, e.button);
+            if (onMouseDragged(e.pos.x, e.pos.y, e.button)) e.consumed = true;
         });
         listenerScrolled_ = events().mouseScrolled.listen([this](ScrollEventArgs& e) {
             if (!modifierHeld(e.shift, e.ctrl, e.alt, e.super)) return;
-            onMouseScrolled(e.scroll.x, e.scroll.y);
+            if (onMouseScrolled(e.scroll.x, e.scroll.y)) e.consumed = true;
         });
     }
 
@@ -336,34 +341,43 @@ private:
         return true;
     }
 
-    // Internal mouse handlers
-    void onMousePressed(float x, float y, int button) {
-        if (!isInsideControlArea(x, y)) return;
+    // Internal mouse handlers. Each returns true when the camera claimed the
+    // input (drives event consumption in the listeners above).
+    bool onMousePressed(float x, float y, int button) {
+        if (!isInsideControlArea(x, y)) return false;
 
         lastMouseX_ = x;
         lastMouseY_ = y;
 
         if (button == orbitButton_) {
             isDragging_ = true;
+            return true;
         } else if (button == panButton_) {
             isPanning_ = true;
+            return true;
         }
+        return false;
     }
 
-    void onMouseReleased(float x, float y, int button) {
+    bool onMouseReleased(float x, float y, int button) {
         (void)x; (void)y;
-        if (button == orbitButton_) {
+        if (button == orbitButton_ && isDragging_) {
             isDragging_ = false;
-        } else if (button == panButton_) {
+            return true;
+        } else if (button == panButton_ && isPanning_) {
             isPanning_ = false;
+            return true;
         }
+        return false;
     }
 
-    void onMouseDragged(float x, float y, int button) {
+    bool onMouseDragged(float x, float y, int button) {
         float dx = x - lastMouseX_;
         float dy = y - lastMouseY_;
+        bool claimed = false;
 
         if (isDragging_ && button == orbitButton_) {
+            claimed = true;
             // Rotation (Y drag for elevation, X drag for azimuth)
             rotationY_ -= dx * 0.01f * sensitivity_;
             rotationX_ += dy * 0.01f * sensitivity_;  // Intuitive up/down
@@ -373,6 +387,7 @@ private:
             if (rotationX_ > maxAngle) rotationX_ = maxAngle;
             if (rotationX_ < -maxAngle) rotationX_ = -maxAngle;
         } else if (isPanning_ && button == panButton_) {
+            claimed = true;
             Vec3 right, forward;
             getOrbitAxes(right, forward);
 
@@ -396,18 +411,20 @@ private:
 
         lastMouseX_ = x;
         lastMouseY_ = y;
+        return claimed;
     }
 
-    void onMouseScrolled(float dx, float dy) {
+    bool onMouseScrolled(float dx, float dy) {
         (void)dx;
         // Check control area using current mouse position
         float mx = lastMouseX_;
         float my = lastMouseY_;
-        if (!isInsideControlArea(mx, my)) return;
+        if (!isInsideControlArea(mx, my)) return false;
 
         // Zoom (change distance)
         distance_ -= dy * zoomSensitivity_;
         if (distance_ < 0.1f) distance_ = 0.1f;
+        return true;
     }
 
 public:
