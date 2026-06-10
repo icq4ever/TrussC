@@ -100,7 +100,7 @@ void tcApp::setup() {
 |------|-----------|-------------|
 | `imgui_get_widgets` | `window` (optional) | List all widgets with labels, types, and positions |
 | `imgui_click` | `label`, `window` (optional) | Click a widget by label |
-| `imgui_input` | `label`, `text`, `window` (optional) | Type text into an input widget |
+| `imgui_input` | `label`, `text`, `window` (optional) | Set a widget's value: replaces text in input widgets, and enters numeric values directly into slider/drag widgets (Ctrl+Click temp input) |
 | `imgui_checkbox` | `label`, `value` (optional), `window` (optional) | Toggle or set a checkbox |
 
 These tools use ImGui's Test Engine hooks to collect widget info each frame.
