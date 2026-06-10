@@ -129,14 +129,20 @@ public:
     // receiving events through overlapping siblings)
     // -------------------------------------------------------------------------
 
-    HitResult findHitNodeRecursive(const Ray& globalRay, const Mat4& parentInverseMatrix) override {
+    HitResult findHitNodeRecursive(internal::PickRaySource& pick,
+                                   const CameraContext* inheritedCtx,
+                                   Ray globalRay,
+                                   const Mat4& parentInverseMatrix) override {
         if (!isActive() || !isVisible()) return HitResult{};
 
         if (clipping_) {
-            // Pre-check: ray must hit this rect before we check children
+            // Pre-check: ray must hit this rect before we check children.
+            // Use this node's effective camera context, same as the base does.
+            auto [ctx, ray] = resolvePickRay(pick, inheritedCtx, globalRay);
+            (void)ctx;
             Mat4 localInverse = getLocalMatrix().inverted();
             Mat4 globalInverse = localInverse * parentInverseMatrix;
-            Ray localRay = globalRay.transformed(globalInverse);
+            Ray localRay = ray.transformed(globalInverse);
 
             float t;
             Vec3 hp;
@@ -146,7 +152,7 @@ public:
             }
         }
 
-        return Node::findHitNodeRecursive(globalRay, parentInverseMatrix);
+        return Node::findHitNodeRecursive(pick, inheritedCtx, globalRay, parentInverseMatrix);
     }
 
     // -------------------------------------------------------------------------

@@ -59,6 +59,10 @@ public:
         internal::currentViewW = w;
         internal::currentViewH = h;
 
+        // Register this camera scope: nodes drawn between begin()/end() stamp
+        // it, so mouse picking unprojects through THIS camera for them.
+        internal::registerCameraContext(view, projection, w, h, true);
+
         // Apply to SGL (needs column-major, so transpose)
         Mat4 projT = projection.transposed();
         Mat4 viewT = view.transposed();

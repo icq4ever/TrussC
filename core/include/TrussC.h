@@ -56,6 +56,9 @@
 // TrussC ray (for hit testing)
 #include "tc/math/tcRay.h"
 
+// Camera snapshot for draw-time stamping & picking
+#include "tc/graphics/tcCameraContext.h"
+
 // TrussC FFT (Fast Fourier Transform)
 #include "tc/math/tcFFT.h"
 
@@ -170,7 +173,8 @@ namespace internal {
     inline Mat4 currentProjectionMatrix = Mat4::identity();
 
     // Forward declaration of setupScreenFov functions (defined later, after TAU is available)
-    inline void setupScreenFovWithSize(float fovDeg, float viewW, float viewH, float nearDist = 0.0f, float farDist = 0.0f);
+    // `pickable` flows into the registered CameraContext (false for FBO scopes).
+    inline void setupScreenFovWithSize(float fovDeg, float viewW, float viewH, float nearDist = 0.0f, float farDist = 0.0f, bool pickable = true);
     inline void setupScreenFov(float fovDeg, float nearDist = 0.0f, float farDist = 0.0f);
 
 
@@ -770,7 +774,7 @@ namespace internal {
     constexpr float minFovForCalc = 10.0f;
 
     // Core implementation with explicit width/height (for FBO support)
-    inline void setupScreenFovWithSize(float fovDeg, float viewW, float viewH, float nearDist, float farDist) {
+    inline void setupScreenFovWithSize(float fovDeg, float viewW, float viewH, float nearDist, float farDist, bool pickable) {
         // Skip in headless mode
         if (headless::isActive()) return;
 
@@ -859,6 +863,10 @@ namespace internal {
                 Vec3(0.0f, 1.0f, 0.0f)
             );
         }
+
+        // Register this camera scope so nodes drawn from here on stamp it
+        // (draw-time stamping → per-context pick rays; see tcCameraContext.h).
+        registerCameraContext(currentViewMatrix, currentProjectionMatrix, viewW, viewH, pickable);
     }
 
     // Wrapper that uses main screen size

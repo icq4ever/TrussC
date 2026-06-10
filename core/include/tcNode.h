@@ -514,8 +514,32 @@ public:
     // Hit test entire tree with global ray, return frontmost node
     // Traversed in reverse draw order (later drawn = higher priority)
     HitResult findHitNode(const Ray& globalRay) {
-        return findHitNodeRecursive(globalRay, getGlobalMatrixInverse());
+        internal::PickRaySource pick;
+        pick.hasFixedRay = true;
+        pick.fixedRay = globalRay;
+        const CameraContext* ctx = cameraContext_ ? cameraContext_.get() : nullptr;
+        return findHitNodeRecursive(pick, ctx, globalRay, getGlobalMatrixInverse());
     }
+
+    // Hit test entire tree from a screen point. Each node is tested with a ray
+    // unprojected through ITS OWN camera context (stamped at draw time), so a
+    // node drawn under the default perspective screen, an EasyCam, or any
+    // other camera is picked exactly where it is rendered. Nodes never drawn
+    // (no stamp) inherit their parent's context; with no context anywhere this
+    // falls back to the plain vertical screen ray.
+    HitResult findHitNodeFromScreen(float screenX, float screenY) {
+        internal::PickRaySource pick;
+        pick.screenX = screenX;
+        pick.screenY = screenY;
+        const CameraContext* ctx = cameraContext_ ? cameraContext_.get() : nullptr;
+        return findHitNodeRecursive(pick, ctx, pick.rayFor(ctx), getGlobalMatrixInverse());
+    }
+
+    // The camera context this node was last drawn under (null if never drawn
+    // or drawn before the first camera registration). Set automatically by
+    // drawTree(); setCameraContext() exists for manually-managed nodes.
+    std::shared_ptr<const CameraContext> getCameraContext() const { return cameraContext_; }
+    void setCameraContext(std::shared_ptr<const CameraContext> ctx) { cameraContext_ = std::move(ctx); }
 
     // -------------------------------------------------------------------------
     // Mod system - attach behaviors to nodes
@@ -738,6 +762,12 @@ private:
             setup();
         }
 
+        // Stamp the camera scope this node is being drawn under (pointer
+        // compare first — steady state is one assignment skip per frame).
+        if (internal::currentCameraContext && cameraContext_ != internal::currentCameraContext) {
+            cameraContext_ = internal::currentCameraContext;
+        }
+
         pushMatrix();
 
         // Apply transforms using cached matrix
@@ -811,8 +841,7 @@ private:
     // (pos == globalPos); each node receives a copy localized to its space.
     // return: node that handled event (nullptr if not handled)
     Ptr dispatchMousePress(const MouseEventArgs& e) {
-        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
-        HitResult result = findHitNode(globalRay);
+        HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         // Selection: clicking a node selects it; clicking empty space clears it.
         internal::selectedNode = result.hit() ? result.node.get() : nullptr;
@@ -847,8 +876,7 @@ private:
         }
 
         // Fallback: send to hit node
-        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
-        HitResult result = findHitNode(globalRay);
+        HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         if (result.hit()) {
             MouseEventArgs local = result.node->localizeMouse(e);
@@ -869,8 +897,7 @@ private:
         }
 
         // Also send move event to hit node (for hover, etc.)
-        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
-        HitResult result = findHitNode(globalRay);
+        HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         if (result.hit()) {
             MouseEventRaw local = result.node->localizeMouse(e);
@@ -883,8 +910,7 @@ private:
     }
 
     Ptr dispatchMouseScroll(const ScrollEventArgs& e) {
-        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
-        HitResult result = findHitNode(globalRay);
+        HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         if (result.hit()) {
             // Bubble up from hit node to ancestors until consumed
@@ -926,8 +952,7 @@ private:
         // Leave below (this is a per-frame recompute, so no stale hover).
         Node* hit = nullptr;
         if (!isOverlayHovered()) {
-            Ray globalRay = Ray::fromScreenPoint2D(screenX, screenY);
-            HitResult result = findHitNode(globalRay);
+            HitResult result = findHitNodeFromScreen(screenX, screenY);
             hit = result.hit() ? result.node.get() : nullptr;
         }
         internal::hoveredNode = hit;
@@ -978,17 +1003,37 @@ private:
     }
 
 protected:
+    // Resolve this node's effective camera context and the global ray to test
+    // it with. A node stamped with its own context gets a ray unprojected
+    // through THAT camera; otherwise it inherits the parent's (`inheritedCtx`,
+    // whose ray is `globalRay` already). Ray is returned by value — 24 bytes —
+    // because PickRaySource's cache can reallocate as the traversal discovers
+    // more contexts.
+    std::pair<const CameraContext*, Ray> resolvePickRay(
+            internal::PickRaySource& pick, const CameraContext* inheritedCtx,
+            const Ray& globalRay) const {
+        const CameraContext* ctx = cameraContext_ ? cameraContext_.get() : inheritedCtx;
+        if (ctx == inheritedCtx) return {ctx, globalRay};
+        return {ctx, pick.rayFor(ctx)};
+    }
+
     // Recursive hit test (traversed in reverse draw order)
     // Protected so that RectNode can override for clipping-aware hit test
-    virtual HitResult findHitNodeRecursive(const Ray& globalRay, const Mat4& parentInverseMatrix) {
+    virtual HitResult findHitNodeRecursive(internal::PickRaySource& pick,
+                                           const CameraContext* inheritedCtx,
+                                           Ray globalRay,
+                                           const Mat4& parentInverseMatrix) {
         if (!isActive_ || !isVisible_) return HitResult{};
+
+        // Effective camera context for this subtree (own stamp or inherited)
+        auto [ctx, ray] = resolvePickRay(pick, inheritedCtx, globalRay);
 
         // Calculate inverse matrix for this node
         Mat4 localInverse = getLocalMatrix().inverted();
         Mat4 globalInverse = localInverse * parentInverseMatrix;
 
         // Convert global ray to local ray
-        Ray localRay = globalRay.transformed(globalInverse);
+        Ray localRay = ray.transformed(globalInverse);
 
         HitResult bestResult{};
 
@@ -997,7 +1042,7 @@ protected:
         // a pure geometric predicate, but the snapshot is cheap insurance.
         auto snapshot = children_;
         for (auto it = snapshot.rbegin(); it != snapshot.rend(); ++it) {
-            HitResult childResult = (*it)->findHitNodeRecursive(globalRay, globalInverse);
+            HitResult childResult = (*it)->findHitNodeRecursive(pick, ctx, ray, globalInverse);
             if (childResult.hit()) {
                 // Use child's result (later in draw order = front)
                 bestResult = childResult;
@@ -1006,8 +1051,10 @@ protected:
         }
 
         // If no child hit, check self: the node's own hitTest OR any mod's
-        // hitTest (mouse picking). First true wins (mods short-circuit once hit).
-        if (!bestResult.hit()) {
+        // hitTest (mouse picking). First true wins (mods short-circuit once
+        // hit). Skipped when this node's context is unpickable (drawn into an
+        // FBO — a main-screen click must not pick offscreen geometry).
+        if (!bestResult.hit() && (!ctx || ctx->pickable)) {
             float distance;
             bool hit = hitTest(localRay, distance);
             if (!hit) {
@@ -1188,6 +1235,10 @@ private:
     bool eventsEnabled_ = false;  // Enabled via enableEvents()
     bool isActive_ = true;        // false: update/draw are skipped
     bool isVisible_ = true;       // false: only draw is skipped
+
+    // Camera this node was last drawn under (stamped each drawTree). Drives
+    // per-context pick rays; see tcCameraContext.h.
+    std::shared_ptr<const CameraContext> cameraContext_;
 
     // Mod system
     std::unordered_map<std::type_index, std::unique_ptr<Mod>> mods_;
