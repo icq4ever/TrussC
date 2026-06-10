@@ -337,11 +337,12 @@ public:
     // events stay correct. Subclasses extend via `using Super = Node;` + their
     // own TC_REFLECT block.
     TC_REFLECT_ROOT(Node)
-        TC_PROPERTY(pos,      getPos,    setPos)
-        TC_PROPERTY(rotation, getRotDeg, setRotDeg)
-        TC_PROPERTY(scale,    getScale,  setScale)
-        TC_PROPERTY(visible,  isVisible, setVisible)
-        TC_PROPERTY(active,   isActive,  setActive)
+        TC_PROPERTY(pos,       getPos,       setPos)
+        TC_PROPERTY(globalPos, getGlobalPos, setGlobalPos)
+        TC_PROPERTY(rotation,  getEulerDeg,  setEulerDeg)   // euler X/Y/Z, degrees
+        TC_PROPERTY(scale,     getScale,     setScale)
+        TC_PROPERTY(visible,   isVisible,    setVisible)
+        TC_PROPERTY(active,    isActive,     setActive)
     TC_REFLECT_END
 
     // -------------------------------------------------------------------------
@@ -382,6 +383,8 @@ public:
     Vec3 getEuler() const { return rotation_.toEuler(); }
     void setEuler(const Vec3& euler) { setQuaternion(Quaternion::fromEuler(euler)); }
     void setEuler(float pitch, float yaw, float roll) { setEuler(Vec3(pitch, yaw, roll)); }
+    Vec3 getEulerDeg() const { Vec3 e = getEuler(); return Vec3(rad2deg(e.x), rad2deg(e.y), rad2deg(e.z)); }
+    void setEulerDeg(const Vec3& deg) { setEuler(Vec3(deg2rad(deg.x), deg2rad(deg.y), deg2rad(deg.z))); }
 
     // 2D convenience: Z-axis rotation only (radians)
     float getRot() const {
@@ -461,6 +464,17 @@ public:
     Vec3 getGlobalPos() const {
         return localToGlobal(Vec3(0, 0, 0));
     }
+
+    // Set global position: converts into the parent's coordinate space and
+    // writes the local position (the counterpart of getGlobalPos).
+    void setGlobalPos(const Vec3& global) {
+        if (auto p = parent_.lock()) {
+            setPos(p->globalToLocal(global));
+        } else {
+            setPos(global);
+        }
+    }
+    void setGlobalPos(float x, float y, float z = 0.0f) { setGlobalPos(Vec3(x, y, z)); }
 
     // Convert local coordinates to global coordinates
     Vec3 localToGlobal(const Vec3& local) const {
