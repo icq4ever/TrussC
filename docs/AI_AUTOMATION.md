@@ -53,7 +53,7 @@ TrussC uses **HTTP transport** for MCP. All JSON-RPC messages are sent as HTTP P
 | Tool | Arguments | Description |
 |------|-----------|-------------|
 | `mouse_move` | `x`, `y`, `button` | Move mouse cursor (and optionally drag) |
-| `mouse_click` | `x`, `y`, `button` | Click mouse button (0:left, 1:right) |
+| `mouse_click` | `x`, `y`, `button`, `shift`/`ctrl`/`alt`/`super` (optional) | Click mouse button (0:left, 1:right), optionally with modifier keys held — e.g. `super: true` Cmd+clicks |
 | `mouse_scroll` | `dx`, `dy` | Scroll mouse wheel |
 | `key_press` | `key` | Press a key (sokol_app keycode) |
 | `key_release` | `key` | Release a key |

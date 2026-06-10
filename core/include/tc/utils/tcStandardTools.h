@@ -191,24 +191,35 @@ inline void registerDebuggerTools() {
             return json{{"status", "ok"}};
         });
 
-    tool("mouse_click", "Click mouse button")
+    tool("mouse_click", "Click mouse button (optionally with modifier keys held)")
         .arg<float>("x", "X coordinate")
         .arg<float>("y", "Y coordinate")
         .arg<int>("button", "Button (0:left, 1:right, 2:middle)", false)
-        .bind<float, float, int>([](float x, float y, int button) {
-            // Press
+        .arg<bool>("shift", "Hold Shift", false)
+        .arg<bool>("ctrl", "Hold Ctrl", false)
+        .arg<bool>("alt", "Hold Alt", false)
+        .arg<bool>("super", "Hold Cmd/Super", false)
+        .bind([](const json& a) -> json {
             MouseEventArgs args;
-            args.pos = args.globalPos = Vec2(x, y);
-            args.button = button;
+            args.pos = args.globalPos = Vec2(a.at("x").get<float>(), a.at("y").get<float>());
+            args.button = a.value("button", 0);
+            args.shift = a.value("shift", false);
+            args.ctrl  = a.value("ctrl", false);
+            args.alt   = a.value("alt", false);
+            args.super = a.value("super", false);
             args.syncLegacy();
+
+            // Press
             events().mousePressed.notify(args);
             if (::trussc::internal::appMousePressedFunc)
                 ::trussc::internal::appMousePressedFunc(args);
 
-            // Release
-            events().mouseReleased.notify(args);
+            // Release (fresh consumed flag — the press consumer may differ)
+            MouseEventArgs rel = args;
+            rel.consumed = false;
+            events().mouseReleased.notify(rel);
             if (::trussc::internal::appMouseReleasedFunc)
-                ::trussc::internal::appMouseReleasedFunc(args);
+                ::trussc::internal::appMouseReleasedFunc(rel);
 
             return json{{"status", "ok"}};
         });
