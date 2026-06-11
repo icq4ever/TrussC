@@ -252,6 +252,18 @@ public:
         internal::currentFboSampleCount = 1;
         internal::fboClearColorFunc = nullptr;
 
+        // Restore the screen camera state saved in beginInternal() so
+        // worldToScreen / camera-context stamping after end() see the screen
+        // camera again instead of this FBO's projection.
+        internal::currentScreenFov = savedScreenFov_;
+        internal::currentViewW = savedViewW_;
+        internal::currentViewH = savedViewH_;
+        internal::currentCameraDist = savedCameraDist_;
+        internal::currentProjectionMatrix = savedProjectionMatrix_;
+        internal::currentViewMatrix = savedViewMatrix_;
+        internal::currentCameraContext = savedCameraContext_;
+        savedCameraContext_.reset();
+
         // Resume swapchain pass (if we were in one before)
         if (wasInSwapchainPass_) {
             resumeSwapchainPass();
@@ -354,6 +366,15 @@ private:
     bool wasInSwapchainPass_ = false;  // Was in swapchain pass when begin() called
     bool mipmaps_ = false;
     int  numMipLevels_ = 1;
+
+    // Screen camera state captured in beginInternal(), restored in end()
+    float savedScreenFov_ = 0.0f;
+    float savedViewW_ = 0.0f;
+    float savedViewH_ = 0.0f;
+    float savedCameraDist_ = 0.0f;
+    Mat4  savedProjectionMatrix_ = Mat4::identity();
+    Mat4  savedViewMatrix_ = Mat4::identity();
+    std::shared_ptr<const CameraContext> savedCameraContext_;
 
     // Non-MSAA texture (always used, resolve target for MSAA)
     Texture colorTexture_;
@@ -630,8 +651,22 @@ private:
         sgl_tc_context_ensure_buffers(shared.context);
         sgl_defaults();
 
-        // Setup screen projection using defaultScreenFov (like main screen)
-        internal::setupScreenFovWithSize(internal::defaultScreenFov, (float)width_, (float)height_, 0.0f, 0.0f);
+        // Save the screen camera state so end() can restore it — the FBO's own
+        // projection setup below overwrites these globals, and anything drawn
+        // after end() (worldToScreen, node camera-context stamping) must see
+        // the screen camera again, not the FBO's.
+        savedScreenFov_ = internal::currentScreenFov;
+        savedViewW_ = internal::currentViewW;
+        savedViewH_ = internal::currentViewH;
+        savedCameraDist_ = internal::currentCameraDist;
+        savedProjectionMatrix_ = internal::currentProjectionMatrix;
+        savedViewMatrix_ = internal::currentViewMatrix;
+        savedCameraContext_ = internal::currentCameraContext;
+
+        // Setup screen projection using defaultScreenFov (like main screen).
+        // pickable=false: geometry drawn into an offscreen target must not be
+        // pickable from main-screen clicks (see tcCameraContext.h).
+        internal::setupScreenFovWithSize(internal::defaultScreenFov, (float)width_, (float)height_, 0.0f, 0.0f, false);
 
         // Use alpha blend pipeline (Porter-Duff over)
         // Result stored as premultiplied alpha in FBO
@@ -659,6 +694,13 @@ private:
         wasInSwapchainPass_ = other.wasInSwapchainPass_;
         mipmaps_ = other.mipmaps_;
         numMipLevels_ = other.numMipLevels_;
+        savedScreenFov_ = other.savedScreenFov_;
+        savedViewW_ = other.savedViewW_;
+        savedViewH_ = other.savedViewH_;
+        savedCameraDist_ = other.savedCameraDist_;
+        savedProjectionMatrix_ = other.savedProjectionMatrix_;
+        savedViewMatrix_ = other.savedViewMatrix_;
+        savedCameraContext_ = std::move(other.savedCameraContext_);
         colorTexture_ = std::move(other.colorTexture_);
         msaaColorImage_ = other.msaaColorImage_;
         msaaColorAttView_ = other.msaaColorAttView_;

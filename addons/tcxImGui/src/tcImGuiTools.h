@@ -83,20 +83,30 @@ inline void clickWidget(const WidgetInfo& w) {
 inline void inputText(const WidgetInfo& w, const std::string& text) {
     auto& io = ImGui::GetIO();
     auto center = w.rect.GetCenter();
-    // Click to focus
+    // ImGui's shortcut modifier is internal-Ctrl. With ConfigMacOSXBehaviors,
+    // AddKeyEvent swaps Cmd<->Ctrl, so submit Super to land on internal Ctrl.
+    // (Submitting Ctrl there would become internal Super, and Super+LeftClick
+    // gets aliased into a right click.)
+    ImGuiKey mod = io.ConfigMacOSXBehaviors ? ImGuiMod_Super : ImGuiMod_Ctrl;
+    // Ctrl+Click: focuses text inputs, and turns slider/drag widgets into a
+    // temp text input (a plain click would just jump the slider value).
+    // The modifier must be down DURING the click for temp input activation.
     io.AddMousePosEvent(center.x, center.y);
+    io.AddKeyEvent(mod, true);
     io.AddMouseButtonEvent(0, true);
     io.AddMouseButtonEvent(0, false);
-    // Select all (Ctrl+A)
-    io.AddKeyEvent(ImGuiMod_Ctrl, true);
+    // Select all (shortcut+A) while the modifier is still held
     io.AddKeyEvent(ImGuiKey_A, true);
     io.AddKeyEvent(ImGuiKey_A, false);
-    io.AddKeyEvent(ImGuiMod_Ctrl, false);
+    io.AddKeyEvent(mod, false);
     // Delete selection
     io.AddKeyEvent(ImGuiKey_Delete, true);
     io.AddKeyEvent(ImGuiKey_Delete, false);
     // Type text
     io.AddInputCharactersUTF8(text.c_str());
+    // Commit: applies slider/drag temp input; deactivates InputText
+    io.AddKeyEvent(ImGuiKey_Enter, true);
+    io.AddKeyEvent(ImGuiKey_Enter, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -188,10 +198,10 @@ inline void registerImGuiTools() {
             };
         }));
 
-    // imgui_input — type text into an input widget
-    mcp::tool("imgui_input", "Type text into an ImGui input widget")
-        .arg<std::string>("label", "Input widget label")
-        .arg<std::string>("text", "Text to type")
+    // imgui_input — set the value of an input/slider/drag widget
+    mcp::tool("imgui_input", "Set the value of an ImGui widget: text inputs, and numeric entry on slider/drag widgets")
+        .arg<std::string>("label", "Widget label")
+        .arg<std::string>("text", "Replacement text (or numeric value for slider/drag)")
         .arg<std::string>("window", "Window name (optional)", false)
         .bind(std::function<json(const json&)>([](const json& args) -> json {
             std::string label = args.at("label").get<std::string>();

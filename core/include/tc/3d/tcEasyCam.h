@@ -11,6 +11,11 @@ namespace trussc {
 
 class EasyCam {
 public:
+    // Modifier key that must be held for camera mouse input (orbit / pan /
+    // zoom). Lets the camera share the mouse with scene interaction — e.g.
+    // require Shift for the camera so plain drags go to gizmos / nodes.
+    enum class Modifier { None, Shift, Ctrl, Alt, Super };
+
     EasyCam()
         : target_{0.0f, 0.0f, 0.0f}
         , upAxis_{0.0f, 1.0f, 0.0f}
@@ -58,6 +63,10 @@ public:
         internal::currentViewMatrix = view;
         internal::currentViewW = w;
         internal::currentViewH = h;
+
+        // Register this camera scope: nodes drawn between begin()/end() stamp
+        // it, so mouse picking unprojects through THIS camera for them.
+        internal::registerCameraContext(view, projection, w, h, true);
 
         // Apply to SGL (needs column-major, so transpose)
         Mat4 projT = projection.transposed();
@@ -189,6 +198,25 @@ public:
         panSensitivity_ = s;
     }
 
+    // ---------------------------------------------------------------------------
+    // Mouse bindings — which inputs drive the camera
+    // ---------------------------------------------------------------------------
+
+    // Mouse button that orbits (default: left)
+    EasyCam& setOrbitButton(int button) { orbitButton_ = button; return *this; }
+    int getOrbitButton() const { return orbitButton_; }
+
+    // Mouse button that pans (default: middle)
+    EasyCam& setPanButton(int button) { panButton_ = button; return *this; }
+    int getPanButton() const { return panButton_; }
+
+    // Modifier key required for camera input (orbit / pan / zoom). Checked at
+    // press / scroll time; a drag that started with the modifier held keeps
+    // the camera until release even if the modifier is let go mid-gesture.
+    // Default: Modifier::None (no modifier needed).
+    EasyCam& setDragModifier(Modifier m) { dragModifier_ = m; return *this; }
+    Modifier getDragModifier() const { return dragModifier_; }
+
     // Constrain mouse input to a specific screen area.
     // Only mouse events inside this rect will be processed.
     // Pass an empty rect (width or height <= 0) to clear the constraint.
@@ -214,17 +242,26 @@ public:
             lastMouseX_ = e.pos.x;
             lastMouseY_ = e.pos.y;
         });
+        // The camera CONSUMES the gestures it claims (same consume + capture
+        // contract as other overlay consumers): a press that starts an orbit /
+        // pan owns the whole gesture, so the node tree never sees a click,
+        // drag or release that was camera input.
         listenerPressed_ = events().mousePressed.listen([this](MouseEventArgs& e) {
-            onMousePressed(e.pos.x, e.pos.y, e.button);
+            // Gestures are claimed at press time: no modifier, no camera.
+            if (!modifierHeld(e.shift, e.ctrl, e.alt, e.super)) return;
+            if (onMousePressed(e.pos.x, e.pos.y, e.button)) e.consumed = true;
         });
         listenerReleased_ = events().mouseReleased.listen([this](MouseEventArgs& e) {
-            onMouseReleased(e.pos.x, e.pos.y, e.button);
+            // Never gated on the modifier — a release must always be able to
+            // end an in-flight gesture (even if the modifier was let go).
+            if (onMouseReleased(e.pos.x, e.pos.y, e.button)) e.consumed = true;
         });
         listenerDragged_ = events().mouseDragged.listen([this](MouseDragEventArgs& e) {
-            onMouseDragged(e.pos.x, e.pos.y, e.button);
+            if (onMouseDragged(e.pos.x, e.pos.y, e.button)) e.consumed = true;
         });
         listenerScrolled_ = events().mouseScrolled.listen([this](ScrollEventArgs& e) {
-            onMouseScrolled(e.scroll.x, e.scroll.y);
+            if (!modifierHeld(e.shift, e.ctrl, e.alt, e.super)) return;
+            if (onMouseScrolled(e.scroll.x, e.scroll.y)) e.consumed = true;
         });
     }
 
@@ -292,34 +329,55 @@ private:
             && y >= controlArea_.y && y <= controlArea_.y + controlArea_.height;
     }
 
-    // Internal mouse handlers
-    void onMousePressed(float x, float y, int button) {
-        if (!isInsideControlArea(x, y)) return;
+    // Required drag modifier held? (None -> always true)
+    bool modifierHeld(bool shift, bool ctrl, bool alt, bool super) const {
+        switch (dragModifier_) {
+            case Modifier::Shift: return shift;
+            case Modifier::Ctrl:  return ctrl;
+            case Modifier::Alt:   return alt;
+            case Modifier::Super: return super;
+            case Modifier::None:  return true;
+        }
+        return true;
+    }
+
+    // Internal mouse handlers. Each returns true when the camera claimed the
+    // input (drives event consumption in the listeners above).
+    bool onMousePressed(float x, float y, int button) {
+        if (!isInsideControlArea(x, y)) return false;
 
         lastMouseX_ = x;
         lastMouseY_ = y;
 
-        if (button == (int)MOUSE_BUTTON_LEFT) {
+        if (button == orbitButton_) {
             isDragging_ = true;
-        } else if (button == (int)MOUSE_BUTTON_MIDDLE) {
+            return true;
+        } else if (button == panButton_) {
             isPanning_ = true;
+            return true;
         }
+        return false;
     }
 
-    void onMouseReleased(float x, float y, int button) {
+    bool onMouseReleased(float x, float y, int button) {
         (void)x; (void)y;
-        if (button == (int)MOUSE_BUTTON_LEFT) {
+        if (button == orbitButton_ && isDragging_) {
             isDragging_ = false;
-        } else if (button == (int)MOUSE_BUTTON_MIDDLE) {
+            return true;
+        } else if (button == panButton_ && isPanning_) {
             isPanning_ = false;
+            return true;
         }
+        return false;
     }
 
-    void onMouseDragged(float x, float y, int button) {
+    bool onMouseDragged(float x, float y, int button) {
         float dx = x - lastMouseX_;
         float dy = y - lastMouseY_;
+        bool claimed = false;
 
-        if (isDragging_ && button == (int)MOUSE_BUTTON_LEFT) {
+        if (isDragging_ && button == orbitButton_) {
+            claimed = true;
             // Rotation (Y drag for elevation, X drag for azimuth)
             rotationY_ -= dx * 0.01f * sensitivity_;
             rotationX_ += dy * 0.01f * sensitivity_;  // Intuitive up/down
@@ -328,7 +386,8 @@ private:
             float maxAngle = 1.4f;
             if (rotationX_ > maxAngle) rotationX_ = maxAngle;
             if (rotationX_ < -maxAngle) rotationX_ = -maxAngle;
-        } else if (isPanning_ && button == (int)MOUSE_BUTTON_MIDDLE) {
+        } else if (isPanning_ && button == panButton_) {
+            claimed = true;
             Vec3 right, forward;
             getOrbitAxes(right, forward);
 
@@ -352,18 +411,20 @@ private:
 
         lastMouseX_ = x;
         lastMouseY_ = y;
+        return claimed;
     }
 
-    void onMouseScrolled(float dx, float dy) {
+    bool onMouseScrolled(float dx, float dy) {
         (void)dx;
         // Check control area using current mouse position
         float mx = lastMouseX_;
         float my = lastMouseY_;
-        if (!isInsideControlArea(mx, my)) return;
+        if (!isInsideControlArea(mx, my)) return false;
 
         // Zoom (change distance)
         distance_ -= dy * zoomSensitivity_;
         if (distance_ < 0.1f) distance_ = 0.1f;
+        return true;
     }
 
 public:
@@ -389,10 +450,15 @@ private:
     float farClip_;       // Far clipping plane
 
     bool mouseInputEnabled_;
-    bool isDragging_;     // Left button dragging
-    bool isPanning_;      // Middle button dragging
+    bool isDragging_;     // Orbit-button dragging
+    bool isPanning_;      // Pan-button dragging
     float lastMouseX_;
     float lastMouseY_;
+
+    // Mouse bindings (see setOrbitButton / setPanButton / setDragModifier)
+    int orbitButton_ = (int)MOUSE_BUTTON_LEFT;
+    int panButton_ = (int)MOUSE_BUTTON_MIDDLE;
+    Modifier dragModifier_ = Modifier::None;
 
     float sensitivity_;       // Rotation sensitivity
     float zoomSensitivity_;   // Zoom sensitivity

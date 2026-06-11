@@ -56,6 +56,9 @@
 // TrussC ray (for hit testing)
 #include "tc/math/tcRay.h"
 
+// Camera snapshot for draw-time stamping & picking
+#include "tc/graphics/tcCameraContext.h"
+
 // TrussC FFT (Fast Fourier Transform)
 #include "tc/math/tcFFT.h"
 
@@ -88,6 +91,7 @@
 
 // TrussC JSON/XML
 #include "tc/utils/tcJson.h"
+#include "tc/utils/tcJsonReflect.h"
 #include "tc/utils/tcXml.h"
 
 // TrussC file utilities
@@ -115,6 +119,7 @@ enum class BlendMode {
     Subtract,   // Subtractive blending
     Disabled    // No blending (overwrite)
 };
+TC_ENUM_LABELS(BlendMode, "Alpha", "Add", "Multiply", "Screen", "Subtract", "Disabled")
 
 // ---------------------------------------------------------------------------
 // Texture filter
@@ -170,7 +175,8 @@ namespace internal {
     inline Mat4 currentProjectionMatrix = Mat4::identity();
 
     // Forward declaration of setupScreenFov functions (defined later, after TAU is available)
-    inline void setupScreenFovWithSize(float fovDeg, float viewW, float viewH, float nearDist = 0.0f, float farDist = 0.0f);
+    // `pickable` flows into the registered CameraContext (false for FBO scopes).
+    inline void setupScreenFovWithSize(float fovDeg, float viewW, float viewH, float nearDist = 0.0f, float farDist = 0.0f, bool pickable = true);
     inline void setupScreenFov(float fovDeg, float nearDist = 0.0f, float farDist = 0.0f);
 
 
@@ -770,7 +776,7 @@ namespace internal {
     constexpr float minFovForCalc = 10.0f;
 
     // Core implementation with explicit width/height (for FBO support)
-    inline void setupScreenFovWithSize(float fovDeg, float viewW, float viewH, float nearDist, float farDist) {
+    inline void setupScreenFovWithSize(float fovDeg, float viewW, float viewH, float nearDist, float farDist, bool pickable) {
         // Skip in headless mode
         if (headless::isActive()) return;
 
@@ -801,7 +807,11 @@ namespace internal {
                 sgl_load_pipeline(blendPipelines[static_cast<int>(BlendMode::Alpha)]);
             }
             sgl_matrix_mode_projection();
-            sgl_ortho(0.0f, viewW, viewH, 0.0f, -farDist, farDist);
+            // Ortho volume CENTERED on the camera: the lookat below moves the
+            // world center to the view origin, so the volume must span
+            // [-W/2, W/2] x [H/2, -H/2] (Y flipped) — a [0, W] x [H, 0] volume
+            // here double-offsets everything by half a screen.
+            sgl_ortho(-viewW / 2.0f, viewW / 2.0f, viewH / 2.0f, -viewH / 2.0f, -farDist, farDist);
             sgl_matrix_mode_modelview();
             sgl_load_identity();
             // Camera position (for consistent Z behavior with perspective)
@@ -812,7 +822,7 @@ namespace internal {
             );
 
             // Save matrices for worldToScreen/screenToWorld
-            currentProjectionMatrix = Mat4::ortho(0.0f, viewW, viewH, 0.0f, -farDist, farDist);
+            currentProjectionMatrix = Mat4::ortho(-viewW / 2.0f, viewW / 2.0f, viewH / 2.0f, -viewH / 2.0f, -farDist, farDist);
             currentViewMatrix = Mat4::lookAt(
                 Vec3(eyeX, eyeY, dist),
                 Vec3(eyeX, eyeY, 0.0f),
@@ -855,6 +865,10 @@ namespace internal {
                 Vec3(0.0f, 1.0f, 0.0f)
             );
         }
+
+        // Register this camera scope so nodes drawn from here on stamp it
+        // (draw-time stamping → per-context pick rays; see tcCameraContext.h).
+        registerCameraContext(currentViewMatrix, currentProjectionMatrix, viewW, viewH, pickable);
     }
 
     // Wrapper that uses main screen size

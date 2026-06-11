@@ -33,6 +33,7 @@ namespace internal {
     inline Node* grabbedNode = nullptr;      // Node grabbed by mouse press
     inline int grabbedButton = -1;           // Mouse button that caused the grab
     inline Node* selectedNode = nullptr;     // Last node clicked (selection)
+    inline Node* rootNode = nullptr;         // The running App (set by the framework)
 
     // Overlay (e.g. tcxImGui) capture queries. An overlay registers these so the
     // framework knows when the pointer is over it / it owns keyboard focus. Null
@@ -329,6 +330,16 @@ public:
     // (stable across reparenting). Read-only — there is no setter.
     uint64_t getInstanceId() const { return instanceId_; }
 
+    // Find a node in this subtree (self included) by instance id. Depth-first;
+    // returns nullptr if the id is not in this subtree.
+    Node* findByInstanceId(uint64_t id) {
+        if (instanceId_ == id) return this;
+        for (auto& c : children_) {
+            if (Node* n = c->findByInstanceId(id)) return n;
+        }
+        return nullptr;
+    }
+
     // -------------------------------------------------------------------------
     // Reflection (TC_REFLECT)
     // -------------------------------------------------------------------------
@@ -337,11 +348,12 @@ public:
     // events stay correct. Subclasses extend via `using Super = Node;` + their
     // own TC_REFLECT block.
     TC_REFLECT_ROOT(Node)
-        TC_PROPERTY(pos,      getPos,    setPos)
-        TC_PROPERTY(rotation, getRotDeg, setRotDeg)
-        TC_PROPERTY(scale,    getScale,  setScale)
-        TC_PROPERTY(visible,  isVisible, setVisible)
-        TC_PROPERTY(active,   isActive,  setActive)
+        TC_PROPERTY(pos,       getPos,       setPos)
+        TC_PROPERTY(globalPos, getGlobalPos, setGlobalPos)
+        TC_PROPERTY(rotation,  getEulerDeg,  setEulerDeg)   // euler X/Y/Z, degrees
+        TC_PROPERTY(scale,     getScale,     setScale)
+        TC_PROPERTY(visible,   isVisible,    setVisible)
+        TC_PROPERTY(active,    isActive,     setActive)
     TC_REFLECT_END
 
     // -------------------------------------------------------------------------
@@ -382,6 +394,8 @@ public:
     Vec3 getEuler() const { return rotation_.toEuler(); }
     void setEuler(const Vec3& euler) { setQuaternion(Quaternion::fromEuler(euler)); }
     void setEuler(float pitch, float yaw, float roll) { setEuler(Vec3(pitch, yaw, roll)); }
+    Vec3 getEulerDeg() const { Vec3 e = getEuler(); return Vec3(rad2deg(e.x), rad2deg(e.y), rad2deg(e.z)); }
+    void setEulerDeg(const Vec3& deg) { setEuler(Vec3(deg2rad(deg.x), deg2rad(deg.y), deg2rad(deg.z))); }
 
     // 2D convenience: Z-axis rotation only (radians)
     float getRot() const {
@@ -462,6 +476,17 @@ public:
         return localToGlobal(Vec3(0, 0, 0));
     }
 
+    // Set global position: converts into the parent's coordinate space and
+    // writes the local position (the counterpart of getGlobalPos).
+    void setGlobalPos(const Vec3& global) {
+        if (auto p = parent_.lock()) {
+            setPos(p->globalToLocal(global));
+        } else {
+            setPos(global);
+        }
+    }
+    void setGlobalPos(float x, float y, float z = 0.0f) { setGlobalPos(Vec3(x, y, z)); }
+
     // Convert local coordinates to global coordinates
     Vec3 localToGlobal(const Vec3& local) const {
         return getGlobalMatrix() * local;
@@ -514,8 +539,32 @@ public:
     // Hit test entire tree with global ray, return frontmost node
     // Traversed in reverse draw order (later drawn = higher priority)
     HitResult findHitNode(const Ray& globalRay) {
-        return findHitNodeRecursive(globalRay, getGlobalMatrixInverse());
+        internal::PickRaySource pick;
+        pick.hasFixedRay = true;
+        pick.fixedRay = globalRay;
+        const CameraContext* ctx = cameraContext_ ? cameraContext_.get() : nullptr;
+        return findHitNodeRecursive(pick, ctx, globalRay, getGlobalMatrixInverse());
     }
+
+    // Hit test entire tree from a screen point. Each node is tested with a ray
+    // unprojected through ITS OWN camera context (stamped at draw time), so a
+    // node drawn under the default perspective screen, an EasyCam, or any
+    // other camera is picked exactly where it is rendered. Nodes never drawn
+    // (no stamp) inherit their parent's context; with no context anywhere this
+    // falls back to the plain vertical screen ray.
+    HitResult findHitNodeFromScreen(float screenX, float screenY) {
+        internal::PickRaySource pick;
+        pick.screenX = screenX;
+        pick.screenY = screenY;
+        const CameraContext* ctx = cameraContext_ ? cameraContext_.get() : nullptr;
+        return findHitNodeRecursive(pick, ctx, pick.rayFor(ctx), getGlobalMatrixInverse());
+    }
+
+    // The camera context this node was last drawn under (null if never drawn
+    // or drawn before the first camera registration). Set automatically by
+    // drawTree(); setCameraContext() exists for manually-managed nodes.
+    std::shared_ptr<const CameraContext> getCameraContext() const { return cameraContext_; }
+    void setCameraContext(std::shared_ptr<const CameraContext> ctx) { cameraContext_ = std::move(ctx); }
 
     // -------------------------------------------------------------------------
     // Mod system - attach behaviors to nodes
@@ -545,8 +594,10 @@ public:
         mod->owner_ = this;
         mods_[std::type_index(typeid(T))] = std::move(mod);
         // setup() runs after owner_ is set and the mod is in mods_, so it can
-        // safely call getMod / addChild / etc. on its owner.
-        ptr->setup();
+        // safely call getMod / addChild / etc. on its owner. Call through the
+        // base pointer: Node is a friend of Mod, but friendship isn't
+        // inherited, so a subclass's protected setup() isn't accessible via T*.
+        static_cast<Mod*>(ptr)->setup();
         return ptr;
     }
 
@@ -557,6 +608,37 @@ public:
     template<typename T>
     void removeMod() {
         removeModByType(std::type_index(typeid(T)));
+    }
+
+    // Short (unqualified) type names of the attached mods, for trees / dumps.
+    std::vector<std::string> getModTypeNames() const {
+        std::vector<std::string> names;
+        names.reserve(mods_.size());
+        for (auto& [t, m] : mods_) {
+            const Mod& mod = *m;
+            names.push_back(shortTypeName(typeid(mod)));
+        }
+        return names;
+    }
+
+    // All attached mods (for tools that iterate without knowing the types —
+    // inspectors, serializers). Pointers stay owned by this node.
+    std::vector<Mod*> getMods() const {
+        std::vector<Mod*> out;
+        out.reserve(mods_.size());
+        for (auto& [t, m] : mods_) out.push_back(m.get());
+        return out;
+    }
+
+    // Find an attached mod by its short (unqualified) type name, e.g.
+    // "LayoutMod". The string counterpart of getMod<T>() for tools that only
+    // have a name (MCP, scripts). Returns nullptr if not attached.
+    Mod* getModByTypeName(const std::string& name) const {
+        for (auto& [t, m] : mods_) {
+            const Mod& mod = *m;
+            if (shortTypeName(typeid(mod)) == name) return m.get();
+        }
+        return nullptr;
     }
 
 private:
@@ -738,20 +820,22 @@ private:
             setup();
         }
 
+        // Stamp the camera scope this node is being drawn under (pointer
+        // compare first — steady state is one assignment skip per frame).
+        if (internal::currentCameraContext && cameraContext_ != internal::currentCameraContext) {
+            cameraContext_ = internal::currentCameraContext;
+        }
+
         pushMatrix();
 
-        // Apply transforms using cached matrix
-        translate(position_.x, position_.y, position_.z);
-        if (rotation_ != Quaternion::identity()) {
-            // Apply rotation via Euler angles for now (sokol uses axis-angle or euler)
-            Vec3 euler = rotation_.toEuler();
-            if (euler.x != 0.0f) rotateX(euler.x);
-            if (euler.y != 0.0f) rotateY(euler.y);
-            if (euler.z != 0.0f) rotateZ(euler.z);
-        }
-        if (scale_.x != 1.0f || scale_.y != 1.0f || scale_.z != 1.0f) {
-            scale(scale_.x, scale_.y, scale_.z);
-        }
+        // Apply the node's local transform with the SAME cached matrix the
+        // picking / coordinate-conversion path uses (translate * rotation *
+        // scale), so the rendered pose and hit-testing / gizmos can never
+        // disagree. The old path decomposed the quaternion into euler angles
+        // and re-applied them as rotateX/Y/Z in call order — a different
+        // composition order than the euler convention, which garbled every
+        // compound rotation (single-axis rotations happened to survive).
+        setMatrix(getLocalMatrix());
 
         // Begin draw hook (for clipping, etc.)
         beginDraw();
@@ -811,8 +895,7 @@ private:
     // (pos == globalPos); each node receives a copy localized to its space.
     // return: node that handled event (nullptr if not handled)
     Ptr dispatchMousePress(const MouseEventArgs& e) {
-        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
-        HitResult result = findHitNode(globalRay);
+        HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         // Selection: clicking a node selects it; clicking empty space clears it.
         internal::selectedNode = result.hit() ? result.node.get() : nullptr;
@@ -847,8 +930,7 @@ private:
         }
 
         // Fallback: send to hit node
-        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
-        HitResult result = findHitNode(globalRay);
+        HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         if (result.hit()) {
             MouseEventArgs local = result.node->localizeMouse(e);
@@ -869,8 +951,7 @@ private:
         }
 
         // Also send move event to hit node (for hover, etc.)
-        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
-        HitResult result = findHitNode(globalRay);
+        HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         if (result.hit()) {
             MouseEventRaw local = result.node->localizeMouse(e);
@@ -883,8 +964,7 @@ private:
     }
 
     Ptr dispatchMouseScroll(const ScrollEventArgs& e) {
-        Ray globalRay = Ray::fromScreenPoint2D(e.globalPos.x, e.globalPos.y);
-        HitResult result = findHitNode(globalRay);
+        HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         if (result.hit()) {
             // Bubble up from hit node to ancestors until consumed
@@ -926,8 +1006,7 @@ private:
         // Leave below (this is a per-frame recompute, so no stale hover).
         Node* hit = nullptr;
         if (!isOverlayHovered()) {
-            Ray globalRay = Ray::fromScreenPoint2D(screenX, screenY);
-            HitResult result = findHitNode(globalRay);
+            HitResult result = findHitNodeFromScreen(screenX, screenY);
             hit = result.hit() ? result.node.get() : nullptr;
         }
         internal::hoveredNode = hit;
@@ -978,17 +1057,37 @@ private:
     }
 
 protected:
+    // Resolve this node's effective camera context and the global ray to test
+    // it with. A node stamped with its own context gets a ray unprojected
+    // through THAT camera; otherwise it inherits the parent's (`inheritedCtx`,
+    // whose ray is `globalRay` already). Ray is returned by value — 24 bytes —
+    // because PickRaySource's cache can reallocate as the traversal discovers
+    // more contexts.
+    std::pair<const CameraContext*, Ray> resolvePickRay(
+            internal::PickRaySource& pick, const CameraContext* inheritedCtx,
+            const Ray& globalRay) const {
+        const CameraContext* ctx = cameraContext_ ? cameraContext_.get() : inheritedCtx;
+        if (ctx == inheritedCtx) return {ctx, globalRay};
+        return {ctx, pick.rayFor(ctx)};
+    }
+
     // Recursive hit test (traversed in reverse draw order)
     // Protected so that RectNode can override for clipping-aware hit test
-    virtual HitResult findHitNodeRecursive(const Ray& globalRay, const Mat4& parentInverseMatrix) {
+    virtual HitResult findHitNodeRecursive(internal::PickRaySource& pick,
+                                           const CameraContext* inheritedCtx,
+                                           Ray globalRay,
+                                           const Mat4& parentInverseMatrix) {
         if (!isActive_ || !isVisible_) return HitResult{};
+
+        // Effective camera context for this subtree (own stamp or inherited)
+        auto [ctx, ray] = resolvePickRay(pick, inheritedCtx, globalRay);
 
         // Calculate inverse matrix for this node
         Mat4 localInverse = getLocalMatrix().inverted();
         Mat4 globalInverse = localInverse * parentInverseMatrix;
 
         // Convert global ray to local ray
-        Ray localRay = globalRay.transformed(globalInverse);
+        Ray localRay = ray.transformed(globalInverse);
 
         HitResult bestResult{};
 
@@ -997,7 +1096,7 @@ protected:
         // a pure geometric predicate, but the snapshot is cheap insurance.
         auto snapshot = children_;
         for (auto it = snapshot.rbegin(); it != snapshot.rend(); ++it) {
-            HitResult childResult = (*it)->findHitNodeRecursive(globalRay, globalInverse);
+            HitResult childResult = (*it)->findHitNodeRecursive(pick, ctx, ray, globalInverse);
             if (childResult.hit()) {
                 // Use child's result (later in draw order = front)
                 bestResult = childResult;
@@ -1006,8 +1105,10 @@ protected:
         }
 
         // If no child hit, check self: the node's own hitTest OR any mod's
-        // hitTest (mouse picking). First true wins (mods short-circuit once hit).
-        if (!bestResult.hit()) {
+        // hitTest (mouse picking). First true wins (mods short-circuit once
+        // hit). Skipped when this node's context is unpickable (drawn into an
+        // FBO — a main-screen click must not pick offscreen geometry).
+        if (!bestResult.hit() && (!ctx || ctx->pickable)) {
             float distance;
             bool hit = hitTest(localRay, distance);
             if (!hit) {
@@ -1189,6 +1290,10 @@ private:
     bool isActive_ = true;        // false: update/draw are skipped
     bool isVisible_ = true;       // false: only draw is skipped
 
+    // Camera this node was last drawn under (stamped each drawTree). Drives
+    // per-context pick rays; see tcCameraContext.h.
+    std::shared_ptr<const CameraContext> cameraContext_;
+
     // Mod system
     std::unordered_map<std::type_index, std::unique_ptr<Mod>> mods_;
     int modDispatchDepth_ = 0;   // >0 while iterating mods (forEachMod)
@@ -1312,5 +1417,10 @@ inline void Mod::removeSelf() {
 // inspector can both read it and drive it via setSelectedNode().
 inline Node* getSelectedNode() { return internal::selectedNode; }
 inline void setSelectedNode(Node* n) { internal::selectedNode = n; }
+
+// The running App as the root of the node tree (set by the framework while the
+// app is alive, null otherwise). Lets tools — e.g. the MCP node tools — walk
+// the whole tree without the app passing itself around.
+inline Node* getRootNode() { return internal::rootNode; }
 
 } // namespace trussc
