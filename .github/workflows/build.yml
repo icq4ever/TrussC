@@ -25,7 +25,11 @@ jobs:
         include:
           - os: macos-latest
             preset: macos
-          - os: windows-latest
+          # Pinned to 2022: windows-latest now redirects to a VS2026 runner,
+          # where projectGenerator's VS-project generation falls back to the
+          # "Visual Studio 17 2022" generator and fails (VS2022 absent). Revert
+          # to windows-latest once projectGenerator supports VS2026.
+          - os: windows-2022
             preset: windows
           - os: ubuntu-latest
             preset: linux
