@@ -214,6 +214,13 @@ namespace trussc { namespace internal {
 // RenderContext class (holds drawing state)
 #include "tc/graphics/tcRenderContext.h"
 
+// Global mouse state + window-space getters (mouseX/Y, getGlobalMouseX, ...)
+#include "tc/app/tcMouseGlobal.h"
+
+// Transform / matrix / style stack free functions (delegate to RenderContext).
+// Extracted so lower-level headers (e.g. tcNode.h) can depend on them directly.
+#include "tc/graphics/tcTransform.h"
+
 // Reopen namespace
 namespace trussc {
 
@@ -271,11 +278,9 @@ namespace internal {
     inline bool lastDrawTimeInitialized = false;
     inline double drawAccumulator = 0.0;
 
-    // Mouse state
-    inline float mouseX = 0.0f;
-    inline float mouseY = 0.0f;
-    inline float pmouseX = 0.0f;  // Previous frame mouse position
-    inline float pmouseY = 0.0f;
+    // Mouse position state (mouseX/Y, pmouseX/Y) + window-space getters now live
+    // in tc/app/tcMouseGlobal.h (included above) so lower-level headers can use
+    // them directly. Button/pressed state stays here.
     inline int mouseButton = -1;  // Currently pressed button (-1 = none)
     inline bool mousePressed = false;
 
@@ -571,140 +576,8 @@ inline void popScissor() {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Transformations (delegated to RenderContext)
-// ---------------------------------------------------------------------------
-
-// Save matrix to stack
-inline void pushMatrix() {
-    getDefaultContext().pushMatrix();
-}
-
-// Restore matrix from stack
-inline void popMatrix() {
-    getDefaultContext().popMatrix();
-}
-
-// Save style to stack (color, fill/stroke, textAlign, etc.)
-inline void pushStyle() {
-    getDefaultContext().pushStyle();
-}
-
-// Restore style from stack
-inline void popStyle() {
-    getDefaultContext().popStyle();
-}
-
-// Reset style to default values (white color, fill enabled, etc.)
-inline void resetStyle() {
-    getDefaultContext().resetStyle();
-}
-
-// Translation
-inline void translate(Vec3 pos) {
-    getDefaultContext().translate(pos);
-}
-
-inline void translate(float x, float y, float z) {
-    getDefaultContext().translate(x, y, z);
-}
-
-inline void translate(float x, float y) {
-    getDefaultContext().translate(x, y);
-}
-
-// Z-axis rotation (radians)
-inline void rotate(float radians) {
-    getDefaultContext().rotate(radians);
-}
-
-// X-axis rotation (radians)
-inline void rotateX(float radians) {
-    getDefaultContext().rotateX(radians);
-}
-
-// Y-axis rotation (radians)
-inline void rotateY(float radians) {
-    getDefaultContext().rotateY(radians);
-}
-
-// Z-axis rotation (radians) - explicit
-inline void rotateZ(float radians) {
-    getDefaultContext().rotateZ(radians);
-}
-
-// Rotation in degrees
-inline void rotateDeg(float degrees) {
-    getDefaultContext().rotateDeg(degrees);
-}
-
-inline void rotateXDeg(float degrees) {
-    getDefaultContext().rotateXDeg(degrees);
-}
-
-inline void rotateYDeg(float degrees) {
-    getDefaultContext().rotateYDeg(degrees);
-}
-
-inline void rotateZDeg(float degrees) {
-    getDefaultContext().rotateZDeg(degrees);
-}
-
-// Euler rotation (x, y, z in radians)
-inline void rotate(float x, float y, float z) {
-    rotateX(x);
-    rotateY(y);
-    rotateZ(z);
-}
-
-inline void rotate(const Vec3& euler) {
-    rotate(euler.x, euler.y, euler.z);
-}
-
-inline void rotate(const Quaternion& quat) {
-    getDefaultContext().rotate(quat);
-}
-
-// Euler rotation in degrees
-inline void rotateDeg(float x, float y, float z) {
-    rotateXDeg(x);
-    rotateYDeg(y);
-    rotateZDeg(z);
-}
-
-inline void rotateDeg(const Vec3& euler) {
-    rotateDeg(euler.x, euler.y, euler.z);
-}
-
-// Scale (uniform)
-inline void scale(float s) {
-    getDefaultContext().scale(s);
-}
-
-// Scale (non-uniform 2D)
-inline void scale(float sx, float sy) {
-    getDefaultContext().scale(sx, sy);
-}
-
-// Scale (non-uniform 3D)
-inline void scale(float sx, float sy, float sz) {
-    getDefaultContext().scale(sx, sy, sz);
-}
-
-// Get current transformation matrix
-inline Mat4 getCurrentMatrix() {
-    return getDefaultContext().getCurrentMatrix();
-}
-
-// Reset transformation matrix
-inline void resetMatrix() {
-    getDefaultContext().resetMatrix();
-}
-
-// Set transformation matrix directly
-inline void setMatrix(const Mat4& mat) {
-    getDefaultContext().setMatrix(mat);
-}
+// Transform / matrix / style stack free functions are now in tc/graphics/
+// tcTransform.h (included at file scope above, before namespace trussc opens).
 
 // ---------------------------------------------------------------------------
 // Blend mode
@@ -1713,26 +1586,7 @@ inline void releaseSglBuffers() {
 // ---------------------------------------------------------------------------
 // Mouse state (global / window coordinates)
 // ---------------------------------------------------------------------------
-
-// Current mouse X coordinate (window coordinates)
-inline float getGlobalMouseX() {
-    return internal::mouseX;
-}
-
-// Current mouse Y coordinate (window coordinates)
-inline float getGlobalMouseY() {
-    return internal::mouseY;
-}
-
-// Previous frame mouse X coordinate (window coordinates)
-inline float getGlobalPMouseX() {
-    return internal::pmouseX;
-}
-
-// Previous frame mouse Y coordinate (window coordinates)
-inline float getGlobalPMouseY() {
-    return internal::pmouseY;
-}
+// getGlobalMouseX/Y, getGlobalPMouseX/Y live in tc/app/tcMouseGlobal.h.
 
 // Is mouse button pressed
 inline bool isMousePressed() {
@@ -1759,11 +1613,7 @@ inline bool isControlPressed() { return isKeyPressed(SAPP_KEYCODE_LEFT_CONTROL) 
 inline bool isAltPressed()     { return isKeyPressed(SAPP_KEYCODE_LEFT_ALT)     || isKeyPressed(SAPP_KEYCODE_RIGHT_ALT); }
 inline bool isSuperPressed()   { return isKeyPressed(SAPP_KEYCODE_LEFT_SUPER)   || isKeyPressed(SAPP_KEYCODE_RIGHT_SUPER); }
 
-// Alias for getGlobalMouseX/Y (for tcDebugInput)
-inline float getMouseX() { return internal::mouseX; }
-inline float getMouseY() { return internal::mouseY; }
-inline Vec2 getMousePos() { return Vec2(internal::mouseX, internal::mouseY); }
-inline Vec2 getGlobalMousePos() { return Vec2(getGlobalMouseX(), getGlobalMouseY()); }
+// getMouseX/Y, getMousePos, getGlobalMousePos live in tc/app/tcMouseGlobal.h.
 
 // ---------------------------------------------------------------------------
 // Touch-as-mouse mapping

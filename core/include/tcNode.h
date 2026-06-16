@@ -1,7 +1,24 @@
 #pragma once
 
-#include "TrussC.h"
-#include "tc/types/tcMod.h"
+// tcNode.h declares its direct dependencies, included in dependency order
+// (foundation types first, then the headers that build on them) instead of
+// self-including the TrussC.h umbrella. Apps should still `#include <TrussC.h>`.
+// NOTE: this is not yet a fully standalone header — some of these dependency
+// headers (e.g. tcMesh.h) are themselves not self-contained and still rely on
+// the umbrella's include order. Making the whole tree self-contained is a
+// separate, ongoing effort; these explicit includes are a step toward it.
+#include "tcMath.h"                          // Vec2 / Vec3 / Mat4 / Quaternion
+#include "tcColor.h"                          // Color
+#include "tc/events/tcEvent.h"                // Event
+#include "tc/events/tcEventListener.h"        // EventListener
+#include "tc/events/tcCoreEvents.h"           // events()
+#include "tc/graphics/tcMesh.h"               // Mesh
+#include "tc/3d/tcMaterial.h"                 // Material
+#include "tc/graphics/tcCameraContext.h"      // CameraContext
+#include "tc/graphics/tcTransform.h"          // pushMatrix / translate / rotate / scale
+#include "tc/app/tcMouseGlobal.h"             // getGlobalMouseX/Y, ...
+#include "tc/utils/tcTime.h"                  // getElapsedTime*
+#include "tc/types/tcMod.h"                   // Mod, EventArgs, Ray, reflection
 #include "tc/utils/tcAsyncScheduler.h"
 #include "tc/utils/tcTypeName.h"
 #include "tc/utils/tcReflect.h"
