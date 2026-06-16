@@ -16,3 +16,6 @@
 #include "tcxCollisionEvent.h"
 #include "tcxCollider2D.h"
 #include "tcxCollisionManager.h"
+
+// Mod-based API (RigidBody2D / ColliderRenderer2D) — higher-level, rides Node/Mod
+#include "tcxBox2dMod.h"

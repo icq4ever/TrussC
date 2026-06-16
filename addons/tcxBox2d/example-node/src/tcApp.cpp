@@ -6,7 +6,7 @@
 // allowing batch processing with root.updateTree() / root.drawTree().
 // =============================================================================
 
-#include "tcBaseApp.h"
+#include <TrussC.h>
 #include <tcxBox2d.h>
 #include <vector>
 #include <memory>

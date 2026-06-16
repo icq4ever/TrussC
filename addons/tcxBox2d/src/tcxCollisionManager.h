@@ -6,6 +6,7 @@
 
 #include "tcxCollider2D.h"
 #include "tcxCollisionEvent.h"
+#include <TrussC.h>          // tc::Event, tc::Vec2
 #include <box2d/box2d.h>
 #include <vector>
 #include <unordered_set>
@@ -14,6 +15,19 @@ namespace tcx::box2d {
 
 // Forward declarations
 class World;
+
+// =============================================================================
+// WorldContact - world-level contact info (raw b2Body pair)
+// =============================================================================
+// Emitted by CollisionManager regardless of whether the bodies carry a
+// Collider2D. The Mod layer (RigidBody2D) routes these to per-node collision
+// events; the legacy Collider2D dispatch below is independent and unchanged.
+struct WorldContact {
+    b2Body* a = nullptr;
+    b2Body* b = nullptr;
+    tc::Vec2 point;    // pixels (zero if no manifold points, e.g. on end)
+    tc::Vec2 normal;   // world-space contact normal
+};
 
 // =============================================================================
 // CollisionManager - Box2D Contact Listener
@@ -29,6 +43,14 @@ public:
     // Non-copyable
     CollisionManager(const CollisionManager&) = delete;
     CollisionManager& operator=(const CollisionManager&) = delete;
+
+    // -------------------------------------------------------------------------
+    // World-level contact events (fired for ALL touching body pairs, whether or
+    // not they carry a Collider2D). Used by the Mod layer (RigidBody2D).
+    // -------------------------------------------------------------------------
+    tc::Event<WorldContact> contactBegan;   // started touching
+    tc::Event<WorldContact> contactStay;    // still touching, every step
+    tc::Event<WorldContact> contactEnded;   // stopped touching
 
     // -------------------------------------------------------------------------
     // Update (called each frame to dispatch Stay events)
@@ -69,9 +91,15 @@ private:
 
     std::vector<ContactPair> activeContacts_;
 
+    // World-level touching contacts (for contactStay), independent of colliders.
+    std::vector<b2Contact*> worldContacts_;
+
     // -------------------------------------------------------------------------
     // Helper Methods
     // -------------------------------------------------------------------------
+
+    // Build a WorldContact (raw body pair + manifold) from a b2Contact.
+    static WorldContact makeWorldContact(b2Contact* contact);
 
     // Get Collider2D from fixture (stored in UserData)
     static Collider2D* getColliderFromFixture(b2Fixture* fixture);

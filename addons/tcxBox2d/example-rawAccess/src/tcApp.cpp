@@ -1,0 +1,152 @@
+// =============================================================================
+// box2dRawAccessExample - low-level tcxBox2d API (direct World + Body)
+// =============================================================================
+// The raw, manual path: create box2d::World + CircleBody/RectBody yourself and
+// drive world.update() / drag joints directly. For most apps prefer the Mod API
+// (RigidBody2D / ColliderRenderer2D) shown in example-basic; reach for this when
+// you need direct access to b2Body / fixtures / mouse joints.
+// =============================================================================
+
+#include <TrussC.h>
+#include <tcxBox2d.h>
+#include <vector>
+#include <memory>
+#include <cstdlib>
+
+using namespace tc;
+using namespace tcx;
+
+// Generate random float (min to max)
+float randomFloat(float min, float max) {
+    return min + (float)rand() / RAND_MAX * (max - min);
+}
+
+class tcApp : public tc::App {
+public:
+    box2d::World world;
+    std::vector<std::shared_ptr<box2d::CircleBody>> circles;
+    std::vector<std::shared_ptr<box2d::RectBody>> rects;
+
+    void setup() override {
+        // Initialize physics world (gravity: 300px/sec² downward)
+        world.setup(Vec2(0, 300));
+
+        // Create boundary walls at screen edges
+        world.createBounds();
+
+        // Place initial objects (stacked loosely)
+        auto c1 = std::make_shared<box2d::CircleBody>();
+        c1->setup(world, 350, 80, 30);
+        circles.push_back(c1);
+        addChild(c1);
+
+        auto c2 = std::make_shared<box2d::CircleBody>();
+        c2->setup(world, 380, 150, 25);
+        circles.push_back(c2);
+        addChild(c2);
+
+        auto c3 = std::make_shared<box2d::CircleBody>();
+        c3->setup(world, 340, 200, 35);
+        circles.push_back(c3);
+        addChild(c3);
+
+        auto c4 = std::make_shared<box2d::CircleBody>();
+        c4->setup(world, 400, 120, 20);
+        circles.push_back(c4);
+        addChild(c4);
+
+        auto c5 = std::make_shared<box2d::CircleBody>();
+        c5->setup(world, 360, 250, 28);
+        circles.push_back(c5);
+        addChild(c5);
+    }
+
+    void update() override {
+        // Advance physics simulation
+        world.update();
+
+        // Sync Box2D positions to Node's x, y, rotation is handled 
+        // automatically by Body::update() which is called via updateTree()
+    }
+
+    void draw() override {
+        clear(0.12f);
+
+        // Bodies are drawn automatically by the Node system after this function.
+        // We set the default color for them here.
+        setColor(1.0f, 0.78f, 0.4f);
+
+        // Draw spring line if dragging
+        if (world.isDragging()) {
+            Vec2 anchor = world.getDragAnchor();
+            setColor(1.0f, 0.4f, 0.4f);
+            drawLine(anchor.x, anchor.y, getMouseX(), getMouseY());
+        }
+
+        // Display usage instructions
+        setColor(1.0f);
+        drawBitmapString("Left click: Add circle / Drag body", 10, 20);
+        drawBitmapString("Right click: Add rectangle", 10, 36);
+        drawBitmapString("C: Clear all", 10, 52);
+        drawBitmapString("Bodies: " + std::to_string(world.getBodyCount()), 10, 68);
+        
+        // Reset to body color for automatic drawing
+        setColor(1.0f, 0.78f, 0.4f);
+    }
+
+    void mousePressed(const MouseEventArgs& e) override {
+        if (e.button == MOUSE_BUTTON_LEFT) {
+            // Start dragging if body exists at point
+            box2d::Body* body = world.getBodyAtPoint(e.pos.x, e.pos.y);
+            if (body) {
+                world.startDrag(body, e.pos.x, e.pos.y);
+            } else {
+                // Otherwise add a circle
+                auto circle = std::make_shared<box2d::CircleBody>();
+                circle->setup(world, e.pos.x, e.pos.y, randomFloat(15, 40));
+                circle->setRestitution(0.7f);  // Bouncy
+                circles.push_back(circle);
+                addChild(circle);
+            }
+        }
+        else if (e.button == MOUSE_BUTTON_RIGHT) {
+            // Right click: add rectangle
+            auto rect = std::make_shared<box2d::RectBody>();
+            rect->setup(world, e.pos.x, e.pos.y, randomFloat(30, 60), randomFloat(20, 40));
+            rect->setRestitution(0.3f);
+            rects.push_back(rect);
+            addChild(rect);
+        }
+    }
+
+    void mouseDragged(const MouseDragEventArgs& e) override {
+        if (e.button == MOUSE_BUTTON_LEFT) {
+            world.updateDrag(e.pos.x, e.pos.y);
+        }
+    }
+
+    void mouseReleased(const MouseEventArgs& e) override {
+        if (e.button == MOUSE_BUTTON_LEFT) {
+            world.endDrag();
+        }
+    }
+
+    void keyPressed(int key) override {
+        if (key == 'c' || key == 'C') {
+            // C key: clear all
+            circles.clear();
+            rects.clear();
+            world.clear();
+            world.createBounds();
+        }
+    }
+};
+
+int main() {
+    WindowSettings settings;
+    settings.width = 800;
+    settings.height = 600;
+    settings.title = "box2dRawAccessExample";
+
+    return TC_RUN_APP(tcApp, settings);
+}

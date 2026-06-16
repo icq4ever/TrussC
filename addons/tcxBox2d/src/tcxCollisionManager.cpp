@@ -13,6 +13,14 @@ namespace tcx::box2d {
 // =============================================================================
 
 void CollisionManager::update() {
+    // World-level Stay: fire for every still-touching contact (Mod layer).
+    for (b2Contact* contact : worldContacts_) {
+        if (contact && contact->IsTouching()) {
+            WorldContact wc = makeWorldContact(contact);
+            contactStay.notify(wc);
+        }
+    }
+
     // Dispatch onCollisionStay for all active contacts
     for (auto& pair : activeContacts_) {
         if (pair.a && pair.b && pair.contact) {
@@ -32,6 +40,13 @@ void CollisionManager::update() {
 // =============================================================================
 
 void CollisionManager::BeginContact(b2Contact* contact) {
+    // World-level Began (Mod layer): fire + track regardless of Collider2D.
+    {
+        WorldContact wc = makeWorldContact(contact);
+        contactBegan.notify(wc);
+        worldContacts_.push_back(contact);
+    }
+
     b2Fixture* fixtureA = contact->GetFixtureA();
     b2Fixture* fixtureB = contact->GetFixtureB();
 
@@ -52,6 +67,15 @@ void CollisionManager::BeginContact(b2Contact* contact) {
 }
 
 void CollisionManager::EndContact(b2Contact* contact) {
+    // World-level Ended (Mod layer): fire + untrack regardless of Collider2D.
+    {
+        WorldContact wc = makeWorldContact(contact);
+        contactEnded.notify(wc);
+        worldContacts_.erase(
+            std::remove(worldContacts_.begin(), worldContacts_.end(), contact),
+            worldContacts_.end());
+    }
+
     b2Fixture* fixtureA = contact->GetFixtureA();
     b2Fixture* fixtureB = contact->GetFixtureB();
 
@@ -88,6 +112,20 @@ void CollisionManager::PostSolve(b2Contact* contact, const b2ContactImpulse* imp
 // =============================================================================
 // Helper Methods
 // =============================================================================
+
+WorldContact CollisionManager::makeWorldContact(b2Contact* contact) {
+    WorldContact wc;
+    wc.a = contact->GetFixtureA()->GetBody();
+    wc.b = contact->GetFixtureB()->GetBody();
+
+    b2WorldManifold worldManifold;
+    contact->GetWorldManifold(&worldManifold);
+    if (contact->GetManifold()->pointCount > 0) {
+        wc.point = World::toPixels(worldManifold.points[0]);
+        wc.normal = tc::Vec2(worldManifold.normal.x, worldManifold.normal.y);
+    }
+    return wc;
+}
 
 Collider2D* CollisionManager::getColliderFromFixture(b2Fixture* fixture) {
     if (!fixture) return nullptr;
