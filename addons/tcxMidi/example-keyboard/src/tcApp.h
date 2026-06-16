@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tcBaseApp.h"
+#include <TrussC.h>
 #include <tcxMidi.h>
 
 #include <array>

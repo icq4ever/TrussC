@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tcBaseApp.h"
+#include <TrussC.h>
 #include "tcxObj.h"
 
 using namespace tc;
