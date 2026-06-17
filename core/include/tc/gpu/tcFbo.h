@@ -190,8 +190,8 @@ public:
 
         auto& shared = getShared(sampleCount_, format_);
 
-        // End current pass
-        sgl_context_draw(shared.context);
+        // End current pass (flush deferred PBR + 2D for what was drawn so far).
+        internal::flushFboDeferredPbr(shared.context);
         sg_end_pass();
 
         // Restart pass with new clear color
@@ -224,8 +224,9 @@ public:
 
         auto& shared = getShared(sampleCount_, format_);
 
-        // Draw FBO context contents
-        sgl_context_draw(shared.context);
+        // Draw FBO context contents, interleaving any PBR meshes deferred during
+        // this pass per-layer (so lit 3D composites with 2D in submission order).
+        internal::flushFboDeferredPbr(shared.context);
         sg_end_pass();
 
         // If mipmaps were requested, downsample mip 0 into the remaining
@@ -650,6 +651,12 @@ private:
         sgl_set_context(shared.context);
         sgl_tc_context_ensure_buffers(shared.context);
         sgl_defaults();
+
+        // Start this FBO pass's deferred-PBR layer counter fresh (mirrors the
+        // swapchain's sglLayerNext). Meshes drawn now defer into fboPbrDraws.
+        internal::fboPbrDraws.clear();
+        internal::fboLayerNext = 0;
+        sgl_layer(0);
 
         // Save the screen camera state so end() can restore it — the FBO's own
         // projection setup below overwrites these globals, and anything drawn
