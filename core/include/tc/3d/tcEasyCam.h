@@ -55,7 +55,19 @@ public:
         Vec3 camUp = orientation_.rotate(Vec3(0.0f, 1.0f, 0.0f));
 
         // Create matrices using Mat4 (row-major)
-        Mat4 projection = Mat4::perspective(fov_, aspect, nearClip_, farClip_);
+        Mat4 projection;
+        if (orthoEnabled_) {
+            // Zoom is driven by distance_ in both modes, so toggling ortho /
+            // perspective keeps the same apparent size at the target plane.
+            // Perspective shows a world height of 2*distance*tan(fov/2) there;
+            // ortho uses the same extent (no orthoZoom_ — distance_ is the one
+            // source of zoom).
+            float halfH = distance_ * std::tan(fov_ * 0.5f);
+            float halfW = halfH * aspect;
+            projection = Mat4::ortho(-halfW, halfW, -halfH, halfH, nearClip_, farClip_);
+        } else {
+            projection = Mat4::perspective(fov_, aspect, nearClip_, farClip_);
+        }
         // camUp is orthogonal to the view direction by construction, so lookAt
         // never degenerates (even looking straight down the world up axis).
         Mat4 view = Mat4::lookAt(eye, target_, camUp);
@@ -177,6 +189,15 @@ public:
         return std::atan2(back.dot(right), back.dot(forward));
     }
 
+    // ---------------------------------------------------------------------------
+    // Orthographic projection (oF-compatible: ofCamera::enableOrtho)
+    // ---------------------------------------------------------------------------
+    // When enabled, begin() uses an orthographic projection instead of
+    // perspective. distance_ (mouse wheel / setDistance) still acts as zoom.
+    void enableOrtho()  { orthoEnabled_ = true; }
+    void disableOrtho() { orthoEnabled_ = false; }
+    void setOrtho(bool ortho) { orthoEnabled_ = ortho; }
+    bool getOrtho() const { return orthoEnabled_; }
 
     // Set field of view (FOV) in radians
     void setFov(float fov) {
@@ -445,7 +466,8 @@ private:
         float my = lastMouseY_;
         if (!isInsideControlArea(mx, my)) return false;
 
-        // Wheel changes distance to the target.
+        // Wheel changes distance to the target in both modes; ortho derives its
+        // extent from distance_, so the zoom feel stays consistent across toggle.
         distance_ -= dy * zoomSensitivity_;
         if (distance_ < 0.1f) distance_ = 0.1f;
         return true;
@@ -476,6 +498,7 @@ private:
     float nearClip_;      // Near clipping plane
     float farClip_;       // Far clipping plane
 
+    bool orthoEnabled_ = false;  // Orthographic projection (vs perspective)
     bool mouseInputEnabled_;
     bool isDragging_;     // Orbit-button dragging
     bool isPanning_;      // Pan-button dragging
