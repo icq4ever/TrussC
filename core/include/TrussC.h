@@ -623,7 +623,11 @@ inline void restoreBlendPipeline() {
 // Deprecated: 3D is now enabled by default with setupScreenFov
 [[deprecated("3D is now enabled by default. Use setupScreenPerspective() to change FOV.")]]
 inline void enable3D() {
-    if (internal::pipeline3dInitialized) {
+    // FBO-aware (same as setupScreenPerspective / EasyCam): the swapchain
+    // pipeline3d mismatches an FBO's format/sample count.
+    if (internal::inFboPass && internal::currentFboPipeline3d.id != 0) {
+        sgl_load_pipeline(internal::currentFboPipeline3d);
+    } else if (internal::pipeline3dInitialized) {
         sgl_load_pipeline(internal::pipeline3d);
     }
 }
@@ -632,7 +636,10 @@ inline void enable3D() {
 // Deprecated: use setupScreenPerspective() or setupScreenFov() instead
 [[deprecated("Use setupScreenPerspective(fovDeg) or setupScreenFov(fovDeg) instead. Note: FOV is now in degrees, not radians.")]]
 inline void enable3DPerspective(float fovY = 0.785f, float nearZ = 0.1f, float farZ = 1000.0f) {
-    if (internal::pipeline3dInitialized) {
+    // FBO-aware (see enable3D): avoid the swapchain pipeline3d inside an FBO.
+    if (internal::inFboPass && internal::currentFboPipeline3d.id != 0) {
+        sgl_load_pipeline(internal::currentFboPipeline3d);
+    } else if (internal::pipeline3dInitialized) {
         sgl_load_pipeline(internal::pipeline3d);
     }
     // Set perspective projection
