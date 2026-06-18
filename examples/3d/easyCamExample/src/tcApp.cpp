@@ -104,6 +104,7 @@ void tcApp::draw() {
         std::stringstream ss;
         ss << "FPS: " << (int)getFrameRate() << "\n\n";
         ss << "MOUSE INPUT: " << (cam.isMouseInputEnabled() ? "ON" : "OFF") << "\n";
+        ss << "PROJECTION: " << (cam.getOrtho() ? "ORTHO" : "PERSPECTIVE") << "\n";
         ss << "Distance: " << (int)cam.getDistance() << "\n";
         ss << "\n";
         ss << "Controls:\n";
@@ -114,6 +115,7 @@ void tcApp::draw() {
         ss << "Keys:\n";
         ss << "  c: toggle mouse input\n";
         ss << "  r: reset camera\n";
+        ss << "  o: toggle ortho/perspective\n";
         ss << "  f: toggle fullscreen\n";
         ss << "  h: toggle this help\n";
 
@@ -168,6 +170,10 @@ void tcApp::keyPressed(int key) {
         case 'h':
         case 'H':
             showHelp = !showHelp;
+            break;
+        case 'o':
+        case 'O':
+            cam.setOrtho(!cam.getOrtho());
             break;
     }
 }
