@@ -196,6 +196,9 @@ namespace internal {
 namespace trussc { namespace internal {
     inline bool inFboPass = false;
     inline sgl_pipeline currentFboBlendPipeline = {};
+    // FBO-context depth-tested 3D pipeline (offscreen analogue of pipeline3d,
+    // which is swapchain-only). Set on fbo.begin(), cleared on fbo.end().
+    inline sgl_pipeline currentFbo3dPipeline = {};
 
     // Restore current blend pipeline after temporary pipeline changes
     // Handles both FBO and main context
@@ -830,8 +833,11 @@ namespace internal {
             );
         } else {
             // Perspective projection (3D mode)
-            // Skip pipeline loading in FBO - FBO loads its own pipeline
-            if (pipeline3dInitialized && !inFboPass) {
+            // In an FBO pass, load the FBO-context 3D pipeline (depth-tested);
+            // otherwise the swapchain-only pipeline3d.
+            if (inFboPass && currentFbo3dPipeline.id != 0) {
+                sgl_load_pipeline(currentFbo3dPipeline);
+            } else if (pipeline3dInitialized && !inFboPass) {
                 sgl_load_pipeline(pipeline3d);
             }
 

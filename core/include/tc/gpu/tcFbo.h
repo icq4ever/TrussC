@@ -247,6 +247,7 @@ public:
         internal::inFboPass = false;
         internal::currentFboClearPipeline = {};
         internal::currentFboBlendPipeline = {};
+        internal::currentFbo3dPipeline = {};
         internal::currentFbo = nullptr;
         internal::currentFboColorFormat = SG_PIXELFORMAT_RGBA8;
         internal::currentFboSampleCount = 1;
@@ -404,6 +405,7 @@ private:
         sgl_context context = {};
         sgl_pipeline pipelineBlend = {};
         sgl_pipeline pipelineClear = {};
+        sgl_pipeline pipeline3d = {};   // depth-tested 3D (EasyCam / setupScreenFov)
         bool initialized = false;
     };
 
@@ -460,6 +462,27 @@ private:
             pip_desc.colors[0].blend.enabled = false;
             pip_desc.colors[0].write_mask = SG_COLORMASK_RGBA;
             s.pipelineClear = sgl_context_make_pipeline(s.context, &pip_desc);
+        }
+
+        // 3D pipeline (depth test + alpha blend) — the offscreen analogue of
+        // internal::pipeline3d (which is swapchain-only). Without this, EasyCam /
+        // setupScreenFov inside an FBO would load the swapchain pipeline and trip
+        // sokol_gfx validation on D3D11 (color format / sample count mismatch).
+        {
+            sg_pipeline_desc pip_desc = {};
+            pip_desc.sample_count = sampleCount;
+            pip_desc.cull_mode = SG_CULLMODE_NONE;
+            pip_desc.depth.write_enabled = true;
+            pip_desc.depth.compare = SG_COMPAREFUNC_LESS_EQUAL;
+            pip_desc.depth.pixel_format = SG_PIXELFORMAT_DEPTH_STENCIL;
+            pip_desc.colors[0].pixel_format = sgFormat;
+            pip_desc.colors[0].blend.enabled = true;
+            pip_desc.colors[0].blend.src_factor_rgb   = SG_BLENDFACTOR_SRC_ALPHA;
+            pip_desc.colors[0].blend.dst_factor_rgb   = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+            pip_desc.colors[0].blend.src_factor_alpha = SG_BLENDFACTOR_ONE;
+            pip_desc.colors[0].blend.dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+            pip_desc.colors[0].write_mask = SG_COLORMASK_RGBA;
+            s.pipeline3d = sgl_context_make_pipeline(s.context, &pip_desc);
         }
 
         s.initialized = true;
@@ -676,6 +699,7 @@ private:
         internal::inFboPass = true;
         internal::currentFboClearPipeline = shared.pipelineClear;
         internal::currentFboBlendPipeline = shared.pipelineBlend;
+        internal::currentFbo3dPipeline = shared.pipeline3d;
         internal::currentFbo = this;
         internal::currentFboColorFormat = toSokolFormat(format_);
         internal::currentFboSampleCount = sampleCount_;

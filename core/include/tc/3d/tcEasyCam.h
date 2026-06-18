@@ -39,8 +39,12 @@ public:
 
     // Start camera mode (set 3D perspective + view matrix)
     void begin() {
-        // Enable 3D pipeline
-        if (internal::pipeline3dInitialized) {
+        // Enable 3D pipeline. internal::pipeline3d is swapchain-only, so inside
+        // an FBO pass we must load the FBO-context 3D pipeline instead (otherwise
+        // sokol_gfx validation fails on D3D11 with a format/sample-count mismatch).
+        if (internal::inFboPass && internal::currentFbo3dPipeline.id != 0) {
+            sgl_load_pipeline(internal::currentFbo3dPipeline);
+        } else if (internal::pipeline3dInitialized) {
             sgl_load_pipeline(internal::pipeline3d);
         }
 
