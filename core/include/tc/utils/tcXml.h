@@ -9,6 +9,7 @@
 #include <sstream>
 #include "pugixml/pugixml.hpp"
 #include "tcLog.h"
+#include "tcUtils.h"   // getDataPath
 
 namespace trussc {
 
@@ -25,16 +26,17 @@ class Xml {
 public:
     Xml() = default;
 
-    // Load from file
+    // Load from file (relative paths resolved via getDataPath, like loadJson)
     bool load(const std::string& path) {
-        XmlParseResult result = doc_.load_file(path.c_str());
+        std::string fullPath = getDataPath(path);
+        XmlParseResult result = doc_.load_file(fullPath.c_str());
         if (!result) {
             logError() << "XML load error: " << path
                          << " - " << result.description()
                          << " (offset: " << result.offset << ")";
             return false;
         }
-        logVerbose() << "XML loaded: " << path;
+        logVerbose() << "XML loaded: " << fullPath;
         return true;
     }
 
@@ -49,14 +51,15 @@ public:
         return true;
     }
 
-    // Save to file
+    // Save to file (relative paths resolved via getDataPath, like saveJson)
     bool save(const std::string& path, const std::string& indent = "  ") const {
-        bool success = doc_.save_file(path.c_str(), indent.c_str());
+        std::string fullPath = getDataPath(path);
+        bool success = doc_.save_file(fullPath.c_str(), indent.c_str());
         if (!success) {
             logError() << "XML write error: " << path;
             return false;
         }
-        logVerbose() << "XML saved: " << path;
+        logVerbose() << "XML saved: " << fullPath;
         return true;
     }
 
