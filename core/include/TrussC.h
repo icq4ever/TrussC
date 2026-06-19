@@ -193,30 +193,22 @@ namespace internal {
 
 } // namespace trussc (temporarily closed)
 
+// RenderTarget: single source of truth for sgl pipeline selection (swapchain/FBO).
+// Included before restoreCurrentPipeline so it can use the active*() helpers.
+#include "tc/graphics/tcRenderTarget.h"
+
 // Forward declarations for FBO pipeline switching (used in tcRenderContext.h)
 namespace trussc { namespace internal {
     inline bool inFboPass = false;
     inline sgl_pipeline currentFboBlendPipeline = {};
-    // 3D pipeline (depth test + premultiplied alpha blend) created in the current
-    // FBO's context/format. Loaded instead of the swapchain-context `pipeline3d`
-    // when drawing 3D inside an FBO pass (the swapchain pipeline mismatches the
-    // FBO's format/sample count and corrupts the rendered color/alpha).
     inline sgl_pipeline currentFboPipeline3d = {};
 
-    // Restore current blend pipeline after temporary pipeline changes
-    // Handles both FBO and main context
+    // Restore the current blend pipeline after temporary pipeline changes.
+    // FBO uses its accumulating Fill2D; swapchain honors the current blend mode.
     inline void restoreCurrentPipeline() {
-        if (inFboPass && currentFboBlendPipeline.id != 0) {
-            sgl_load_pipeline(currentFboBlendPipeline);
-        } else if (blendPipelinesInitialized) {
-            sgl_load_pipeline(blendPipelines[static_cast<int>(currentBlendMode)]);
-        }
+        loadPipeline(inFboPass ? activeFill2D() : active2D(currentBlendMode));
     }
 }}
-
-// RenderTarget: single source of truth for sgl pipeline selection (swapchain/FBO).
-// Added in parallel with the globals above; call sites migrate incrementally.
-#include "tc/graphics/tcRenderTarget.h"
 
 // VertexWriter abstraction (for shader integration)
 #include "tc/graphics/tcVertexWriter.h"

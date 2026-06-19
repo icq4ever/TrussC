@@ -390,7 +390,7 @@ void clear(float r, float g, float b, float a /* = 1.0f */) {
         sgl_matrix_mode_modelview();
         sgl_load_identity();
 
-        sgl_load_pipeline(internal::blendPipelines[static_cast<int>(BlendMode::Disabled)]);
+        internal::loadPipeline(internal::activeClear());
         sgl_disable_texture();
         sgl_begin_quads();
         sgl_c4f(r, g, b, a);
@@ -405,7 +405,7 @@ void clear(float r, float g, float b, float a /* = 1.0f */) {
         sgl_matrix_mode_modelview();
         sgl_pop_matrix();
 
-        sgl_load_pipeline(internal::blendPipelines[static_cast<int>(prevBlendMode)]);
+        internal::loadPipeline(internal::active2D(prevBlendMode));
     } else {
         // Outside pass: defer swapchain pass start to present().
         // Save clear color — the pass will start in present() with this value.
