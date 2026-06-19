@@ -22,7 +22,7 @@
 // Per-platform encoders:
 //   - macOS:   AVFoundation (AVAssetWriter)        H.264 / HEVC / ProRes
 //   - Windows: Media Foundation (IMFSinkWriter)    H.264 (+ HW->SW fallback)
-//   - Linux:   GStreamer (appsrc -> enc -> mux)    H.264 (HW-probed fallback)
+//   - Linux:   GStreamer (appsrc -> enc -> mux)    H.264 / HEVC (HW-probed)
 //
 // This file is included from TrussC.h AFTER Fbo, Pixels, grabScreen, events()
 // and sapp_width(), whose definitions the inline helpers below rely on.

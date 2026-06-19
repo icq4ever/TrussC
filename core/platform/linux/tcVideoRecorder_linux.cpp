@@ -1,5 +1,5 @@
 // =============================================================================
-// tcVideoRecorder_linux.cpp - Linux GStreamer (appsrc -> H.264 -> mp4) impl
+// tcVideoRecorder_linux.cpp - Linux GStreamer (appsrc -> enc -> mp4) impl
 // =============================================================================
 //
 // Mirrors the macOS AVFoundation / Windows Media Foundation backends: it
@@ -11,13 +11,15 @@
 // GStreamer is the desktop-native multimedia framework on Linux and is already
 // a TrussC dependency (Sound/VideoPlayer), so this adds no new library - the
 // same "use the platform's native media stack, no ffmpeg" spirit as the other
-// backends. The H.264 encoder is chosen at runtime: hardware first (modern VA
-// for Intel/AMD, NVENC, legacy VA-API, V4L2 for the Pi), falling back to
-// software x264enc/openh264enc. Each candidate is validated with a tiny probe
-// pipeline before use - a HW encoder that exists but can't actually run on this
-// machine is skipped rather than silently producing an empty file - so we get
-// the efficient path automatically and still never hard-fail where software is
-// available.
+// backends.
+//
+// Codecs: H.264 and HEVC (H.265). ProRes is AVFoundation-only and rejected
+// here. For each, the encoder is chosen at runtime: hardware first (NVENC, then
+// modern VA / legacy VA-API, V4L2 for the Pi), falling back to software x264enc/
+// x265enc. Each candidate is validated with a tiny probe pipeline before use -
+// a HW encoder that exists but can't actually run on this machine is skipped
+// rather than silently producing an empty file - so we get the efficient path
+// automatically and still never hard-fail where software is available.
 //
 // The recorder feeds RGBA top-down, which is exactly GStreamer's default raw
 // video layout, so no vertical flip or R<->B swizzle is needed here (unlike the
@@ -67,7 +69,7 @@ struct EncoderOption {
 // always-works safety net. Every option is validated with a real probe before
 // use, so an encoder that exists but can't actually run on this machine just
 // falls through to the next instead of producing an empty file.
-const EncoderOption kEncoderOptions[] = {
+const EncoderOption kH264Options[] = {
     // NVIDIA NVENC first: a dedicated encode ASIC, the gold standard for HW
     // H.264. Takes system memory directly (nvcodec uploads internally). On a
     // hybrid Intel+NVIDIA box this prefers the discrete GPU's encoder.
@@ -84,6 +86,41 @@ const EncoderOption kEncoderOptions[] = {
     // Software fallback (gst-plugins-bad). bitrate here is in bits/sec.
     {"openh264enc",  "openh264enc",  "video/x-raw,format=I420 ! openh264enc name=enc",  false, false},
 };
+
+// HEVC / H.265. Same hardware-first ordering; no openh264 equivalent, so the
+// software fallback is x265enc (gst-plugins-bad). All emit 4:2:0 Main profile.
+const EncoderOption kHevcOptions[] = {
+    {"nvh265enc",    "nvh265enc",    "nvh265enc name=enc",                              true,  true},
+    {"vah265lpenc",  "vah265lpenc",  "vah265lpenc name=enc",                            true,  true},
+    {"vah265enc",    "vah265enc",    "vah265enc name=enc",                              true,  true},
+    {"vaapih265enc", "vaapih265enc", "vaapipostproc ! vaapih265enc name=enc",           true,  true},
+    {"x265enc",      "x265enc",      "video/x-raw,format=I420 ! x265enc name=enc speed-preset=medium", false, true},
+};
+
+// Per-codec encoding plan: which candidate table to try and which H.26x parser
+// to put before mp4mux. Returns false for codecs this backend can't do (ProRes
+// is AVFoundation-only on macOS), so the caller rejects them cleanly.
+struct CodecPlan {
+    const EncoderOption* options;
+    int                  count;
+    const char*          parse;  // h264parse / h265parse
+    const char*          label;  // for logs / errors
+};
+
+bool codecPlan(VideoCodec codec, CodecPlan& out) {
+    switch (codec) {
+        case VideoCodec::H264:
+            out = {kH264Options, (int)(sizeof(kH264Options) / sizeof(kH264Options[0])),
+                   "h264parse", "H.264"};
+            return true;
+        case VideoCodec::HEVC:
+            out = {kHevcOptions, (int)(sizeof(kHevcOptions) / sizeof(kHevcOptions[0])),
+                   "h265parse", "HEVC"};
+            return true;
+        default:
+            return false;  // ProRes422 / ProRes4444 — macOS only
+    }
+}
 
 bool elementAvailable(const char* name) {
     GstElementFactory* f = gst_element_factory_find(name);
@@ -130,24 +167,28 @@ bool probeEncoder(const EncoderOption& opt, int w, int h) {
     return ok;
 }
 
-// Pick the best working encoder for this resolution: the first hardware option
-// that probes OK, otherwise the first working software option. Cached per
-// (w,h) so repeated recordings at the same size don't re-probe, but a size
-// change re-validates (an encoder's min-size support can differ).
-const EncoderOption* selectEncoder(int w, int h) {
+// Pick the best working encoder for this codec + resolution: the first hardware
+// option that probes OK, otherwise the first working software option. Cached
+// per (table, w, h) so repeated recordings at the same settings don't re-probe,
+// but a codec or size change re-validates (min-size support can differ).
+const EncoderOption* selectEncoder(const CodecPlan& plan, int w, int h) {
     static const EncoderOption* chosen = nullptr;
+    static const EncoderOption* cachedTable = nullptr;
     static int cachedW = 0, cachedH = 0;
-    if (chosen && w == cachedW && h == cachedH) return chosen;
+    if (chosen && cachedTable == plan.options && w == cachedW && h == cachedH)
+        return chosen;
     chosen = nullptr;
+    cachedTable = plan.options;
     cachedW = w;
     cachedH = h;
-    for (const EncoderOption& opt : kEncoderOptions) {
+    for (int i = 0; i < plan.count; ++i) {
+        const EncoderOption& opt = plan.options[i];
         if (!elementAvailable(opt.probe)) continue;
         if (probeEncoder(opt, w, h)) {
             chosen = &opt;
             logNotice("VideoWriter")
                 << "selected " << (opt.hardware ? "hardware" : "software")
-                << " H.264 encoder: " << opt.encName;
+                << " " << plan.label << " encoder: " << opt.encName;
             break;
         }
         logWarning("VideoWriter")
@@ -183,6 +224,18 @@ void configureEncoderBitrate(GstElement* enc, const EncoderOption& opt,
     g_object_set(enc, "bitrate", val, nullptr);
 }
 
+// Best-effort keyframe interval (frames between IDRs). Property name differs:
+// x264/x265/nvenc use "key-int-max", VA-API encoders use "keyframe-period".
+void configureKeyframeInterval(GstElement* enc, int frames) {
+    if (!enc || frames <= 0) return;
+    GObjectClass* klass = G_OBJECT_GET_CLASS(enc);
+    if (g_object_class_find_property(klass, "key-int-max")) {
+        g_object_set(enc, "key-int-max", (guint)frames, nullptr);
+    } else if (g_object_class_find_property(klass, "keyframe-period")) {
+        g_object_set(enc, "keyframe-period", (guint)frames, nullptr);
+    }
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -190,11 +243,14 @@ void configureEncoderBitrate(GstElement* enc, const EncoderOption& opt,
 // ---------------------------------------------------------------------------
 bool VideoWriter::openPlatform(const std::string& fullPath, int w, int h,
                                float fps, const VideoRecordSettings& settings) {
-    // This backend currently encodes H.264 only. Reject other codecs clearly
+    // Resolve the codec to an encoder plan. H.264 and HEVC are supported via
+    // GStreamer; ProRes is AVFoundation-only (macOS), so reject it clearly
     // rather than silently writing a different format than requested.
-    if (settings.codec != VideoCodec::H264) {
-        logError("VideoWriter") << "codec " << videoCodecName(settings.codec)
-                                << " not supported on Linux yet (H.264 only)";
+    CodecPlan plan;
+    if (!codecPlan(settings.codec, plan)) {
+        logError("VideoWriter")
+            << "codec " << videoCodecName(settings.codec)
+            << " is not available on Linux (macOS only); use H.264 or HEVC";
         return false;
     }
 
@@ -207,25 +263,25 @@ bool VideoWriter::openPlatform(const std::string& fullPath, int w, int h,
 
     // Auto-select the most efficient encoder that actually works here: the
     // first probed-OK hardware option, else software. Resolved once, cached.
-    const EncoderOption* opt = selectEncoder(w, h);
+    const EncoderOption* opt = selectEncoder(plan, w, h);
     if (!opt) {
         logError("VideoWriter")
-            << "no working H.264 GStreamer encoder (install gst-plugins-ugly "
-               "for x264enc, or gst-plugins-bad for openh264enc)";
+            << "no working " << plan.label << " GStreamer encoder found "
+            << "(check gst-plugins-ugly/bad and your GPU's VA-API/NVENC plugins)";
         return false;
     }
 
-    // h264parse makes the encoder->mp4mux hand-off robust (avc stream-format,
-    // AU alignment). Include it only when the plugin is present.
-    bool haveParse = elementAvailable("h264parse");
+    // The H.26x parser makes the encoder->mp4mux hand-off robust (avc/hvc1
+    // stream-format, AU alignment). Include it only when the plugin is present.
+    bool haveParse = elementAvailable(plan.parse);
 
-    // appsrc -> queue -> videoconvert -> <encoder segment> -> [h264parse] -> mp4mux -> filesink
+    // appsrc -> queue -> videoconvert -> <encoder segment> -> [parse] -> mp4mux -> filesink
     // Named elements let us configure caps/bitrate/location after parse, which
     // avoids fragile shell-style escaping of the output path. The encoder
     // segment (HW uploader / chroma capsfilter) is baked into EncoderOption.
     std::string desc = "appsrc name=src ! queue ! videoconvert ! ";
     desc += opt->segment;
-    if (haveParse) desc += " ! h264parse";
+    if (haveParse) { desc += " ! "; desc += plan.parse; }
     desc += " ! mp4mux name=mux ! filesink name=sink";
 
     GError* err = nullptr;
@@ -260,6 +316,7 @@ bool VideoWriter::openPlatform(const std::string& fullPath, int w, int h,
                  ? settings.bitrate
                  : (int)((double)w * h * (fps > 0 ? fps : 30.0) * 0.1);
     configureEncoderBitrate(enc, *opt, br);
+    configureKeyframeInterval(enc, settings.keyframeInterval);
     if (enc) gst_object_unref(enc);
 
     // appsrc: time-stamped (we set PTS ourselves), pushed synchronously with
@@ -304,7 +361,7 @@ bool VideoWriter::openPlatform(const std::string& fullPath, int w, int h,
     platform_ = pd;
 
     logNotice("VideoWriter")
-        << "GStreamer encoder: " << opt->encName
+        << "GStreamer " << plan.label << " encoder: " << opt->encName
         << (opt->hardware ? " (hardware)" : " (software)");
     return true;
 }
