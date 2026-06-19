@@ -11,9 +11,13 @@
 // GStreamer is the desktop-native multimedia framework on Linux and is already
 // a TrussC dependency (Sound/VideoPlayer), so this adds no new library - the
 // same "use the platform's native media stack, no ffmpeg" spirit as the other
-// backends. The H.264 encoder is chosen at runtime from whatever is installed
-// (x264enc / openh264enc / vaapih264enc / v4l2h264enc), so we degrade rather
-// than hard-fail on minimal systems.
+// backends. The H.264 encoder is chosen at runtime: hardware first (modern VA
+// for Intel/AMD, NVENC, legacy VA-API, V4L2 for the Pi), falling back to
+// software x264enc/openh264enc. Each candidate is validated with a tiny probe
+// pipeline before use - a HW encoder that exists but can't actually run on this
+// machine is skipped rather than silently producing an empty file - so we get
+// the efficient path automatically and still never hard-fail where software is
+// available.
 //
 // The recorder feeds RGBA top-down, which is exactly GStreamer's default raw
 // video layout, so no vertical flip or R<->B swizzle is needed here (unlike the
@@ -46,25 +50,99 @@ struct VideoRecorderPlatformData {
 
 namespace {
 
-// Pick the first installed H.264 encoder, preferring quality/ubiquity over
-// hardware paths (HW encoders vary wildly in availability/quality on Linux).
-// Returns the GStreamer element name, or nullptr if none is available.
-const char* pickH264Encoder() {
-    static const char* candidates[] = {
-        "x264enc",       // software, gst-plugins-ugly - best default
-        "openh264enc",   // software, gst-plugins-bad
-        "vaapih264enc",  // VA-API hardware (Intel/AMD)
-        "nvh264enc",     // NVIDIA NVENC
-        "v4l2h264enc",   // V4L2 stateful (Raspberry Pi etc.)
-    };
-    for (const char* name : candidates) {
-        GstElementFactory* f = gst_element_factory_find(name);
-        if (f) {
-            gst_object_unref(f);
-            return name;
-        }
+// One H.264 encoder option. `segment` is the pipeline fragment that sits
+// between "videoconvert ! " and " ! h264parse" and must contain the encoder
+// element named "enc". HW encoders negotiate their own (4:2:0) chroma and may
+// need an uploader (vaapipostproc); software encoders get an explicit I420
+// capsfilter so x264enc doesn't pick the poorly-supported high-4:4:4 profile.
+struct EncoderOption {
+    const char* probe;       // element that must exist for this option
+    const char* encName;     // the "enc" element (for logging / bitrate)
+    const char* segment;     // videoconvert -> ... -> h264parse fragment
+    bool        hardware;
+    bool        bitrateKbps; // true: "bitrate" in kbit/s, false: bits/s
+};
+
+// Hardware first (auto-prefer the efficient path), software last as the
+// always-works safety net. Every option is validated with a real probe before
+// use, so an encoder that exists but can't actually run on this machine just
+// falls through to the next instead of producing an empty file.
+const EncoderOption kEncoderOptions[] = {
+    // Modern VA-API (Intel/AMD): takes system memory, picks 4:2:0 itself.
+    {"vah264lpenc",  "vah264lpenc",  "vah264lpenc name=enc",                            true,  true},
+    {"vah264enc",    "vah264enc",    "vah264enc name=enc",                              true,  true},
+    // NVIDIA NVENC.
+    {"nvh264enc",    "nvh264enc",    "nvh264enc name=enc",                              true,  true},
+    // Legacy gstreamer-vaapi: needs frames uploaded to VA surfaces first.
+    {"vaapih264enc", "vaapih264enc", "vaapipostproc ! vaapih264enc name=enc",           true,  true},
+    // V4L2 stateful HW encoder (Raspberry Pi 3/4 etc.): wants NV12.
+    {"v4l2h264enc",  "v4l2h264enc",  "video/x-raw,format=NV12 ! v4l2h264enc name=enc",  true,  true},
+    // Software (gst-plugins-ugly): the portable default, forced to 4:2:0.
+    {"x264enc",      "x264enc",      "video/x-raw,format=I420 ! x264enc name=enc speed-preset=medium", false, true},
+    // Software fallback (gst-plugins-bad). bitrate here is in bits/sec.
+    {"openh264enc",  "openh264enc",  "video/x-raw,format=I420 ! openh264enc name=enc",  false, false},
+};
+
+bool elementAvailable(const char* name) {
+    GstElementFactory* f = gst_element_factory_find(name);
+    if (f) { gst_object_unref(f); return true; }
+    return false;
+}
+
+// Run a tiny self-contained pipeline to confirm the encoder actually works on
+// this machine (driver present, caps negotiable). HW elements routinely exist
+// yet fail to initialize; this reaches EOS only if encoding truly succeeds.
+bool probeEncoder(const EncoderOption& opt) {
+    std::string desc =
+        "videotestsrc num-buffers=2 ! "
+        "video/x-raw,format=RGBA,width=64,height=64,framerate=30/1 ! "
+        "videoconvert ! ";
+    desc += opt.segment;
+    desc += " ! fakesink sync=false";
+
+    GError* err = nullptr;
+    GstElement* p = gst_parse_launch(desc.c_str(), &err);
+    if (!p || err) {
+        if (err) g_error_free(err);
+        if (p) gst_object_unref(p);
+        return false;
     }
-    return nullptr;
+    bool ok = false;
+    if (gst_element_set_state(p, GST_STATE_PLAYING) != GST_STATE_CHANGE_FAILURE) {
+        GstBus* bus = gst_element_get_bus(p);
+        GstMessage* msg = gst_bus_timed_pop_filtered(
+            bus, 5 * GST_SECOND,
+            (GstMessageType)(GST_MESSAGE_EOS | GST_MESSAGE_ERROR));
+        ok = (msg && GST_MESSAGE_TYPE(msg) == GST_MESSAGE_EOS);
+        if (msg) gst_message_unref(msg);
+        gst_object_unref(bus);
+    }
+    gst_element_set_state(p, GST_STATE_NULL);
+    gst_object_unref(p);
+    return ok;
+}
+
+// Pick (once) the best working encoder: the first hardware option that probes
+// OK, otherwise the first working software option. Cached for the process.
+const EncoderOption* selectEncoder() {
+    static const EncoderOption* chosen = nullptr;
+    static bool resolved = false;
+    if (resolved) return chosen;
+    resolved = true;
+    for (const EncoderOption& opt : kEncoderOptions) {
+        if (!elementAvailable(opt.probe)) continue;
+        if (probeEncoder(opt)) {
+            chosen = &opt;
+            logNotice("VideoRecorder")
+                << "selected " << (opt.hardware ? "hardware" : "software")
+                << " H.264 encoder: " << opt.encName;
+            break;
+        }
+        logWarning("VideoRecorder")
+            << opt.encName << " is installed but not functional here; "
+            << "trying next encoder";
+    }
+    return chosen;
 }
 
 // Split a float fps into an exact rational (num/den) for caps framerate.
@@ -80,18 +158,17 @@ void fpsToRatio(double fps, int& num, int& den) {
     }
 }
 
-// Configure the encoder's bitrate. The property and its unit differ per
-// encoder, so branch on the element name. `bitsPerSec` is the target rate.
-void configureEncoderBitrate(GstElement* enc, const char* name, int bitsPerSec) {
+// Configure the encoder's bitrate. The unit differs per encoder (kbit/s vs
+// bits/s, captured in EncoderOption). Some HW encoders default to a constant-
+// quality mode that ignores "bitrate"; we set it best-effort where the
+// property exists rather than juggle each encoder's rate-control enum.
+void configureEncoderBitrate(GstElement* enc, const EncoderOption& opt,
+                             int bitsPerSec) {
     if (!enc || bitsPerSec <= 0) return;
-    if (g_strcmp0(name, "openh264enc") == 0) {
-        // openh264enc: "bitrate" in bits/sec.
-        g_object_set(enc, "bitrate", (guint)bitsPerSec, nullptr);
-    } else {
-        // x264enc / vaapih264enc / nvh264enc / v4l2h264enc: "bitrate" in kbit/s.
-        guint kbps = (guint)((bitsPerSec + 999) / 1000);
-        g_object_set(enc, "bitrate", kbps, nullptr);
-    }
+    if (!g_object_class_find_property(G_OBJECT_GET_CLASS(enc), "bitrate")) return;
+    guint val = opt.bitrateKbps ? (guint)((bitsPerSec + 999) / 1000)
+                                : (guint)bitsPerSec;
+    g_object_set(enc, "bitrate", val, nullptr);
 }
 
 } // namespace
@@ -108,36 +185,28 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
         gstInitialized = true;
     }
 
-    const char* encName = pickH264Encoder();
-    if (!encName) {
+    // Auto-select the most efficient encoder that actually works here: the
+    // first probed-OK hardware option, else software. Resolved once, cached.
+    const EncoderOption* opt = selectEncoder();
+    if (!opt) {
         logError("VideoRecorder")
-            << "no H.264 GStreamer encoder found (install gst-plugins-ugly "
+            << "no working H.264 GStreamer encoder (install gst-plugins-ugly "
                "for x264enc, or gst-plugins-bad for openh264enc)";
         return false;
     }
 
     // h264parse makes the encoder->mp4mux hand-off robust (avc stream-format,
     // AU alignment). Include it only when the plugin is present.
-    bool haveParse = false;
-    if (GstElementFactory* pf = gst_element_factory_find("h264parse")) {
-        gst_object_unref(pf);
-        haveParse = true;
-    }
+    bool haveParse = elementAvailable("h264parse");
 
-    // appsrc -> queue -> videoconvert -> I420 -> <enc> -> [h264parse] -> mp4mux -> filesink
-    // Elements are named so we can configure caps/bitrate/location after parse,
-    // which avoids fragile shell-style escaping of the output path.
-    //
-    // The I420 capsfilter forces 4:2:0 chroma. Without it x264enc negotiates
-    // 4:4:4 straight from RGBA (profile high-4:4:4), which many players, browser
-    // <video> tags and hardware decoders can't play. 4:2:0 is the portable
-    // default the mac/win backends also produce.
-    std::string desc =
-        "appsrc name=src ! queue ! videoconvert ! video/x-raw,format=I420 ! ";
-    desc += encName;
-    desc += " name=enc ! ";
-    if (haveParse) desc += "h264parse ! ";
-    desc += "mp4mux name=mux ! filesink name=sink";
+    // appsrc -> queue -> videoconvert -> <encoder segment> -> [h264parse] -> mp4mux -> filesink
+    // Named elements let us configure caps/bitrate/location after parse, which
+    // avoids fragile shell-style escaping of the output path. The encoder
+    // segment (HW uploader / chroma capsfilter) is baked into EncoderOption.
+    std::string desc = "appsrc name=src ! queue ! videoconvert ! ";
+    desc += opt->segment;
+    if (haveParse) desc += " ! h264parse";
+    desc += " ! mp4mux name=mux ! filesink name=sink";
 
     GError* err = nullptr;
     GstElement* pipeline = gst_parse_launch(desc.c_str(), &err);
@@ -170,7 +239,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     int br = (bitrate > 0)
                  ? bitrate
                  : (int)((double)w * h * (fps > 0 ? fps : 30.0) * 0.1);
-    configureEncoderBitrate(enc, encName, br);
+    configureEncoderBitrate(enc, *opt, br);
     if (enc) gst_object_unref(enc);
 
     // appsrc: time-stamped (we set PTS ourselves), pushed synchronously with
@@ -198,7 +267,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     if (gst_element_set_state(pipeline, GST_STATE_PLAYING) ==
         GST_STATE_CHANGE_FAILURE) {
         logError("VideoRecorder")
-            << "could not start pipeline (encoder: " << encName << ")";
+            << "could not start pipeline (encoder: " << opt->encName << ")";
         gst_object_unref(appsrc);
         gst_object_unref(sink);
         gst_object_unref(pipeline);
@@ -214,7 +283,9 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     pd->fps      = (fps > 0) ? fps : 30.0;
     platform_ = pd;
 
-    logNotice("VideoRecorder") << "GStreamer encoder: " << encName;
+    logNotice("VideoRecorder")
+        << "GStreamer encoder: " << opt->encName
+        << (opt->hardware ? " (hardware)" : " (software)");
     return true;
 }
 
