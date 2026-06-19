@@ -3015,11 +3015,11 @@ categories:
       - name: startRecording
         return: "bool"
         signatures:
-          - params: "const string& path, float fps = 60.0f"
-            params_simple: "path, fps"
-        description: "Start recording the window to an H.264 .mp4 (native encoder, no ffmpeg)"
-        description_ja: "ウィンドウをH.264 .mp4に録画開始（ネイティブエンコーダ、ffmpeg不要）"
-        description_ko: "윈도우를 H.264 .mp4로 녹화 시작 (네이티브 인코더, ffmpeg 불필요)"
+          - params: "const string& path, const VideoRecordSettings& settings = {}"
+            params_simple: "path, settings"
+        description: "Start recording the window to a video file (native encoder, no ffmpeg)"
+        description_ja: "ウィンドウを動画ファイルに録画開始（ネイティブエンコーダ、ffmpeg不要）"
+        description_ko: "윈도우를 동영상 파일로 녹화 시작 (네이티브 인코더, ffmpeg 불필요)"
         sketch: false
         snippet: "startRecording(${1:\"out.mp4\"})"
 
@@ -7267,77 +7267,99 @@ categories:
         sketch: false
         snippet: "VideoPlayer::extractFrame(${1:\"video.mp4\"}, pixels, ${2:0.0})"
 
-      - name: VideoRecorder
+      - name: ScreenRecorder
         return: ""
         signatures:
           - params: ""
             params_simple: ""
-        description: "Create a video recorder (native H.264 encoder, no ffmpeg)"
-        description_ja: "ビデオレコーダーを作成（ネイティブH.264エンコーダ、ffmpeg不要）"
-        description_ko: "비디오 레코더를 생성 (네이티브 H.264 인코더, ffmpeg 불필요)"
+        description: "Live screen recorder: captures the window (or an Fbo) every frame to a video file (native encoder, no ffmpeg)"
+        description_ja: "ライブ画面録画：ウィンドウ（またはFbo）を毎フレーム動画ファイルに録画（ネイティブエンコーダ、ffmpeg不要）"
+        description_ko: "라이브 화면 녹화: 윈도우(또는 Fbo)를 매 프레임 동영상 파일로 녹화 (네이티브 인코더, ffmpeg 불필요)"
         sketch: false
-        snippet: "VideoRecorder()"
-
-      - name: setup
-        return: "bool"
-        signatures:
-          - params: "const string& path, int width, int height, float fps = 30.0f, int bitrate = 0"
-            params_simple: "path, width, height, fps, bitrate"
-        description: "Open a recording at the given size (path resolved via getDataPath)"
-        description_ja: "指定サイズで録画を開始（パスはgetDataPathで解決）"
-        description_ko: "지정 크기로 녹화를 시작 (경로는 getDataPath로 해석)"
-        sketch: false
-        snippet: "setup(${1:\"out.mp4\"}, ${2:1280}, ${3:720})"
+        snippet: "ScreenRecorder()"
 
       - name: start
         return: "bool"
         signatures:
+          - params: "const string& path, const VideoRecordSettings& settings = {}"
+            params_simple: "path, settings"
+          - params: "const Fbo& fbo, const string& path, const VideoRecordSettings& settings = {}"
+            params_simple: "fbo, path, settings"
+        description: "Start live capture (window, or an Fbo for clean GUI-free output); size is taken automatically"
+        description_ja: "ライブ録画開始（ウィンドウ、またはGUIなしのクリーン出力はFbo）。サイズは自動取得"
+        description_ko: "라이브 녹화 시작 (윈도우, 또는 GUI 없는 클린 출력은 Fbo); 크기는 자동 취득"
+        sketch: false
+        snippet: "start(${1:\"out.mp4\"})"
+
+      - name: stop
+        return: "void"
+        signatures:
           - params: ""
             params_simple: ""
-          - params: "const Fbo& fbo"
-            params_simple: "fbo"
-        description: "Auto-capture every frame until close() (no arg = window, fbo = clean output)"
-        description_ja: "close()まで毎フレーム自動キャプチャ（引数なし=ウィンドウ、fbo=クリーン出力）"
-        description_ko: "close()까지 매 프레임 자동 캡처 (인자 없음=윈도우, fbo=클린 출력)"
+        description: "Stop live capture and finalize the file"
+        description_ja: "ライブ録画を停止してファイルを確定"
+        description_ko: "라이브 녹화를 중지하고 파일을 마무리"
         sketch: false
-        snippet: "start()"
+        snippet: "stop()"
+
+      - name: VideoWriter
+        return: ""
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Low-level video encoder: you feed it frames (deterministic, fixed-rate offline render)"
+        description_ja: "低レベル動画エンコーダ：フレームを自分で渡す（決定論的・固定レートのオフライン書き出し）"
+        description_ko: "저수준 동영상 인코더: 프레임을 직접 공급 (결정론적·고정 레이트 오프라인 렌더)"
+        sketch: false
+        snippet: "VideoWriter()"
+
+      - name: open
+        return: "bool"
+        signatures:
+          - params: "const string& path, int width, int height, const VideoRecordSettings& settings = {}"
+            params_simple: "path, width, height, settings"
+        description: "Open the encoder at the given size (path resolved via getDataPath)"
+        description_ja: "指定サイズでエンコーダを開く（パスはgetDataPathで解決）"
+        description_ko: "지정 크기로 인코더를 엽니다 (경로는 getDataPath로 해석)"
+        sketch: false
+        snippet: "open(${1:\"out.mp4\"}, ${2:1280}, ${3:720})"
 
       - name: addFrame
         return: "bool"
         signatures:
-          - params: ""
-            params_simple: ""
           - params: "const Fbo& fbo"
             params_simple: "fbo"
           - params: "const Pixels& pixels"
             params_simple: "pixels"
-        description: "Append one frame immediately (manual, fixed-rate offline timing)"
-        description_ja: "1フレームを即時追加（手動、固定レートのオフラインタイミング）"
-        description_ko: "한 프레임을 즉시 추가 (수동, 고정 레이트 오프라인 타이밍)"
+        description: "Append one frame at the fixed-rate clock (frameIndex/fps)"
+        description_ja: "1フレームを固定レート（frameIndex/fps）で追加"
+        description_ko: "한 프레임을 고정 레이트(frameIndex/fps)로 추가"
         sketch: false
         snippet: "addFrame(${1:fbo})"
+
+      - name: addFrameAt
+        return: "bool"
+        signatures:
+          - params: "const Fbo& fbo, double timeSec"
+            params_simple: "fbo, timeSec"
+          - params: "const Pixels& pixels, double timeSec"
+            params_simple: "pixels, timeSec"
+        description: "Append one frame at an explicit presentation time (seconds)"
+        description_ja: "1フレームを明示的な表示時刻（秒）で追加"
+        description_ko: "한 프레임을 명시적 표시 시각(초)으로 추가"
+        sketch: false
+        snippet: "addFrameAt(${1:fbo}, ${2:t})"
 
       - name: close
         return: "void"
         signatures:
           - params: ""
             params_simple: ""
-        description: "Stop auto-capture and finalize the file"
-        description_ja: "自動キャプチャを停止してファイルを確定"
-        description_ko: "자동 캡처를 중지하고 파일을 마무리"
+        description: "Finalize and flush the video file"
+        description_ja: "動画ファイルを確定してフラッシュ"
+        description_ko: "동영상 파일을 마무리하고 플러시"
         sketch: false
         snippet: "close()"
-
-      - name: isRecording
-        return: "bool"
-        signatures:
-          - params: ""
-            params_simple: ""
-        description: "Check whether the recorder is recording"
-        description_ja: "録画中かどうか確認"
-        description_ko: "녹화 중인지 확인"
-        sketch: false
-        snippet: "isRecording()"
 
   # ==========================================================================
   # tcxLut Addon - LUT (Color Grading)

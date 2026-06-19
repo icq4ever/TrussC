@@ -57,7 +57,7 @@ namespace trussc {
 // ---------------------------------------------------------------------------
 // Platform state (IMFSinkWriter holds the H.264 encoder + mp4 file sink)
 // ---------------------------------------------------------------------------
-struct VideoRecorderPlatformData {
+struct VideoWriterPlatformData {
     IMFSinkWriter* writer = nullptr;
     DWORD streamIndex = 0;
     int   width  = 0;
@@ -198,17 +198,25 @@ HRESULT openWriter(const std::wstring& wpath, int w, int h,
 // ---------------------------------------------------------------------------
 // openPlatform - create the H.264 sink writer and begin a writing session
 // ---------------------------------------------------------------------------
-bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
-                                 float fps, int bitrate) {
+bool VideoWriter::openPlatform(const std::string& fullPath, int w, int h,
+                               float fps, const VideoRecordSettings& settings) {
+    // This backend currently encodes H.264 only. Reject other codecs clearly
+    // rather than silently writing a different format than requested.
+    if (settings.codec != VideoCodec::H264) {
+        logError("VideoWriter") << "codec " << videoCodecName(settings.codec)
+                                << " not supported on Windows yet (H.264 only)";
+        return false;
+    }
+
     // Media Foundation startup (ref-counted internally; matched in close()).
     HRESULT hr = MFStartup(MF_VERSION, MFSTARTUP_FULL);
     if (FAILED(hr)) {
-        logError("VideoRecorder") << "MFStartup failed (hr=0x"
+        logError("VideoWriter") << "MFStartup failed (hr=0x"
                                   << std::hex << (unsigned)hr << ")";
         return false;
     }
 
-    auto* pd = new VideoRecorderPlatformData();
+    auto* pd = new VideoWriterPlatformData();
     pd->mfStarted = true;
     pd->width  = w;
     pd->height = h;
@@ -218,8 +226,8 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     fpsToRatio(pd->fps, fpsNum, fpsDen);
 
     // ~0.1 bits per pixel per second — same default as the mac/Linux backends.
-    int br = (bitrate > 0)
-                 ? bitrate
+    int br = (settings.bitrate > 0)
+                 ? settings.bitrate
                  : (int)((double)w * h * pd->fps * 0.1);
 
     // UTF-8 path -> wide.
@@ -245,7 +253,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     // Software fallback: only the hardware path can fail here, so a failed open
     // means "hardware encoder unusable on this machine" -> retry pure software.
     if (FAILED(hr) || !writer) {
-        logWarning("VideoRecorder")
+        logWarning("VideoWriter")
             << "hardware H.264 encoder path unavailable (hr=0x"
             << std::hex << (unsigned)hr << "); falling back to software";
         DeleteFileW(wpath.c_str());
@@ -254,7 +262,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     }
 
     if (FAILED(hr) || !writer) {
-        logError("VideoRecorder")
+        logError("VideoWriter")
             << "failed to open H.264 sink writer (hr=0x"
             << std::hex << (unsigned)hr << ")";
         MFShutdown();
@@ -267,7 +275,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     pd->usedHardware = isHw;
     platform_ = pd;
 
-    logNotice("VideoRecorder")
+    logNotice("VideoWriter")
         << "Media Foundation H.264 encoder: "
         << (isHw ? "hardware" : "software");
     return true;
@@ -276,8 +284,8 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
 // ---------------------------------------------------------------------------
 // appendPlatform - encode one RGBA8 (top-down) frame
 // ---------------------------------------------------------------------------
-bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
-    VideoRecorderPlatformData* pd = platform_;
+bool VideoWriter::appendPlatform(const unsigned char* rgba, double timeSec) {
+    VideoWriterPlatformData* pd = platform_;
     if (!pd || !pd->writer || pd->failed) return false;
 
     const int w = pd->width;
@@ -287,7 +295,7 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
     IMFMediaBuffer* buffer = nullptr;
     HRESULT hr = MFCreateMemoryBuffer(frameBytes, &buffer);
     if (FAILED(hr) || !buffer) {
-        logError("VideoRecorder") << "MFCreateMemoryBuffer failed";
+        logError("VideoWriter") << "MFCreateMemoryBuffer failed";
         pd->failed = true;
         return false;
     }
@@ -332,7 +340,7 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
     buffer->Release();
 
     if (FAILED(hr)) {
-        logError("VideoRecorder") << "WriteSample failed (hr=0x"
+        logError("VideoWriter") << "WriteSample failed (hr=0x"
                                   << std::hex << (unsigned)hr << ")";
         pd->failed = true;
         return false;
@@ -343,15 +351,15 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
 // ---------------------------------------------------------------------------
 // closePlatform - finalize the file and release MF resources
 // ---------------------------------------------------------------------------
-void VideoRecorder::closePlatform() {
-    VideoRecorderPlatformData* pd = platform_;
+void VideoWriter::closePlatform() {
+    VideoWriterPlatformData* pd = platform_;
     if (!pd) return;
 
     if (pd->writer) {
         if (!pd->failed) {
             HRESULT hr = pd->writer->Finalize();
             if (FAILED(hr)) {
-                logError("VideoRecorder") << "Finalize failed (hr=0x"
+                logError("VideoWriter") << "Finalize failed (hr=0x"
                                           << std::hex << (unsigned)hr << ")";
             }
         }

@@ -117,24 +117,33 @@ inline void registerInspectionTools() {
             return json{{"status", "ok"}};
         }));
 
-    // --- Recording tools (native H.264, no ffmpeg) ---
+    // --- Recording tools (native encoder, no ffmpeg) ---
 
-    tool("start_recording", "Start recording the window to an H.264 .mp4 file (the screenshot's video counterpart)")
+    tool("start_recording", "Start recording the window to a video file (the screenshot's video counterpart)")
         .arg<std::string>("path", "Output file path (relative paths resolve to the data dir)")
         .arg<float>("fps", "Target frame rate (default 60; ProMotion frames are decimated to it)", false)
+        .arg<std::string>("codec", "h264 (default) | hevc | prores422 | prores4444 (.mov, macOS)", false)
         .bind([](const json& args) -> json {
             std::string path = args.value("path", std::string());
             if (path.empty()) {
                 return json{{"status", "error"}, {"message", "path is required"}};
             }
-            float fps = 60.0f;
+            trussc::VideoRecordSettings settings;
             if (args.contains("fps") && args.at("fps").is_number()) {
-                fps = args.at("fps").get<float>();
+                settings.fps = args.at("fps").get<float>();
             }
-            bool ok = trussc::startRecording(path, fps);
+            std::string codec = args.value("codec", std::string());
+            if      (codec == "hevc")       settings.codec = trussc::VideoCodec::HEVC;
+            else if (codec == "prores422")  settings.codec = trussc::VideoCodec::ProRes422;
+            else if (codec == "prores4444") settings.codec = trussc::VideoCodec::ProRes4444;
+            else if (!codec.empty() && codec != "h264") {
+                return json{{"status", "error"}, {"message", "unknown codec: " + codec}};
+            }
+            bool ok = trussc::startRecording(path, settings);
             return json{{"status", ok ? "ok" : "error"},
                         {"path", trussc::recordingPath()},
-                        {"fps", fps}};
+                        {"fps", settings.fps},
+                        {"codec", trussc::videoCodecName(settings.codec)}};
         });
 
     tool("stop_recording", "Stop the current recording and finalize the file")

@@ -1,6 +1,11 @@
 // =============================================================================
 // tcVideoRecorder_mac.mm - macOS AVFoundation (AVAssetWriter) implementation
 // =============================================================================
+// Implements the VideoWriter platform hooks declared in tc/video/tcVideoRecorder.h
+//   - openPlatform()   : create the encoder (H.264 / HEVC / ProRes) + begin
+//   - appendPlatform() : encode one RGBA8 (top-down) frame
+//   - closePlatform()  : finalize and flush the file
+// =============================================================================
 
 #ifdef __APPLE__
 
@@ -16,7 +21,7 @@ namespace trussc {
 // ---------------------------------------------------------------------------
 // Platform state (ARC manages the strong ObjC members of this C++ struct)
 // ---------------------------------------------------------------------------
-struct VideoRecorderPlatformData {
+struct VideoWriterPlatformData {
     AVAssetWriter* writer = nil;
     AVAssetWriterInput* input = nil;
     AVAssetWriterInputPixelBufferAdaptor* adaptor = nil;
@@ -28,11 +33,36 @@ struct VideoRecorderPlatformData {
 };
 
 // ---------------------------------------------------------------------------
-// openPlatform - create the H.264 writer and begin a session
+// openPlatform - create the encoder and begin a session
 // ---------------------------------------------------------------------------
-bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
-                                 float fps, int bitrate) {
+bool VideoWriter::openPlatform(const std::string& fullPath, int w, int h,
+                               float fps, const VideoRecordSettings& settings) {
     @autoreleasepool {
+        // Map our codec to AVFoundation. ProRes lives in a QuickTime (.mov)
+        // container; H.264/HEVC go in MPEG-4 (.mp4).
+        NSString* codecKey = AVVideoCodecTypeH264;
+        AVFileType fileType = AVFileTypeMPEG4;
+        bool useBitrate = true;   // ProRes is quality-fixed (intra), ignores bitrate
+        switch (settings.codec) {
+            case VideoCodec::H264:
+                codecKey = AVVideoCodecTypeH264; break;
+            case VideoCodec::HEVC:
+                codecKey = AVVideoCodecTypeHEVC; break;
+            case VideoCodec::ProRes422:
+                codecKey = AVVideoCodecTypeAppleProRes422;
+                fileType = AVFileTypeQuickTimeMovie; useBitrate = false; break;
+            case VideoCodec::ProRes4444:
+                codecKey = AVVideoCodecTypeAppleProRes4444;
+                fileType = AVFileTypeQuickTimeMovie; useBitrate = false; break;
+        }
+        if (fileType == AVFileTypeQuickTimeMovie &&
+            fullPath.size() >= 4 &&
+            fullPath.compare(fullPath.size() - 4, 4, ".mov") != 0) {
+            logWarning("VideoWriter")
+                << "ProRes is written as QuickTime; prefer a .mov path ("
+                << fullPath << ")";
+        }
+
         NSString* nsPath = [NSString stringWithUTF8String:fullPath.c_str()];
         NSURL* url = [NSURL fileURLWithPath:nsPath];
 
@@ -41,39 +71,46 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
 
         NSError* err = nil;
         AVAssetWriter* writer =
-            [[AVAssetWriter alloc] initWithURL:url
-                                      fileType:AVFileTypeMPEG4
-                                         error:&err];
+            [[AVAssetWriter alloc] initWithURL:url fileType:fileType error:&err];
         if (!writer) {
-            logError("VideoRecorder")
+            logError("VideoWriter")
                 << "AVAssetWriter init failed: "
                 << (err ? err.localizedDescription.UTF8String : "unknown");
             return false;
         }
 
-        // ~0.1 bits per pixel per second is a good default for clean demos.
-        int br = (bitrate > 0)
-                     ? bitrate
-                     : (int)((double)w * h * (fps > 0 ? fps : 30.0) * 0.1);
-
-        NSDictionary* compression = @{
-            AVVideoAverageBitRateKey: @(br),
-        };
-        NSDictionary* settings = @{
-            AVVideoCodecKey: AVVideoCodecTypeH264,
+        NSMutableDictionary* outSettings = [@{
+            AVVideoCodecKey: codecKey,
             AVVideoWidthKey: @(w),
             AVVideoHeightKey: @(h),
-            AVVideoCompressionPropertiesKey: compression,
-        };
+        } mutableCopy];
+
+        if (useBitrate) {
+            // ~0.1 bits per pixel per second is a good default for clean demos.
+            int br = (settings.bitrate > 0)
+                         ? settings.bitrate
+                         : (int)((double)w * h * (fps > 0 ? fps : 30.0) * 0.1);
+            NSMutableDictionary* compression =
+                [@{ AVVideoAverageBitRateKey: @(br) } mutableCopy];
+            if (settings.keyframeInterval > 0) {
+                compression[AVVideoMaxKeyFrameIntervalKey] = @(settings.keyframeInterval);
+            }
+            outSettings[AVVideoCompressionPropertiesKey] = compression;
+        }
+
         AVAssetWriterInput* input =
             [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo
-                                               outputSettings:settings];
+                                               outputSettings:outSettings];
         input.expectsMediaDataInRealTime = NO;
 
         NSDictionary* sourceAttrs = @{
             (NSString*)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA),
             (NSString*)kCVPixelBufferWidthKey: @(w),
             (NSString*)kCVPixelBufferHeightKey: @(h),
+            // Hardware encoders (HEVC / ProRes) read the frame from an IOSurface;
+            // without this the pool yields CPU-only buffers and HW codecs produce
+            // black/garbage (H.264's path happens to tolerate it).
+            (NSString*)kCVPixelBufferIOSurfacePropertiesKey: @{},
         };
         AVAssetWriterInputPixelBufferAdaptor* adaptor =
             [AVAssetWriterInputPixelBufferAdaptor
@@ -81,13 +118,14 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
                                             sourcePixelBufferAttributes:sourceAttrs];
 
         if (![writer canAddInput:input]) {
-            logError("VideoRecorder") << "writer cannot add video input";
+            logError("VideoWriter") << "writer cannot add video input (codec "
+                                    << videoCodecName(settings.codec) << ")";
             return false;
         }
         [writer addInput:input];
 
         if (![writer startWriting]) {
-            logError("VideoRecorder")
+            logError("VideoWriter")
                 << "startWriting failed: "
                 << (writer.error ? writer.error.localizedDescription.UTF8String
                                  : "unknown");
@@ -95,7 +133,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
         }
         [writer startSessionAtSourceTime:kCMTimeZero];
 
-        auto* pd = new VideoRecorderPlatformData();
+        auto* pd = new VideoWriterPlatformData();
         pd->writer = writer;
         pd->input = input;
         pd->adaptor = adaptor;
@@ -110,8 +148,8 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
 // ---------------------------------------------------------------------------
 // appendPlatform - encode one RGBA8 (top-down) frame
 // ---------------------------------------------------------------------------
-bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
-    VideoRecorderPlatformData* pd = platform_;
+bool VideoWriter::appendPlatform(const unsigned char* rgba, double timeSec) {
+    VideoWriterPlatformData* pd = platform_;
     if (!pd || !pd->writer || pd->failed) return false;
 
     @autoreleasepool {
@@ -122,7 +160,7 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
             ++spins;
         }
         if (!pd->input.readyForMoreMediaData) {
-            logError("VideoRecorder") << "input not ready (timeout)";
+            logError("VideoWriter") << "input not ready (timeout)";
             pd->failed = true;
             return false;
         }
@@ -137,13 +175,14 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
             NSDictionary* attrs = @{
                 (NSString*)kCVPixelBufferCGImageCompatibilityKey: @YES,
                 (NSString*)kCVPixelBufferCGBitmapContextCompatibilityKey: @YES,
+                (NSString*)kCVPixelBufferIOSurfacePropertiesKey: @{},
             };
             CVPixelBufferCreate(kCFAllocatorDefault, pd->width, pd->height,
                                 kCVPixelFormatType_32BGRA,
                                 (__bridge CFDictionaryRef)attrs, &pb);
         }
         if (!pb) {
-            logError("VideoRecorder") << "could not create pixel buffer";
+            logError("VideoWriter") << "could not create pixel buffer";
             pd->failed = true;
             return false;
         }
@@ -167,13 +206,13 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
         CVPixelBufferUnlockBaseAddress(pb, 0);
 
         // Presentation time is decided by the caller (fixed-rate for manual
-        // frames, real elapsed time for auto-capture). 600 = common timescale.
+        // frames, real elapsed time for live capture). 600 = common timescale.
         CMTime t = CMTimeMakeWithSeconds(timeSec, 600);
         BOOL ok = [pd->adaptor appendPixelBuffer:pb withPresentationTime:t];
         CVPixelBufferRelease(pb);
 
         if (!ok) {
-            logError("VideoRecorder")
+            logError("VideoWriter")
                 << "appendPixelBuffer failed: "
                 << (pd->writer.error
                         ? pd->writer.error.localizedDescription.UTF8String
@@ -189,8 +228,8 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
 // ---------------------------------------------------------------------------
 // closePlatform - mark finished and flush the file synchronously
 // ---------------------------------------------------------------------------
-void VideoRecorder::closePlatform() {
-    VideoRecorderPlatformData* pd = platform_;
+void VideoWriter::closePlatform() {
+    VideoWriterPlatformData* pd = platform_;
     if (!pd) return;
 
     @autoreleasepool {

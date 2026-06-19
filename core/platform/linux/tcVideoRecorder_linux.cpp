@@ -39,7 +39,7 @@ namespace trussc {
 // ---------------------------------------------------------------------------
 // Platform state (the pipeline owns the encoder + mp4 muxer + file sink)
 // ---------------------------------------------------------------------------
-struct VideoRecorderPlatformData {
+struct VideoWriterPlatformData {
     GstElement* pipeline = nullptr;
     GstElement* appsrc   = nullptr;  // borrowed (owned by pipeline)
     int    width  = 0;
@@ -145,12 +145,12 @@ const EncoderOption* selectEncoder(int w, int h) {
         if (!elementAvailable(opt.probe)) continue;
         if (probeEncoder(opt, w, h)) {
             chosen = &opt;
-            logNotice("VideoRecorder")
+            logNotice("VideoWriter")
                 << "selected " << (opt.hardware ? "hardware" : "software")
                 << " H.264 encoder: " << opt.encName;
             break;
         }
-        logWarning("VideoRecorder")
+        logWarning("VideoWriter")
             << opt.encName << " is installed but not functional here; "
             << "trying next encoder";
     }
@@ -188,8 +188,16 @@ void configureEncoderBitrate(GstElement* enc, const EncoderOption& opt,
 // ---------------------------------------------------------------------------
 // openPlatform - build and start the encoding pipeline
 // ---------------------------------------------------------------------------
-bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
-                                 float fps, int bitrate) {
+bool VideoWriter::openPlatform(const std::string& fullPath, int w, int h,
+                               float fps, const VideoRecordSettings& settings) {
+    // This backend currently encodes H.264 only. Reject other codecs clearly
+    // rather than silently writing a different format than requested.
+    if (settings.codec != VideoCodec::H264) {
+        logError("VideoWriter") << "codec " << videoCodecName(settings.codec)
+                                << " not supported on Linux yet (H.264 only)";
+        return false;
+    }
+
     // Safe to call multiple times; matches the Sound backend's guard.
     static bool gstInitialized = false;
     if (!gstInitialized) {
@@ -201,7 +209,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     // first probed-OK hardware option, else software. Resolved once, cached.
     const EncoderOption* opt = selectEncoder(w, h);
     if (!opt) {
-        logError("VideoRecorder")
+        logError("VideoWriter")
             << "no working H.264 GStreamer encoder (install gst-plugins-ugly "
                "for x264enc, or gst-plugins-bad for openh264enc)";
         return false;
@@ -223,7 +231,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     GError* err = nullptr;
     GstElement* pipeline = gst_parse_launch(desc.c_str(), &err);
     if (!pipeline || err) {
-        logError("VideoRecorder")
+        logError("VideoWriter")
             << "failed to build pipeline: "
             << (err ? err->message : "unknown") << " [" << desc << "]";
         if (err) g_error_free(err);
@@ -235,7 +243,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     GstElement* enc    = gst_bin_get_by_name(GST_BIN(pipeline), "enc");
     GstElement* sink   = gst_bin_get_by_name(GST_BIN(pipeline), "sink");
     if (!appsrc || !sink) {
-        logError("VideoRecorder") << "pipeline missing src/sink";
+        logError("VideoWriter") << "pipeline missing src/sink";
         if (appsrc) gst_object_unref(appsrc);
         if (enc) gst_object_unref(enc);
         if (sink) gst_object_unref(sink);
@@ -248,8 +256,8 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
 
     // Encoder bitrate: ~0.1 bits per pixel per second is a good clean-demo
     // default, matching the mac/win backends.
-    int br = (bitrate > 0)
-                 ? bitrate
+    int br = (settings.bitrate > 0)
+                 ? settings.bitrate
                  : (int)((double)w * h * (fps > 0 ? fps : 30.0) * 0.1);
     configureEncoderBitrate(enc, *opt, br);
     if (enc) gst_object_unref(enc);
@@ -278,7 +286,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
 
     if (gst_element_set_state(pipeline, GST_STATE_PLAYING) ==
         GST_STATE_CHANGE_FAILURE) {
-        logError("VideoRecorder")
+        logError("VideoWriter")
             << "could not start pipeline (encoder: " << opt->encName << ")";
         gst_object_unref(appsrc);
         gst_object_unref(sink);
@@ -287,7 +295,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     }
     gst_object_unref(sink);
 
-    auto* pd = new VideoRecorderPlatformData();
+    auto* pd = new VideoWriterPlatformData();
     pd->pipeline = pipeline;
     pd->appsrc   = appsrc;  // keep our ref; released in closePlatform()
     pd->width    = w;
@@ -295,7 +303,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
     pd->fps      = (fps > 0) ? fps : 30.0;
     platform_ = pd;
 
-    logNotice("VideoRecorder")
+    logNotice("VideoWriter")
         << "GStreamer encoder: " << opt->encName
         << (opt->hardware ? " (hardware)" : " (software)");
     return true;
@@ -304,14 +312,14 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
 // ---------------------------------------------------------------------------
 // appendPlatform - push one RGBA8 (top-down) frame into the pipeline
 // ---------------------------------------------------------------------------
-bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
-    VideoRecorderPlatformData* pd = platform_;
+bool VideoWriter::appendPlatform(const unsigned char* rgba, double timeSec) {
+    VideoWriterPlatformData* pd = platform_;
     if (!pd || !pd->appsrc || pd->failed) return false;
 
     const gsize size = (gsize)pd->width * pd->height * 4;
     GstBuffer* buf = gst_buffer_new_allocate(nullptr, size, nullptr);
     if (!buf) {
-        logError("VideoRecorder") << "could not allocate frame buffer";
+        logError("VideoWriter") << "could not allocate frame buffer";
         pd->failed = true;
         return false;
     }
@@ -328,7 +336,7 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
     GstFlowReturn ret =
         gst_app_src_push_buffer(GST_APP_SRC(pd->appsrc), buf);  // takes ownership
     if (ret != GST_FLOW_OK) {
-        logError("VideoRecorder")
+        logError("VideoWriter")
             << "appsrc rejected frame: " << gst_flow_get_name(ret);
         pd->failed = true;
         return false;
@@ -339,8 +347,8 @@ bool VideoRecorder::appendPlatform(const unsigned char* rgba, double timeSec) {
 // ---------------------------------------------------------------------------
 // closePlatform - end the stream, wait for the muxer to finalize, tear down
 // ---------------------------------------------------------------------------
-void VideoRecorder::closePlatform() {
-    VideoRecorderPlatformData* pd = platform_;
+void VideoWriter::closePlatform() {
+    VideoWriterPlatformData* pd = platform_;
     if (!pd) return;
 
     if (pd->pipeline && pd->appsrc && !pd->failed) {
@@ -354,13 +362,13 @@ void VideoRecorder::closePlatform() {
                     bus, 30 * GST_SECOND,
                     (GstMessageType)(GST_MESSAGE_EOS | GST_MESSAGE_ERROR));
                 if (!msg) {
-                    logWarning("VideoRecorder")
+                    logWarning("VideoWriter")
                         << "timed out waiting for EOS; file may be incomplete";
                 } else {
                     if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_ERROR) {
                         GError* e = nullptr;
                         gst_message_parse_error(msg, &e, nullptr);
-                        logError("VideoRecorder")
+                        logError("VideoWriter")
                             << "pipeline error on finalize: "
                             << (e ? e->message : "unknown");
                         if (e) g_error_free(e);
