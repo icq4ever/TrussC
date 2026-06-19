@@ -16,7 +16,7 @@ private:
     void renderScene();  // draw the animated scene into fbo_
 
     Fbo fbo_;                 // clean offscreen output (no GUI overlay)
-    VideoRecorder recorder_;
+    ScreenRecorder recorder_; // live capture (window or the clean Fbo)
 
     int   recW_ = 640;        // clean recording size
     int   recH_ = 480;

@@ -89,26 +89,19 @@ void tcApp::draw() {
 
 void tcApp::toggleRecording() {
     if (recorder_.isRecording()) {
-        recorder_.close();
+        recorder_.stop();
         return;
     }
+    // ScreenRecorder infers the size from the source — no setup() needed.
+    // Settings are a VideoRecordSettings (defaults: H.264 @ 60fps). Override any
+    // field, e.g.:
+    //   recorder_.start("clip.mp4",         { .codec = VideoCodec::HEVC });
+    //   recorder_.start(fbo_, "master.mov", { .codec = VideoCodec::ProRes422 }); // macOS, near-lossless
+    //   recorder_.start("clip.mp4",         { .fps = 30, .bitrate = 20'000'000 });
     if (recordScreen_) {
-        // Match the swapchain's real pixel size (retina-aware), then auto-capture
-        // the whole window each frame.
-        Pixels px;
-        if (grabScreen(px) && px.isAllocated()) {
-            if (recorder_.setup("videoRec_screen.mp4",
-                                px.getWidth(), px.getHeight(), fps_)) {
-                recorder_.start();
-            }
-        } else {
-            logError("tcApp") << "grabScreen failed; cannot start screen recording";
-        }
+        recorder_.start("videoRec_screen.mp4", { .fps = fps_ });       // whole window
     } else {
-        // Auto-capture the clean Fbo each frame.
-        if (recorder_.setup("videoRec_clean.mp4", recW_, recH_, fps_)) {
-            recorder_.start(fbo_);
-        }
+        recorder_.start(fbo_, "videoRec_clean.mp4", { .fps = fps_ });  // clean Fbo
     }
 }
 
@@ -121,5 +114,5 @@ void tcApp::keyPressed(int key) {
 }
 
 void tcApp::exit() {
-    recorder_.close();
+    recorder_.stop();
 }
