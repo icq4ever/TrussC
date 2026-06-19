@@ -1,5 +1,9 @@
 #pragma once
 
+// INTERNAL header — do NOT include directly. Apps include <TrussC.h>, which
+// pulls this in (in the correct order). Including tcBaseApp.h on its own will
+// not compile (it depends on declarations the umbrella makes first).
+
 #include "tcNode.h"
 #include "tc/types/tcMod.h"
 #include "tc/types/tcRectNode.h"

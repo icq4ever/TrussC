@@ -5,6 +5,23 @@
 cmake_minimum_required(VERSION 3.20)
 message(STATUS "[tcxCurl] Loading addon...")
 
+if(ANDROID)
+    # Android: no libcurl in the NDK. Use a JNI bridge to
+    # java.net.HttpURLConnection — implementation lives in
+    # src/tcxCurl_android.cpp + android/java/.../AndroidHttpClient.java.
+    # Both are picked up automatically: the .cpp via target_sources here,
+    # the .java by trussc_app.cmake which globs <addon>/android/java/.
+    add_library(tcxCurl STATIC ${CMAKE_CURRENT_SOURCE_DIR}/src/tcxCurl_android.cpp)
+    target_include_directories(tcxCurl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_compile_definitions(tcxCurl PUBLIC TCX_HTTP_ANDROID=1)
+    # JNI symbols come from libnativewindow / the Android runtime — no explicit
+    # link needed; android/native_activity.h + jni.h ship in the NDK sysroot.
+    # We pull sokol_app.h transitively via TrussC for sapp_android_get_native_activity().
+    target_link_libraries(tcxCurl PUBLIC TrussC)
+    message(STATUS "[tcxCurl] Addon loaded (Android / HttpURLConnection backend)")
+    return()
+endif()
+
 add_library(tcxCurl INTERFACE)
 target_include_directories(tcxCurl INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

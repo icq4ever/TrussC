@@ -48,11 +48,28 @@ public:
     // Simulation
     // -------------------------------------------------------------------------
 
-    // Advance physics simulation by one step
+    // Advance physics simulation. With auto-update ON (default) this is called
+    // automatically once per frame via tc::events().update — you usually don't
+    // call it yourself. It is framerate-independent: real getDeltaTime() is
+    // accumulated and the world is stepped in FIXED sub-steps (see
+    // setSimulationRate). Calling it manually more than once in the same frame is
+    // a no-op (deduplicated via getFrameCount), so old code that calls update()
+    // each frame keeps working without double-stepping.
     void update();
 
+    // Auto-update: step automatically each frame (default ON). Turn OFF to drive
+    // the simulation yourself (manual update(), pausing, custom ordering, etc.).
+    void setAutoUpdate(bool on);
+    bool getAutoUpdate() const { return autoUpdate_; }
+
     // Simulation parameters
-    void setFPS(float fps);               // FPS (default: 60)
+    void setFPS(float fps);               // alias of setSimulationRate
+    // Fixed simulation sub-step rate in Hz (default: 60). This is the physics
+    // stability knob, decoupled from the display refresh rate: at 1000 the world
+    // steps in 1/1000 s increments (~16 sub-steps per 60 fps frame). Higher =
+    // more accurate/stable, more CPU.
+    void setSimulationRate(float hz);
+    float getSimulationRate() const { return timeStep_ > 0 ? 1.0f / timeStep_ : 0.0f; }
     void setVelocityIterations(int n);    // Velocity iterations (default: 8)
     void setPositionIterations(int n);    // Position iterations (default: 3)
 
@@ -134,14 +151,31 @@ public:
     // -------------------------------------------------------------------------
     CollisionManager* getCollisionManager() { return collisionManager_.get(); }
 
+    // -------------------------------------------------------------------------
+    // Lifetime token (for Mods: detect a world destroyed before its bodies)
+    // -------------------------------------------------------------------------
+    std::weak_ptr<int> aliveToken() const { return alive_; }
+
 private:
+    // (Re)register or drop the per-frame auto-step listener based on autoUpdate_.
+    void refreshAutoUpdate();
+
     std::unique_ptr<b2World> world_;
     std::unique_ptr<CollisionManager> collisionManager_;
 
-    // Simulation parameters
+    // Simulation parameters (timeStep_ = fixed sub-step size)
     float timeStep_ = 1.0f / 60.0f;
     int velocityIterations_ = 8;
     int positionIterations_ = 3;
+
+    // Auto-update / framerate-independent stepping
+    bool autoUpdate_ = true;
+    float accumulator_ = 0.0f;
+    uint64_t lastStepFrame_ = UINT64_MAX;
+    tc::EventListener updateListener_;
+
+    // Lifetime token: expires when this World is destroyed.
+    std::shared_ptr<int> alive_ = std::make_shared<int>(0);
 
     // Bounds body
     b2Body* groundBody_ = nullptr;

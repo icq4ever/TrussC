@@ -82,6 +82,7 @@
 
 // TrussC utilities
 #include "tc/utils/tcUtils.h"
+#include "tc/utils/tcMainThread.h"  // runOnMainThread / drainMainThreadQueue
 #include "tc/utils/tcTime.h"
 #include "tc/utils/tcLog.h"
 #include "tc/utils/tcCompress.h"
@@ -196,6 +197,11 @@ namespace internal {
 namespace trussc { namespace internal {
     inline bool inFboPass = false;
     inline sgl_pipeline currentFboBlendPipeline = {};
+    // 3D pipeline (depth test + premultiplied alpha blend) created in the current
+    // FBO's context/format. Loaded instead of the swapchain-context `pipeline3d`
+    // when drawing 3D inside an FBO pass (the swapchain pipeline mismatches the
+    // FBO's format/sample count and corrupts the rendered color/alpha).
+    inline sgl_pipeline currentFboPipeline3d = {};
 
     // Restore current blend pipeline after temporary pipeline changes
     // Handles both FBO and main context
@@ -213,6 +219,13 @@ namespace trussc { namespace internal {
 
 // RenderContext class (holds drawing state)
 #include "tc/graphics/tcRenderContext.h"
+
+// Global mouse state + window-space getters (mouseX/Y, getGlobalMouseX, ...)
+#include "tc/app/tcMouseGlobal.h"
+
+// Transform / matrix / style stack free functions (delegate to RenderContext).
+// Extracted so lower-level headers (e.g. tcNode.h) can depend on them directly.
+#include "tc/graphics/tcTransform.h"
 
 // Reopen namespace
 namespace trussc {
@@ -271,11 +284,9 @@ namespace internal {
     inline bool lastDrawTimeInitialized = false;
     inline double drawAccumulator = 0.0;
 
-    // Mouse state
-    inline float mouseX = 0.0f;
-    inline float mouseY = 0.0f;
-    inline float pmouseX = 0.0f;  // Previous frame mouse position
-    inline float pmouseY = 0.0f;
+    // Mouse position state (mouseX/Y, pmouseX/Y) + window-space getters now live
+    // in tc/app/tcMouseGlobal.h (included above) so lower-level headers can use
+    // them directly. Button/pressed state stays here.
     inline int mouseButton = -1;  // Currently pressed button (-1 = none)
     inline bool mousePressed = false;
 
@@ -571,140 +582,8 @@ inline void popScissor() {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Transformations (delegated to RenderContext)
-// ---------------------------------------------------------------------------
-
-// Save matrix to stack
-inline void pushMatrix() {
-    getDefaultContext().pushMatrix();
-}
-
-// Restore matrix from stack
-inline void popMatrix() {
-    getDefaultContext().popMatrix();
-}
-
-// Save style to stack (color, fill/stroke, textAlign, etc.)
-inline void pushStyle() {
-    getDefaultContext().pushStyle();
-}
-
-// Restore style from stack
-inline void popStyle() {
-    getDefaultContext().popStyle();
-}
-
-// Reset style to default values (white color, fill enabled, etc.)
-inline void resetStyle() {
-    getDefaultContext().resetStyle();
-}
-
-// Translation
-inline void translate(Vec3 pos) {
-    getDefaultContext().translate(pos);
-}
-
-inline void translate(float x, float y, float z) {
-    getDefaultContext().translate(x, y, z);
-}
-
-inline void translate(float x, float y) {
-    getDefaultContext().translate(x, y);
-}
-
-// Z-axis rotation (radians)
-inline void rotate(float radians) {
-    getDefaultContext().rotate(radians);
-}
-
-// X-axis rotation (radians)
-inline void rotateX(float radians) {
-    getDefaultContext().rotateX(radians);
-}
-
-// Y-axis rotation (radians)
-inline void rotateY(float radians) {
-    getDefaultContext().rotateY(radians);
-}
-
-// Z-axis rotation (radians) - explicit
-inline void rotateZ(float radians) {
-    getDefaultContext().rotateZ(radians);
-}
-
-// Rotation in degrees
-inline void rotateDeg(float degrees) {
-    getDefaultContext().rotateDeg(degrees);
-}
-
-inline void rotateXDeg(float degrees) {
-    getDefaultContext().rotateXDeg(degrees);
-}
-
-inline void rotateYDeg(float degrees) {
-    getDefaultContext().rotateYDeg(degrees);
-}
-
-inline void rotateZDeg(float degrees) {
-    getDefaultContext().rotateZDeg(degrees);
-}
-
-// Euler rotation (x, y, z in radians)
-inline void rotate(float x, float y, float z) {
-    rotateX(x);
-    rotateY(y);
-    rotateZ(z);
-}
-
-inline void rotate(const Vec3& euler) {
-    rotate(euler.x, euler.y, euler.z);
-}
-
-inline void rotate(const Quaternion& quat) {
-    getDefaultContext().rotate(quat);
-}
-
-// Euler rotation in degrees
-inline void rotateDeg(float x, float y, float z) {
-    rotateXDeg(x);
-    rotateYDeg(y);
-    rotateZDeg(z);
-}
-
-inline void rotateDeg(const Vec3& euler) {
-    rotateDeg(euler.x, euler.y, euler.z);
-}
-
-// Scale (uniform)
-inline void scale(float s) {
-    getDefaultContext().scale(s);
-}
-
-// Scale (non-uniform 2D)
-inline void scale(float sx, float sy) {
-    getDefaultContext().scale(sx, sy);
-}
-
-// Scale (non-uniform 3D)
-inline void scale(float sx, float sy, float sz) {
-    getDefaultContext().scale(sx, sy, sz);
-}
-
-// Get current transformation matrix
-inline Mat4 getCurrentMatrix() {
-    return getDefaultContext().getCurrentMatrix();
-}
-
-// Reset transformation matrix
-inline void resetMatrix() {
-    getDefaultContext().resetMatrix();
-}
-
-// Set transformation matrix directly
-inline void setMatrix(const Mat4& mat) {
-    getDefaultContext().setMatrix(mat);
-}
+// Transform / matrix / style stack free functions are now in tc/graphics/
+// tcTransform.h (included at file scope above, before namespace trussc opens).
 
 // ---------------------------------------------------------------------------
 // Blend mode
@@ -745,7 +624,11 @@ inline void restoreBlendPipeline() {
 // Deprecated: 3D is now enabled by default with setupScreenFov
 [[deprecated("3D is now enabled by default. Use setupScreenPerspective() to change FOV.")]]
 inline void enable3D() {
-    if (internal::pipeline3dInitialized) {
+    // FBO-aware (same as setupScreenPerspective / EasyCam): the swapchain
+    // pipeline3d mismatches an FBO's format/sample count.
+    if (internal::inFboPass && internal::currentFboPipeline3d.id != 0) {
+        sgl_load_pipeline(internal::currentFboPipeline3d);
+    } else if (internal::pipeline3dInitialized) {
         sgl_load_pipeline(internal::pipeline3d);
     }
 }
@@ -754,7 +637,10 @@ inline void enable3D() {
 // Deprecated: use setupScreenPerspective() or setupScreenFov() instead
 [[deprecated("Use setupScreenPerspective(fovDeg) or setupScreenFov(fovDeg) instead. Note: FOV is now in degrees, not radians.")]]
 inline void enable3DPerspective(float fovY = 0.785f, float nearZ = 0.1f, float farZ = 1000.0f) {
-    if (internal::pipeline3dInitialized) {
+    // FBO-aware (see enable3D): avoid the swapchain pipeline3d inside an FBO.
+    if (internal::inFboPass && internal::currentFboPipeline3d.id != 0) {
+        sgl_load_pipeline(internal::currentFboPipeline3d);
+    } else if (internal::pipeline3dInitialized) {
         sgl_load_pipeline(internal::pipeline3d);
     }
     // Set perspective projection
@@ -830,8 +716,11 @@ namespace internal {
             );
         } else {
             // Perspective projection (3D mode)
-            // Skip pipeline loading in FBO - FBO loads its own pipeline
-            if (pipeline3dInitialized && !inFboPass) {
+            // Inside an FBO, use the FBO-context 3D pipeline (depth + premultiplied
+            // alpha for this format); otherwise the swapchain 3D pipeline.
+            if (inFboPass && currentFboPipeline3d.id != 0) {
+                sgl_load_pipeline(currentFboPipeline3d);
+            } else if (pipeline3dInitialized && !inFboPass) {
                 sgl_load_pipeline(pipeline3d);
             }
 
@@ -1713,26 +1602,7 @@ inline void releaseSglBuffers() {
 // ---------------------------------------------------------------------------
 // Mouse state (global / window coordinates)
 // ---------------------------------------------------------------------------
-
-// Current mouse X coordinate (window coordinates)
-inline float getGlobalMouseX() {
-    return internal::mouseX;
-}
-
-// Current mouse Y coordinate (window coordinates)
-inline float getGlobalMouseY() {
-    return internal::mouseY;
-}
-
-// Previous frame mouse X coordinate (window coordinates)
-inline float getGlobalPMouseX() {
-    return internal::pmouseX;
-}
-
-// Previous frame mouse Y coordinate (window coordinates)
-inline float getGlobalPMouseY() {
-    return internal::pmouseY;
-}
+// getGlobalMouseX/Y, getGlobalPMouseX/Y live in tc/app/tcMouseGlobal.h.
 
 // Is mouse button pressed
 inline bool isMousePressed() {
@@ -1759,11 +1629,7 @@ inline bool isControlPressed() { return isKeyPressed(SAPP_KEYCODE_LEFT_CONTROL) 
 inline bool isAltPressed()     { return isKeyPressed(SAPP_KEYCODE_LEFT_ALT)     || isKeyPressed(SAPP_KEYCODE_RIGHT_ALT); }
 inline bool isSuperPressed()   { return isKeyPressed(SAPP_KEYCODE_LEFT_SUPER)   || isKeyPressed(SAPP_KEYCODE_RIGHT_SUPER); }
 
-// Alias for getGlobalMouseX/Y (for tcDebugInput)
-inline float getMouseX() { return internal::mouseX; }
-inline float getMouseY() { return internal::mouseY; }
-inline Vec2 getMousePos() { return Vec2(internal::mouseX, internal::mouseY); }
-inline Vec2 getGlobalMousePos() { return Vec2(getGlobalMouseX(), getGlobalMouseY()); }
+// getMouseX/Y, getMousePos, getGlobalMousePos live in tc/app/tcMouseGlobal.h.
 
 // ---------------------------------------------------------------------------
 // Touch-as-mouse mapping
@@ -2053,6 +1919,16 @@ struct WindowSettings {
         clipboardSize = size;
         return *this;
     }
+
+    // VSync / present interval. 1 = sync to display refresh (default), 0 = off.
+    // N > 1 presents every Nth refresh: on a 120Hz display, 2 -> 60fps, 4 -> 30.
+    // On Apple this also drives the display-link rate (true sub-refresh fps,
+    // not just frame skipping). Only integer divisors of the refresh are
+    // expressible this way; for arbitrary rates use setFps().
+    WindowSettings& setSwapInterval(int interval) {
+        swapInterval = interval;
+        return *this;
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -2092,6 +1968,11 @@ namespace mcp {
 namespace internal {
 
     inline void _setup_cb() {
+        // Record the main thread id while we are guaranteed to be on it.
+        // isMainThread() / runOnMainThread() / the Node main-thread asserts all
+        // key off this. (sokol's init_cb runs on the main thread.)
+        getMainThreadId();
+
         setup();
 
         // For macOS bundles, set default data path
@@ -2172,6 +2053,11 @@ namespace internal {
             lastDrawTime = now;
             lastDrawTimeInitialized = true;
         }
+
+        // Run work marshalled from worker threads (runOnMainThread, Event
+        // Deliver::Main). Done before update/draw so queued tree edits land
+        // while no traversal is in flight.
+        drainMainThreadQueue();
 
         // Process console input (fire events)
         console::processQueue();

@@ -3,7 +3,14 @@
 // =============================================================================
 // tcxCurl - HTTP client for TrussC
 // =============================================================================
-// Native: libcurl, WASM: Emscripten Fetch API
+// Native: libcurl (macOS/Linux/Windows), Android: java.net.HttpURLConnection
+// via JNI, WASM: Emscripten Fetch API (TODO).
+//
+// The public API (HttpClient / HttpResponse) is the same on every backend so
+// consumers like tcxOpenStreetMap don't need any #ifdef. On Android there is
+// no system libcurl in the NDK, so we go through the JVM's HTTP client; the
+// JNI plumbing lives in HttpClient_android.cpp and we declare (not inline-
+// define) request/uploadFile in this header for that platform only.
 //
 // Usage:
 //   tcx::HttpClient client;
@@ -315,6 +322,12 @@ inline HttpResponse HttpClient::uploadFile(const std::string& path, const std::s
     response.error = "Emscripten upload not yet implemented";
     return response;
 }
+
+#elif defined(TCX_HTTP_ANDROID)
+
+// Implementations live in src/tcxCurl_android.cpp — they use JNI to drive
+// java.net.HttpURLConnection. Only declarations here so each TU links to the
+// single out-of-line definition in the static library.
 
 #endif
 

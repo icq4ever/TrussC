@@ -26,9 +26,16 @@ World::World(World&& other) noexcept
     , timeStep_(other.timeStep_)
     , velocityIterations_(other.velocityIterations_)
     , positionIterations_(other.positionIterations_)
+    , autoUpdate_(other.autoUpdate_)
+    , accumulator_(other.accumulator_)
+    , lastStepFrame_(other.lastStepFrame_)
+    , alive_(std::move(other.alive_))
     , groundBody_(other.groundBody_)
 {
     other.groundBody_ = nullptr;
+    // The moved-from listener captured &other; drop it and bind a fresh one here.
+    other.updateListener_ = tc::EventListener();
+    refreshAutoUpdate();
 }
 
 World& World::operator=(World&& other) noexcept {
@@ -39,8 +46,14 @@ World& World::operator=(World&& other) noexcept {
         timeStep_ = other.timeStep_;
         velocityIterations_ = other.velocityIterations_;
         positionIterations_ = other.positionIterations_;
+        autoUpdate_ = other.autoUpdate_;
+        accumulator_ = other.accumulator_;
+        lastStepFrame_ = other.lastStepFrame_;
+        alive_ = std::move(other.alive_);
         groundBody_ = other.groundBody_;
         other.groundBody_ = nullptr;
+        other.updateListener_ = tc::EventListener();
+        refreshAutoUpdate();
     }
     return *this;
 }
@@ -68,26 +81,66 @@ void World::setup(float gravityX, float gravityY) {
     // Create and register collision manager
     collisionManager_ = std::make_unique<CollisionManager>();
     world_->SetContactListener(collisionManager_.get());
+
+    // Fresh stepping state, and (re)arm the auto-update listener.
+    accumulator_ = 0.0f;
+    lastStepFrame_ = UINT64_MAX;
+    refreshAutoUpdate();
 }
 
 // =============================================================================
 // Simulation
 // =============================================================================
 void World::update() {
-    if (world_) {
-        world_->Step(timeStep_, velocityIterations_, positionIterations_);
+    if (!world_) return;
 
-        // Dispatch onCollisionStay events
-        if (collisionManager_) {
-            collisionManager_->update();
-        }
+    // Step at most once per frame. Auto-update calls this at events().update;
+    // legacy code that also calls world.update() in its own update() then
+    // dedupes to a no-op here (and never double-counts dt below).
+    uint64_t frame = tc::getFrameCount();
+    if (frame == lastStepFrame_) return;
+    lastStepFrame_ = frame;
+
+    // Framerate-independent: accumulate real time, step in FIXED sub-steps so
+    // Box2D stays stable regardless of display rate.
+    accumulator_ += static_cast<float>(tc::getDeltaTime());
+    const int MAX_SUBSTEPS = 8;  // spiral-of-death guard (e.g. after a stall)
+    int n = 0;
+    while (accumulator_ >= timeStep_ && n < MAX_SUBSTEPS) {
+        world_->Step(timeStep_, velocityIterations_, positionIterations_);
+        accumulator_ -= timeStep_;
+        ++n;
+    }
+    if (n >= MAX_SUBSTEPS) accumulator_ = 0.0f;  // drop the backlog
+
+    // Dispatch onCollisionStay events
+    if (collisionManager_) {
+        collisionManager_->update();
+    }
+}
+
+void World::setAutoUpdate(bool on) {
+    autoUpdate_ = on;
+    refreshAutoUpdate();
+}
+
+void World::refreshAutoUpdate() {
+    if (autoUpdate_ && world_) {
+        // listen() replaces any prior listener (RAII), so this is idempotent.
+        updateListener_ = tc::events().update.listen([this]() { update(); });
+    } else {
+        updateListener_ = tc::EventListener();  // unregister
+    }
+}
+
+void World::setSimulationRate(float hz) {
+    if (hz > 0) {
+        timeStep_ = 1.0f / hz;
     }
 }
 
 void World::setFPS(float fps) {
-    if (fps > 0) {
-        timeStep_ = 1.0f / fps;
-    }
+    setSimulationRate(fps);
 }
 
 void World::setVelocityIterations(int n) {
