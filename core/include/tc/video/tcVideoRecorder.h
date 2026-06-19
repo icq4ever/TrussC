@@ -7,7 +7,8 @@
 // Records rendered frames to a video file using each platform's native
 // encoder (no ffmpeg, no extra dependency):
 //   - macOS:   AVFoundation (AVAssetWriter)
-//   - Windows: Media Foundation (IMFSinkWriter)  [planned]
+//   - Windows: Media Foundation (IMFSinkWriter)
+//   - Linux:   GStreamer (appsrc -> x264enc/HW -> mp4mux)
 //
 // Frames can come from:
 //   - the live swapchain (whole window)         addFrame()
