@@ -68,11 +68,13 @@ struct EncoderOption {
 // use, so an encoder that exists but can't actually run on this machine just
 // falls through to the next instead of producing an empty file.
 const EncoderOption kEncoderOptions[] = {
+    // NVIDIA NVENC first: a dedicated encode ASIC, the gold standard for HW
+    // H.264. Takes system memory directly (nvcodec uploads internally). On a
+    // hybrid Intel+NVIDIA box this prefers the discrete GPU's encoder.
+    {"nvh264enc",    "nvh264enc",    "nvh264enc name=enc",                              true,  true},
     // Modern VA-API (Intel/AMD): takes system memory, picks 4:2:0 itself.
     {"vah264lpenc",  "vah264lpenc",  "vah264lpenc name=enc",                            true,  true},
     {"vah264enc",    "vah264enc",    "vah264enc name=enc",                              true,  true},
-    // NVIDIA NVENC.
-    {"nvh264enc",    "nvh264enc",    "nvh264enc name=enc",                              true,  true},
     // Legacy gstreamer-vaapi: needs frames uploaded to VA surfaces first.
     {"vaapih264enc", "vaapih264enc", "vaapipostproc ! vaapih264enc name=enc",           true,  true},
     // V4L2 stateful HW encoder (Raspberry Pi 3/4 etc.): wants NV12.
@@ -92,11 +94,17 @@ bool elementAvailable(const char* name) {
 // Run a tiny self-contained pipeline to confirm the encoder actually works on
 // this machine (driver present, caps negotiable). HW elements routinely exist
 // yet fail to initialize; this reaches EOS only if encoding truly succeeds.
-bool probeEncoder(const EncoderOption& opt) {
+//
+// Probed at the real recording resolution: NVENC (and some HW encoders) reject
+// frames below a minimum size, so a fixed tiny probe would falsely reject a
+// perfectly good encoder. Even dimensions only (H.264 needs them).
+bool probeEncoder(const EncoderOption& opt, int w, int h) {
+    int pw = (w < 16 ? 16 : (w & ~1));
+    int ph = (h < 16 ? 16 : (h & ~1));
     std::string desc =
-        "videotestsrc num-buffers=2 ! "
-        "video/x-raw,format=RGBA,width=64,height=64,framerate=30/1 ! "
-        "videoconvert ! ";
+        "videotestsrc num-buffers=2 ! video/x-raw,format=RGBA,width=" +
+        std::to_string(pw) + ",height=" + std::to_string(ph) +
+        ",framerate=30/1 ! videoconvert ! ";
     desc += opt.segment;
     desc += " ! fakesink sync=false";
 
@@ -122,16 +130,20 @@ bool probeEncoder(const EncoderOption& opt) {
     return ok;
 }
 
-// Pick (once) the best working encoder: the first hardware option that probes
-// OK, otherwise the first working software option. Cached for the process.
-const EncoderOption* selectEncoder() {
+// Pick the best working encoder for this resolution: the first hardware option
+// that probes OK, otherwise the first working software option. Cached per
+// (w,h) so repeated recordings at the same size don't re-probe, but a size
+// change re-validates (an encoder's min-size support can differ).
+const EncoderOption* selectEncoder(int w, int h) {
     static const EncoderOption* chosen = nullptr;
-    static bool resolved = false;
-    if (resolved) return chosen;
-    resolved = true;
+    static int cachedW = 0, cachedH = 0;
+    if (chosen && w == cachedW && h == cachedH) return chosen;
+    chosen = nullptr;
+    cachedW = w;
+    cachedH = h;
     for (const EncoderOption& opt : kEncoderOptions) {
         if (!elementAvailable(opt.probe)) continue;
-        if (probeEncoder(opt)) {
+        if (probeEncoder(opt, w, h)) {
             chosen = &opt;
             logNotice("VideoRecorder")
                 << "selected " << (opt.hardware ? "hardware" : "software")
@@ -187,7 +199,7 @@ bool VideoRecorder::openPlatform(const std::string& fullPath, int w, int h,
 
     // Auto-select the most efficient encoder that actually works here: the
     // first probed-OK hardware option, else software. Resolved once, cached.
-    const EncoderOption* opt = selectEncoder();
+    const EncoderOption* opt = selectEncoder(w, h);
     if (!opt) {
         logError("VideoRecorder")
             << "no working H.264 GStreamer encoder (install gst-plugins-ugly "
