@@ -1,0 +1,9 @@
+<!-- =============================================================================
+     tcxCurl - Android manifest snippet
+     =============================================================================
+     The Android backend uses java.net.HttpURLConnection which requires the
+     INTERNET permission. NOT injected automatically — collected into
+     build-android/REQUIRED_MANIFEST_SNIPPET.xml; paste into your app's
+     AndroidManifest.xml if it isn't already declared there.
+     ============================================================================= -->
+<uses-permission android:name="android.permission.INTERNET"/>
