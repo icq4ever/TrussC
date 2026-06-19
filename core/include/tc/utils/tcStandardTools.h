@@ -117,6 +117,37 @@ inline void registerInspectionTools() {
             return json{{"status", "ok"}};
         }));
 
+    // --- Recording tools (native H.264, no ffmpeg) ---
+
+    tool("start_recording", "Start recording the window to an H.264 .mp4 file (the screenshot's video counterpart)")
+        .arg<std::string>("path", "Output file path (relative paths resolve to the data dir)")
+        .arg<float>("fps", "Target frame rate (default 60; ProMotion frames are decimated to it)", false)
+        .bind([](const json& args) -> json {
+            std::string path = args.value("path", std::string());
+            if (path.empty()) {
+                return json{{"status", "error"}, {"message", "path is required"}};
+            }
+            float fps = 60.0f;
+            if (args.contains("fps") && args.at("fps").is_number()) {
+                fps = args.at("fps").get<float>();
+            }
+            bool ok = trussc::startRecording(path, fps);
+            return json{{"status", ok ? "ok" : "error"},
+                        {"path", trussc::recordingPath()},
+                        {"fps", fps}};
+        });
+
+    tool("stop_recording", "Stop the current recording and finalize the file")
+        .bind(std::function<json()>([]() -> json {
+            if (!trussc::isRecording()) {
+                return json{{"status", "error"}, {"message", "not recording"}};
+            }
+            std::string path = trussc::recordingPath();
+            int frames = trussc::recordingFrameCount();
+            trussc::stopRecording();
+            return json{{"status", "ok"}, {"path", path}, {"frames", frames}};
+        }));
+
     // --- Node tree tools ---
 
     tool("get_node_tree", "Dump the node tree as JSON: per node {type, name, id, members (reflected, rotation in degrees, colors 0-1), mods, children}. Where depth cuts children off, childCount marks how many were omitted — drill in with another call passing that node's id")

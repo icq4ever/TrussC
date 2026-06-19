@@ -20,6 +20,7 @@ public:
     Event<void> update;           // Before update each frame
     Event<void> draw;             // Before draw each frame
     Event<void> onRender;          // After sokol_gl flush, render pass still active
+    Event<void> afterFrame;        // After present() (swapchain committed, outside any pass)
     Event<void> exit;             // On app exit
 
     // Exit request (can be cancelled)
