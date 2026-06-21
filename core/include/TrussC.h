@@ -144,8 +144,9 @@ namespace internal {
     inline sg_image fontTexture = {};
     inline sg_view fontView = {};
     inline sg_sampler fontSampler = {};
-    inline sgl_pipeline fontPipeline = {};
-    // True once the sampler + pipeline are created (cheap, done at startup).
+    // True once the bitmap-font sampler is created (cheap, done at startup).
+    // Bitmap text draws through the active RenderTarget's Fill2D pipeline now,
+    // so there is no dedicated font pipeline.
     inline bool fontInitialized = false;
     // Atlas texture state — allocated lazily on first drawBitmapString call,
     // grown row-by-row as new codepoint ranges are encountered, and rebuilt
@@ -154,8 +155,6 @@ namespace internal {
     inline int      fontAtlasRows        = 0;   // height of current atlas in cell rows
     inline uint64_t fontAtlasVersion     = 0;   // last bitmapfont::registryVersion baked in
     inline uint64_t fontAtlasUploadFrame = UINT64_MAX; // frame of last sg_update_image
-    inline sgl_pipeline pipeline3d = {};
-    inline bool pipeline3dInitialized = false;
     inline bool pixelPerfectMode = false;
 
     // Default screen FOV (45 = perspective ~28mm equivalent, 0 = ortho)
@@ -181,14 +180,9 @@ namespace internal {
     inline void setupScreenFov(float fovDeg, float nearDist = 0.0f, float farDist = 0.0f);
 
 
-    // Blend mode pipelines
-    inline sgl_pipeline blendPipelines[6] = {};
-    inline bool blendPipelinesInitialized = false;
+    // Current 2D blend mode (the "role"). The actual sgl pipeline for it lives in
+    // the active RenderTarget's lazy cache — see tcRenderTarget.h active2D().
     inline BlendMode currentBlendMode = BlendMode::Alpha;
-
-    // Premultiplied alpha blend pipeline (for FBO texture compositing)
-    inline sgl_pipeline premultipliedBlendPipeline = {};
-    inline bool premultipliedBlendPipelineInitialized = false;
 }
 
 } // namespace trussc (temporarily closed)
@@ -200,8 +194,6 @@ namespace internal {
 // Forward declarations for FBO pipeline switching (used in tcRenderContext.h)
 namespace trussc { namespace internal {
     inline bool inFboPass = false;
-    inline sgl_pipeline currentFboBlendPipeline = {};
-    inline sgl_pipeline currentFboPipeline3d = {};
 
     // Restore the current blend pipeline after temporary pipeline changes.
     // FBO uses its accumulating Fill2D; swapchain honors the current blend mode.
@@ -323,10 +315,7 @@ namespace internal {
     // Saved clear color for resume after FBO suspend (set by clear())
     inline sg_color swapchainClearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    // inFboPass and currentFboBlendPipeline are declared earlier (before tcRenderContext.h)
-
-    // Current active FBO pipeline (used from clear())
-    inline sgl_pipeline currentFboClearPipeline = {};
+    // inFboPass is declared earlier (before tcRenderContext.h)
 
     // FBO clearColor function pointer (set in tcFbo.h)
     inline void (*fboClearColorFunc)(float, float, float, float) = nullptr;
@@ -588,7 +577,7 @@ inline void popScissor() {
 // Set blend mode
 // Alpha channel is additive in all modes (to prevent transparency when drawing to FBO)
 inline void setBlendMode(BlendMode mode) {
-    if (!internal::blendPipelinesInitialized) return;
+    if (internal::swapchainTarget.context.id == 0) return;  // renderer not set up yet
     // Skip in FBO - FBO uses its own pipeline
     if (internal::inFboPass) return;
     internal::currentBlendMode = mode;
