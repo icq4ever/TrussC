@@ -36,6 +36,7 @@ REQUIRED_PACKAGES_DEBIAN=(
     libgstreamer-plugins-base1.0-dev
     gstreamer1.0-plugins-good
     gstreamer1.0-plugins-bad
+    gstreamer1.0-plugins-ugly
     libfontconfig-dev
     pkg-config
     libcurl4-openssl-dev
@@ -55,6 +56,7 @@ REQUIRED_PACKAGES_ARCH=(
     gst-plugins-base
     gst-plugins-good
     gst-plugins-bad
+    gst-plugins-ugly
     fontconfig
     pkgconf
     curl
