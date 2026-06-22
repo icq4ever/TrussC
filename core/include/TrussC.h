@@ -315,6 +315,15 @@ namespace internal {
     // Saved clear color for resume after FBO suspend (set by clear())
     inline sg_color swapchainClearValue = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+    // The Metal CAMetalDrawable acquired for THIS frame's swapchain pass. sokol's
+    // sapp_get_swapchain() advances to the next drawable on every call (it must be
+    // called exactly once per frame), so end-of-frame capture must NOT call it
+    // again — it would grab a different, unrendered drawable. Instead the swapchain
+    // pass setup records the drawable it actually rendered into here, and
+    // captureWindow() reads back from this one. (Metal-only; on D3D11/GL the
+    // swapchain handle is a stable backbuffer/FBO so this stays null and is unused.)
+    inline const void* lastSwapchainDrawable = nullptr;
+
     // inFboPass is declared earlier (before tcRenderContext.h)
 
     // FBO clearColor function pointer (set in tcFbo.h)

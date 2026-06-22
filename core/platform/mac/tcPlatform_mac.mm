@@ -196,9 +196,15 @@ std::string getExecutableDir() {
 // ---------------------------------------------------------------------------
 
 bool captureWindow(Pixels& outPixels) {
-    // sokol_app から現在の swapchain を取得
-    sapp_swapchain sc = sapp_get_swapchain();
-    id<CAMetalDrawable> drawable = (__bridge id<CAMetalDrawable>)sc.metal.current_drawable;
+    // Read back the drawable this frame ACTUALLY rendered into, recorded by the
+    // swapchain pass setup. We must NOT call sapp_get_swapchain() here: it advances
+    // to the next (unrendered) Metal drawable, which gave the stale/scrambled
+    // captures. Fall back to sapp_get_swapchain() only if no pass ran yet.
+    const void* drawablePtr = internal::lastSwapchainDrawable;
+    if (!drawablePtr) {
+        drawablePtr = sapp_get_swapchain().metal.current_drawable;
+    }
+    id<CAMetalDrawable> drawable = (__bridge id<CAMetalDrawable>)drawablePtr;
     if (!drawable) {
         logError() << "[Screenshot] Metal drawable が取得できません";
         return false;
@@ -231,12 +237,25 @@ bool captureWindow(Pixels& outPixels) {
         return false;
     }
 
-    static id<MTLCommandQueue> s_blitQueue = nil;
-    if (!s_blitQueue || s_blitQueue.device != device) {
-        s_blitQueue = [device newCommandQueue];
+    // Use sokol_gfx's own Metal command queue, NOT a private one. Command buffers
+    // on a single MTLCommandQueue execute in commit order. captureWindow runs at
+    // afterFrame (after present()'s sg_commit()), so the frame's render command
+    // buffer is already committed on this queue; our blit, committed afterward on
+    // the SAME queue, is guaranteed to run after the render finishes. A private
+    // queue had no ordering relative to the render and raced — on GPU-heavy frames
+    // the blit beat the render and copied a recycled drawable's stale contents
+    // (temporal scramble in continuous recording).
+    id<MTLCommandQueue> queue = (__bridge id<MTLCommandQueue>)sg_mtl_command_queue();
+    static id<MTLCommandQueue> s_fallbackQueue = nil;
+    if (!queue) {
+        // Metal not active (shouldn't happen here) — fall back to a private queue.
+        if (!s_fallbackQueue || s_fallbackQueue.device != device) {
+            s_fallbackQueue = [device newCommandQueue];
+        }
+        queue = s_fallbackQueue;
     }
 
-    id<MTLCommandBuffer>      cmdBuf  = [s_blitQueue commandBuffer];
+    id<MTLCommandBuffer>      cmdBuf  = [queue commandBuffer];
     id<MTLBlitCommandEncoder> blitEnc = [cmdBuf blitCommandEncoder];
     [blitEnc copyFromTexture:srcTexture
                  sourceSlice:0
