@@ -1,118 +1,50 @@
 // =============================================================================
-// videoRecExample - Native video recording sample
+// videoRecExample - the simplest possible screen recording
 // =============================================================================
-// Renders an animated scene into an offscreen Fbo, draws it to the window, and
-// records it with TrussC's native VideoRecorder (H.264 -> .mp4): AVFoundation
-// on macOS, Media Foundation on Windows, GStreamer on Linux. No ffmpeg.
+// This is the empty template, plus one thing: a key that toggles recording.
+// startRecording() / stopRecording() are free functions that record the whole
+// window to a video file (native encoder, no ffmpeg) — that's all you need.
 //
-//   r : start / stop recording
-//   m : switch source between the clean Fbo and the whole window (idle only)
+//   any key : start / stop recording  (-> bin/data/recording.mp4)
 //
-// Recording uses VideoRecorder::start(): once started it auto-captures every
-// frame via the afterFrame hook (the same fully-composited image get_screenshot
-// returns) until close() — no per-frame addFrame() call needed.
-//
-// Encoder selection (Linux): the recorder picks a hardware H.264 encoder when
-// one actually works (NVENC, then VA-API), and transparently falls back to
-// software x264 otherwise — so this same code "just records" on any machine,
-// GPU or not. The full selection order, the GStreamer plugins each backend
-// needs, and troubleshooting live in this example's README.md.
-//
-// Output files land in bin/data (getDataPath):
-//   videoRec_clean.mp4   - the Fbo only, no on-screen text
-//   videoRec_screen.mp4  - the whole window, overlay included
+// For codecs, fps, recording an Fbo, or the offline VideoWriter, see
+// videoRecAdvancedExample.
 // =============================================================================
 
 #include "tcApp.h"
-#include <cmath>
-using namespace std;
 
 void tcApp::setup() {
-    fbo_.allocate(recW_, recH_);
-    logNotice("tcApp") << "videoRecExample - press 'r' to record, 'm' to switch source";
+
 }
 
 void tcApp::update() {
-}
 
-void tcApp::renderScene() {
-    fbo_.begin(0.05f, 0.06f, 0.10f, 1.0f);
-
-    const float t = getElapsedTimef();
-    const float cx = recW_ * 0.5f;
-    const float cy = recH_ * 0.5f;
-
-    // Orbiting colored beads.
-    const int n = 12;
-    for (int i = 0; i < n; ++i) {
-        float a = TAU * i / n + t * 0.5f;
-        float r = recH_ * 0.3f;
-        float x = cx + cosf(a) * r;
-        float y = cy + sinf(a) * r;
-        setColorHSB(fmodf(i / (float)n + t * 0.1f, 1.0f), 0.7f, 1.0f);
-        drawCircle(x, y, 22.0f + 10.0f * sinf(t * 2.0f + i));
-    }
-
-    // A sweeping bar makes per-frame timing obvious in the recording.
-    setColor(1.0f);
-    float bx = fmodf(t * 160.0f, (float)recW_);
-    drawRect(bx, 0.0f, 4.0f, (float)recH_);
-
-    fbo_.end();
 }
 
 void tcApp::draw() {
-    renderScene();
-
     clear(0.12f);
 
-    // Fit the Fbo into the window (letterbox).
-    float s = std::min(getWindowWidth() / (float)recW_,
-                       getWindowHeight() / (float)recH_);
-    float w = recW_ * s;
-    float h = recH_ * s;
-    float x = (getWindowWidth() - w) * 0.5f;
-    float y = (getWindowHeight() - h) * 0.5f;
-    setColor(1.0f);
-    fbo_.draw(x, y, w, h);
-
-    // Overlay (part of the window, so it shows up in WINDOW-source recordings).
-    setColor(recorder_.isRecording() ? colors::red : colors::yellow);
-    string src = recordScreen_ ? "WINDOW" : "CLEAN Fbo";
-    string status = recorder_.isRecording()
-        ? format("● REC  {}  {} frames", src, recorder_.getFrameCount())
-        : format("source: {}  (r: record, m: switch)", src);
-    drawBitmapString(status, 12, 22);
-
-    // start() handles per-frame capture automatically — nothing to do here.
-}
-
-void tcApp::toggleRecording() {
-    if (recorder_.isRecording()) {
-        recorder_.stop();
-        return;
-    }
-    // ScreenRecorder infers the size from the source — no setup() needed.
-    // Settings are a VideoRecordSettings (defaults: H.264 @ 60fps). Override any
-    // field, e.g.:
-    //   recorder_.start("clip.mp4",         { .codec = VideoCodec::HEVC });
-    //   recorder_.start(fbo_, "master.mov", { .codec = VideoCodec::ProRes422 }); // macOS, near-lossless
-    //   recorder_.start("clip.mp4",         { .fps = 30, .bitrate = 20'000'000 });
-    if (recordScreen_) {
-        recorder_.start("videoRec_screen.mp4", { .fps = fps_ });       // whole window
-    } else {
-        recorder_.start(fbo_, "videoRec_clean.mp4", { .fps = fps_ });  // clean Fbo
-    }
+    // Rotating box
+    noFill();
+    translate(getWindowWidth() / 2, getWindowHeight() / 2);
+    rotate(getElapsedTimef() *0.1f, getElapsedTimef() *0.15f, 0);
+    drawBox(200.0f);
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'r' || key == 'R') {
-        toggleRecording();
-    } else if ((key == 'm' || key == 'M') && !recorder_.isRecording()) {
-        recordScreen_ = !recordScreen_;
-    }
+    // The whole point of this example: toggle recording from a key.
+    if (isRecording()) stopRecording();
+    else               startRecording("recording.mp4");
 }
 
-void tcApp::exit() {
-    recorder_.stop();
-}
+void tcApp::keyReleased(int key) {}
+
+void tcApp::mousePressed(const MouseEventArgs& e) {}
+void tcApp::mouseReleased(const MouseEventArgs& e) {}
+void tcApp::mouseMoved(const MouseMoveEventArgs& e) {}
+void tcApp::mouseDragged(const MouseDragEventArgs& e) {}
+void tcApp::mouseScrolled(const ScrollEventArgs& e) {}
+
+void tcApp::windowResized(int width, int height) {}
+void tcApp::filesDropped(const vector<string>& files) {}
+void tcApp::exit() {}

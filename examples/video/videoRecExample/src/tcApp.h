@@ -9,20 +9,17 @@ public:
     void setup() override;
     void update() override;
     void draw() override;
+
     void keyPressed(int key) override;
+    void keyReleased(int key) override;
+
+    void mousePressed(const MouseEventArgs& e) override;
+    void mouseReleased(const MouseEventArgs& e) override;
+    void mouseMoved(const MouseMoveEventArgs& e) override;
+    void mouseDragged(const MouseDragEventArgs& e) override;
+    void mouseScrolled(const ScrollEventArgs& e) override;
+
+    void windowResized(int width, int height) override;
+    void filesDropped(const vector<string>& files) override;
     void exit() override;
-
-private:
-    void renderScene();  // draw the animated scene into fbo_
-
-    Fbo fbo_;                 // clean offscreen output (no GUI overlay)
-    ScreenRecorder recorder_; // live capture (window or the clean Fbo)
-
-    int   recW_ = 640;        // clean recording size
-    int   recH_ = 480;
-    float fps_  = 30.0f;
-
-    bool recordScreen_ = false;  // false: clean Fbo, true: whole window
-
-    void toggleRecording();
 };
