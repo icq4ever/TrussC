@@ -117,6 +117,46 @@ inline void registerInspectionTools() {
             return json{{"status", "ok"}};
         }));
 
+    // --- Recording tools (native encoder, no ffmpeg) ---
+
+    tool("start_recording", "Start recording the window to a video file (the screenshot's video counterpart)")
+        .arg<std::string>("path", "Output file path (relative paths resolve to the data dir)")
+        .arg<float>("fps", "Target frame rate (default 60; ProMotion frames are decimated to it)", false)
+        .arg<std::string>("codec", "h264 (default) | hevc | prores422 | prores4444 (.mov, macOS)", false)
+        .bind([](const json& args) -> json {
+            std::string path = args.value("path", std::string());
+            if (path.empty()) {
+                return json{{"status", "error"}, {"message", "path is required"}};
+            }
+            trussc::VideoRecordSettings settings;
+            if (args.contains("fps") && args.at("fps").is_number()) {
+                settings.fps = args.at("fps").get<float>();
+            }
+            std::string codec = args.value("codec", std::string());
+            if      (codec == "hevc")       settings.codec = trussc::VideoCodec::HEVC;
+            else if (codec == "prores422")  settings.codec = trussc::VideoCodec::ProRes422;
+            else if (codec == "prores4444") settings.codec = trussc::VideoCodec::ProRes4444;
+            else if (!codec.empty() && codec != "h264") {
+                return json{{"status", "error"}, {"message", "unknown codec: " + codec}};
+            }
+            bool ok = trussc::startRecording(path, settings);
+            return json{{"status", ok ? "ok" : "error"},
+                        {"path", trussc::recordingPath()},
+                        {"fps", settings.fps},
+                        {"codec", trussc::videoCodecName(settings.codec)}};
+        });
+
+    tool("stop_recording", "Stop the current recording and finalize the file")
+        .bind(std::function<json()>([]() -> json {
+            if (!trussc::isRecording()) {
+                return json{{"status", "error"}, {"message", "not recording"}};
+            }
+            std::string path = trussc::recordingPath();
+            int frames = trussc::recordingFrameCount();
+            trussc::stopRecording();
+            return json{{"status", "ok"}, {"path", path}, {"frames", frames}};
+        }));
+
     // --- Node tree tools ---
 
     tool("get_node_tree", "Dump the node tree as JSON: per node {type, name, id, members (reflected, rotation in degrees, colors 0-1), mods, children}. Where depth cuts children off, childCount marks how many were omitted — drill in with another call passing that node's id")

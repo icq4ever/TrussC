@@ -2107,6 +2107,10 @@ namespace internal {
 
             present();
 
+            // After present(): swapchain committed, outside any pass. Safe point
+            // for end-of-frame readback (e.g. VideoRecorder auto-capture).
+            events().afterFrame.notify();
+
             // Decrement redrawCount (don't go below 0)
             if (redrawCount > 0) {
                 redrawCount--;
@@ -2607,6 +2611,9 @@ inline void bindCursorImage(Cursor cursor, const Image& image,
 
 // TrussC video playback
 #include "tc/video/tcVideoPlayer.h"
+
+// TrussC video recording (native encoder, no ffmpeg)
+#include "tc/video/tcVideoRecorder.h"
 
 // TrussC 3D primitives
 #include <map>
