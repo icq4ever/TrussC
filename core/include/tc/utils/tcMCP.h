@@ -543,6 +543,11 @@ inline int getHttpPort() {
     return detail::getHttpPort().load();
 }
 
+// Deprecated: registerDebuggerTools() is now the opt-in by itself (it sets the
+// isDebuggerEnabled() flag). This shim is a no-op kept for source compatibility.
+[[deprecated("registerDebuggerTools() now opts in by itself; remove this call. Will be removed in v1.0.0")]]
+inline void enableDebugger() {}
+
 // Check if debugger tools are registered (input injection / scene mutation).
 // The flag is set by registerDebuggerTools() — registering IS the opt-in, so
 // apps/addons can query this to tell whether the debugger surface is exposed.
