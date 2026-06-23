@@ -214,6 +214,26 @@ public:
         return appendRGBA(rgba, timeSec);
     }
 
+#if TC_ASYNC_SCREEN_CAPTURE
+    // Zero-intermediate path (macOS): lock the encoder's next pixel buffer for
+    // direct readback (returns its base address + row stride), then submit it at
+    // a PTS. The screen recorder reads the GPU capture straight into this buffer
+    // instead of into a temporary Pixels/RGBA buffer the encoder then re-copies.
+    unsigned char* lockFrame(int& strideOut) {
+        if (!open_) return nullptr;
+        return lockFramePlatform(strideOut);
+    }
+    bool submitFrame(double timeSec) {
+        if (!open_) return false;
+        if (!submitFramePlatform(timeSec)) {
+            logError("VideoWriter") << "encoder rejected frame " << frameCount_;
+            return false;
+        }
+        ++frameCount_;
+        return true;
+    }
+#endif
+
 private:
     bool appendRGBA(const unsigned char* rgba, double timeSec) {
         if (!open_ || !rgba) return false;
@@ -230,6 +250,11 @@ private:
                       const VideoRecordSettings& settings);
     bool appendPlatform(const unsigned char* rgba, double timeSec);
     void closePlatform();
+#if TC_ASYNC_SCREEN_CAPTURE
+    // Direct-buffer hooks for the zero-intermediate capture path (macOS).
+    unsigned char* lockFramePlatform(int& strideOut);   // lock & return encoder buffer
+    bool submitFramePlatform(double timeSec);            // append the locked buffer
+#endif
 
     VideoWriterPlatformData* platform_ = nullptr;
     std::string path_;
@@ -325,15 +350,23 @@ private:
             return;
         }
 #if TC_ASYNC_SCREEN_CAPTURE
-        // Async: issue the GPU readback and return — no main-thread stall. The
-        // completion handler (Metal background thread) encodes the frame. PTS t
-        // is captured now so wall-clock timing is unaffected by encode latency.
+        // Async + zero-intermediate: issue the GPU readback and return — no
+        // main-thread stall. When it completes (Metal background thread), read the
+        // staging straight into the encoder's pixel buffer (BGRA, no swap) and
+        // submit. PTS t is captured now so wall-clock timing is unaffected by
+        // encode latency.
         inFlight_.fetch_add(1, std::memory_order_relaxed);
         bool started = internal::captureWindowAsync(
-            [this, t](const unsigned char* rgba, int w, int h) {
+            [this, t](const internal::CaptureReadback& rb) {
                 {
                     std::lock_guard<std::mutex> lk(writerMutex_);
-                    if (writer_.isOpen()) writer_.addFrameAt(rgba, w, h, t);
+                    if (writer_.isOpen()) {
+                        int stride = 0;
+                        if (unsigned char* dst = writer_.lockFrame(stride)) {
+                            rb.readInto(dst, stride, /*wantRGBA=*/false);
+                            writer_.submitFrame(t);
+                        }
+                    }
                 }
                 inFlight_.fetch_sub(1, std::memory_order_acq_rel);
             });

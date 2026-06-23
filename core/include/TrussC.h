@@ -1766,15 +1766,30 @@ inline void exitApp() {
 
 namespace internal {
 #if defined(__APPLE__)
+    // A completed GPU readback the consumer copies into ITS OWN destination,
+    // with a single getBytes and no intermediate buffer. Lets the screen recorder
+    // read straight into the encoder's CVPixelBuffer (BGRA, no swap) and
+    // screenshots read into a Pixels buffer (RGBA). `staging` is the bridged
+    // id<MTLTexture>, valid only for the duration of the completion callback.
+    struct CaptureReadback {
+        void* staging = nullptr;   // id<MTLTexture> (bridged, not retained here)
+        int   width = 0;
+        int   height = 0;
+        bool  isRGB10A2 = false;
+        // Copy the readback into dst (dstStride bytes per row). wantRGBA=false
+        // keeps native BGRA8 order (matches the encoder's CVPixelBuffer);
+        // wantRGBA=true yields RGBA8 (for Pixels / screenshots).
+        void readInto(unsigned char* dst, int dstStride, bool wantRGBA) const;
+    };
+
     // macOS: asynchronous window capture. Issues the GPU readback blit and
-    // returns immediately; `completion` is invoked later (on a Metal background
-    // thread) with RGBA8 pixels (tightly packed, top-down) once the readback
-    // finishes. Lets ScreenRecorder capture every frame without the per-frame
+    // returns immediately; `completion` runs later (on a Metal background thread)
+    // with a CaptureReadback once the GPU finishes — no per-frame
     // waitUntilCompleted stall. Returns false if there is no frame to capture.
     // (Implemented in platform/mac/tcPlatform_mac.mm; captureWindow() is just
     // this plus an inline wait.)
     bool captureWindowAsync(
-        const std::function<void(const unsigned char* rgba, int w, int h)>& completion);
+        const std::function<void(const CaptureReadback&)>& completion);
 #endif
 }
 

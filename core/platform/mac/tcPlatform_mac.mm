@@ -195,49 +195,60 @@ std::string getExecutableDir() {
 // スクリーンショット機能（Metal API を使用）
 // ---------------------------------------------------------------------------
 
-// Read a shared-storage staging texture into a tightly-packed RGBA8 buffer,
-// converting BGRA8 / RGB10A2 as needed. Runs on whatever thread the caller is on
-// (main thread for screenshots, a Metal completion thread for async recording).
-static void readStagingToRGBA(id<MTLTexture> staging,
-                              NSUInteger width, NSUInteger height,
-                              MTLPixelFormat pixelFormat,
-                              std::vector<uint8_t>& outRGBA) {
-    NSUInteger bytesPerRow = width * 4;
-    std::vector<uint8_t> rawData(bytesPerRow * height);
-    [staging getBytes:rawData.data()
-          bytesPerRow:bytesPerRow
-           fromRegion:MTLRegionMake2D(0, 0, width, height)
-          mipmapLevel:0];
+// Copy a completed staging readback into the caller's destination buffer with a
+// single getBytes (no intermediate buffer for the common BGRA8 case). For BGRA8
+// + wantRGBA=false (the recorder feeding a BGRA CVPixelBuffer) this is one copy,
+// zero swizzle. Runs on whatever thread the consumer is on.
+void internal::CaptureReadback::readInto(unsigned char* dst, int dstStride,
+                                         bool wantRGBA) const {
+    id<MTLTexture> tex = (__bridge id<MTLTexture>)staging;
+    const NSUInteger w = (NSUInteger)width;
+    const NSUInteger h = (NSUInteger)height;
 
-    outRGBA.resize((size_t)width * height * 4);
-    unsigned char* dst = outRGBA.data();
-    if (pixelFormat == MTLPixelFormatRGB10A2Unorm) {
-        // RGB10A2 bit layout: [A:2 (31-30)][B:10 (29-20)][G:10 (19-10)][R:10 (9-0)]
-        const uint32_t* src = (const uint32_t*)rawData.data();
-        for (NSUInteger i = 0; i < width * height; i++) {
-            uint32_t pixel = src[i];
-            uint32_t r10 = (pixel >>  0) & 0x3FF;
-            uint32_t g10 = (pixel >> 10) & 0x3FF;
-            uint32_t b10 = (pixel >> 20) & 0x3FF;
-            uint32_t a2  = (pixel >> 30) & 0x3;
-            dst[i * 4 + 0] = (uint8_t)(r10 >> 2);
-            dst[i * 4 + 1] = (uint8_t)(g10 >> 2);
-            dst[i * 4 + 2] = (uint8_t)(b10 >> 2);
-            dst[i * 4 + 3] = (uint8_t)(a2 * 85);   // 0→0, 1→85, 2→170, 3→255
+    if (isRGB10A2) {
+        // 10-bit packed: must unpack via a temp. Layout per 32-bit pixel:
+        // [A:2 (31-30)][B:10 (29-20)][G:10 (19-10)][R:10 (9-0)].
+        std::vector<uint8_t> raw((size_t)w * 4 * h);
+        [tex getBytes:raw.data()
+          bytesPerRow:w * 4
+           fromRegion:MTLRegionMake2D(0, 0, w, h)
+          mipmapLevel:0];
+        const uint32_t* src = (const uint32_t*)raw.data();
+        for (NSUInteger y = 0; y < h; y++) {
+            uint8_t* drow = dst + (size_t)y * dstStride;
+            for (NSUInteger x = 0; x < w; x++) {
+                uint32_t p = src[y * w + x];
+                uint8_t r = (uint8_t)(((p >>  0) & 0x3FF) >> 2);
+                uint8_t g = (uint8_t)(((p >> 10) & 0x3FF) >> 2);
+                uint8_t b = (uint8_t)(((p >> 20) & 0x3FF) >> 2);
+                uint8_t a = (uint8_t)(((p >> 30) & 0x3) * 85);
+                if (wantRGBA) { drow[x*4+0]=r; drow[x*4+1]=g; drow[x*4+2]=b; drow[x*4+3]=a; }
+                else          { drow[x*4+0]=b; drow[x*4+1]=g; drow[x*4+2]=r; drow[x*4+3]=a; }
+            }
         }
-    } else {
-        // BGRA8 -> RGBA8
-        memcpy(dst, rawData.data(), bytesPerRow * height);
-        for (NSUInteger i = 0; i < width * height; i++) {
-            unsigned char temp = dst[i * 4 + 0];
-            dst[i * 4 + 0] = dst[i * 4 + 2];
-            dst[i * 4 + 2] = temp;
+        return;
+    }
+
+    // BGRA8: getBytes straight into dst (respecting the destination row stride).
+    [tex getBytes:dst
+      bytesPerRow:dstStride
+       fromRegion:MTLRegionMake2D(0, 0, w, h)
+      mipmapLevel:0];
+    if (wantRGBA) {
+        // In-place B<->R swap (no extra buffer).
+        for (NSUInteger y = 0; y < h; y++) {
+            uint8_t* drow = dst + (size_t)y * dstStride;
+            for (NSUInteger x = 0; x < w; x++) {
+                uint8_t b = drow[x*4+0];
+                drow[x*4+0] = drow[x*4+2];
+                drow[x*4+2] = b;
+            }
         }
     }
 }
 
 bool internal::captureWindowAsync(
-    const std::function<void(const unsigned char*, int, int)>& completion) {
+    const std::function<void(const internal::CaptureReadback&)>& completion) {
     // Read back the drawable this frame ACTUALLY rendered into (recorded by the
     // swapchain pass). NOT sapp_get_swapchain() — that advances to the next,
     // unrendered drawable. Fall back only if no pass ran yet.
@@ -302,17 +313,21 @@ bool internal::captureWindowAsync(
            destinationOrigin:MTLOriginMake(0, 0, 0)];
     [blitEnc endEncoding];
 
-    // Read back + deliver when the GPU finishes — no main-thread waitUntilCompleted
-    // stall. The block retains `staging` and copies `completion`, so both outlive
-    // this function until the handler runs.
-    std::function<void(const unsigned char*, int, int)> comp = completion;
+    // Deliver a readback handle when the GPU finishes — no main-thread
+    // waitUntilCompleted stall. The block retains `staging` and copies
+    // `completion`, so both outlive this function until the handler runs. The
+    // consumer reads the staging straight into its own destination buffer.
+    std::function<void(const internal::CaptureReadback&)> comp = completion;
     NSUInteger w = width, h = height;
-    MTLPixelFormat fmt = pixelFormat;
+    bool isRGB10A2 = (pixelFormat == MTLPixelFormatRGB10A2Unorm);
     [cmdBuf addCompletedHandler:^(id<MTLCommandBuffer> cb) {
         (void)cb;
-        std::vector<uint8_t> rgba;
-        readStagingToRGBA(staging, w, h, fmt, rgba);
-        comp(rgba.data(), (int)w, (int)h);
+        internal::CaptureReadback rb;
+        rb.staging   = (__bridge void*)staging;   // valid: block retains `staging`
+        rb.width     = (int)w;
+        rb.height    = (int)h;
+        rb.isRGB10A2 = isRGB10A2;
+        comp(rb);
     }];
     [cmdBuf commit];
     return true;
@@ -325,9 +340,9 @@ bool captureWindow(Pixels& outPixels) {
     bool ok = false;
     dispatch_semaphore_t sem = dispatch_semaphore_create(0);
     bool started = internal::captureWindowAsync(
-        [&outPixels, &ok, sem](const unsigned char* rgba, int w, int h) {
-            outPixels.allocate(w, h, 4);
-            memcpy(outPixels.getData(), rgba, (size_t)w * h * 4);
+        [&outPixels, &ok, sem](const internal::CaptureReadback& rb) {
+            outPixels.allocate(rb.width, rb.height, 4);
+            rb.readInto(outPixels.getData(), rb.width * 4, /*wantRGBA=*/true);
             ok = true;
             dispatch_semaphore_signal(sem);
         });
