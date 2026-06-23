@@ -517,15 +517,9 @@ inline int getHttpPort() {
     return detail::getHttpPort().load();
 }
 
-// Enable debugger tools (mouse, keyboard input injection)
-inline void enableDebugger() {
-    if (detail::isDebuggerEnabled().load()) return;
-    detail::isDebuggerEnabled().store(true);
-    // Actual tool registration happens in tcStandardTools.h
-    // This is called before registerDebuggerTools()
-}
-
-// Check if debugger is enabled
+// Check if debugger tools are registered (input injection / scene mutation).
+// The flag is set by registerDebuggerTools() — registering IS the opt-in, so
+// apps/addons can query this to tell whether the debugger surface is exposed.
 inline bool isDebuggerEnabled() {
     return detail::isDebuggerEnabled().load();
 }

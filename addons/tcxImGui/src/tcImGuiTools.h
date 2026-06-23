@@ -2,7 +2,7 @@
 
 // =============================================================================
 // tcImGuiTools.h - ImGui MCP Tools
-// Auto-expose ImGui widgets as MCP tools (enabled via enableDebugger())
+// Auto-expose ImGui widgets as MCP tools (enabled via registerDebuggerTools())
 //
 // Uses ImGui Test Engine hooks (IMGUI_ENABLE_TEST_ENGINE) to collect
 // widget info each frame, then provides MCP tools to query and interact

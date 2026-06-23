@@ -49,7 +49,7 @@ TrussC uses **HTTP transport** for MCP. All JSON-RPC messages are sent as HTTP P
 | `get_node_tree` | `id`, `depth` (both optional) | Dump the node tree (or a subtree) as JSON: per node `{type, name, id, members, mods, children}`. Members are the `TC_REFLECT`ed values — rotation as euler degrees, colors as `[r,g,b,a]` floats 0-1, Vec3 as `[x,y,z]`, enums as their label string. `mods` lists each attached Mod as `{type, members}`. `depth` limits recursion (~270 bytes/node — on large scenes, explore with `depth` + drill into subtrees by `id`; cut-off nodes carry a `childCount`) |
 | `get_selected_node` | (none) | The currently selected node (same shape, no children), or `null` |
 
-### Debugger Tools (opt-in via `mcp::enableDebugger()`)
+### Debugger Tools (opt-in via `mcp::registerDebuggerTools()`)
 | Tool | Arguments | Description |
 |------|-----------|-------------|
 | `mouse_move` | `x`, `y`, `button` (optional) | Move cursor; with `button` held, emits a drag |
@@ -67,14 +67,17 @@ GUI (e.g. with the `tcxNodeInspector` addon's gizmo), then `get_node_tree` to
 read the exact values back and bake them into code — or drive the scene the
 other way with `set_node_members`.
 
-To enable debugger tools, call `mcp::enableDebugger()` in your `setup()`:
+To enable debugger tools, call `mcp::registerDebuggerTools()` in your `setup()`.
+Registering the tools *is* the opt-in — there is no separate enable step, and
+`mcp::isDebuggerEnabled()` will report `true` once they are registered:
 
 ```cpp
 void tcApp::setup() {
-    mcp::enableDebugger();
     mcp::registerDebuggerTools();
 }
 ```
+
+These tools are inert unless the MCP server is also running (`TRUSSC_MCP=1`).
 
 ### ImGui Tools (requires tcxImGui addon)
 
@@ -157,7 +160,7 @@ curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"tools/call","id":2,"params":{"name":"save_screenshot","arguments":{"path":"/tmp/test.png"}}}'
 
-# Mouse click (requires enableDebugger())
+# Mouse click (requires registerDebuggerTools())
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"tools/call","id":3,"params":{"name":"mouse_click","arguments":{"x":100,"y":200}}}'
@@ -209,7 +212,7 @@ Configure your MCP client with the HTTP URL:
 | Category | Tools | Enabled by |
 |----------|-------|------------|
 | Inspection (read-only) | `get_screenshot`, `save_screenshot`, `get_node_tree`, `get_selected_node` | Automatic when MCP is enabled |
-| Debugger (input injection / scene mutation) | `mouse_click`, `mouse_press`, `mouse_release`, `key_press`, `mouse_move`, `mouse_scroll`, `key_release`, `select_node`, `set_node_members` | `mcp::enableDebugger()` + `mcp::registerDebuggerTools()` |
+| Debugger (input injection / scene mutation) | `mouse_click`, `mouse_press`, `mouse_release`, `key_press`, `mouse_move`, `mouse_scroll`, `key_release`, `select_node`, `set_node_members` | `mcp::registerDebuggerTools()` |
 | ImGui (widget interaction) | `imgui_get_widgets`, `imgui_click`, `imgui_input`, `imgui_checkbox` | Requires tcxImGui addon + `mcp::registerDebuggerTools()` |
 | Custom | `mcp::tool(...)` | Your code |
 

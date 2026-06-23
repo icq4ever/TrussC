@@ -5,7 +5,6 @@ void tcApp::setup() {
 
     // Input-injection MCP tools (mouse_click / key_press / ...), so an AI
     // agent can drive the demo. No-ops unless TRUSSC_MCP is set.
-    mcp::enableDebugger();
     mcp::registerDebuggerTools();
 
     // A dedicated container we can rebuild without touching the app's own root.
