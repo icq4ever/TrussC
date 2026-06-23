@@ -21,4 +21,8 @@ if(NOT MSVC)
     # -Wno-unused-function: the dummy-backend sokol compile leaves a couple of
     # helpers (e.g. _sgl_clamp) unreferenced; that's third-party header noise.
     target_compile_options(sglLayerUpload PRIVATE -Wall -Wextra -Wno-unused-function)
+    # libm: sokol_gl's matrix helpers use sinf/cosf/sqrtf. macOS links libm
+    # implicitly and MSVC pulls it from the CRT, but GNU/Linux ld needs it
+    # explicitly or the standalone test fails to link (undefined references).
+    target_link_libraries(sglLayerUpload PRIVATE m)
 endif()
