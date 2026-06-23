@@ -35,6 +35,12 @@ inline std::unordered_map<uint32_t, uint32_t>& pipelineOwnerCtx() {
 }
 #endif
 
+// Premultiplied-alpha sgl shader handle (defined in tcGlobal.cpp, built from
+// core/shaders/sglPremult.glsl). Screen/Multiply pipelines bind it so their blend
+// equations respect source alpha; every other role keeps sgl's straight shader.
+// Returns {0} before sokol is up — sgl then falls back to its built-in shader.
+sg_shader sglPremultShader();
+
 // --- Role blend/depth specs (the blend tables formerly duplicated in tcGlobal.cpp).
 // Pixel format / sample count / depth format are left at defaults on purpose: sgl
 // fills them from the target's context, so the same desc is correct for swapchain
@@ -55,14 +61,26 @@ inline sg_pipeline_desc pipeDesc2D(BlendMode mode) {
             b.src_factor_alpha = SG_BLENDFACTOR_ONE;       b.dst_factor_alpha = SG_BLENDFACTOR_ONE;
             break;
         case BlendMode::Multiply:
+            // Premultiplied source (see sglPremultShader): result = mix(dst, dst*src, a).
+            // src*DST_COLOR = (a*Cs)*Cb, dst*(1-a) keeps the backdrop where the source
+            // is transparent. α-correct over an OPAQUE backdrop (exact Photoshop there);
+            // over a partially-transparent backdrop it approximates, and over a fully
+            // transparent one it tends to black — an accepted limitation (fixed-function
+            // can't express the exact Multiply for arbitrary backdrop alpha).
             b.enabled = true;
-            b.src_factor_rgb   = SG_BLENDFACTOR_DST_COLOR; b.dst_factor_rgb   = SG_BLENDFACTOR_ZERO;
-            b.src_factor_alpha = SG_BLENDFACTOR_ONE;       b.dst_factor_alpha = SG_BLENDFACTOR_ONE;
+            d.shader = sglPremultShader();
+            b.src_factor_rgb   = SG_BLENDFACTOR_DST_COLOR; b.dst_factor_rgb   = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+            b.src_factor_alpha = SG_BLENDFACTOR_ONE;       b.dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
             break;
         case BlendMode::Screen:
+            // Premultiplied source (see sglPremultShader): SRC_COLOR carries rgb*a, so
+            // result = S + dst*(1-S) with S = rgb*a. This is exactly Photoshop's Screen
+            // for ANY backdrop alpha (the premult algebra collapses the Adobe blend-in-
+            // group formula to this fixed-function form). Alpha composites as over.
             b.enabled = true;
+            d.shader = sglPremultShader();
             b.src_factor_rgb   = SG_BLENDFACTOR_ONE;       b.dst_factor_rgb   = SG_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
-            b.src_factor_alpha = SG_BLENDFACTOR_ONE;       b.dst_factor_alpha = SG_BLENDFACTOR_ONE;
+            b.src_factor_alpha = SG_BLENDFACTOR_ONE;       b.dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
             break;
         case BlendMode::Subtract:
             b.enabled = true;
