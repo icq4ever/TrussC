@@ -31,6 +31,23 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <functional>
+#include <atomic>
+#include <mutex>
+#include <thread>
+#include <chrono>
+
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
+// macOS-only: ScreenRecorder captures the swapchain asynchronously to avoid a
+// per-frame GPU stall. Elsewhere it falls back to the synchronous grabScreen().
+#if defined(__APPLE__) && (!defined(TARGET_OS_IPHONE) || !TARGET_OS_IPHONE)
+    #define TC_ASYNC_SCREEN_CAPTURE 1
+#else
+    #define TC_ASYNC_SCREEN_CAPTURE 0
+#endif
 
 namespace trussc {
 
@@ -183,6 +200,20 @@ public:
         return appendRGBA(scratch_.data(), timeSec);
     }
 
+    // Append a tightly-packed RGBA8 buffer directly (no Pixels wrapper). Used by
+    // ScreenRecorder's async capture, where pixels arrive in a raw GPU readback
+    // buffer on a background thread.
+    bool addFrameAt(const unsigned char* rgba, int w, int h, double timeSec) {
+        if (!open_) return false;
+        if (w != width_ || h != height_) {
+            logError("VideoWriter")
+                << "frame size " << w << "x" << h
+                << " != writer " << width_ << "x" << height_;
+            return false;
+        }
+        return appendRGBA(rgba, timeSec);
+    }
+
 private:
     bool appendRGBA(const unsigned char* rgba, double timeSec) {
         if (!open_ || !rgba) return false;
@@ -237,11 +268,23 @@ public:
 
     // Stop capturing and finalize the file. Safe to call multiple times.
     void stop() {
-        afterFrameListener_ = EventListener{};
+        afterFrameListener_ = EventListener{};   // no new captures get queued
         exitListener_ = EventListener{};
+#if TC_ASYNC_SCREEN_CAPTURE
+        // Drain async captures still encoding on background threads before we
+        // close the writer (their completion handlers append into it).
+        for (int spins = 0;
+             inFlight_.load(std::memory_order_acquire) > 0 && spins < 2000;
+             ++spins) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+#endif
         source_ = Source::None;
         fbo_ = nullptr;
-        writer_.close();
+        {
+            std::lock_guard<std::mutex> lk(writerMutex_);
+            writer_.close();
+        }
     }
 
     bool isRecording() const { return writer_.isOpen(); }
@@ -279,10 +322,26 @@ private:
         double t = (double)(now - startElapsed_);   // wall-clock PTS
         if (source_ == Source::Fbo && fbo_) {
             writer_.addFrameAt(*fbo_, t);
-        } else {
-            Pixels px;
-            if (grabScreen(px) && px.isAllocated()) writer_.addFrameAt(px, t);
+            return;
         }
+#if TC_ASYNC_SCREEN_CAPTURE
+        // Async: issue the GPU readback and return — no main-thread stall. The
+        // completion handler (Metal background thread) encodes the frame. PTS t
+        // is captured now so wall-clock timing is unaffected by encode latency.
+        inFlight_.fetch_add(1, std::memory_order_relaxed);
+        bool started = internal::captureWindowAsync(
+            [this, t](const unsigned char* rgba, int w, int h) {
+                {
+                    std::lock_guard<std::mutex> lk(writerMutex_);
+                    if (writer_.isOpen()) writer_.addFrameAt(rgba, w, h, t);
+                }
+                inFlight_.fetch_sub(1, std::memory_order_acq_rel);
+            });
+        if (!started) inFlight_.fetch_sub(1, std::memory_order_acq_rel);
+#else
+        Pixels px;
+        if (grabScreen(px) && px.isAllocated()) writer_.addFrameAt(px, t);
+#endif
     }
 
     VideoWriter writer_;
@@ -292,6 +351,8 @@ private:
     float lastCaptureElapsed_ = -1.0f;
     EventListener afterFrameListener_;
     EventListener exitListener_;
+    std::mutex writerMutex_;          // serializes encoder access (completion threads + stop)
+    std::atomic<int> inFlight_{0};    // async captures not yet encoded (macOS)
 };
 
 // ---------------------------------------------------------------------------

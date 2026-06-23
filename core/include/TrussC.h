@@ -27,6 +27,7 @@
 #include <vector>
 #include <chrono>
 #include <atomic>
+#include <functional>
 #include <fstream>
 #include <unordered_set>
 
@@ -1763,6 +1764,19 @@ inline void exitApp() {
 // Screenshot
 // ---------------------------------------------------------------------------
 
+namespace internal {
+#if defined(__APPLE__)
+    // macOS: asynchronous window capture. Issues the GPU readback blit and
+    // returns immediately; `completion` is invoked later (on a Metal background
+    // thread) with RGBA8 pixels (tightly packed, top-down) once the readback
+    // finishes. Lets ScreenRecorder capture every frame without the per-frame
+    // waitUntilCompleted stall. Returns false if there is no frame to capture.
+    // (Implemented in platform/mac/tcPlatform_mac.mm; captureWindow() is just
+    // this plus an inline wait.)
+    bool captureWindowAsync(
+        const std::function<void(const unsigned char* rgba, int w, int h)>& completion);
+#endif
+}
 
 // Capture screen to Pixels.
 // NOTE: immediate readback — call this OUTSIDE draw() (e.g. at the end of
