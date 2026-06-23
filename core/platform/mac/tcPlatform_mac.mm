@@ -223,15 +223,26 @@ bool captureWindow(Pixels& outPixels) {
     // sokol が CAMetalLayer に framebufferOnly=YES をセットしているため、
     // drawable.texture から直接 getBytes するとアサートする (Metal validation 有効時)。
     // shared-storage の staging texture に blit してから読み出す。
+    // Reuse the staging texture across calls (recreate only when the device or
+    // dimensions/format change). Continuous recording calls this every frame, so
+    // a per-frame newTextureWithDescriptor was needless allocation churn.
     id<MTLDevice> device = srcTexture.device;
-    MTLTextureDescriptor* desc =
-        [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:pixelFormat
-                                                           width:width
-                                                          height:height
-                                                       mipmapped:NO];
-    desc.usage = MTLTextureUsageShaderRead;
-    desc.storageMode = MTLStorageModeShared;
-    id<MTLTexture> stagingTexture = [device newTextureWithDescriptor:desc];
+    static id<MTLTexture> s_stagingTexture = nil;
+    if (!s_stagingTexture
+        || s_stagingTexture.device != device
+        || s_stagingTexture.width != width
+        || s_stagingTexture.height != height
+        || s_stagingTexture.pixelFormat != pixelFormat) {
+        MTLTextureDescriptor* desc =
+            [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:pixelFormat
+                                                               width:width
+                                                              height:height
+                                                           mipmapped:NO];
+        desc.usage = MTLTextureUsageShaderRead;
+        desc.storageMode = MTLStorageModeShared;
+        s_stagingTexture = [device newTextureWithDescriptor:desc];
+    }
+    id<MTLTexture> stagingTexture = s_stagingTexture;
     if (!stagingTexture) {
         logError() << "[Screenshot] staging texture の作成に失敗しました";
         return false;
