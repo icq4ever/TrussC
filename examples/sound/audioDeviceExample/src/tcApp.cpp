@@ -43,7 +43,6 @@ void tcApp::setup() {
     // Only active when TRUSSC_MCP=1 is set in the environment.
     // MCP is desktop-only — Web builds skip it.
 #ifndef __EMSCRIPTEN__
-    mcp::enableDebugger();
     mcp::registerDebuggerTools();
     imgui_tools::registerImGuiTools();
 #endif

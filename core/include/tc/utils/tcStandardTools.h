@@ -200,10 +200,14 @@ inline void registerInspectionTools() {
 }
 
 // ---------------------------------------------------------------------------
-// Debugger Tools (input injection, opt-in via mcp::enableDebugger())
+// Debugger Tools (input injection, opt-in via mcp::registerDebuggerTools())
 // ---------------------------------------------------------------------------
 
 inline void registerDebuggerTools() {
+
+    // Registering the debugger surface IS the opt-in to input injection /
+    // scene mutation. Mark it so isDebuggerEnabled() reflects reality.
+    detail::isDebuggerEnabled().store(true);
 
     // --- Mouse Tools ---
 

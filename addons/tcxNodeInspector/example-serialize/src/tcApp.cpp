@@ -4,7 +4,6 @@ void tcApp::setup() {
     setWindowTitle("reflect -> inspector + JSON");
 
     // MCP input tools, so an AI agent can drive the demo (no-op without TRUSSC_MCP).
-    mcp::enableDebugger();
     mcp::registerDebuggerTools();
 
     // A scene container, with one sprite to inspect / serialize.
