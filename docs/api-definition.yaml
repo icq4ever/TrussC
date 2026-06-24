@@ -6069,6 +6069,61 @@ categories:
         sketch: true
         snippet: "createBox(${1:size})"
 
+      - name: createPlane
+        return: "Mesh"
+        signatures:
+          - params: "float width, float height, int cols = 2, int rows = 2"
+            params_simple: "width, height, cols, rows"
+        description: "Create a plane mesh (subdivided quad on the XY plane)"
+        description_ja: "平面メッシュを作成（XY平面上の分割された四角形）"
+        description_ko: "평면 메쉬를 생성 (XY 평면의 분할된 사각형)"
+        sketch: true
+        snippet: "createPlane(${1:width}, ${2:height})"
+
+      - name: createCylinder
+        return: "Mesh"
+        signatures:
+          - params: "float radius, float height, int resolution = 16"
+            params_simple: "radius, height, resolution"
+        description: "Create a cylinder mesh"
+        description_ja: "円柱メッシュを作成"
+        description_ko: "원기둥 메쉬를 생성"
+        sketch: true
+        snippet: "createCylinder(${1:radius}, ${2:height})"
+
+      - name: createCone
+        return: "Mesh"
+        signatures:
+          - params: "float radius, float height, int resolution = 16"
+            params_simple: "radius, height, resolution"
+        description: "Create a cone mesh"
+        description_ja: "円錐メッシュを作成"
+        description_ko: "원뿔 메쉬를 생성"
+        sketch: true
+        snippet: "createCone(${1:radius}, ${2:height})"
+
+      - name: createIcoSphere
+        return: "Mesh"
+        signatures:
+          - params: "float radius, int subdivisions = 2"
+            params_simple: "radius, subdivisions"
+        description: "Create an icosphere mesh (geodesic sphere with uniform triangles)"
+        description_ja: "アイコスフィアメッシュを作成（三角形が均一な測地球）"
+        description_ko: "아이코스피어 메쉬를 생성 (삼각형이 균일한 측지구)"
+        sketch: true
+        snippet: "createIcoSphere(${1:radius})"
+
+      - name: createTorus
+        return: "Mesh"
+        signatures:
+          - params: "float radius, float tubeRadius, int sides = 24, int rings = 16"
+            params_simple: "radius, tubeRadius, sides, rings"
+        description: "Create a torus (donut) mesh"
+        description_ja: "トーラス（ドーナツ）メッシュを作成"
+        description_ko: "토러스(도넛) 메쉬를 생성"
+        sketch: true
+        snippet: "createTorus(${1:radius}, ${2:tubeRadius})"
+
       - name: createSphere
         return: "Mesh"
         signatures:

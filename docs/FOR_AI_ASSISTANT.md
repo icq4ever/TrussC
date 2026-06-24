@@ -1515,6 +1515,11 @@ void drawMesh(Mesh mesh)  // Draw a mesh
 void drawPolyline(Polyline polyline)  // Draw a polyline
 Mesh createBox(float size)  // Create a box mesh
 Mesh createBox(float w, float h, float d)  // Create a box mesh
+Mesh createPlane(float width, float height, int cols = 2, int rows = 2)  // Create a plane mesh (subdivided quad on the XY plane)
+Mesh createCylinder(float radius, float height, int resolution = 16)  // Create a cylinder mesh
+Mesh createCone(float radius, float height, int resolution = 16)  // Create a cone mesh
+Mesh createIcoSphere(float radius, int subdivisions = 2)  // Create an icosphere mesh (geodesic sphere with uniform triangles)
+Mesh createTorus(float radius, float tubeRadius, int sides = 24, int rings = 16)  // Create a torus (donut) mesh
 Mesh createSphere(float radius, int res = 20)  // Create a sphere mesh
 Mesh createCapsule(float radius, float cylinderHeight, int res = 16)  // Create a capsule mesh (Y-up: cylinder capped by two hemispheres)
 void drawTexture(const Texture& tex, float x, float y)  // Draw a texture
