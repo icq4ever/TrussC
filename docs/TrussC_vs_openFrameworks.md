@@ -422,10 +422,7 @@ Reference for oF users finding equivalent features in TrussC.
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofxTCPClient` | `TcpClient` |  |
-| `ofxTCPServer` | `TcpServer` |  |
-| `ofxUDPManager` | `UdpSocket` |  |
-| `ofxOsc` | `OscReceiver / OscSender` |  |
+| `ofxOsc` | `OscReceiver / OscSender` | tcxOsc addon |
 
 ### **Log**
 
@@ -441,14 +438,5 @@ Reference for oF users finding equivalent features in TrussC.
 |:---|:---|:---|
 | `ofThread` | `std::thread + MainThreadRunner` | Safe sync |
 | `-` | `MainThreadRunner::run(func)` | Execute on main thread |
-
-### **Serial**
-
-| openFrameworks | TrussC | Notes |
-|:---|:---|:---|
-| `ofSerial` | `Serial` |  |
-| `serial.setup(port, baud)` | `serial.setup(port, baud)` | Same |
-| `serial.readBytes(...)` | `serial.readBytes(...)` | Same |
-| `serial.writeBytes(...)` | `serial.writeBytes(...)` | Same |
 
 <!-- AUTO-GENERATED-END -->
