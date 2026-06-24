@@ -31,6 +31,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const { execSync } = require('child_process');
 const { categoryMapping, typeCategoryMapping, ofOnlyEntries } = require('./of-category-mapping.js');
+const { buildReverseIndex } = require('./scan-examples.js');
 
 // Paths
 const API_YAML = path.join(__dirname, '../api-definition.yaml');
@@ -39,6 +40,7 @@ const TRUSSC_API_JS = path.join(__dirname, '../../../trussc.org/generated/trussc
 const GENERATED_DIR = path.join(__dirname, '../../../trussc.org/generated');
 const FOR_AI_MD = path.join(__dirname, '../FOR_AI_ASSISTANT.md');
 const ADDONS_REPO = path.join(__dirname, '../../../trussc-addons');
+const EXAMPLES_JSON = path.join(__dirname, '../../../trussc.org/examples/examples.json');
 const OF_MAPPING_JSON = path.join(__dirname, '../../../trussc.org/generated/of-mapping.json');
 const OF_COMPARISON_MD = path.join(__dirname, '../TrussC_vs_openFrameworks.md');
 const GEMINI_KNOWLEDGE_MD = path.join(__dirname, './trusssketch-knowledge.md');
@@ -194,10 +196,66 @@ function pickLang(base, ja, ko, lang) {
     return base || '';
 }
 
+// Build symbol -> [{name, group}] example links.
+// Manual `examples:` in the yaml wins; otherwise the auto reverse-index (top 3).
+// Only web-playable examples present in examples.json are linked.
+const EXAMPLE_CAP = 3;
+function buildExamplesMap(api) {
+    let exLookup = new Map();   // exampleName -> { group, web }
+    try {
+        const exJson = JSON.parse(fs.readFileSync(EXAMPLES_JSON, 'utf8'));
+        for (const [group, cat] of Object.entries(exJson.examples || {})) {
+            for (const it of (cat.items || [])) exLookup.set(it.name, { group, web: it.webSupported !== false });
+        }
+    } catch (e) {
+        console.log(`  Warning: examples.json unreadable (${e.message}); skipping example links`);
+        return {};
+    }
+
+    // Symbol sets straight from the yaml (avoids depending on generated output).
+    const funcs = new Set(), types = new Set(), excluded = new Set();
+    for (const c of api.categories || []) {
+        for (const f of c.functions || []) {
+            if (c.name === 'Lifecycle' || c.name === 'Events') excluded.add(f.name);
+            else funcs.add(f.name);
+        }
+    }
+    for (const n of excluded) funcs.delete(n);
+    for (const t of api.types || []) types.add(t.name);
+
+    let rev = { index: {} };
+    try { rev = buildReverseIndex({ funcs, types, excluded }); }
+    catch (e) { console.log(`  Warning: example scan failed (${e.message}); manual links only`); }
+
+    const resolve = (symName, manual) => {
+        const names = (Array.isArray(manual) && manual.length)
+            ? manual                                            // manual override
+            : (rev.index[symName] || []).map(e => e.name);      // auto fallback
+        const out = [];
+        for (const n of names.slice(0, EXAMPLE_CAP)) {
+            const info = exLookup.get(n);
+            if (info && info.web) out.push({ name: n, group: info.group });
+        }
+        return out;
+    };
+
+    const map = {};
+    for (const c of api.categories || []) for (const f of c.functions || []) {
+        const ex = resolve(f.name, f.examples);
+        if (ex.length) map[f.name] = ex;
+    }
+    for (const t of api.types || []) {
+        const ex = resolve(t.name, t.examples);
+        if (ex.length) map['type:' + t.name] = ex;
+    }
+    return map;
+}
+
 // Generate trussc-api.js (all APIs, no sketch filter).
 // lang: null = combined (legacy, retains desc_ja/desc_ko); 'en'|'ja'|'ko' = single-language,
 //       localized fields collapsed to the base name so the frontend stays language-agnostic.
-function generateTrussCApiJS(api, lang) {
+// examplesMap: symbol -> [{name, group}] (see buildExamplesMap).
+function generateTrussCApiJS(api, lang, examplesMap = {}) {
     const version = getVersion();
 
     const categories = [];
@@ -236,6 +294,8 @@ function generateTrussCApiJS(api, lang) {
                         if (fn.details_ko) entry.details_ko = fn.details_ko;
                     }
                 }
+                // Optional example links (language-independent).
+                if (examplesMap[fn.name]) entry.examples = examplesMap[fn.name];
                 functions.push(entry);
             }
         }
@@ -264,6 +324,7 @@ function generateTrussCApiJS(api, lang) {
                 typeData.desc_ja = type.description_ja || '';
                 typeData.desc_ko = type.description_ko || '';
             }
+            if (examplesMap['type:' + type.name]) typeData.examples = examplesMap['type:' + type.name];
 
             if (type.constructor && type.constructor.signatures) {
                 typeData.constructor = {
@@ -1187,7 +1248,9 @@ function main() {
     // so one cached file serves en/ja/ko (no per-locale re-download on switch).
     if (generateTrussCApi) {
         console.log('\nGenerating trussc-api.js...');
-        fs.writeFileSync(TRUSSC_API_JS, generateTrussCApiJS(api, null));
+        const examplesMap = buildExamplesMap(api);
+        console.log(`  Example links resolved for ${Object.keys(examplesMap).length} symbols`);
+        fs.writeFileSync(TRUSSC_API_JS, generateTrussCApiJS(api, null, examplesMap));
         console.log(`  Written: ${TRUSSC_API_JS}`);
     }
 
