@@ -390,6 +390,7 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
         const out = {
             name: e.name,
             desc: lang ? pickLang(e.description, e.description_ja, e.description_ko, lang) : e.description,
+            keywords: e.keywords || [],
             values: (e.values || []).map(v => ({
                 name: v.name,
                 value: v.value,
