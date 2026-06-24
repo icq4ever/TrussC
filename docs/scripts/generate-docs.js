@@ -345,6 +345,7 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
                 typeData.desc_ko = type.description_ko || '';
             }
             if (examplesMap['type:' + type.name]) typeData.examples = examplesMap['type:' + type.name];
+            if (Array.isArray(type.related) && type.related.length) typeData.related = type.related;
             attachPlatforms(typeData, type, lang);
 
             if (type.constructor && type.constructor.signatures) {
@@ -398,6 +399,7 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
             })),
         };
         if (!lang) { out.desc_ja = e.description_ja || ''; out.desc_ko = e.description_ko || ''; }
+        if (Array.isArray(e.related) && e.related.length) out.related = e.related;
         return out;
     });
 
