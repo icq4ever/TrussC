@@ -196,6 +196,24 @@ function pickLang(base, ja, ko, lang) {
     return base || '';
 }
 
+// Optional platform-support annotation. Absent `platforms` = universal (all platforms);
+// only restricted symbols carry it. Tokens: linux/windows/macos/ios/android/wasm.
+// Mutates `entry` in place; no-op when `src.platforms` is absent/empty.
+function attachPlatforms(entry, src, lang) {
+    if (!Array.isArray(src.platforms) || !src.platforms.length) return entry;
+    entry.platforms = src.platforms;
+    if (src.platformNote) {
+        entry.platformNote = lang
+            ? pickLang(src.platformNote, src.platformNote_ja, src.platformNote_ko, lang)
+            : src.platformNote;
+        if (!lang) {
+            if (src.platformNote_ja) entry.platformNote_ja = src.platformNote_ja;
+            if (src.platformNote_ko) entry.platformNote_ko = src.platformNote_ko;
+        }
+    }
+    return entry;
+}
+
 // Build symbol -> [{name, group}] example links.
 // Manual `examples:` in the yaml wins; otherwise the auto reverse-index (top 3).
 // Only web-playable examples present in examples.json are linked.
@@ -296,6 +314,8 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
                 }
                 // Optional example links (language-independent).
                 if (examplesMap[fn.name]) entry.examples = examplesMap[fn.name];
+                // Optional platform-support annotation (restricted symbols only).
+                attachPlatforms(entry, fn, lang);
                 functions.push(entry);
             }
         }
@@ -325,6 +345,7 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
                 typeData.desc_ko = type.description_ko || '';
             }
             if (examplesMap['type:' + type.name]) typeData.examples = examplesMap['type:' + type.name];
+            attachPlatforms(typeData, type, lang);
 
             if (type.constructor && type.constructor.signatures) {
                 typeData.constructor = {
@@ -342,23 +363,23 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
             }
 
             if (type.methods) {
-                typeData.methods = type.methods.map(m => ({
+                typeData.methods = type.methods.map(m => attachPlatforms({
                     name: m.name,
                     return: m.return,
                     signatures: m.signatures.map(s => s.params || ''),
                     desc: lang ? pickLang(m.description, m.description_ja, m.description_ko, lang) : m.description,
                     snippet: m.snippet
-                }));
+                }, m, lang));
             }
 
             if (type.static_methods) {
-                typeData.static_methods = type.static_methods.map(m => ({
+                typeData.static_methods = type.static_methods.map(m => attachPlatforms({
                     name: m.name,
                     return: m.return,
                     signatures: m.signatures.map(s => s.params || ''),
                     desc: lang ? pickLang(m.description, m.description_ja, m.description_ko, lang) : m.description,
                     snippet: m.snippet
-                }));
+                }, m, lang));
             }
 
             types.push(typeData);
