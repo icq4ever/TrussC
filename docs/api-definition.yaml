@@ -7939,6 +7939,813 @@ categories:
         snippet: "isLocallyAdministered(${1:mac})"
 
 # ==========================================================================
+# Enums (enum class types)
+# ==========================================================================
+enums:
+  - name: BlendMode
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Alpha
+        value: 0
+        description: "Normal alpha blending (default)"
+      - name: Add
+        value: 1
+        description: "Additive blending"
+      - name: Multiply
+        value: 2
+        description: "Multiply blending"
+      - name: Screen
+        value: 3
+        description: "Screen blending"
+      - name: Subtract
+        value: 4
+        description: "Subtractive blending"
+      - name: Disabled
+        value: 5
+        description: "No blending (overwrite)"
+
+  - name: TextureFilter
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Nearest
+        value: 0
+        description: "Nearest neighbor (for pixel art)"
+      - name: Linear
+        value: 1
+        description: "Bilinear interpolation (default)"
+
+  - name: TextureWrap
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Repeat
+        value: 0
+        description: "Repeat"
+      - name: ClampToEdge
+        value: 1
+        description: "Clamp to edge pixel (default)"
+      - name: MirroredRepeat
+        value: 2
+        description: "Mirrored repeat"
+
+  - name: Cursor
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Default
+        value: 0
+        description: "System default cursor"
+        description_ja: "システムデフォルトカーソル"
+        description_ko: "시스템 기본 커서"
+      - name: Arrow
+        value: 1
+        description: "Arrow cursor"
+        description_ja: "矢印カーソル"
+        description_ko: "화살표 커서"
+      - name: IBeam
+        value: 2
+        description: "Text input cursor"
+        description_ja: "テキスト入力カーソル"
+        description_ko: "텍스트 입력 커서"
+      - name: Crosshair
+        value: 3
+        description: "Crosshair cursor"
+        description_ja: "十字カーソル"
+        description_ko: "십자선 커서"
+      - name: Hand
+        value: 4
+        description: "Pointing hand cursor"
+        description_ja: "指差しカーソル"
+        description_ko: "포인팅 핸드 커서"
+      - name: ResizeEW
+        value: 5
+        description: "East-west resize cursor"
+        description_ja: "左右リサイズカーソル"
+        description_ko: "동서 방향 리사이즈 커서"
+      - name: ResizeNS
+        value: 6
+        description: "North-south resize cursor"
+        description_ja: "上下リサイズカーソル"
+        description_ko: "남북 방향 리사이즈 커서"
+      - name: ResizeNWSE
+        value: 7
+        description: "NW-SE diagonal resize cursor"
+        description_ja: "左上-右下リサイズカーソル"
+        description_ko: "북서-남동 대각선 리사이즈 커서"
+      - name: ResizeNESW
+        value: 8
+        description: "NE-SW diagonal resize cursor"
+        description_ja: "右上-左下リサイズカーソル"
+        description_ko: "북동-남서 대각선 리사이즈 커서"
+      - name: ResizeAll
+        value: 9
+        description: "Move/resize all directions cursor"
+        description_ja: "全方向移動カーソル"
+        description_ko: "모든 방향 이동/리사이즈 커서"
+      - name: NotAllowed
+        value: 10
+        description: "Not allowed cursor"
+        description_ja: "禁止カーソル"
+        description_ko: "금지 커서"
+      - name: Custom0
+        value: 11
+        description: "Custom cursor slot 0 (bind image first)"
+        description_ja: "カスタムカーソルスロット0（先に画像をバインド）"
+        description_ko: "커스텀 커서 슬롯 0 (먼저 이미지 바인딩 필요)"
+      - name: Custom1
+        value: 12
+        description: "Custom cursor slot 1"
+        description_ja: "カスタムカーソルスロット1"
+        description_ko: "커스텀 커서 슬롯 1"
+      - name: Custom2
+        value: 13
+        description: "Custom cursor slot 2"
+        description_ja: "カスタムカーソルスロット2"
+        description_ko: "커스텀 커서 슬롯 2"
+      - name: Custom3
+        value: 14
+        description: "Custom cursor slot 3"
+        description_ja: "カスタムカーソルスロット3"
+        description_ko: "커스텀 커서 슬롯 3"
+      - name: Custom4
+        value: 15
+      - name: Custom5
+        value: 16
+      - name: Custom6
+        value: 17
+      - name: Custom7
+        value: 18
+      - name: Custom8
+        value: 19
+      - name: Custom9
+        value: 20
+      - name: Custom10
+        value: 21
+      - name: Custom11
+        value: 22
+      - name: Custom12
+        value: 23
+      - name: Custom13
+        value: 24
+      - name: Custom14
+        value: 25
+      - name: Custom15
+        value: 26
+
+  - name: Modifier
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: None
+        value: 0
+      - name: Shift
+        value: 1
+      - name: Ctrl
+        value: 2
+      - name: Alt
+        value: 3
+      - name: Super
+        value: 4
+
+  - name: LightType
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Directional
+        value: 0
+        description: "Parallel light (sunlight)"
+      - name: Point
+        value: 1
+        description: "Point light"
+      - name: Spot
+        value: 2
+        description: "Spot light (point + cone)"
+
+  - name: EaseType
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Linear
+        value: 0
+        description: "No easing"
+      - name: Quad
+        value: 1
+        description: "Quadratic (t^2)"
+      - name: Cubic
+        value: 2
+        description: "Cubic (t^3)"
+      - name: Quart
+        value: 3
+        description: "Quartic (t^4)"
+      - name: Quint
+        value: 4
+        description: "Quintic (t^5)"
+      - name: Sine
+        value: 5
+        description: "Sinusoidal"
+      - name: Expo
+        value: 6
+        description: "Exponential"
+      - name: Circ
+        value: 7
+        description: "Circular"
+      - name: Back
+        value: 8
+        description: "Overshoot"
+      - name: Elastic
+        value: 9
+        description: "Elastic spring"
+      - name: Bounce
+        value: 10
+        description: "Bouncing"
+
+  - name: EaseMode
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: In
+        value: 0
+        description: "Accelerate"
+      - name: Out
+        value: 1
+        description: "Decelerate"
+      - name: InOut
+        value: 2
+        description: "Accelerate then decelerate"
+
+  - name: Deliver
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Inline
+        value: 0
+      - name: Main
+        value: 1
+
+  - name: MouseButton
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Left
+        value: 0
+        description: "SAPP_MOUSEBUTTON_LEFT"
+      - name: Right
+        value: 1
+        description: "SAPP_MOUSEBUTTON_RIGHT"
+      - name: Middle
+        value: 2
+        description: "SAPP_MOUSEBUTTON_MIDDLE"
+      - name: None
+        value: 256
+        description: "SAPP_MOUSEBUTTON_INVALID (no button; e.g. during a plain move)"
+
+  - name: TextureFormat
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: RGBA8
+        value: 0
+        description: "4ch, 8-bit/ch (default)"
+      - name: RGBA16F
+        value: 1
+        description: "4ch, 16-bit float/ch"
+      - name: RGBA32F
+        value: 2
+        description: "4ch, 32-bit float/ch"
+      - name: R8
+        value: 3
+        description: "1ch, 8-bit"
+      - name: R16F
+        value: 4
+        description: "1ch, 16-bit float"
+      - name: R32F
+        value: 5
+        description: "1ch, 32-bit float"
+      - name: RG8
+        value: 6
+        description: "2ch, 8-bit/ch"
+      - name: RG16F
+        value: 7
+        description: "2ch, 16-bit float/ch"
+      - name: RG32F
+        value: 8
+        description: "2ch, 32-bit float/ch"
+      - name: BGRA8
+        value: 9
+        description: "4ch, 8-bit/ch, B-G-R-A byte order (swapchain / Syphon / video interop)"
+      - name: RGBA16
+        value: 10
+        description: "4ch, 16-bit unorm/ch (high-precision integer; texture-sharing interop)"
+
+  - name: TextureUsage
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Immutable
+        value: 0
+        description: "Set once, cannot update (for Image::load)"
+      - name: Dynamic
+        value: 1
+        description: "Update periodically from CPU (for Image::allocate)"
+      - name: Stream
+        value: 2
+        description: "Update every frame (for VideoGrabber)"
+      - name: RenderTarget
+        value: 3
+        description: "For FBO color attachment"
+
+  - name: WritingMode
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Horizontal
+        value: 0
+        description: "Left-to-right horizontal text (default)"
+        description_ja: "左から右の横書き（デフォルト）"
+        description_ko: "왼쪽에서 오른쪽 가로쓰기 (기본값)"
+      - name: VerticalRL
+        value: 1
+        description: "Top-to-bottom columns, columns flow right-to-left (Japanese tategaki)"
+        description_ja: "上から下に列、列は右から左へ流れる（縦書き）"
+        description_ko: "위에서 아래로 열, 열은 오른쪽에서 왼쪽으로 (일본어 세로쓰기)"
+
+  - name: ImageType
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Color
+        value: 0
+        description: "RGBA"
+      - name: Grayscale
+        value: 1
+        description: "Grayscale"
+
+  - name: PrimitiveMode
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Triangles
+        value: 0
+      - name: TriangleStrip
+        value: 1
+      - name: TriangleFan
+        value: 2
+      - name: Lines
+        value: 3
+      - name: LineStrip
+        value: 4
+      - name: LineLoop
+        value: 5
+      - name: Points
+        value: 6
+
+  - name: PixelFormat
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: U8
+        value: 0
+      - name: F32
+        value: 1
+
+  - name: StrokeCap
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Butt
+        value: 0
+        description: "Flat line cap (no extension)"
+        description_ja: "フラットなラインキャップ（延長なし）"
+        description_ko: "평평한 라인 캡 (확장 없음)"
+      - name: Round
+        value: 1
+        description: "Rounded line cap"
+        description_ja: "丸いラインキャップ"
+        description_ko: "둥근 라인 캡"
+      - name: Square
+        value: 2
+        description: "Square line cap (extends by half stroke width)"
+        description_ja: "四角いラインキャップ（線幅の半分延長）"
+        description_ko: "사각 라인 캡 (스트로크 너비의 절반만큼 확장)"
+
+  - name: StrokeJoin
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Miter
+        value: 0
+        description: "Sharp corner join"
+        description_ja: "尖った角のジョイン"
+        description_ko: "날카로운 모서리 조인"
+      - name: Round
+        value: 1
+        description: "Rounded corner join"
+        description_ja: "丸い角のジョイン"
+        description_ko: "둥근 모서리 조인"
+      - name: Bevel
+        value: 2
+        description: "Beveled corner join"
+        description_ja: "面取りされた角のジョイン"
+        description_ko: "베벨 모서리 조인"
+
+  - name: PrimitiveType
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Points
+        value: 0
+      - name: Lines
+        value: 1
+      - name: LineStrip
+        value: 2
+      - name: Triangles
+        value: 3
+      - name: TriangleStrip
+        value: 4
+      - name: Quads
+        value: 5
+
+  - name: WindowType
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Rect
+        value: 0
+        description: "Rectangular window (no window)"
+      - name: Hanning
+        value: 1
+        description: "Hanning window"
+      - name: Hamming
+        value: 2
+        description: "Hamming window"
+      - name: Blackman
+        value: 3
+        description: "Blackman window"
+
+  - name: Wave
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Sin
+        value: 0
+        description: "Sine wave (smooth, pure tone)"
+        description_ja: "サイン波（滑らかな純音）"
+        description_ko: "사인파 (부드럽고 순수한 음색)"
+      - name: Square
+        value: 1
+        description: "Square wave (harsh, 8-bit style)"
+        description_ja: "矩形波（硬い、8bitスタイル）"
+        description_ko: "사각파 (거칠고 8비트 스타일)"
+      - name: Triangle
+        value: 2
+        description: "Triangle wave (softer than square)"
+        description_ja: "三角波（矩形波より柔らかい）"
+        description_ko: "삼각파 (사각파보다 부드러움)"
+      - name: Sawtooth
+        value: 3
+        description: "Sawtooth wave (bright, buzzy)"
+        description_ja: "ノコギリ波（明るく、ブザー音的）"
+        description_ko: "톱니파 (밝고 윙윙거리는 음색)"
+      - name: Noise
+        value: 4
+        description: "White noise"
+        description_ja: "ホワイトノイズ"
+        description_ko: "화이트 노이즈"
+      - name: PinkNoise
+        value: 5
+        description: "Pink noise (1/f noise, more natural)"
+        description_ja: "ピンクノイズ（1/fノイズ、より自然）"
+        description_ko: "핑크 노이즈 (1/f 노이즈, 더 자연스러움)"
+      - name: Silent
+        value: 6
+        description: "Silent (no sound)"
+        description_ja: "無音"
+        description_ko: "무음 (사운드 없음)"
+
+  - name: MixMode
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Auto
+        value: 0
+      - name: DownmixMono
+        value: 1
+
+  - name: Direction
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Left
+        value: 0
+      - name: Center
+        value: 1
+      - name: Right
+        value: 2
+      - name: Top
+        value: 3
+      - name: Bottom
+        value: 4
+      - name: Baseline
+        value: 5
+        description: "Text-specific: character baseline"
+
+  - name: LayoutDirection
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Vertical
+        value: 0
+        description: "VStack: top to bottom"
+      - name: Horizontal
+        value: 1
+        description: "HStack: left to right"
+
+  - name: AxisMode
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: None
+        value: 0
+        description: "Don't change size (default)"
+      - name: Fill
+        value: 1
+        description: "Stretch children to fill parent"
+      - name: Content
+        value: 2
+        description: "Resize parent to fit children"
+
+  - name: Codec
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: None
+        value: 0
+        description: "store verbatim (identity copy) - the \"no compression\" option"
+      - name: LZ4
+        value: 1
+        description: "LZ4 block compression (fast, lossless)"
+
+  - name: LogLevel
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Verbose
+        value: 0
+        description: "Detailed info (for debugging)"
+      - name: Notice
+        value: 1
+        description: "Normal info"
+      - name: Warning
+        value: 2
+        description: "Warning"
+      - name: Error
+        value: 3
+        description: "Error"
+      - name: Fatal
+        value: 4
+        description: "Fatal error"
+      - name: Silent
+        value: 5
+        description: "No output (for filtering)"
+
+  - name: Beep
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: ping
+        value: 0
+        description: "Single beep (default)"
+      - name: success
+        value: 1
+        description: "Two-tone rising (pico)"
+      - name: complete
+        value: 2
+        description: "Task completion fanfare"
+      - name: coin
+        value: 3
+        description: "Game item pickup (sparkly)"
+      - name: error
+        value: 4
+        description: "Low buzz (boo)"
+      - name: warning
+        value: 5
+        description: "Attention (two short beeps)"
+      - name: cancel
+        value: 6
+        description: "Cancel/back"
+      - name: click
+        value: 7
+        description: "UI selection click"
+      - name: typing
+        value: 8
+        description: "Key input feedback"
+      - name: notify
+        value: 9
+        description: "Two-tone notification"
+      - name: sweep
+        value: 10
+        description: "Screen transition whoosh"
+
+  - name: VideoCodec
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: H264
+        value: 0
+        description: "H.264 / AVC — broad compatibility (default)"
+        description_ja: "H.264 / AVC — 互換性が広い（デフォルト）"
+        description_ko: "H.264 / AVC — 폭넓은 호환성 (기본값)"
+      - name: HEVC
+        value: 1
+        description: "H.265 / HEVC — smaller files, hardware-encoded"
+        description_ja: "H.265 / HEVC — ファイルが小さい、ハードウェアエンコード"
+        description_ko: "H.265 / HEVC — 더 작은 파일, 하드웨어 인코딩"
+      - name: ProRes422
+        value: 2
+        description: "Apple ProRes 422 — editing-grade, macOS/iOS only (.mov)"
+        description_ja: "Apple ProRes 422 — 編集向け高品質、macOS/iOSのみ（.mov）"
+        description_ko: "Apple ProRes 422 — 편집용 고품질, macOS/iOS 전용 (.mov)"
+      - name: ProRes4444
+        value: 3
+        description: "Apple ProRes 4444 — highest quality + alpha, macOS/iOS only (.mov)"
+        description_ja: "Apple ProRes 4444 — 最高品質＋アルファ、macOS/iOSのみ（.mov）"
+        description_ko: "Apple ProRes 4444 — 최고 품질 + 알파, macOS/iOS 전용 (.mov)"
+
+  - name: Source
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: None
+        value: 0
+      - name: Swapchain
+        value: 1
+      - name: Fbo
+        value: 2
+
+  - name: ThermalState
+    description: ""
+    description_ja: ""
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Nominal
+        value: 0
+        description: "Normal operation"
+      - name: Fair
+        value: 1
+        description: "Slightly elevated, performance may be reduced"
+      - name: Serious
+        value: 2
+        description: "High temperature, should reduce workload"
+      - name: Critical
+        value: 3
+        description: "Thermal throttling active, risk of shutdown"
+
+  - name: TcyMode
+    description: "Tate-chu-yoko: how Latin / digit runs are laid out within vertical text"
+    description_ja: "縦中横: 縦書き内の Latin / 数字の連続の配置方法"
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Rotate
+        value: 0
+        description: "Rotate the whole Latin / digit run 90 degrees CW so it reads top-to-bottom"
+        description_ja: "Latin / 数字の連続を 90度 CW 回転して上から下に流す"
+        description_ko: "라틴 / 숫자 연속을 90도 시계방향 회전"
+      - name: Upright
+        value: 1
+        description: "Each glyph upright, one per CJK-sized cell (一文字ずつ正立)"
+        description_ja: "1文字ずつ正立で縦に並べる"
+        description_ko: "각 글리프를 한 셀씩 정립으로 배치"
+      - name: Combine
+        value: 2
+        description: "Squeeze a Latin / digit run into a single CJK cell (true 縦中横)"
+        description_ja: "Latin / 数字の連続を 1セルに圧縮して縦書きの中に埋め込む (縦中横)"
+        description_ko: "라틴 / 숫자 연속을 한 셀에 압축 (다테추요코)"
+
+  - name: KinsokuLevel
+    description: "Line-breaking (kinsoku) strictness for vertical / Japanese text"
+    description_ja: "縦書き / 日本語の禁則処理レベル"
+    description_ko: ""
+    sketch: true
+    values:
+      - name: Off
+        value: 0
+        description: "No line-break prohibition rules"
+        description_ja: "禁則処理なし"
+      - name: PunctuationOnly
+        value: 1
+        description: "Only punctuation kinsoku rules"
+        description_ja: "句読点のみの禁則"
+      - name: Standard
+        value: 2
+        description: "Standard kinsoku rules"
+        description_ja: "標準的な禁則処理"
+
+
+# ==========================================================================
+# Macros (preprocessor macros)
+# ==========================================================================
+macros:
+  - name: TC_RUN_APP
+    signature: "TC_RUN_APP(AppClass, settings)"
+    description: "Application entry-point macro. Expands to main() and runs AppClass. Required to enable hot reload."
+    description_ja: "アプリのエントリポイントマクロ。main() を展開し AppClass を実行する。ホットリロードを使うには必須。"
+    sketch: false
+  - name: TC_HOT_RELOAD
+    signature: "TC_HOT_RELOAD(AppClass)"
+    description: "Opt the app into hot reload. Place in the app's .cpp; triggers a CMake reconfigure on next build."
+    description_ja: "アプリをホットリロード対応にする。アプリの .cpp に置く。次回ビルドで CMake が再構成される。"
+    sketch: false
+  - name: TC_REFLECT
+    signature: "TC_REFLECT(Self, ...Bases) { TC_VALUE(...) ... }"
+    description: "Declare reflected members inside a class (exposed to the inspector, serialization, and MCP). Bases are the direct base classes."
+    description_ja: "クラス内で反映メンバーを宣言する（インスペクタ・シリアライズ・MCP に公開）。Bases は直接の基底クラス。"
+    sketch: false
+  - name: TC_REFLECT_ROOT
+    signature: "TC_REFLECT_ROOT(Self) { TC_VALUE(...) ... }"
+    description: "Like TC_REFLECT but for a root type with no reflected base classes."
+    description_ja: "TC_REFLECT と同じだが、反映する基底クラスを持たないルート型向け。"
+    sketch: false
+  - name: TC_REFLECT_FREE
+    signature: "TC_REFLECT_FREE(Type) { TC_VALUE(...) ... }"
+    description: "Reflect a non-member / external type at namespace scope (for types you can't add TC_REFLECT inside)."
+    description_ja: "メンバー外・外部の型を名前空間スコープで反映する（TC_REFLECT をクラス内に書けない型向け）。"
+    sketch: false
+  - name: TC_VALUE
+    signature: "TC_VALUE(member) | TC_VALUE(name, getter) | TC_VALUE(name, getter, setter)"
+    description: "Declare one reflected member inside a TC_REFLECT body. 1 arg = in-place, 2 = read-only, 3 = getter/setter."
+    description_ja: "TC_REFLECT 本体内で反映メンバーを1つ宣言する。引数1=直接、2=読み取り専用、3=getter/setter。"
+    sketch: false
+  - name: TC_ENUM_LABELS
+    signature: "TC_ENUM_LABELS(EnumType, \"Label0\", \"Label1\", ...)"
+    description: "Declare string labels for an enum (labels[(int)value] == name), used by the inspector and serialization."
+    description_ja: "enum の文字列ラベルを宣言する（labels[(int)value] == name）。インスペクタやシリアライズで使われる。"
+    sketch: false
+
+# ==========================================================================
 # Constants
 # ==========================================================================
 constants:
@@ -7971,86 +8778,20 @@ constants:
     sketch: true
 
   # StrokeCap constants (C++ style namespace)
-  - name: "StrokeCap::Butt"
-    value: "0"
-    description: "Flat line cap (no extension)"
-    description_ja: "フラットなラインキャップ（延長なし）"
-    description_ko: "평평한 라인 캡 (확장 없음)"
-    sketch: true
 
-  - name: "StrokeCap::Round"
-    value: "1"
-    description: "Rounded line cap"
-    description_ja: "丸いラインキャップ"
-    description_ko: "둥근 라인 캡"
-    sketch: true
 
-  - name: "StrokeCap::Square"
-    value: "2"
-    description: "Square line cap (extends by half stroke width)"
-    description_ja: "四角いラインキャップ（線幅の半分延長）"
-    description_ko: "사각 라인 캡 (스트로크 너비의 절반만큼 확장)"
-    sketch: true
 
   # StrokeJoin constants (C++ style namespace)
-  - name: "StrokeJoin::Miter"
-    value: "0"
-    description: "Sharp corner join"
-    description_ja: "尖った角のジョイン"
-    description_ko: "날카로운 모서리 조인"
-    sketch: true
 
-  - name: "StrokeJoin::Round"
-    value: "1"
-    description: "Rounded corner join"
-    description_ja: "丸い角のジョイン"
-    description_ko: "둥근 모서리 조인"
-    sketch: true
 
-  - name: "StrokeJoin::Bevel"
-    value: "2"
-    description: "Beveled corner join"
-    description_ja: "面取りされた角のジョイン"
-    description_ko: "베벨 모서리 조인"
-    sketch: true
 
   # Font path constants
   # WritingMode constants — Font::setWritingMode
-  - name: "WritingMode::Horizontal"
-    value: "0"
-    description: "Left-to-right horizontal text (default)"
-    description_ja: "左から右の横書き（デフォルト）"
-    description_ko: "왼쪽에서 오른쪽 가로쓰기 (기본값)"
-    sketch: true
 
-  - name: "WritingMode::VerticalRL"
-    value: "1"
-    description: "Top-to-bottom columns, columns flow right-to-left (Japanese tategaki)"
-    description_ja: "上から下に列、列は右から左へ流れる（縦書き）"
-    description_ko: "위에서 아래로 열, 열은 오른쪽에서 왼쪽으로 (일본어 세로쓰기)"
-    sketch: true
 
   # TcyMode constants — Font::setTcyDigits / setTcyLatin (tate-chu-yoko)
-  - name: "TcyMode::Rotate"
-    value: "0"
-    description: "Rotate the whole Latin / digit run 90 degrees CW so it reads top-to-bottom"
-    description_ja: "Latin / 数字の連続を 90度 CW 回転して上から下に流す"
-    description_ko: "라틴 / 숫자 연속을 90도 시계방향 회전"
-    sketch: true
 
-  - name: "TcyMode::Upright"
-    value: "1"
-    description: "Each glyph upright, one per CJK-sized cell (一文字ずつ正立)"
-    description_ja: "1文字ずつ正立で縦に並べる"
-    description_ko: "각 글리프를 한 셀씩 정립으로 배치"
-    sketch: true
 
-  - name: "TcyMode::Combine"
-    value: "2"
-    description: "Squeeze a Latin / digit run into a single CJK cell (true 縦中横)"
-    description_ja: "Latin / 数字の連続を 1セルに圧縮して縦書きの中に埋め込む (縦中横)"
-    description_ko: "라틴 / 숫자 연속을 한 셀에 압축 (다테추요코)"
-    sketch: true
 
   - name: FONT_SANS
     value: "string"
@@ -8088,160 +8829,28 @@ constants:
     sketch: true
 
   # Wave type constants for ChipSound
-  - name: "Wave::Sin"
-    value: "0"
-    description: "Sine wave (smooth, pure tone)"
-    description_ja: "サイン波（滑らかな純音）"
-    description_ko: "사인파 (부드럽고 순수한 음색)"
-    sketch: true
 
-  - name: "Wave::Square"
-    value: "1"
-    description: "Square wave (harsh, 8-bit style)"
-    description_ja: "矩形波（硬い、8bitスタイル）"
-    description_ko: "사각파 (거칠고 8비트 스타일)"
-    sketch: true
 
-  - name: "Wave::Triangle"
-    value: "2"
-    description: "Triangle wave (softer than square)"
-    description_ja: "三角波（矩形波より柔らかい）"
-    description_ko: "삼각파 (사각파보다 부드러움)"
-    sketch: true
 
-  - name: "Wave::Sawtooth"
-    value: "3"
-    description: "Sawtooth wave (bright, buzzy)"
-    description_ja: "ノコギリ波（明るく、ブザー音的）"
-    description_ko: "톱니파 (밝고 윙윙거리는 음색)"
-    sketch: true
 
-  - name: "Wave::Noise"
-    value: "4"
-    description: "White noise"
-    description_ja: "ホワイトノイズ"
-    description_ko: "화이트 노이즈"
-    sketch: true
 
-  - name: "Wave::PinkNoise"
-    value: "5"
-    description: "Pink noise (1/f noise, more natural)"
-    description_ja: "ピンクノイズ（1/fノイズ、より自然）"
-    description_ko: "핑크 노이즈 (1/f 노이즈, 더 자연스러움)"
-    sketch: true
 
-  - name: "Wave::Silent"
-    value: "6"
-    description: "Silent (no sound)"
-    description_ja: "無音"
-    description_ko: "무음 (사운드 없음)"
-    sketch: true
 
   # Cursor constants
-  - name: "Cursor::Default"
-    value: "0"
-    description: "System default cursor"
-    description_ja: "システムデフォルトカーソル"
-    description_ko: "시스템 기본 커서"
-    sketch: true
 
-  - name: "Cursor::Arrow"
-    value: "1"
-    description: "Arrow cursor"
-    description_ja: "矢印カーソル"
-    description_ko: "화살표 커서"
-    sketch: true
 
-  - name: "Cursor::IBeam"
-    value: "2"
-    description: "Text input cursor"
-    description_ja: "テキスト入力カーソル"
-    description_ko: "텍스트 입력 커서"
-    sketch: true
 
-  - name: "Cursor::Crosshair"
-    value: "3"
-    description: "Crosshair cursor"
-    description_ja: "十字カーソル"
-    description_ko: "십자선 커서"
-    sketch: true
 
-  - name: "Cursor::Hand"
-    value: "4"
-    description: "Pointing hand cursor"
-    description_ja: "指差しカーソル"
-    description_ko: "포인팅 핸드 커서"
-    sketch: true
 
-  - name: "Cursor::ResizeEW"
-    value: "5"
-    description: "East-west resize cursor"
-    description_ja: "左右リサイズカーソル"
-    description_ko: "동서 방향 리사이즈 커서"
-    sketch: true
 
-  - name: "Cursor::ResizeNS"
-    value: "6"
-    description: "North-south resize cursor"
-    description_ja: "上下リサイズカーソル"
-    description_ko: "남북 방향 리사이즈 커서"
-    sketch: true
 
-  - name: "Cursor::ResizeNWSE"
-    value: "7"
-    description: "NW-SE diagonal resize cursor"
-    description_ja: "左上-右下リサイズカーソル"
-    description_ko: "북서-남동 대각선 리사이즈 커서"
-    sketch: true
 
-  - name: "Cursor::ResizeNESW"
-    value: "8"
-    description: "NE-SW diagonal resize cursor"
-    description_ja: "右上-左下リサイズカーソル"
-    description_ko: "북동-남서 대각선 리사이즈 커서"
-    sketch: true
 
-  - name: "Cursor::ResizeAll"
-    value: "9"
-    description: "Move/resize all directions cursor"
-    description_ja: "全方向移動カーソル"
-    description_ko: "모든 방향 이동/리사이즈 커서"
-    sketch: true
 
-  - name: "Cursor::NotAllowed"
-    value: "10"
-    description: "Not allowed cursor"
-    description_ja: "禁止カーソル"
-    description_ko: "금지 커서"
-    sketch: true
 
-  - name: "Cursor::Custom0"
-    value: "11"
-    description: "Custom cursor slot 0 (bind image first)"
-    description_ja: "カスタムカーソルスロット0（先に画像をバインド）"
-    description_ko: "커스텀 커서 슬롯 0 (먼저 이미지 바인딩 필요)"
-    sketch: true
 
-  - name: "Cursor::Custom1"
-    value: "12"
-    description: "Custom cursor slot 1"
-    description_ja: "カスタムカーソルスロット1"
-    description_ko: "커스텀 커서 슬롯 1"
-    sketch: true
 
-  - name: "Cursor::Custom2"
-    value: "13"
-    description: "Custom cursor slot 2"
-    description_ja: "カスタムカーソルスロット2"
-    description_ko: "커스텀 커서 슬롯 2"
-    sketch: true
 
-  - name: "Cursor::Custom3"
-    value: "14"
-    description: "Custom cursor slot 3"
-    description_ja: "カスタムカーソルスロット3"
-    description_ko: "커스텀 커서 슬롯 3"
-    sketch: true
 
   # Key constants (for keyPressed/keyReleased)
   # For printable characters, you can also use uppercase char literals: key == 'A', key == '1'
@@ -8376,30 +8985,6 @@ constants:
     sketch: true
 
   # VideoCodec constants (for VideoRecordSettings.codec)
-  - name: "VideoCodec::H264"
-    value: "0"
-    description: "H.264 / AVC — broad compatibility (default)"
-    description_ja: "H.264 / AVC — 互換性が広い（デフォルト）"
-    description_ko: "H.264 / AVC — 폭넓은 호환성 (기본값)"
-    sketch: false
-  - name: "VideoCodec::HEVC"
-    value: "1"
-    description: "H.265 / HEVC — smaller files, hardware-encoded"
-    description_ja: "H.265 / HEVC — ファイルが小さい、ハードウェアエンコード"
-    description_ko: "H.265 / HEVC — 더 작은 파일, 하드웨어 인코딩"
-    sketch: false
-  - name: "VideoCodec::ProRes422"
-    value: "2"
-    description: "Apple ProRes 422 — editing-grade, macOS/iOS only (.mov)"
-    description_ja: "Apple ProRes 422 — 編集向け高品質、macOS/iOSのみ（.mov）"
-    description_ko: "Apple ProRes 422 — 편집용 고품질, macOS/iOS 전용 (.mov)"
-    sketch: false
-  - name: "VideoCodec::ProRes4444"
-    value: "3"
-    description: "Apple ProRes 4444 — highest quality + alpha, macOS/iOS only (.mov)"
-    description_ja: "Apple ProRes 4444 — 最高品質＋アルファ、macOS/iOSのみ（.mov）"
-    description_ko: "Apple ProRes 4444 — 최고 품질 + 알파, macOS/iOS 전용 (.mov)"
-    sketch: false
 
 # ==========================================================================
 # Keywords (for TrussSketch syntax highlighting - AngelScript)

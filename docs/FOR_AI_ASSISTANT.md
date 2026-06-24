@@ -2611,6 +2611,287 @@ const std::string& getDevicePath()  // Device path
 const std::string& getDeviceName()  // Device name
 ```
 
+### Enums
+
+```cpp
+enum class BlendMode {
+  Alpha = 0,  // Normal alpha blending (default)
+  Add = 1,  // Additive blending
+  Multiply = 2,  // Multiply blending
+  Screen = 3,  // Screen blending
+  Subtract = 4,  // Subtractive blending
+  Disabled = 5,  // No blending (overwrite)
+}
+
+enum class TextureFilter {
+  Nearest = 0,  // Nearest neighbor (for pixel art)
+  Linear = 1,  // Bilinear interpolation (default)
+}
+
+enum class TextureWrap {
+  Repeat = 0,  // Repeat
+  ClampToEdge = 1,  // Clamp to edge pixel (default)
+  MirroredRepeat = 2,  // Mirrored repeat
+}
+
+enum class Cursor {
+  Default = 0,  // System default cursor
+  Arrow = 1,  // Arrow cursor
+  IBeam = 2,  // Text input cursor
+  Crosshair = 3,  // Crosshair cursor
+  Hand = 4,  // Pointing hand cursor
+  ResizeEW = 5,  // East-west resize cursor
+  ResizeNS = 6,  // North-south resize cursor
+  ResizeNWSE = 7,  // NW-SE diagonal resize cursor
+  ResizeNESW = 8,  // NE-SW diagonal resize cursor
+  ResizeAll = 9,  // Move/resize all directions cursor
+  NotAllowed = 10,  // Not allowed cursor
+  Custom0 = 11,  // Custom cursor slot 0 (bind image first)
+  Custom1 = 12,  // Custom cursor slot 1
+  Custom2 = 13,  // Custom cursor slot 2
+  Custom3 = 14,  // Custom cursor slot 3
+  Custom4 = 15,
+  Custom5 = 16,
+  Custom6 = 17,
+  Custom7 = 18,
+  Custom8 = 19,
+  Custom9 = 20,
+  Custom10 = 21,
+  Custom11 = 22,
+  Custom12 = 23,
+  Custom13 = 24,
+  Custom14 = 25,
+  Custom15 = 26,
+}
+
+enum class Modifier {
+  None = 0,
+  Shift = 1,
+  Ctrl = 2,
+  Alt = 3,
+  Super = 4,
+}
+
+enum class LightType {
+  Directional = 0,  // Parallel light (sunlight)
+  Point = 1,  // Point light
+  Spot = 2,  // Spot light (point + cone)
+}
+
+enum class EaseType {
+  Linear = 0,  // No easing
+  Quad = 1,  // Quadratic (t^2)
+  Cubic = 2,  // Cubic (t^3)
+  Quart = 3,  // Quartic (t^4)
+  Quint = 4,  // Quintic (t^5)
+  Sine = 5,  // Sinusoidal
+  Expo = 6,  // Exponential
+  Circ = 7,  // Circular
+  Back = 8,  // Overshoot
+  Elastic = 9,  // Elastic spring
+  Bounce = 10,  // Bouncing
+}
+
+enum class EaseMode {
+  In = 0,  // Accelerate
+  Out = 1,  // Decelerate
+  InOut = 2,  // Accelerate then decelerate
+}
+
+enum class Deliver {
+  Inline = 0,
+  Main = 1,
+}
+
+enum class MouseButton {
+  Left = 0,  // SAPP_MOUSEBUTTON_LEFT
+  Right = 1,  // SAPP_MOUSEBUTTON_RIGHT
+  Middle = 2,  // SAPP_MOUSEBUTTON_MIDDLE
+  None = 256,  // SAPP_MOUSEBUTTON_INVALID (no button; e.g. during a plain move)
+}
+
+enum class TextureFormat {
+  RGBA8 = 0,  // 4ch, 8-bit/ch (default)
+  RGBA16F = 1,  // 4ch, 16-bit float/ch
+  RGBA32F = 2,  // 4ch, 32-bit float/ch
+  R8 = 3,  // 1ch, 8-bit
+  R16F = 4,  // 1ch, 16-bit float
+  R32F = 5,  // 1ch, 32-bit float
+  RG8 = 6,  // 2ch, 8-bit/ch
+  RG16F = 7,  // 2ch, 16-bit float/ch
+  RG32F = 8,  // 2ch, 32-bit float/ch
+  BGRA8 = 9,  // 4ch, 8-bit/ch, B-G-R-A byte order (swapchain / Syphon / video interop)
+  RGBA16 = 10,  // 4ch, 16-bit unorm/ch (high-precision integer; texture-sharing interop)
+}
+
+enum class TextureUsage {
+  Immutable = 0,  // Set once, cannot update (for Image::load)
+  Dynamic = 1,  // Update periodically from CPU (for Image::allocate)
+  Stream = 2,  // Update every frame (for VideoGrabber)
+  RenderTarget = 3,  // For FBO color attachment
+}
+
+enum class WritingMode {
+  Horizontal = 0,  // Left-to-right horizontal text (default)
+  VerticalRL = 1,  // Top-to-bottom columns, columns flow right-to-left (Japanese tategaki)
+}
+
+enum class ImageType {
+  Color = 0,  // RGBA
+  Grayscale = 1,  // Grayscale
+}
+
+enum class PrimitiveMode {
+  Triangles = 0,
+  TriangleStrip = 1,
+  TriangleFan = 2,
+  Lines = 3,
+  LineStrip = 4,
+  LineLoop = 5,
+  Points = 6,
+}
+
+enum class PixelFormat {
+  U8 = 0,
+  F32 = 1,
+}
+
+enum class StrokeCap {
+  Butt = 0,  // Flat line cap (no extension)
+  Round = 1,  // Rounded line cap
+  Square = 2,  // Square line cap (extends by half stroke width)
+}
+
+enum class StrokeJoin {
+  Miter = 0,  // Sharp corner join
+  Round = 1,  // Rounded corner join
+  Bevel = 2,  // Beveled corner join
+}
+
+enum class PrimitiveType {
+  Points = 0,
+  Lines = 1,
+  LineStrip = 2,
+  Triangles = 3,
+  TriangleStrip = 4,
+  Quads = 5,
+}
+
+enum class WindowType {
+  Rect = 0,  // Rectangular window (no window)
+  Hanning = 1,  // Hanning window
+  Hamming = 2,  // Hamming window
+  Blackman = 3,  // Blackman window
+}
+
+enum class Wave {
+  Sin = 0,  // Sine wave (smooth, pure tone)
+  Square = 1,  // Square wave (harsh, 8-bit style)
+  Triangle = 2,  // Triangle wave (softer than square)
+  Sawtooth = 3,  // Sawtooth wave (bright, buzzy)
+  Noise = 4,  // White noise
+  PinkNoise = 5,  // Pink noise (1/f noise, more natural)
+  Silent = 6,  // Silent (no sound)
+}
+
+enum class MixMode {
+  Auto = 0,
+  DownmixMono = 1,
+}
+
+enum class Direction {
+  Left = 0,
+  Center = 1,
+  Right = 2,
+  Top = 3,
+  Bottom = 4,
+  Baseline = 5,  // Text-specific: character baseline
+}
+
+enum class LayoutDirection {
+  Vertical = 0,  // VStack: top to bottom
+  Horizontal = 1,  // HStack: left to right
+}
+
+enum class AxisMode {
+  None = 0,  // Don't change size (default)
+  Fill = 1,  // Stretch children to fill parent
+  Content = 2,  // Resize parent to fit children
+}
+
+enum class Codec {
+  None = 0,  // store verbatim (identity copy) - the "no compression" option
+  LZ4 = 1,  // LZ4 block compression (fast, lossless)
+}
+
+enum class LogLevel {
+  Verbose = 0,  // Detailed info (for debugging)
+  Notice = 1,  // Normal info
+  Warning = 2,  // Warning
+  Error = 3,  // Error
+  Fatal = 4,  // Fatal error
+  Silent = 5,  // No output (for filtering)
+}
+
+enum class Beep {
+  ping = 0,  // Single beep (default)
+  success = 1,  // Two-tone rising (pico)
+  complete = 2,  // Task completion fanfare
+  coin = 3,  // Game item pickup (sparkly)
+  error = 4,  // Low buzz (boo)
+  warning = 5,  // Attention (two short beeps)
+  cancel = 6,  // Cancel/back
+  click = 7,  // UI selection click
+  typing = 8,  // Key input feedback
+  notify = 9,  // Two-tone notification
+  sweep = 10,  // Screen transition whoosh
+}
+
+enum class VideoCodec {
+  H264 = 0,  // H.264 / AVC — broad compatibility (default)
+  HEVC = 1,  // H.265 / HEVC — smaller files, hardware-encoded
+  ProRes422 = 2,  // Apple ProRes 422 — editing-grade, macOS/iOS only (.mov)
+  ProRes4444 = 3,  // Apple ProRes 4444 — highest quality + alpha, macOS/iOS only (.mov)
+}
+
+enum class Source {
+  None = 0,
+  Swapchain = 1,
+  Fbo = 2,
+}
+
+enum class ThermalState {
+  Nominal = 0,  // Normal operation
+  Fair = 1,  // Slightly elevated, performance may be reduced
+  Serious = 2,  // High temperature, should reduce workload
+  Critical = 3,  // Thermal throttling active, risk of shutdown
+}
+
+enum class TcyMode {  // Tate-chu-yoko: how Latin / digit runs are laid out within vertical text
+  Rotate = 0,  // Rotate the whole Latin / digit run 90 degrees CW so it reads top-to-bottom
+  Upright = 1,  // Each glyph upright, one per CJK-sized cell (一文字ずつ正立)
+  Combine = 2,  // Squeeze a Latin / digit run into a single CJK cell (true 縦中横)
+}
+
+enum class KinsokuLevel {  // Line-breaking (kinsoku) strictness for vertical / Japanese text
+  Off = 0,  // No line-break prohibition rules
+  PunctuationOnly = 1,  // Only punctuation kinsoku rules
+  Standard = 2,  // Standard kinsoku rules
+}
+```
+
+### Macros
+
+```cpp
+TC_RUN_APP(AppClass, settings)  // Application entry-point macro. Expands to main() and runs AppClass. Required to enable hot reload.
+TC_HOT_RELOAD(AppClass)  // Opt the app into hot reload. Place in the app's .cpp; triggers a CMake reconfigure on next build.
+TC_REFLECT(Self, ...Bases) { TC_VALUE(...) ... }  // Declare reflected members inside a class (exposed to the inspector, serialization, and MCP). Bases are the direct base classes.
+TC_REFLECT_ROOT(Self) { TC_VALUE(...) ... }  // Like TC_REFLECT but for a root type with no reflected base classes.
+TC_REFLECT_FREE(Type) { TC_VALUE(...) ... }  // Reflect a non-member / external type at namespace scope (for types you can't add TC_REFLECT inside).
+TC_VALUE(member) | TC_VALUE(name, getter) | TC_VALUE(name, getter, setter)  // Declare one reflected member inside a TC_REFLECT body. 1 arg = in-place, 2 = read-only, 3 = getter/setter.
+TC_ENUM_LABELS(EnumType, "Label0", "Label1", ...)  // Declare string labels for an enum (labels[(int)value] == name), used by the inspector and serialization.
+```
+
 ### Constants
 
 ```cpp
@@ -2618,44 +2899,11 @@ TAU = 6.283...  // Full circle (2*PI)
 HALF_TAU = 3.141...  // Half circle (PI)
 QUARTER_TAU = 1.570...  // Quarter circle (PI/2)
 PI = 3.141...  // Pi (use TAU instead)
-StrokeCap::Butt = 0  // Flat line cap (no extension)
-StrokeCap::Round = 1  // Rounded line cap
-StrokeCap::Square = 2  // Square line cap (extends by half stroke width)
-StrokeJoin::Miter = 0  // Sharp corner join
-StrokeJoin::Round = 1  // Rounded corner join
-StrokeJoin::Bevel = 2  // Beveled corner join
-WritingMode::Horizontal = 0  // Left-to-right horizontal text (default)
-WritingMode::VerticalRL = 1  // Top-to-bottom columns, columns flow right-to-left (Japanese tategaki)
-TcyMode::Rotate = 0  // Rotate the whole Latin / digit run 90 degrees CW so it reads top-to-bottom
-TcyMode::Upright = 1  // Each glyph upright, one per CJK-sized cell (一文字ずつ正立)
-TcyMode::Combine = 2  // Squeeze a Latin / digit run into a single CJK cell (true 縦中横)
 FONT_SANS = string  // System sans-serif font path (CDN URL on Web)
 FONT_SERIF = string  // System serif font path (CDN URL on Web)
 FONT_MONO = string  // System monospace font path (CDN URL on Web)
 FONT_SANS_JA = string  // Japanese sans-serif font (Hiragino Sans on macOS, Yu Gothic on Win, Noto Sans CJK JP on Linux/Android, Google Fonts CDN URL on Web)
 FONT_SERIF_JA = string  // Japanese serif font (Hiragino Mincho on macOS, Yu Mincho on Win, Noto Serif CJK JP on Linux/Android, Google Fonts CDN URL on Web)
-Wave::Sin = 0  // Sine wave (smooth, pure tone)
-Wave::Square = 1  // Square wave (harsh, 8-bit style)
-Wave::Triangle = 2  // Triangle wave (softer than square)
-Wave::Sawtooth = 3  // Sawtooth wave (bright, buzzy)
-Wave::Noise = 4  // White noise
-Wave::PinkNoise = 5  // Pink noise (1/f noise, more natural)
-Wave::Silent = 6  // Silent (no sound)
-Cursor::Default = 0  // System default cursor
-Cursor::Arrow = 1  // Arrow cursor
-Cursor::IBeam = 2  // Text input cursor
-Cursor::Crosshair = 3  // Crosshair cursor
-Cursor::Hand = 4  // Pointing hand cursor
-Cursor::ResizeEW = 5  // East-west resize cursor
-Cursor::ResizeNS = 6  // North-south resize cursor
-Cursor::ResizeNWSE = 7  // NW-SE diagonal resize cursor
-Cursor::ResizeNESW = 8  // NE-SW diagonal resize cursor
-Cursor::ResizeAll = 9  // Move/resize all directions cursor
-Cursor::NotAllowed = 10  // Not allowed cursor
-Cursor::Custom0 = 11  // Custom cursor slot 0 (bind image first)
-Cursor::Custom1 = 12  // Custom cursor slot 1
-Cursor::Custom2 = 13  // Custom cursor slot 2
-Cursor::Custom3 = 14  // Custom cursor slot 3
 KEY_SPACE = 32  // Space key
 KEY_ESCAPE = 256  // Escape key
 KEY_ENTER = 257  // Enter/Return key
@@ -2677,10 +2925,6 @@ KEY_RIGHT_SUPER = 347  // Right Super/Command key
 MOUSE_BUTTON_LEFT = 0  // Left mouse button
 MOUSE_BUTTON_RIGHT = 1  // Right mouse button
 MOUSE_BUTTON_MIDDLE = 2  // Middle mouse button
-VideoCodec::H264 = 0  // H.264 / AVC — broad compatibility (default)
-VideoCodec::HEVC = 1  // H.265 / HEVC — smaller files, hardware-encoded
-VideoCodec::ProRes422 = 2  // Apple ProRes 422 — editing-grade, macOS/iOS only (.mov)
-VideoCodec::ProRes4444 = 3  // Apple ProRes 4444 — highest quality + alpha, macOS/iOS only (.mov)
 ```
 
 <!-- API-INDEX-END -->

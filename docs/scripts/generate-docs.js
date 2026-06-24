@@ -365,13 +365,39 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
         }
     }
 
+    const enums = (api.enums || []).map(e => {
+        const out = {
+            name: e.name,
+            desc: lang ? pickLang(e.description, e.description_ja, e.description_ko, lang) : e.description,
+            values: (e.values || []).map(v => ({
+                name: v.name,
+                value: v.value,
+                desc: lang ? pickLang(v.description, v.description_ja, v.description_ko, lang) : v.description,
+            })),
+        };
+        if (!lang) { out.desc_ja = e.description_ja || ''; out.desc_ko = e.description_ko || ''; }
+        return out;
+    });
+
+    const macros = (api.macros || []).map(m => {
+        const out = {
+            name: m.name,
+            signature: m.signature || m.name,
+            desc: lang ? pickLang(m.description, m.description_ja, m.description_ko, lang) : m.description,
+        };
+        if (!lang) { out.desc_ja = m.description_ja || ''; out.desc_ko = m.description_ko || ''; }
+        return out;
+    });
+
     const output = {
         version: version,
         lang: lang || 'all',
         categories: categories,
         constants: constants,
         keywords: api.keywords,
-        types: types
+        types: types,
+        enums: enums,
+        macros: macros
     };
 
     let js = `// TrussC API Definition${lang ? ` (${lang})` : ''}
@@ -1152,6 +1178,23 @@ function buildApiIndexSection(api) {
             typeBlocks.push(`#### ${type.name}${type.description ? ` — ${type.description}` : ''}\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\``);
         }
         if (typeBlocks.length) md += `### Types\n\n${typeBlocks.join('\n\n')}\n\n`;
+    }
+
+    if (api.enums && api.enums.length) {
+        const blocks = api.enums.filter(e => e.index !== false).map(e => {
+            const vals = (e.values || []).map(v => {
+                const val = (v.value !== undefined && v.value !== null) ? ` = ${v.value}` : '';
+                return `  ${v.name}${val},${v.description ? `  // ${v.description}` : ''}`;
+            }).join('\n');
+            return `enum class ${e.name} {${e.description ? `  // ${e.description}` : ''}\n${vals}\n}`;
+        });
+        if (blocks.length) md += `### Enums\n\n\`\`\`cpp\n${blocks.join('\n\n')}\n\`\`\`\n\n`;
+    }
+
+    if (api.macros && api.macros.length) {
+        const lines = api.macros.filter(m => m.index !== false)
+            .map(m => `${m.signature || m.name}${m.description ? `  // ${m.description}` : ''}`);
+        if (lines.length) md += `### Macros\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\`\n\n`;
     }
 
     if (api.constants) {
