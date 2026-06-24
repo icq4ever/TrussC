@@ -12,6 +12,10 @@
 // Loosely coupled by design: enumeration only. To bind/send on a specific
 // interface, hand the `address` string to the existing socket APIs
 // (e.g. UdpSocket::bind / UdpSocket::setMulticastInterface).
+//
+// Note: on Android the `mac` field is typically empty — since Android 6 apps
+// cannot read hardware MAC addresses (privacy restriction), so the field falls
+// back to its "empty if unavailable" contract. IP/netmask enumeration works.
 // =============================================================================
 
 #include <string>
