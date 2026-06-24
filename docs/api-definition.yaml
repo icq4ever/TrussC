@@ -7701,6 +7701,124 @@ categories:
         sketch: false
         snippet: "cancelAllAsyncTimers();"
 
+  # ==========================================================================
+  # Network (free functions; socket classes are in the types section)
+  # ==========================================================================
+  - id: network
+    name: "Network"
+    name_ja: "ネットワーク"
+    name_ko: "네트워크"
+    functions:
+      - name: listNetworkInterfaces
+        return: "std::vector<NetworkInterface>"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "List all network interface address entries (IPv4/IPv6, loopback, up or down)"
+        description_ja: "全ネットワークインターフェースのアドレスを列挙（IPv4/IPv6・ループバック・up/down含む）"
+        description_ko: "모든 네트워크 인터페이스 주소를 나열 (IPv4/IPv6, 루프백, up/down 포함)"
+        sketch: false
+        snippet: "listNetworkInterfaces()"
+
+      - name: printNetworkInterfaces
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Log the interface list (one line per entry)"
+        description_ja: "インターフェース一覧をログ出力（1エントリ1行）"
+        description_ko: "인터페이스 목록을 로그로 출력 (항목당 한 줄)"
+        sketch: false
+        snippet: "printNetworkInterfaces()"
+
+      - name: getLocalIp
+        return: "std::string"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "The most likely LAN address (skips loopback/down, IPv4 preferred). \"\" if none"
+        description_ja: "一番それっぽいLANアドレス（ループバック/downを除外、IPv4優先）。無ければ\"\""
+        description_ko: "가장 적합한 LAN 주소 (루프백/down 제외, IPv4 우선). 없으면 \"\""
+        sketch: false
+        snippet: "getLocalIp()"
+
+      - name: getLocalIps
+        return: "std::vector<std::string>"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Every non-loopback address (one per interface entry)"
+        description_ja: "ループバック以外の全アドレス（インターフェースごと）"
+        description_ko: "루프백이 아닌 모든 주소 (인터페이스 항목별)"
+        sketch: false
+        snippet: "getLocalIps()"
+
+      - name: isLoopback
+        return: "bool"
+        signatures:
+          - params: "const std::string& addr"
+            params_simple: "addr"
+        description: "True if addr is a loopback address (127.0.0.0/8 or ::1)"
+        description_ja: "addrがループバックアドレスならtrue（127.0.0.0/8 または ::1）"
+        description_ko: "addr이 루프백 주소이면 true (127.0.0.0/8 또는 ::1)"
+        sketch: false
+        snippet: "isLoopback(${1:addr})"
+
+      - name: isPrivate
+        return: "bool"
+        signatures:
+          - params: "const std::string& addr"
+            params_simple: "addr"
+        description: "True if addr is a private IPv4 (10/8, 172.16/12, 192.168/16)"
+        description_ja: "addrがプライベートIPv4ならtrue（10/8, 172.16/12, 192.168/16）"
+        description_ko: "addr이 사설 IPv4이면 true (10/8, 172.16/12, 192.168/16)"
+        sketch: false
+        snippet: "isPrivate(${1:addr})"
+
+      - name: isLinkLocal
+        return: "bool"
+        signatures:
+          - params: "const std::string& addr"
+            params_simple: "addr"
+        description: "True if addr is link-local (169.254/16 or fe80::/10)"
+        description_ja: "addrがリンクローカルならtrue（169.254/16 または fe80::/10）"
+        description_ko: "addr이 링크-로컬이면 true (169.254/16 또는 fe80::/10)"
+        sketch: false
+        snippet: "isLinkLocal(${1:addr})"
+
+      - name: sameSubnet
+        return: "bool"
+        signatures:
+          - params: "const std::string& a, const std::string& b, const std::string& netmask"
+            params_simple: "a, b, netmask"
+        description: "True if IPv4 a and b are on the same subnet under netmask"
+        description_ja: "IPv4のaとbがnetmask下で同じサブネットならtrue"
+        description_ko: "IPv4 a와 b가 netmask 하에서 같은 서브넷이면 true"
+        sketch: false
+        snippet: "sameSubnet(${1:a}, ${2:b}, ${3:netmask})"
+
+      - name: getOui
+        return: "std::string"
+        signatures:
+          - params: "const std::string& mac"
+            params_simple: "mac"
+        description: "The OUI (first 3 bytes) of a MAC, uppercase \"A4:83:E7\". \"\" if unparseable"
+        description_ja: "MACのOUI（先頭3バイト）を大文字で返す \"A4:83:E7\"。解析不能なら\"\""
+        description_ko: "MAC의 OUI(앞 3바이트)를 대문자로 \"A4:83:E7\". 해석 불가 시 \"\""
+        sketch: false
+        snippet: "getOui(${1:mac})"
+
+      - name: isLocallyAdministered
+        return: "bool"
+        signatures:
+          - params: "const std::string& mac"
+            params_simple: "mac"
+        description: "True if the MAC's locally-administered bit is set (randomized/virtual MAC)"
+        description_ja: "MACのlocally-administeredビットが立っていればtrue（ランダム化/仮想MAC）"
+        description_ko: "MAC의 locally-administered 비트가 설정되어 있으면 true (랜덤/가상 MAC)"
+        sketch: false
+        snippet: "isLocallyAdministered(${1:mac})"
+
 # ==========================================================================
 # Constants
 # ==========================================================================
@@ -11918,3 +12036,1035 @@ types:
         description_ja: "ビルド秒 (0-59)"
         description_ko: "빌드 초 (0-59)"
         snippet: "BuildInfo::second()"
+
+  # ==========================================================================
+  # Network types
+  # ==========================================================================
+  - name: NetworkInterface
+    description: "One address entry of a network interface (returned by listNetworkInterfaces)"
+    description_ja: "ネットワークインターフェースの1アドレスエントリ（listNetworkInterfacesが返す）"
+    description_ko: "네트워크 인터페이스의 주소 항목 하나 (listNetworkInterfaces가 반환)"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: name
+        type: "std::string"
+        description: "Interface name (en0 / Ethernet / wlan0)"
+        description_ja: "インターフェース名（en0 / Ethernet / wlan0）"
+        description_ko: "인터페이스 이름 (en0 / Ethernet / wlan0)"
+      - name: address
+        type: "std::string"
+        description: "IP address (IPv4 dotted-quad or IPv6 textual)"
+        description_ja: "IPアドレス（IPv4ドット区切り or IPv6文字列）"
+        description_ko: "IP 주소 (IPv4 점 표기 또는 IPv6 문자열)"
+      - name: netmask
+        type: "std::string"
+        description: "Subnet mask (IPv4)"
+        description_ja: "サブネットマスク（IPv4）"
+        description_ko: "서브넷 마스크 (IPv4)"
+      - name: mac
+        type: "std::string"
+        description: "Hardware MAC address (empty if unavailable)"
+        description_ja: "ハードウェアMACアドレス（取得不可なら空）"
+        description_ko: "하드웨어 MAC 주소 (없으면 빈 문자열)"
+      - name: isIPv4
+        type: "bool"
+        description: "True for IPv4, false for IPv6"
+        description_ja: "IPv4ならtrue、IPv6ならfalse"
+        description_ko: "IPv4이면 true, IPv6이면 false"
+      - name: isLoopback
+        type: "bool"
+        description: "True if a loopback interface"
+        description_ja: "ループバックインターフェースならtrue"
+        description_ko: "루프백 인터페이스이면 true"
+      - name: isUp
+        type: "bool"
+        description: "True if the interface link is up"
+        description_ja: "リンクが有効ならtrue"
+        description_ko: "링크가 활성 상태이면 true"
+    methods:
+      - name: getName
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "Interface name"
+        description_ja: "インターフェース名"
+        description_ko: "인터페이스 이름"
+        snippet: "getName()"
+      - name: getAddress
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "IP address"
+        description_ja: "IPアドレス"
+        description_ko: "IP 주소"
+        snippet: "getAddress()"
+      - name: getNetmask
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "Subnet mask"
+        description_ja: "サブネットマスク"
+        description_ko: "서브넷 마스크"
+        snippet: "getNetmask()"
+      - name: getMac
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "MAC address"
+        description_ja: "MACアドレス"
+        description_ko: "MAC 주소"
+        snippet: "getMac()"
+      - name: getIsIPv4
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the address is IPv4"
+        description_ja: "アドレスがIPv4か"
+        description_ko: "주소가 IPv4인지"
+        snippet: "getIsIPv4()"
+      - name: getIsLoopback
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether this is a loopback interface"
+        description_ja: "ループバックインターフェースか"
+        description_ko: "루프백 인터페이스인지"
+        snippet: "getIsLoopback()"
+      - name: getIsUp
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the link is up"
+        description_ja: "リンクが有効か"
+        description_ko: "링크가 활성인지"
+        snippet: "getIsUp()"
+
+  - name: UdpSocket
+    description: "UDP socket (send/receive datagrams, broadcast, multicast)"
+    description_ja: "UDPソケット（データグラム送受信・ブロードキャスト・マルチキャスト）"
+    description_ko: "UDP 소켓 (데이터그램 송수신, 브로드캐스트, 멀티캐스트)"
+    of_equivalent: "ofxUDPManager"
+    of_type_category: "network-types"
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "UdpSocket"
+    properties:
+      - name: onReceive
+        type: "Event<UdpReceiveEventArgs>"
+        description: "Fired when data is received"
+        description_ja: "データ受信時に発火"
+        description_ko: "데이터 수신 시 발생"
+      - name: onError
+        type: "Event<UdpErrorEventArgs>"
+        description: "Fired on error"
+        description_ja: "エラー時に発火"
+        description_ko: "오류 시 발생"
+    methods:
+      - name: create
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Create the socket explicitly (usually auto-created by bind/connect)"
+        description_ja: "ソケットを明示的に作成（通常はbind/connectが自動作成）"
+        description_ko: "소켓을 명시적으로 생성 (보통 bind/connect가 자동 생성)"
+        snippet: "create()"
+      - name: bind
+        return: "bool"
+        signatures:
+          - params: "int port, bool startReceiving = true"
+        description: "Bind a port for receiving (startReceiving auto-starts the receive thread)"
+        description_ja: "受信用にポートをbind（startReceivingで受信スレッド自動開始）"
+        description_ko: "수신용 포트를 바인드 (startReceiving이 수신 스레드를 자동 시작)"
+        snippet: "bind(${1:port})"
+      - name: connect
+        return: "bool"
+        signatures:
+          - params: "const std::string& host, int port"
+        description: "Set the destination for send()"
+        description_ja: "send()の宛先を設定"
+        description_ko: "send()의 대상을 설정"
+        snippet: "connect(${1:host}, ${2:port})"
+      - name: close
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Close the socket"
+        description_ja: "ソケットを閉じる"
+        description_ko: "소켓을 닫음"
+        snippet: "close()"
+      - name: sendTo
+        return: "bool"
+        signatures:
+          - params: "const std::string& host, int port, const void* data, size_t size"
+          - params: "const std::string& host, int port, const std::string& message"
+        description: "Send data to a specific host and port"
+        description_ja: "指定ホスト・ポートへ送信"
+        description_ko: "지정 호스트·포트로 전송"
+        snippet: "sendTo(${1:host}, ${2:port}, ${3:message})"
+      - name: send
+        return: "bool"
+        signatures:
+          - params: "const void* data, size_t size"
+          - params: "const std::string& message"
+        description: "Send to the destination set by connect()"
+        description_ja: "connect()で設定した宛先へ送信"
+        description_ko: "connect()로 설정한 대상으로 전송"
+        snippet: "send(${1:message})"
+      - name: receive
+        return: "int"
+        signatures:
+          - params: "void* buffer, size_t bufferSize"
+          - params: "void* buffer, size_t bufferSize, std::string& remoteHost, int& remotePort"
+        description: "Blocking receive (for non-event use); returns byte count or -1"
+        description_ja: "ブロッキング受信（イベント不使用時）。バイト数または-1を返す"
+        description_ko: "블로킹 수신 (이벤트 미사용 시). 바이트 수 또는 -1 반환"
+        snippet: "receive(${1:buffer}, ${2:bufferSize})"
+      - name: startReceiving
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Start the receive thread (auto-called after bind)"
+        description_ja: "受信スレッドを開始（bind後に自動呼び出し）"
+        description_ko: "수신 스레드를 시작 (bind 후 자동 호출)"
+        snippet: "startReceiving()"
+      - name: stopReceiving
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Stop the receive thread"
+        description_ja: "受信スレッドを停止"
+        description_ko: "수신 스레드를 정지"
+        snippet: "stopReceiving()"
+      - name: isReceiving
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the receive thread is active"
+        description_ja: "受信スレッドが動作中か"
+        description_ko: "수신 스레드가 활성인지"
+        snippet: "isReceiving()"
+      - name: setNonBlocking
+        return: "bool"
+        signatures:
+          - params: "bool nonBlocking"
+        description: "Set non-blocking mode"
+        description_ja: "ノンブロッキングモードを設定"
+        description_ko: "논블로킹 모드를 설정"
+        snippet: "setNonBlocking(${1:nonBlocking})"
+      - name: setBroadcast
+        return: "bool"
+        signatures:
+          - params: "bool enable"
+        description: "Allow broadcast sending"
+        description_ja: "ブロードキャスト送信を許可"
+        description_ko: "브로드캐스트 전송을 허용"
+        snippet: "setBroadcast(${1:enable})"
+      - name: setReuseAddress
+        return: "bool"
+        signatures:
+          - params: "bool enable"
+        description: "Allow address reuse (set before bind)"
+        description_ja: "アドレス再利用を許可（bind前に設定）"
+        description_ko: "주소 재사용을 허용 (bind 전에 설정)"
+        snippet: "setReuseAddress(${1:enable})"
+      - name: setReusePort
+        return: "bool"
+        signatures:
+          - params: "bool enable"
+        description: "Allow multiple sockets on the same port (multicast receivers; set before bind)"
+        description_ja: "同一ポートへの複数ソケットを許可（マルチキャスト受信。bind前に設定）"
+        description_ko: "같은 포트에 여러 소켓을 허용 (멀티캐스트 수신, bind 전에 설정)"
+        snippet: "setReusePort(${1:enable})"
+      - name: setReceiveBufferSize
+        return: "bool"
+        signatures:
+          - params: "int size"
+        description: "Set the receive buffer size"
+        description_ja: "受信バッファサイズを設定"
+        description_ko: "수신 버퍼 크기를 설정"
+        snippet: "setReceiveBufferSize(${1:size})"
+      - name: setSendBufferSize
+        return: "bool"
+        signatures:
+          - params: "int size"
+        description: "Set the send buffer size"
+        description_ja: "送信バッファサイズを設定"
+        description_ko: "전송 버퍼 크기를 설정"
+        snippet: "setSendBufferSize(${1:size})"
+      - name: setReceiveTimeout
+        return: "bool"
+        signatures:
+          - params: "int timeoutMs"
+        description: "Set the receive timeout (0 = infinite)"
+        description_ja: "受信タイムアウトを設定（0=無限）"
+        description_ko: "수신 타임아웃을 설정 (0 = 무한)"
+        snippet: "setReceiveTimeout(${1:timeoutMs})"
+      - name: setUseThread
+        return: "void"
+        signatures:
+          - params: "bool useThread"
+        description: "Whether to use a receive thread (must be false on Wasm)"
+        description_ja: "受信スレッドを使うか（Wasmではfalse必須）"
+        description_ko: "수신 스레드 사용 여부 (Wasm에서는 false 필수)"
+        snippet: "setUseThread(${1:useThread})"
+      - name: joinMulticastGroup
+        return: "bool"
+        signatures:
+          - params: "const std::string& groupAddr, const std::string& interfaceAddr = \"\""
+        description: "Join a multicast group for receiving (call after bind; \"\" = default route)"
+        description_ja: "受信用にマルチキャストグループへ参加（bind後。\"\"=デフォルト経路）"
+        description_ko: "수신용 멀티캐스트 그룹에 가입 (bind 후, \"\" = 기본 경로)"
+        snippet: "joinMulticastGroup(${1:groupAddr})"
+      - name: leaveMulticastGroup
+        return: "bool"
+        signatures:
+          - params: "const std::string& groupAddr, const std::string& interfaceAddr = \"\""
+        description: "Leave a previously joined multicast group"
+        description_ja: "参加済みマルチキャストグループから離脱"
+        description_ko: "가입한 멀티캐스트 그룹에서 탈퇴"
+        snippet: "leaveMulticastGroup(${1:groupAddr})"
+      - name: setMulticastTTL
+        return: "bool"
+        signatures:
+          - params: "int ttl"
+        description: "Hop limit for outgoing multicast (default 1 = local subnet)"
+        description_ja: "送信マルチキャストのホップ制限（既定1=ローカルサブネット）"
+        description_ko: "송신 멀티캐스트의 홉 제한 (기본 1 = 로컬 서브넷)"
+        snippet: "setMulticastTTL(${1:ttl})"
+      - name: setMulticastLoopback
+        return: "bool"
+        signatures:
+          - params: "bool enable"
+        description: "Whether outgoing multicast loops back to local listeners (default on)"
+        description_ja: "送信マルチキャストをローカルにループバックするか（既定on）"
+        description_ko: "송신 멀티캐스트를 로컬로 루프백할지 (기본 on)"
+        snippet: "setMulticastLoopback(${1:enable})"
+      - name: setMulticastInterface
+        return: "bool"
+        signatures:
+          - params: "const std::string& interfaceAddr"
+        description: "Pick the NIC for outgoing multicast (\"\" = default route)"
+        description_ja: "送信マルチキャストのNICを選択（\"\"=デフォルト経路）"
+        description_ko: "송신 멀티캐스트의 NIC를 선택 (\"\" = 기본 경로)"
+        snippet: "setMulticastInterface(${1:interfaceAddr})"
+      - name: getLocalPort
+        return: "int"
+        signatures:
+          - params: ""
+        description: "The bound local port"
+        description_ja: "bind済みのローカルポート"
+        description_ko: "바인드된 로컬 포트"
+        snippet: "getLocalPort()"
+      - name: isValid
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the socket is valid"
+        description_ja: "ソケットが有効か"
+        description_ko: "소켓이 유효한지"
+        snippet: "isValid()"
+      - name: getConnectedHost
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "Destination host from connect()"
+        description_ja: "connect()で設定した宛先ホスト"
+        description_ko: "connect()로 설정한 대상 호스트"
+        snippet: "getConnectedHost()"
+      - name: getConnectedPort
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Destination port from connect()"
+        description_ja: "connect()で設定した宛先ポート"
+        description_ko: "connect()로 설정한 대상 포트"
+        snippet: "getConnectedPort()"
+
+  - name: UdpReceiveEventArgs
+    description: "Event args for UdpSocket::onReceive"
+    description_ja: "UdpSocket::onReceiveのイベント引数"
+    description_ko: "UdpSocket::onReceive의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: data
+        type: "std::vector<char>"
+        description: "Received data"
+        description_ja: "受信データ"
+        description_ko: "수신 데이터"
+      - name: remoteHost
+        type: "std::string"
+        description: "Source host"
+        description_ja: "送信元ホスト"
+        description_ko: "출발지 호스트"
+      - name: remotePort
+        type: "int"
+        description: "Source port"
+        description_ja: "送信元ポート"
+        description_ko: "출발지 포트"
+
+  - name: UdpErrorEventArgs
+    description: "Event args for UdpSocket::onError"
+    description_ja: "UdpSocket::onErrorのイベント引数"
+    description_ko: "UdpSocket::onError의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: message
+        type: "std::string"
+        description: "Error message"
+        description_ja: "エラーメッセージ"
+        description_ko: "오류 메시지"
+      - name: errorCode
+        type: "int"
+        description: "Error code"
+        description_ja: "エラーコード"
+        description_ko: "오류 코드"
+
+  - name: TcpClient
+    description: "TCP client connection (connect, send/receive a stream)"
+    description_ja: "TCPクライアント接続（接続・ストリーム送受信）"
+    description_ko: "TCP 클라이언트 연결 (연결, 스트림 송수신)"
+    of_equivalent: "ofxTCPClient"
+    of_type_category: "network-types"
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "TcpClient"
+    properties:
+      - name: onConnect
+        type: "Event<TcpConnectEventArgs>"
+        description: "Fired when the connection completes"
+        description_ja: "接続完了時に発火"
+        description_ko: "연결 완료 시 발생"
+      - name: onReceive
+        type: "Event<TcpReceiveEventArgs>"
+        description: "Fired when data is received"
+        description_ja: "データ受信時に発火"
+        description_ko: "데이터 수신 시 발생"
+      - name: onDisconnect
+        type: "Event<TcpDisconnectEventArgs>"
+        description: "Fired when disconnected"
+        description_ja: "切断時に発火"
+        description_ko: "연결 해제 시 발생"
+      - name: onError
+        type: "Event<TcpErrorEventArgs>"
+        description: "Fired on error"
+        description_ja: "エラー時に発火"
+        description_ko: "오류 시 발생"
+    methods:
+      - name: connect
+        return: "bool"
+        signatures:
+          - params: "const std::string& host, int port"
+        description: "Connect to a server (blocking)"
+        description_ja: "サーバへ接続（ブロッキング）"
+        description_ko: "서버에 연결 (블로킹)"
+        snippet: "connect(${1:host}, ${2:port})"
+      - name: connectAsync
+        return: "void"
+        signatures:
+          - params: "const std::string& host, int port"
+        description: "Connect asynchronously (notifies via onConnect)"
+        description_ja: "非同期に接続（onConnectで通知）"
+        description_ko: "비동기로 연결 (onConnect로 통지)"
+        snippet: "connectAsync(${1:host}, ${2:port})"
+      - name: disconnect
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Disconnect"
+        description_ja: "切断する"
+        description_ko: "연결을 해제"
+        snippet: "disconnect()"
+      - name: isConnected
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether currently connected"
+        description_ja: "接続中か"
+        description_ko: "현재 연결 중인지"
+        snippet: "isConnected()"
+      - name: send
+        return: "bool"
+        signatures:
+          - params: "const void* data, size_t size"
+          - params: "const std::vector<char>& data"
+          - params: "const std::string& message"
+        description: "Send data to the server"
+        description_ja: "サーバへ送信"
+        description_ko: "서버로 전송"
+        snippet: "send(${1:message})"
+      - name: setReceiveBufferSize
+        return: "void"
+        signatures:
+          - params: "size_t size"
+        description: "Set the receive buffer size"
+        description_ja: "受信バッファサイズを設定"
+        description_ko: "수신 버퍼 크기를 설정"
+        snippet: "setReceiveBufferSize(${1:size})"
+      - name: setBlocking
+        return: "void"
+        signatures:
+          - params: "bool blocking"
+        description: "Set blocking mode"
+        description_ja: "ブロッキングモードを設定"
+        description_ko: "블로킹 모드를 설정"
+        snippet: "setBlocking(${1:blocking})"
+      - name: setUseThread
+        return: "void"
+        signatures:
+          - params: "bool useThread"
+        description: "Whether to use threads (must be false on Wasm)"
+        description_ja: "スレッドを使うか（Wasmではfalse必須）"
+        description_ko: "스레드 사용 여부 (Wasm에서는 false 필수)"
+        snippet: "setUseThread(${1:useThread})"
+      - name: isUsingThread
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether threading is in use"
+        description_ja: "スレッドを使用中か"
+        description_ko: "스레드를 사용 중인지"
+        snippet: "isUsingThread()"
+      - name: getRemoteHost
+        return: "std::string"
+        signatures:
+          - params: ""
+        description: "Remote host name"
+        description_ja: "リモートホスト名"
+        description_ko: "원격 호스트 이름"
+        snippet: "getRemoteHost()"
+      - name: getRemotePort
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Remote port"
+        description_ja: "リモートポート"
+        description_ko: "원격 포트"
+        snippet: "getRemotePort()"
+
+  - name: TcpConnectEventArgs
+    description: "Event args for TcpClient::onConnect"
+    description_ja: "TcpClient::onConnectのイベント引数"
+    description_ko: "TcpClient::onConnect의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: success
+        type: "bool"
+        description: "Whether the connection succeeded"
+        description_ja: "接続に成功したか"
+        description_ko: "연결 성공 여부"
+      - name: message
+        type: "std::string"
+        description: "Connection message"
+        description_ja: "接続メッセージ"
+        description_ko: "연결 메시지"
+
+  - name: TcpReceiveEventArgs
+    description: "Event args for TcpClient::onReceive"
+    description_ja: "TcpClient::onReceiveのイベント引数"
+    description_ko: "TcpClient::onReceive의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: data
+        type: "std::vector<char>"
+        description: "Received data"
+        description_ja: "受信データ"
+        description_ko: "수신 데이터"
+
+  - name: TcpDisconnectEventArgs
+    description: "Event args for TcpClient::onDisconnect"
+    description_ja: "TcpClient::onDisconnectのイベント引数"
+    description_ko: "TcpClient::onDisconnect의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: reason
+        type: "std::string"
+        description: "Disconnect reason"
+        description_ja: "切断理由"
+        description_ko: "연결 해제 사유"
+      - name: wasClean
+        type: "bool"
+        description: "Whether it was a clean disconnect"
+        description_ja: "正常な切断だったか"
+        description_ko: "정상적인 연결 해제였는지"
+
+  - name: TcpErrorEventArgs
+    description: "Event args for TcpClient::onError"
+    description_ja: "TcpClient::onErrorのイベント引数"
+    description_ko: "TcpClient::onError의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: message
+        type: "std::string"
+        description: "Error message"
+        description_ja: "エラーメッセージ"
+        description_ko: "오류 메시지"
+      - name: errorCode
+        type: "int"
+        description: "Error code"
+        description_ja: "エラーコード"
+        description_ko: "오류 코드"
+
+  - name: TcpServer
+    description: "TCP server (accept clients, send/broadcast)"
+    description_ja: "TCPサーバ（クライアント受け入れ・送信/ブロードキャスト）"
+    description_ko: "TCP 서버 (클라이언트 수락, 전송/브로드캐스트)"
+    of_equivalent: "ofxTCPServer"
+    of_type_category: "network-types"
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "TcpServer"
+    properties:
+      - name: onClientConnect
+        type: "Event<TcpClientConnectEventArgs>"
+        description: "Fired when a client connects"
+        description_ja: "クライアント接続時に発火"
+        description_ko: "클라이언트 연결 시 발생"
+      - name: onReceive
+        type: "Event<TcpServerReceiveEventArgs>"
+        description: "Fired when data is received from a client"
+        description_ja: "クライアントからのデータ受信時に発火"
+        description_ko: "클라이언트로부터 데이터 수신 시 발생"
+      - name: onClientDisconnect
+        type: "Event<TcpClientDisconnectEventArgs>"
+        description: "Fired when a client disconnects"
+        description_ja: "クライアント切断時に発火"
+        description_ko: "클라이언트 연결 해제 시 발생"
+      - name: onError
+        type: "Event<TcpServerErrorEventArgs>"
+        description: "Fired on a server or per-client error"
+        description_ja: "サーバまたはクライアント単位のエラー時に発火"
+        description_ko: "서버 또는 클라이언트별 오류 시 발생"
+    methods:
+      - name: start
+        return: "bool"
+        signatures:
+          - params: "int port, int maxClients = 10"
+        description: "Start listening on a port"
+        description_ja: "ポートで待ち受けを開始"
+        description_ko: "포트에서 수신 대기를 시작"
+        snippet: "start(${1:port})"
+      - name: stop
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Stop the server"
+        description_ja: "サーバを停止"
+        description_ko: "서버를 정지"
+        snippet: "stop()"
+      - name: isRunning
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the server is running"
+        description_ja: "サーバが動作中か"
+        description_ko: "서버가 실행 중인지"
+        snippet: "isRunning()"
+      - name: disconnectClient
+        return: "void"
+        signatures:
+          - params: "int clientId"
+        description: "Disconnect a specific client"
+        description_ja: "指定クライアントを切断"
+        description_ko: "특정 클라이언트를 연결 해제"
+        snippet: "disconnectClient(${1:clientId})"
+      - name: disconnectAllClients
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Disconnect all clients"
+        description_ja: "全クライアントを切断"
+        description_ko: "모든 클라이언트를 연결 해제"
+        snippet: "disconnectAllClients()"
+      - name: getClientCount
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Number of connected clients"
+        description_ja: "接続中のクライアント数"
+        description_ko: "연결된 클라이언트 수"
+        snippet: "getClientCount()"
+      - name: getClientIds
+        return: "std::vector<int>"
+        signatures:
+          - params: ""
+        description: "IDs of all connected clients"
+        description_ja: "接続中の全クライアントID"
+        description_ko: "연결된 모든 클라이언트 ID"
+        snippet: "getClientIds()"
+      - name: getClient
+        return: "const TcpServerClient*"
+        signatures:
+          - params: "int clientId"
+        description: "Client info (nullptr if not found)"
+        description_ja: "クライアント情報（見つからなければnullptr）"
+        description_ko: "클라이언트 정보 (없으면 nullptr)"
+        snippet: "getClient(${1:clientId})"
+      - name: send
+        return: "bool"
+        signatures:
+          - params: "int clientId, const void* data, size_t size"
+          - params: "int clientId, const std::vector<char>& data"
+          - params: "int clientId, const std::string& message"
+        description: "Send data to a specific client"
+        description_ja: "指定クライアントへ送信"
+        description_ko: "특정 클라이언트로 전송"
+        snippet: "send(${1:clientId}, ${2:message})"
+      - name: broadcast
+        return: "void"
+        signatures:
+          - params: "const void* data, size_t size"
+          - params: "const std::vector<char>& data"
+          - params: "const std::string& message"
+        description: "Broadcast data to all clients"
+        description_ja: "全クライアントへブロードキャスト"
+        description_ko: "모든 클라이언트로 브로드캐스트"
+        snippet: "broadcast(${1:message})"
+      - name: setReceiveBufferSize
+        return: "void"
+        signatures:
+          - params: "size_t size"
+        description: "Set the receive buffer size"
+        description_ja: "受信バッファサイズを設定"
+        description_ko: "수신 버퍼 크기를 설정"
+        snippet: "setReceiveBufferSize(${1:size})"
+      - name: getPort
+        return: "int"
+        signatures:
+          - params: ""
+        description: "The listening port"
+        description_ja: "待ち受けポート"
+        description_ko: "수신 대기 포트"
+        snippet: "getPort()"
+
+  - name: TcpServerClient
+    description: "A client connected to a TcpServer (read-only handle)"
+    description_ja: "TcpServerに接続したクライアント（読み取り専用ハンドル）"
+    description_ko: "TcpServer에 연결된 클라이언트 (읽기 전용 핸들)"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    methods:
+      - name: getId
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Client ID assigned by the server"
+        description_ja: "サーバが割り当てたクライアントID"
+        description_ko: "서버가 할당한 클라이언트 ID"
+        snippet: "getId()"
+      - name: getHost
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "Client IP address"
+        description_ja: "クライアントのIPアドレス"
+        description_ko: "클라이언트 IP 주소"
+        snippet: "getHost()"
+      - name: getPort
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Client port"
+        description_ja: "クライアントのポート"
+        description_ko: "클라이언트 포트"
+        snippet: "getPort()"
+
+  - name: TcpClientConnectEventArgs
+    description: "Event args for TcpServer::onClientConnect"
+    description_ja: "TcpServer::onClientConnectのイベント引数"
+    description_ko: "TcpServer::onClientConnect의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: clientId
+        type: "int"
+        description: "Client ID"
+        description_ja: "クライアントID"
+        description_ko: "클라이언트 ID"
+      - name: host
+        type: "std::string"
+        description: "Client IP address"
+        description_ja: "クライアントのIPアドレス"
+        description_ko: "클라이언트 IP 주소"
+      - name: port
+        type: "int"
+        description: "Client port"
+        description_ja: "クライアントのポート"
+        description_ko: "클라이언트 포트"
+
+  - name: TcpServerReceiveEventArgs
+    description: "Event args for TcpServer::onReceive"
+    description_ja: "TcpServer::onReceiveのイベント引数"
+    description_ko: "TcpServer::onReceive의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: clientId
+        type: "int"
+        description: "Client ID"
+        description_ja: "クライアントID"
+        description_ko: "클라이언트 ID"
+      - name: data
+        type: "std::vector<char>"
+        description: "Received data"
+        description_ja: "受信データ"
+        description_ko: "수신 데이터"
+
+  - name: TcpClientDisconnectEventArgs
+    description: "Event args for TcpServer::onClientDisconnect"
+    description_ja: "TcpServer::onClientDisconnectのイベント引数"
+    description_ko: "TcpServer::onClientDisconnect의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: clientId
+        type: "int"
+        description: "Client ID"
+        description_ja: "クライアントID"
+        description_ko: "클라이언트 ID"
+      - name: reason
+        type: "std::string"
+        description: "Disconnect reason"
+        description_ja: "切断理由"
+        description_ko: "연결 해제 사유"
+      - name: wasClean
+        type: "bool"
+        description: "Whether the disconnect was clean"
+        description_ja: "正常な切断だったか"
+        description_ko: "정상적인 연결 해제였는지"
+
+  - name: TcpServerErrorEventArgs
+    description: "Event args for TcpServer::onError"
+    description_ja: "TcpServer::onErrorのイベント引数"
+    description_ko: "TcpServer::onError의 이벤트 인자"
+    of_equivalent: "-"
+    of_type_category: "network-types"
+    sketch: false
+    properties:
+      - name: message
+        type: "std::string"
+        description: "Error message"
+        description_ja: "エラーメッセージ"
+        description_ko: "오류 메시지"
+      - name: errorCode
+        type: "int"
+        description: "Error code"
+        description_ja: "エラーコード"
+        description_ko: "오류 코드"
+      - name: clientId
+        type: "int"
+        description: "Client ID (-1 = server-level error, not a specific client)"
+        description_ja: "クライアントID（-1=特定クライアントでないサーバレベルのエラー）"
+        description_ko: "클라이언트 ID (-1 = 특정 클라이언트가 아닌 서버 레벨 오류)"
+
+  # ==========================================================================
+  # Serial types
+  # ==========================================================================
+  - name: Serial
+    description: "Cross-platform serial port (USB/COM): connect, read/write bytes"
+    description_ja: "クロスプラットフォームのシリアルポート（USB/COM）：接続・バイト読み書き"
+    description_ko: "크로스플랫폼 시리얼 포트 (USB/COM): 연결, 바이트 읽기/쓰기"
+    of_equivalent: "ofSerial"
+    of_type_category: "serial-types"
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "Serial"
+    methods:
+      - name: setup
+        return: "bool"
+        signatures:
+          - params: "const std::string& portName, int baudRate"
+          - params: "int deviceIndex, int baudRate"
+        description: "Connect to a port by path or by index from listDevices()"
+        description_ja: "パス指定、またはlistDevices()のインデックスでポートに接続"
+        description_ko: "경로 또는 listDevices()의 인덱스로 포트에 연결"
+        snippet: "setup(${1:portName}, ${2:baudRate})"
+      - name: close
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Disconnect and release resources"
+        description_ja: "切断してリソースを解放"
+        description_ko: "연결을 끊고 리소스를 해제"
+        snippet: "close()"
+      - name: isInitialized
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether currently connected"
+        description_ja: "接続中か"
+        description_ko: "현재 연결 중인지"
+        snippet: "isInitialized()"
+      - name: getDevicePath
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "Current device path"
+        description_ja: "現在のデバイスパス"
+        description_ko: "현재 장치 경로"
+        snippet: "getDevicePath()"
+      - name: available
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Number of bytes available to read"
+        description_ja: "読み取り可能なバイト数"
+        description_ko: "읽을 수 있는 바이트 수"
+        snippet: "available()"
+      - name: readBytes
+        return: "int"
+        signatures:
+          - params: "void* buffer, int length"
+          - params: "std::string& buffer, int length"
+        description: "Read bytes; returns actual count (>=0) or -1 on error"
+        description_ja: "バイトを読む。実際の読み取り数(>=0)、エラー時-1を返す"
+        description_ko: "바이트를 읽음. 실제 읽은 수(>=0) 또는 오류 시 -1 반환"
+        snippet: "readBytes(${1:buffer}, ${2:length})"
+      - name: readByte
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Read a single byte; 0-255 on success, -1 no data, -2 error"
+        description_ja: "1バイト読む。成功時0-255、データ無し-1、エラー-2"
+        description_ko: "1바이트를 읽음. 성공 0-255, 데이터 없음 -1, 오류 -2"
+        snippet: "readByte()"
+      - name: writeBytes
+        return: "int"
+        signatures:
+          - params: "const void* buffer, int length"
+          - params: "const std::string& buffer"
+        description: "Write bytes; returns actual count or -1 on error"
+        description_ja: "バイトを書く。実際の書き込み数、エラー時-1を返す"
+        description_ko: "바이트를 씀. 실제 쓴 수 또는 오류 시 -1 반환"
+        snippet: "writeBytes(${1:buffer}, ${2:length})"
+      - name: writeByte
+        return: "bool"
+        signatures:
+          - params: "unsigned char byte"
+        description: "Write a single byte; true on success"
+        description_ja: "1バイト書く。成功でtrue"
+        description_ko: "1바이트를 씀. 성공 시 true"
+        snippet: "writeByte(${1:byte})"
+      - name: flushInput
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Clear the input buffer"
+        description_ja: "入力バッファをクリア"
+        description_ko: "입력 버퍼를 비움"
+        snippet: "flushInput()"
+      - name: flushOutput
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Clear the output buffer"
+        description_ja: "出力バッファをクリア"
+        description_ko: "출력 버퍼를 비움"
+        snippet: "flushOutput()"
+      - name: flush
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Clear both input and output buffers"
+        description_ja: "入力・出力バッファを両方クリア"
+        description_ko: "입력·출력 버퍼를 모두 비움"
+        snippet: "flush()"
+      - name: drain
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Wait until output transmission completes"
+        description_ja: "出力送信の完了を待つ"
+        description_ko: "출력 전송이 완료될 때까지 대기"
+        snippet: "drain()"
+    static_methods:
+      - name: listDevices
+        return: "std::vector<SerialDeviceInfo>"
+        signatures:
+          - params: ""
+        description: "List available serial devices"
+        description_ja: "利用可能なシリアルデバイスを列挙"
+        description_ko: "사용 가능한 시리얼 장치를 나열"
+        snippet: "Serial::listDevices()"
+      - name: printDevices
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Log all available serial devices"
+        description_ja: "利用可能なシリアルデバイスをログ出力"
+        description_ko: "사용 가능한 시리얼 장치를 로그로 출력"
+        snippet: "Serial::printDevices()"
+
+  - name: SerialDeviceInfo
+    description: "Info for one serial device (from Serial::listDevices)"
+    description_ja: "1シリアルデバイスの情報（Serial::listDevicesが返す）"
+    description_ko: "시리얼 장치 하나의 정보 (Serial::listDevices가 반환)"
+    of_equivalent: "ofSerialDeviceInfo"
+    of_type_category: "serial-types"
+    sketch: false
+    properties:
+      - name: deviceId
+        type: "int"
+        description: "Device index"
+        description_ja: "デバイスインデックス"
+        description_ko: "장치 인덱스"
+      - name: devicePath
+        type: "std::string"
+        description: "Device path (e.g. COM3, /dev/tty.usbserial-*)"
+        description_ja: "デバイスパス（例: COM3, /dev/tty.usbserial-*）"
+        description_ko: "장치 경로 (예: COM3, /dev/tty.usbserial-*)"
+      - name: deviceName
+        type: "std::string"
+        description: "Device name"
+        description_ja: "デバイス名"
+        description_ko: "장치 이름"
+    methods:
+      - name: getDeviceID
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Device index"
+        description_ja: "デバイスインデックス"
+        description_ko: "장치 인덱스"
+        snippet: "getDeviceID()"
+      - name: getDevicePath
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "Device path"
+        description_ja: "デバイスパス"
+        description_ko: "장치 경로"
+        snippet: "getDevicePath()"
+      - name: getDeviceName
+        return: "const std::string&"
+        signatures:
+          - params: ""
+        description: "Device name"
+        description_ja: "デバイス名"
+        description_ko: "장치 이름"
+        snippet: "getDeviceName()"

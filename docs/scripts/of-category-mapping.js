@@ -69,7 +69,8 @@ const categoryMapping = {
 
     // I/O (not yet in YAML)
 
-    // Network (not yet in YAML)
+    // Network (free functions; socket/interface types are in the types section)
+    "network": { id: "network", name: "Network", name_ja: "ネットワーク", name_ko: "네트워크", order: 20 },
 
     // Scene Graph
     "scene_graph": { id: "scene", name: "Scene Graph", name_ja: "シーングラフ", name_ko: "씬 그래프", order: 14 },
@@ -108,6 +109,8 @@ const typeCategoryMapping = {
     "text-types": { id: "text-types", name: "Text", name_ja: "テキスト", name_ko: "텍스트", order: 6 },
     "file-io-types": { id: "file-io-types", name: "File I/O", name_ja: "ファイルI/O", name_ko: "파일 I/O", order: 7 },
     "camera-types": { id: "camera-types", name: "3D Camera", name_ja: "3Dカメラ", name_ko: "3D 카메라", order: 8 },
+    "network-types": { id: "network-types", name: "Network", name_ja: "ネットワーク", name_ko: "네트워크", order: 9 },
+    "serial-types": { id: "serial-types", name: "Serial", name_ja: "シリアル", name_ko: "시리얼", order: 10 },
 };
 
 // Additional entries that exist in oF but not yet in TrussC YAML
@@ -138,12 +141,10 @@ const ofOnlyEntries = [
         { of: "ofLoadJson(path)", tc: "loadJson(path)", notes: "nlohmann/json", notes_ja: "nlohmann/json", notes_ko: "" },
         { of: "-", tc: "loadXml(path)", notes: "pugixml", notes_ja: "pugixml", notes_ko: "" },
     ]},
-    // Network
+    // Network — TcpClient/TcpServer/UdpSocket are real types now (see types section);
+    // only the OSC addon mapping remains here.
     { category: "network", name: "Network", name_ja: "ネットワーク", name_ko: "네트워크", order: 20, entries: [
-        { of: "ofxTCPClient", tc: "TcpClient", notes: "", notes_ja: "", notes_ko: "" },
-        { of: "ofxTCPServer", tc: "TcpServer", notes: "", notes_ja: "", notes_ko: "" },
-        { of: "ofxUDPManager", tc: "UdpSocket", notes: "", notes_ja: "", notes_ko: "" },
-        { of: "ofxOsc", tc: "OscReceiver / OscSender", notes: "", notes_ja: "", notes_ko: "" },
+        { of: "ofxOsc", tc: "OscReceiver / OscSender", notes: "tcxOsc addon", notes_ja: "tcxOsc アドオン", notes_ko: "tcxOsc 애드온" },
     ]},
     // Log
     { category: "log", name: "Log", name_ja: "ログ", name_ko: "로그", order: 21, entries: [
@@ -156,13 +157,7 @@ const ofOnlyEntries = [
         { of: "ofThread", tc: "std::thread + MainThreadRunner", notes: "Safe sync", notes_ja: "Safe sync", notes_ko: "" },
         { of: "-", tc: "MainThreadRunner::run(func)", notes: "Execute on main thread", notes_ja: "Execute on main thread", notes_ko: "" },
     ]},
-    // Serial
-    { category: "serial", name: "Serial", name_ja: "シリアル", name_ko: "시리얼통신", order: 23, entries: [
-        { of: "ofSerial", tc: "Serial", notes: "", notes_ja: "", notes_ko: "" },
-        { of: "serial.setup(port, baud)", tc: "serial.setup(port, baud)", notes: "Same", notes_ja: "Same", notes_ko: "" },
-        { of: "serial.readBytes(...)", tc: "serial.readBytes(...)", notes: "Same", notes_ja: "Same", notes_ko: "" },
-        { of: "serial.writeBytes(...)", tc: "serial.writeBytes(...)", notes: "Same", notes_ja: "Same", notes_ko: "" },
-    ]},
+    // Serial — now a real type (see types section: Serial / SerialDeviceInfo)
 ];
 
 module.exports = { categoryMapping, typeCategoryMapping, ofOnlyEntries };

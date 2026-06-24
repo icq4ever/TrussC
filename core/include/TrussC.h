@@ -2825,6 +2825,7 @@ inline void drawCone(float x, float y, float z, float radius, float height, int 
 #include "tc/network/tcUdpSocket.h"
 #include "tc/network/tcTcpClient.h"
 #include "tc/network/tcTcpServer.h"
+#include "tc/network/tcNetworkInterface.h"
 
 // TrussC serial communication
 #include "tc/comm/tcSerial.h"
