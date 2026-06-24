@@ -6,7 +6,7 @@
  *   node generate-docs.js                  # Generate all outputs
  *   node generate-docs.js --sketch         # Generate TrussSketch-related files only
  *   node generate-docs.js --trussc-api     # Generate TrussC API JS (all APIs + version)
- *   node generate-docs.js --reference      # Generate REFERENCE.md only
+ *   node generate-docs.js --reference      # Inject API index + addon list into FOR_AI_ASSISTANT.md
  *   node generate-docs.js --of-mapping     # Generate oF mapping JSON for website
  *   node generate-docs.js --of-markdown    # Generate oF comparison markdown
  *   node generate-docs.js --gemini         # Generate Gemini RAG knowledge base
@@ -14,9 +14,10 @@
  * Outputs:
  *   --sketch:
  *     - ../trussc.org/generated/trusssketch-api.js
- *     - ../TrussSketch/REFERENCE.md
  *   --trussc-api:
- *     - ../trussc.org/generated/trussc-api.js
+ *     - ../trussc.org/generated/trussc-api.js (combined, all languages inline)
+ *   --reference:
+ *     - ../FOR_AI_ASSISTANT.md (API-INDEX + ADDON-LIST marker sections injected)
  *   --of-mapping:
  *     - ../trussc.org/generated/of-mapping.json
  *   --of-markdown:
@@ -35,8 +36,9 @@ const { categoryMapping, typeCategoryMapping, ofOnlyEntries } = require('./of-ca
 const API_YAML = path.join(__dirname, '../api-definition.yaml');
 const SKETCH_API_JS = path.join(__dirname, '../../../trussc.org/generated/trusssketch-api.js');
 const TRUSSC_API_JS = path.join(__dirname, '../../../trussc.org/generated/trussc-api.js');
-const REFERENCE_MD = path.join(__dirname, '../../../TrussSketch/REFERENCE.md');
-const REFERENCE_MD_DOCS = path.join(__dirname, '../REFERENCE.md');
+const GENERATED_DIR = path.join(__dirname, '../../../trussc.org/generated');
+const FOR_AI_MD = path.join(__dirname, '../FOR_AI_ASSISTANT.md');
+const ADDONS_REPO = path.join(__dirname, '../../../trussc-addons');
 const OF_MAPPING_JSON = path.join(__dirname, '../../../trussc.org/generated/of-mapping.json');
 const OF_COMPARISON_MD = path.join(__dirname, '../TrussC_vs_openFrameworks.md');
 const GEMINI_KNOWLEDGE_MD = path.join(__dirname, './trusssketch-knowledge.md');
@@ -184,8 +186,18 @@ function getVersion() {
     }
 }
 
-// Generate trussc-api.js (all APIs, no sketch filter)
-function generateTrussCApiJS(api) {
+// Pick a localized string for the given language, falling back to the base (English) value.
+// lang === null => combined output (keeps base + *_ja/*_ko variants, used by legacy trussc-api.js)
+function pickLang(base, ja, ko, lang) {
+    if (lang === 'ja') return ja || base || '';
+    if (lang === 'ko') return ko || base || '';
+    return base || '';
+}
+
+// Generate trussc-api.js (all APIs, no sketch filter).
+// lang: null = combined (legacy, retains desc_ja/desc_ko); 'en'|'ja'|'ko' = single-language,
+//       localized fields collapsed to the base name so the frontend stays language-agnostic.
+function generateTrussCApiJS(api, lang) {
     const version = getVersion();
 
     const categories = [];
@@ -193,26 +205,33 @@ function generateTrussCApiJS(api) {
         const functions = [];
         for (const fn of cat.functions) {
             for (const sig of fn.signatures) {
-                functions.push({
+                const entry = {
                     name: fn.name,
                     params: sig.params_simple || sig.params || '',
                     params_typed: sig.params || '',
                     return_type: fn.return !== undefined ? fn.return : null,
-                    desc: fn.description,
-                    desc_ja: fn.description_ja || '',
-                    desc_ko: fn.description_ko || '',
-                    snippet: fn.snippet
-                });
+                    desc: lang ? pickLang(fn.description, fn.description_ja, fn.description_ko, lang) : fn.description,
+                    snippet: fn.snippet,
+                    keywords: fn.keywords || []
+                };
+                if (!lang) {
+                    entry.desc_ja = fn.description_ja || '';
+                    entry.desc_ko = fn.description_ko || '';
+                }
+                functions.push(entry);
             }
         }
         if (functions.length === 0) continue;
-        categories.push({ name: cat.name, name_ja: cat.name_ja || '', name_ko: cat.name_ko || '', functions });
+        const catEntry = { name: lang ? pickLang(cat.name, cat.name_ja, cat.name_ko, lang) : cat.name, functions };
+        if (!lang) { catEntry.name_ja = cat.name_ja || ''; catEntry.name_ko = cat.name_ko || ''; }
+        categories.push(catEntry);
     }
 
     const constants = (api.constants || []).map(c => ({
         name: c.name,
         value: c.value,
-        desc: c.description
+        desc: lang ? pickLang(c.description, c.description_ja, c.description_ko, lang) : c.description,
+        keywords: c.keywords || []
     }));
 
     const types = [];
@@ -220,10 +239,13 @@ function generateTrussCApiJS(api) {
         for (const type of api.types) {
             const typeData = {
                 name: type.name,
-                desc: type.description,
-                desc_ja: type.description_ja || '',
-                desc_ko: type.description_ko || ''
+                desc: lang ? pickLang(type.description, type.description_ja, type.description_ko, lang) : type.description,
+                keywords: type.keywords || []
             };
+            if (!lang) {
+                typeData.desc_ja = type.description_ja || '';
+                typeData.desc_ko = type.description_ko || '';
+            }
 
             if (type.constructor && type.constructor.signatures) {
                 typeData.constructor = {
@@ -236,7 +258,7 @@ function generateTrussCApiJS(api) {
                 typeData.properties = type.properties.map(p => ({
                     name: p.name,
                     type: p.type,
-                    desc: p.description
+                    desc: lang ? pickLang(p.description, p.description_ja, p.description_ko, lang) : p.description
                 }));
             }
 
@@ -245,7 +267,7 @@ function generateTrussCApiJS(api) {
                     name: m.name,
                     return: m.return,
                     signatures: m.signatures.map(s => s.params || ''),
-                    desc: m.description,
+                    desc: lang ? pickLang(m.description, m.description_ja, m.description_ko, lang) : m.description,
                     snippet: m.snippet
                 }));
             }
@@ -255,7 +277,7 @@ function generateTrussCApiJS(api) {
                     name: m.name,
                     return: m.return,
                     signatures: m.signatures.map(s => s.params || ''),
-                    desc: m.description,
+                    desc: lang ? pickLang(m.description, m.description_ja, m.description_ko, lang) : m.description,
                     snippet: m.snippet
                 }));
             }
@@ -266,13 +288,14 @@ function generateTrussCApiJS(api) {
 
     const output = {
         version: version,
+        lang: lang || 'all',
         categories: categories,
         constants: constants,
         keywords: api.keywords,
         types: types
     };
 
-    let js = `// TrussC API Definition
+    let js = `// TrussC API Definition${lang ? ` (${lang})` : ''}
 // Complete C++ API reference (all functions, types, constants)
 //
 // AUTO-GENERATED from api-definition.yaml
@@ -287,104 +310,6 @@ if (typeof module !== 'undefined' && module.exports) {
 `;
 
     return js;
-}
-
-            // Generate REFERENCE.md
-            function generateReferenceMd(api) {
-                let md = `# TrussC API Reference
-            
-            Complete API reference. This document is auto-generated from \`api-definition.yaml\`.
-            
-            For the latest interactive reference, visit [trussc.org/reference](https://trussc.org/reference/).
-            
-            `;
-                // Generate each category
-                for (const cat of api.categories) {
-                    // Only include TrussSketch-enabled functions
-                    const sketchFunctions = cat.functions.filter(fn => fn.sketch);
-                    if (sketchFunctions.length === 0) continue;
-            
-                    md += `## ${cat.name}\n\n`;
-                    md += '```cpp\n';
-            
-                    // Group overloads
-                    const seen = new Set();
-                    for (const fn of sketchFunctions) {
-                        for (const sig of fn.signatures) {
-                            let sigStr = `${fn.name}(${sig.params || ''})`;
-                            
-                            // Prepend return type if available
-                            if (fn.return !== undefined) {
-                                // Empty string return type means constructor (no return type displayed)
-                                if (fn.return === '') {
-                                    sigStr = `${fn.name}(${sig.params || ''})`;
-                                } else {
-                                    sigStr = `${fn.return} ${fn.name}(${sig.params || ''})`;
-                                }
-                            }
-            
-                            if (seen.has(sigStr)) continue;
-                            seen.add(sigStr);
-            
-                            const padding = Math.max(0, 40 - sigStr.length);
-                            md += `${sigStr}${' '.repeat(padding)} // ${fn.description}\n`;
-                        }
-                    }
-            
-                    md += '```\n\n';
-                }
-
-    // Constants
-    md += `## Constants
-
-\`\`\`cpp
-`;
-    for (const c of api.constants.filter(c => c.sketch)) {
-        const padding = Math.max(0, 28 - c.name.length);
-        md += `${c.name}${' '.repeat(padding)} // ${c.value} (${c.description})\n`;
-    }
-    md += '```\n\n';
-
-    // Variables section
-    md += `## Variables
-
-\`\`\`cpp
-float myVar = 0.0;       // Global variable (persists across frames)
-\`\`\`
-
-## Example
-
-\`\`\`cpp
-float angle = 0.0;
-
-void setup() {
-    logNotice("Starting!");
-}
-
-void update() {
-    angle = angle + getDeltaTime();
-}
-
-void draw() {
-    clear(0.1);
-
-    pushMatrix();
-    translate(getWindowWidth() / 2.0, getWindowHeight() / 2.0);
-    rotate(angle);
-
-    setColor(1.0, 0.5, 0.2);
-    drawRect(-50.0, -50.0, 100.0, 100.0);
-
-    popMatrix();
-}
-
-void keyPressed(int key) {
-    logNotice("Key: " + toString(key));
-}
-\`\`\`
-`;
-
-    return md;
 }
 
 // Generate oF mapping JSON for website
@@ -1085,39 +1010,166 @@ function updateOfComparisonMarkdown(api) {
     return newContent;
 }
 
+// --- FOR_AI_ASSISTANT.md injection -----------------------------------------
+
+// True if a signature/return string uses AngelScript-only syntax (script factories, not C++).
+function isScriptOnly(s) {
+    return /@|&in\b|&out\b/.test(s || '');
+}
+
+// Build the curated C++ API index (one line per signature) for FOR_AI_ASSISTANT.md.
+function buildApiIndexSection(api) {
+    let md = '_Auto-generated C++ API index from `api-definition.yaml`. Core symbols only — addons are listed in the next section._\n';
+    md += '_Curated subset: some low-level / internal APIs may be omitted. For the interactive reference see https://trussc.org/reference/._\n\n';
+
+    for (const cat of api.categories) {
+        if (cat.index === false) continue;
+        const lines = [];
+        for (const fn of cat.functions) {
+            if (fn.index === false) continue;
+            const ret = (fn.return !== undefined && fn.return !== null) ? fn.return : 'void';
+            if (isScriptOnly(ret)) continue;
+            for (const sig of fn.signatures) {
+                const params = sig.params || '';
+                if (isScriptOnly(params)) continue;
+                const desc = fn.description ? `  // ${fn.description}` : '';
+                lines.push(`${ret} ${fn.name}(${params})${desc}`);
+            }
+        }
+        if (!lines.length) continue;
+        md += `### ${cat.name}\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\`\n\n`;
+    }
+
+    if (api.types) {
+        const typeBlocks = [];
+        for (const type of api.types) {
+            if (type.index === false) continue;
+            const lines = [];
+            const addMethod = (m) => {
+                const ret = m.return || 'void';
+                if (isScriptOnly(ret)) return;
+                for (const s of m.signatures || []) {
+                    const p = s.params || '';
+                    if (isScriptOnly(p)) continue;
+                    lines.push(`${ret} ${m.name}(${p})${m.description ? `  // ${m.description}` : ''}`);
+                }
+            };
+            if (type.constructor && type.constructor.signatures) {
+                for (const s of type.constructor.signatures) {
+                    const p = s.params || '';
+                    if (isScriptOnly(p)) continue;
+                    lines.push(`${type.name}(${p})`);
+                }
+            }
+            if (type.properties) {
+                for (const p of type.properties) {
+                    if (isScriptOnly(p.type)) continue;
+                    lines.push(`${p.type || ''} ${p.name}${p.description ? `  // ${p.description}` : ''}`.trim());
+                }
+            }
+            if (type.methods) type.methods.forEach(addMethod);
+            if (type.static_methods) type.static_methods.forEach(addMethod);
+            if (!lines.length) continue;
+            typeBlocks.push(`#### ${type.name}${type.description ? ` — ${type.description}` : ''}\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\``);
+        }
+        if (typeBlocks.length) md += `### Types\n\n${typeBlocks.join('\n\n')}\n\n`;
+    }
+
+    if (api.constants) {
+        const lines = api.constants
+            .filter(c => c.index !== false)
+            .map(c => `${c.name} = ${c.value}${c.description ? `  // ${c.description}` : ''}`);
+        if (lines.length) md += `### Constants\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\`\n`;
+    }
+
+    return md.trimEnd();
+}
+
+// Build the addon list from the TrussC-org/trussc-addons gh-pages registry.
+function buildAddonListSection() {
+    let raw;
+    try {
+        raw = execSync(`git -C "${ADDONS_REPO}" show origin/gh-pages:registry.json`, { encoding: 'utf8' });
+    } catch (e) {
+        console.log('  Warning: could not read addon registry (origin/gh-pages:registry.json): ' + e.message);
+        return null;
+    }
+    let reg;
+    try { reg = JSON.parse(raw); } catch (e) {
+        console.log('  Warning: addon registry.json parse failed: ' + e.message);
+        return null;
+    }
+    const addons = (reg.addons || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    const fmt = a => `- **${a.name}** — ${a.description || ''}${a.category ? ` [${a.category}]` : ''}`;
+    const bundled = addons.filter(a => a.bundled);
+    const community = addons.filter(a => !a.bundled);
+
+    let md = '_Auto-generated from the TrussC-org/trussc-addons registry. Add one with `trusscli addon add <name>`._\n\n';
+    if (bundled.length) md += `**Bundled (ship with TrussC):**\n\n${bundled.map(fmt).join('\n')}\n\n`;
+    if (community.length) md += `**Community:**\n\n${community.map(fmt).join('\n')}\n`;
+    return md.trimEnd();
+}
+
+// Splice content between a marker pair; returns updated string or null if markers missing.
+function spliceMarkers(content, startMarker, endMarker, section) {
+    const s = content.indexOf(startMarker);
+    const e = content.indexOf(endMarker);
+    if (s === -1 || e === -1) {
+        console.log(`  Warning: markers ${startMarker} / ${endMarker} not found in FOR_AI_ASSISTANT.md`);
+        return null;
+    }
+    return content.substring(0, s + startMarker.length) + '\n\n' + section + '\n\n' + content.substring(e);
+}
+
+// Inject the API index + addon list into FOR_AI_ASSISTANT.md marker sections.
+function updateForAiAssistant(api) {
+    let content = fs.readFileSync(FOR_AI_MD, 'utf8');
+    let changed = false;
+
+    const apiSection = buildApiIndexSection(api);
+    const afterApi = spliceMarkers(content, '<!-- API-INDEX-START -->', '<!-- API-INDEX-END -->', apiSection);
+    if (afterApi) { content = afterApi; changed = true; }
+
+    const addonSection = buildAddonListSection();
+    if (addonSection) {
+        const afterAddons = spliceMarkers(content, '<!-- ADDON-LIST-START -->', '<!-- ADDON-LIST-END -->', addonSection);
+        if (afterAddons) { content = afterAddons; changed = true; }
+    }
+
+    return changed ? content : null;
+}
+
 // Main
 function main() {
     console.log('Loading api-definition.yaml...');
     const api = loadAPI();
     console.log(`  Found ${api.categories.length} categories`);
 
-    if (generateSketch || generateReference) {
-        if (generateSketch) {
-            console.log('\nGenerating trusssketch-api.js...');
-            const js = generateSketchAPI(api);
-            fs.writeFileSync(SKETCH_API_JS, js);
-            console.log(`  Written: ${SKETCH_API_JS}`);
-        }
+    if (generateSketch) {
+        console.log('\nGenerating trusssketch-api.js...');
+        const js = generateSketchAPI(api);
+        fs.writeFileSync(SKETCH_API_JS, js);
+        console.log(`  Written: ${SKETCH_API_JS}`);
+    }
 
-        if (generateReference) {
-            console.log('\nGenerating REFERENCE.md...');
-            const md = generateReferenceMd(api);
-            
-            // Write to TrussSketch
-            fs.writeFileSync(REFERENCE_MD, md);
-            console.log(`  Written: ${REFERENCE_MD}`);
-
-            // Write to TrussC/docs
-            fs.writeFileSync(REFERENCE_MD_DOCS, md);
-            console.log(`  Written: ${REFERENCE_MD_DOCS}`);
+    // Inject the curated C++ API index + addon list into FOR_AI_ASSISTANT.md
+    if (generateReference) {
+        console.log('\nInjecting API index + addon list into FOR_AI_ASSISTANT.md...');
+        const updated = updateForAiAssistant(api);
+        if (updated) {
+            fs.writeFileSync(FOR_AI_MD, updated);
+            console.log(`  Updated: ${FOR_AI_MD}`);
+        } else {
+            console.log('  Skipped FOR_AI_ASSISTANT.md (no markers present yet).');
         }
     }
 
-    // Generate TrussC API JS
+    // Generate TrussC API JS (single combined file, all languages inline).
+    // The reference page selects desc/desc_ja/desc_ko by REF_LANG at render time,
+    // so one cached file serves en/ja/ko (no per-locale re-download on switch).
     if (generateTrussCApi) {
         console.log('\nGenerating trussc-api.js...');
-        const js = generateTrussCApiJS(api);
-        fs.writeFileSync(TRUSSC_API_JS, js);
+        fs.writeFileSync(TRUSSC_API_JS, generateTrussCApiJS(api, null));
         console.log(`  Written: ${TRUSSC_API_JS}`);
     }
 

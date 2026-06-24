@@ -2,11 +2,15 @@
 # Single source of truth for all TrussC API documentation
 #
 # Used to generate:
+#   - trussc-api.js + trussc-api.{en,ja,ko}.js (web reference data, per-language)
 #   - trusssketch-api.js (autocomplete/reference)
-#   - REFERENCE.md
-#   - API_QUICK_REFERENCE.md (future)
-#   - TrussC_vs_openFrameworks.md mapping (future)
-#   - for-of-users.html tables (future)
+#   - FOR_AI_ASSISTANT.md (API-INDEX + ADDON-LIST marker sections, injected)
+#   - TrussC_vs_openFrameworks.md mapping (Section 5, injected)
+#   - trusssketch-knowledge.md (Gemini RAG knowledge base)
+#
+# Optional per-symbol fields:
+#   keywords: [..]   # search aliases for fuzzy/keyword lookup on the web reference
+#   index: false     # exclude this symbol from the FOR_AI_ASSISTANT.md C++ API index
 
 categories:
   # ==========================================================================
@@ -200,6 +204,7 @@ categories:
         snippet: "setColor(${1:1.0}, ${2:1.0}, ${3:1.0})"
 
       - name: setColorHSB
+        keywords: ["hsb", "hsv", "hue", "saturation", "brightness", "color"]
         return: "void"
         signatures:
           - params: "float h, float s, float b"
@@ -271,6 +276,7 @@ categories:
         snippet: "drawRectRounded(${1:x}, ${2:y}, ${3:w}, ${4:h}, ${5:radius})"
 
       - name: drawRectSquircle
+        keywords: ["squircle", "rounded", "ios", "superellipse", "smooth corner"]
         return: "void"
         signatures:
           - params: "float x, float y, float w, float h, float radius"
@@ -284,6 +290,7 @@ categories:
         snippet: "drawRectSquircle(${1:x}, ${2:y}, ${3:w}, ${4:h}, ${5:radius})"
 
       - name: drawCircle
+        keywords: ["circle", "round", "ellipse", "ball", "dot"]
         return: "void"
         signatures:
           - params: "float x, float y, float radius"
@@ -400,6 +407,7 @@ categories:
         snippet: "drawTriangle(${1:x1}, ${2:y1}, ${3:x2}, ${4:y2}, ${5:x3}, ${6:y3})"
 
       - name: drawBox
+        keywords: ["cube", "box", "rectangle", "cuboid", "3d"]
         return: "void"
         signatures:
           - params: "float size"
@@ -2396,6 +2404,7 @@ categories:
         snippet: "randomSeed(${1:seed})"
 
       - name: noise
+        keywords: ["perlin", "simplex", "random", "noise", "procedural"]
         return: "float"
         signatures:
           - params: "float x"

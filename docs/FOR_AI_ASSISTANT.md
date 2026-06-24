@@ -3,7 +3,8 @@
   It is a system prompt / cheatsheet designed to be loaded into an LLM
   (Gemini Gem, custom GPT, Claude project, etc.) so the assistant can
   generate idiomatic TrussC code. If you are a human looking for docs,
-  start with docs/GET_STARTED.md or docs/REFERENCE.md instead.
+  start with docs/GET_STARTED.md or the web reference at
+  https://trussc.org/reference/ instead.
   If you are a CONSOLE CODING AGENT (Claude Code, Codex, or similar with
   file/shell access), do not load this file — install the TrussC development
   skill instead; it covers the same ground plus build/verify workflows:
@@ -740,6 +741,1945 @@ AI agents can drive and verify the running app directly. As a chat assistant you
 won't use this yourself; just know it exists so you can point users to it
 (details: docs/AI_AUTOMATION.md, agent workflows: the trussc-dev-skill repo).
 
+## API Index
+
+Complete C++ API index, generated from `api-definition.yaml`. Use this to confirm
+whether a function / class exists before answering "does TrussC have X".
+
+<!-- API-INDEX-START -->
+
+_Auto-generated C++ API index from `api-definition.yaml`. Core symbols only — addons are listed in the next section._
+_Curated subset: some low-level / internal APIs may be omitted. For the interactive reference see https://trussc.org/reference/._
+
+### Lifecycle
+
+```cpp
+void setup()  // Called once at start
+void update()  // Called every frame before draw
+void draw()  // Called every frame after update
+void cleanup()  // Called once before exit (optional user callback for cleanup)
+int runApp(const WindowSettings& settings = WindowSettings())  // Start the application main loop. Called from main()
+```
+
+### Events
+
+```cpp
+void mousePressed(float x, float y, int button)  // Mouse button pressed
+void mouseReleased(float x, float y, int button)  // Mouse button released
+void mouseMoved(float x, float y)  // Mouse moved
+void mouseDragged(float x, float y, int button)  // Mouse dragged
+void keyPressed(int key)  // Key pressed. Use KEY_* constants for special keys, or uppercase char literals for printable keys (e.g. key == 'A', key == '1')
+void keyReleased(int key)  // Key released
+void windowResized(int width, int height)  // Window resized
+```
+
+### Graphics - Color
+
+```cpp
+void clear()  // Clear screen. No args = transparent black (0,0,0,0)
+void clear(float gray)  // Clear screen. No args = transparent black (0,0,0,0)
+void clear(float r, float g, float b)  // Clear screen. No args = transparent black (0,0,0,0)
+void setColor(float gray)  // Set drawing color (0.0-1.0)
+void setColor(float r, float g, float b)  // Set drawing color (0.0-1.0)
+void setColor(float r, float g, float b, float a)  // Set drawing color (0.0-1.0)
+void setColorHSB(float h, float s, float b)  // Set color from HSB (H: 0-1)
+void setColorOKLCH(float L, float C, float H)  // Set color from OKLCH
+void setColorOKLab(float L, float a, float b)  // Set color from OKLab
+```
+
+### Graphics - Shapes
+
+```cpp
+void drawRect(float x, float y, float w, float h)  // Draw rectangle
+void drawRect(Vec3 pos, float w, float h)  // Draw rectangle
+void drawRect(Vec3 pos, Vec2 size)  // Draw rectangle
+void drawRectRounded(float x, float y, float w, float h, float radius)  // Draw rounded rectangle (circular arc corners)
+void drawRectRounded(Vec3 pos, Vec2 size, float radius)  // Draw rounded rectangle (circular arc corners)
+void drawRectSquircle(float x, float y, float w, float h, float radius)  // Draw squircle rectangle (curvature-continuous corners, iOS-style)
+void drawRectSquircle(Vec3 pos, Vec2 size, float radius)  // Draw squircle rectangle (curvature-continuous corners, iOS-style)
+void drawCircle(float x, float y, float radius)  // Draw circle
+void drawCircle(Vec3 center, float radius)  // Draw circle
+void drawArc(float x, float y, float radius, float angleBegin, float angleEnd)  // Draw arc (partial circle, angles in radians)
+void drawArc(Vec3 center, float radius, float angleBegin, float angleEnd)  // Draw arc (partial circle, angles in radians)
+void drawEllipse(float x, float y, float w, float h)  // Draw ellipse
+void drawEllipse(Vec3 center, float rx, float ry)  // Draw ellipse
+void drawEllipse(Vec3 center, Vec2 radii)  // Draw ellipse
+void drawPoint(float x, float y)  // Draw a single point
+void drawPoint(Vec3 pos)  // Draw a single point
+void drawLine(float x1, float y1, float x2, float y2)  // Draw line (2D or 3D)
+void drawLine(float x1, float y1, float z1, float x2, float y2, float z2)  // Draw line (2D or 3D)
+void drawLine(Vec3 p1, Vec3 p2)  // Draw line (2D or 3D)
+void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3)  // Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)
+void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2)  // Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)
+void drawBezier(const vector<Vec3>& controlPoints)  // Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)
+void drawCurve(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3)  // Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)
+void drawCurve(const vector<Vec3>& points)  // Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)
+void drawCurve(const vector<Vec3>& points, bool closed)  // Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)
+void drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3)  // Draw triangle
+void drawTriangle(Vec3 p1, Vec3 p2, Vec3 p3)  // Draw triangle
+void drawBox(float size)  // Draw 3D box (respects fill/noFill)
+void drawBox(float w, float h, float d)  // Draw 3D box (respects fill/noFill)
+void drawBox(float x, float y, float z, float size)  // Draw 3D box (respects fill/noFill)
+void drawBox(float x, float y, float z, float w, float h, float d)  // Draw 3D box (respects fill/noFill)
+void drawBox(Vec3 pos, float size)  // Draw 3D box (respects fill/noFill)
+void drawBox(Vec3 pos, float w, float h, float d)  // Draw 3D box (respects fill/noFill)
+void drawSphere(float radius)  // Draw 3D sphere (respects fill/noFill)
+void drawSphere(float x, float y, float z, float radius)  // Draw 3D sphere (respects fill/noFill)
+void drawSphere(Vec3 pos, float radius)  // Draw 3D sphere (respects fill/noFill)
+void drawCone(float radius, float height)  // Draw 3D cone (respects fill/noFill)
+void drawCone(float x, float y, float z, float radius, float height)  // Draw 3D cone (respects fill/noFill)
+void drawCone(Vec3 pos, float radius, float height)  // Draw 3D cone (respects fill/noFill)
+void beginShape()  // Begin drawing a shape
+void vertex(float x, float y)  // Add a vertex
+void vertex(float x, float y, float z)  // Add a vertex
+void vertex(const Vec2& v)  // Add a vertex
+void vertex(const Vec3& v)  // Add a vertex
+void endShape(bool close = false)  // End drawing a shape
+void appendArc(float cx, float cy, float radius, float angleBegin, float angleEnd)  // Append arc vertices to the current shape (use between beginShape/endShape)
+void appendArc(const Vec2& center, float radius, float angleBegin, float angleEnd)  // Append arc vertices to the current shape (use between beginShape/endShape)
+void appendCurve(const vector<Vec3>& points)  // Append Catmull-Rom curve vertices to the current shape (use between beginShape/endShape; needs >=4 points, closed=true wraps around)
+void appendCurve(const vector<Vec3>& points, bool closed)  // Append Catmull-Rom curve vertices to the current shape (use between beginShape/endShape; needs >=4 points, closed=true wraps around)
+void beginStroke()  // Begin drawing a stroke (uses StrokeMesh internally)
+void endStroke(bool close = false)  // End drawing a stroke
+void beginLines()  // Begin batch line drawing. Add vertex pairs with vertex(), then call endLines(). Each pair of vertices draws one independent line segment. Use setColor() between vertices for per-line colors.
+void endLines()  // End batch line drawing and render all accumulated line segments
+void drawStroke(float x1, float y1, float x2, float y2)  // Draw a single stroke segment (thick line with cap/join)
+void drawStroke(const Vec2& p1, const Vec2& p2)  // Draw a single stroke segment (thick line with cap/join)
+void drawBitmapString(const string& text, float x, float y)  // Draw text
+void drawBitmapStringHighlight(const string& text, float x, float y, const Color& background = Color(0,0,0), const Color& foreground = Color(1,1,1))  // Draw text with background highlight
+void getBitmapStringBounds(const string& text, float& width, float& height)  // Get bitmap string bounding box size
+void setTextAlign(TextAlign horizontal)  // Set text alignment
+void setTextAlign(TextAlign horizontal, TextAlign vertical)  // Set text alignment
+TextAlign getTextAlignH()  // Get horizontal text alignment
+TextAlign getTextAlignV()  // Get vertical text alignment
+float getBitmapFontHeight()  // Get bitmap font height
+float getBitmapStringWidth(const string& text)  // Get text width
+float getBitmapStringHeight(const string& text)  // Get text height
+Rect getBitmapStringBBox(const string& text, float x, float y)  // Get text bounding box
+void bitmapfont::registerGlyph(const bitmapfont::Glyph& g)  // Register a bitmap glyph for a Unicode codepoint (extends drawBitmapString)
+void bitmapfont::registerGlyphs(const bitmapfont::Glyph (&glyphs)[N])  // Register a batch of bitmap glyphs at once
+void bitmapfont::updateGlyph(uint32_t cp, const uint8_t* newData)  // Swap an already-registered glyph's pixel data (atlas cell unchanged). Useful for per-frame animation.
+std::array<uint8_t, 13> bitmapfont::compile8x13(const char* const (&rows)[13])  // Compile-time ASCII art -> packed halfwidth (8x13) glyph bytes. '#' = lit, '.' = empty.
+std::array<uint8_t, 26> bitmapfont::compile16x13(const char* const (&rows)[13])  // Compile-time ASCII art -> packed fullwidth (16x13) glyph bytes. '#' = lit, '.' = empty.
+void setBitmapLineHeight(float height)  // Set line height for bitmap string newlines (default: 16)
+float getBitmapLineHeight()  // Get line height for bitmap string newlines
+void setFps(float fps)  // Set target frame rate (VSYNC = -1.0)
+```
+
+### Graphics - Style
+
+```cpp
+void fill()  // Enable fill mode (shapes are solid, no outline)
+void noFill()  // Enable stroke mode (shapes show outline only)
+void setStrokeWeight(float weight)  // Set stroke width
+float getStrokeWeight()  // Get current stroke width
+void setStrokeCap(StrokeCap cap)  // Set stroke cap style (Butt, Round, Square)
+StrokeCap getStrokeCap()  // Get current stroke cap style
+void setStrokeJoin(StrokeJoin join)  // Set stroke join style (Miter, Round, Bevel)
+StrokeJoin getStrokeJoin()  // Get current stroke join style
+bool isFillEnabled()  // Check if fill mode is enabled
+bool isStrokeEnabled()  // Check if stroke mode is enabled
+void setCurveTolerance(float pixels)  // Set adaptive curve tessellation tolerance in pixels (smaller = smoother, scale-aware)
+float getCurveTolerance()  // Get current curve tessellation tolerance (in pixels)
+void setCurveResolution(int n)  // Set fixed curve segment count (switches off adaptive tolerance mode)
+int getCurveResolution()  // Get current curve resolution
+void pushStyle()  // Save current style state (color, stroke, fill)
+void popStyle()  // Restore previous style state
+void resetStyle()  // Reset style to default values (white color, fill enabled, stroke disabled)
+Color getColor()  // Get current fill color
+void setScissor(float x, float y, float w, float h)  // Set scissor clipping rectangle. Also available via RectNode::setClipping(true)
+void resetScissor()  // Reset (disable) scissor clipping
+void pushScissor(float x, float y, float w, float h)  // Push scissor clipping rectangle onto stack
+void popScissor()  // Pop scissor clipping rectangle from stack
+void setBlendMode(BlendMode mode)  // Set blend mode. BlendMode::Alpha (default), Add, Multiply, Screen, Subtract, Disabled
+BlendMode getBlendMode()  // Get current blend mode
+void resetBlendMode()  // Reset blend mode to Alpha (default)
+void pushStyle()  // Push current style (color, fill, stroke, blend) onto stack
+void popStyle()  // Pop style from stack, restoring previous state
+void resetStyle()  // Reset all style settings to defaults
+```
+
+### Transform
+
+```cpp
+void translate(float x, float y)  // Move origin
+void translate(float x, float y, float z)  // Move origin
+void rotate(float radians)  // Rotate by radians (single axis, euler angles, or quaternion)
+void rotate(float x, float y, float z)  // Rotate by radians (single axis, euler angles, or quaternion)
+void rotate(Vec3 euler)  // Rotate by radians (single axis, euler angles, or quaternion)
+void rotate(Quaternion quat)  // Rotate by radians (single axis, euler angles, or quaternion)
+void rotateDeg(float degrees)  // Rotate by degrees
+void rotateDeg(float x, float y, float z)  // Rotate by degrees
+void rotateDeg(Vec3 euler)  // Rotate by degrees
+void rotateX(float radians)  // Rotate around X axis
+void rotateY(float radians)  // Rotate around Y axis
+void rotateZ(float radians)  // Rotate around Z axis
+void rotateXDeg(float degrees)  // Rotate around X axis (degrees)
+void rotateYDeg(float degrees)  // Rotate around Y axis (degrees)
+void rotateZDeg(float degrees)  // Rotate around Z axis (degrees)
+void scale(float s)  // Scale
+void scale(float sx, float sy)  // Scale
+void pushMatrix()  // Save transform state
+void popMatrix()  // Restore transform state
+Mat4 getCurrentMatrix()  // Get current transformation matrix
+void resetMatrix()  // Reset transformation matrix to identity
+void setMatrix(const Mat4& mat)  // Set transformation matrix directly
+```
+
+### Window & Input
+
+```cpp
+int getWindowWidth()  // Get canvas width
+int getWindowHeight()  // Get canvas height
+Vec2 getWindowSize()  // Get canvas size as Vec2
+void requestExitApp()  // Request application exit. Can be cancelled by listening to events().exitRequested and setting args.cancel = true
+void exitApp()  // Immediately exit the application (cannot be cancelled)
+FileDialogResult loadDialog(const string& title = "", const string& message = "", const string& defaultPath = "", bool folderSelection = false)  // Show file open dialog. Returns FileDialogResult with filePath, fileName, success
+FileDialogResult saveDialog(const string& title = "", const string& message = "", const string& defaultPath = "", const string& defaultName = "")  // Show file save dialog. Returns FileDialogResult with filePath, fileName, success
+void alertDialog(const string& title, const string& message)  // Show alert dialog with OK button
+bool confirmDialog(const string& title, const string& message)  // Show Yes/No confirmation dialog. Returns true if Yes clicked
+void loadDialogAsync(const string& title, const string& message, const string& defaultPath, bool folderSelection, function<void(const FileDialogResult&)> callback)  // Show file open dialog asynchronously. Callback receives FileDialogResult
+void saveDialogAsync(const string& title, const string& message, const string& defaultPath, const string& defaultName, function<void(const FileDialogResult&)> callback)  // Show file save dialog asynchronously. Callback receives FileDialogResult
+void alertDialogAsync(const string& title, const string& message, function<void()> callback = nullptr)  // Show alert dialog asynchronously. Callback is called when dismissed
+void confirmDialogAsync(const string& title, const string& message, function<void(bool)> callback)  // Show Yes/No dialog asynchronously. Callback receives true if Yes clicked
+float getMouseX()  // Get mouse X position
+float getMouseY()  // Get mouse Y position
+Vec2 getMousePos()  // Get mouse position as Vec2
+Vec2 getGlobalMousePos()  // Get global mouse position as Vec2
+float getGlobalMouseX()  // Get global mouse X (screen coordinates, not window-relative)
+float getGlobalMouseY()  // Get global mouse Y (screen coordinates, not window-relative)
+float getGlobalPMouseX()  // Get previous frame global mouse X
+float getGlobalPMouseY()  // Get previous frame global mouse Y
+int getMouseButton()  // Get currently pressed mouse button
+void setTouchAsMouse(bool enabled)  // Enable/disable touch events firing as mouse events (for Android/iOS)
+bool getTouchAsMouse()  // Get touchAsMouse state
+bool isMousePressed()  // Is mouse button pressed
+bool isKeyPressed(int key)  // Is specific key currently pressed
+bool isShiftPressed()  // True while either Shift key (left or right) is held
+bool isControlPressed()  // True while either Control key (left or right) is held
+bool isAltPressed()  // True while either Alt / Option key (left or right) is held
+bool isSuperPressed()  // True while either Super / Cmd / Win key (left or right) is held
+void showCursor()  // Show the mouse cursor (default)
+void hideCursor()  // Hide the mouse cursor
+void setCursor(Cursor cursor)  // Set the mouse cursor shape
+Cursor getCursor()  // Get the current mouse cursor shape
+void bindCursorImage(Cursor cursor, int width, int height, const unsigned char* pixels, int hotspotX = 0, int hotspotY = 0)  // Bind a custom image to a cursor slot (RGBA pixels or Image)
+void bindCursorImage(Cursor cursor, const Image& image, int hotspotX = 0, int hotspotY = 0)  // Bind a custom image to a cursor slot (RGBA pixels or Image)
+void unbindCursorImage(Cursor cursor)  // Unbind a custom cursor image, restoring the system default
+```
+
+### Time - Frame
+
+```cpp
+double getDeltaTime()  // Seconds since last frame
+double getFrameRate()  // Current FPS
+float getFps()  // Get current FPS (alias for getFrameRate)
+uint64_t getFrameCount()  // Total frames rendered
+```
+
+### Memory
+
+```cpp
+int getSokolMemoryBytes()  // Total bytes allocated by sokol libraries
+int getSokolMemoryAllocs()  // Number of active allocations in sokol libraries
+void releaseSglBuffers()  // Release sokol_gl vertex/command buffers (auto re-allocated on next draw)
+size_t getMemoryUsage()  // Get process memory usage in bytes (platform-specific)
+size_t getFboCount()  // Get number of active FBO objects
+size_t getTextureCount()  // Get number of active Texture objects
+size_t getNodeCount()  // Get number of active Node objects in scene graph
+```
+
+### Platform
+
+```cpp
+bool Platform::isWeb()  // True on Web (Emscripten / WASM)
+bool Platform::isMacOS()  // True on macOS
+bool Platform::isIOS()  // True on iOS
+bool Platform::isWindows()  // True on Windows
+bool Platform::isAndroid()  // True on Android
+bool Platform::isLinux()  // True on Linux (desktop, excludes Android)
+bool Platform::isApple()  // True on any Apple platform (macOS or iOS)
+bool Platform::isMobile()  // True on mobile (iOS or Android)
+bool Platform::isDesktop()  // True on desktop (macOS, Windows, or Linux)
+const char* Platform::name()  // Short platform name: "web" / "macos" / "ios" / "windows" / "android" / "linux" / "unknown"
+```
+
+### Graphics Backend
+
+```cpp
+bool GraphicsBackend::isOpenGL()  // True when running on OpenGL (core or GLES3)
+bool GraphicsBackend::isMetal()  // True when running on Apple Metal
+bool GraphicsBackend::isD3D11()  // True when running on Direct3D 11
+bool GraphicsBackend::isWebGPU()  // True when running on WebGPU
+bool GraphicsBackend::isWebGL2()  // True when running on WebGL2 (GLES3 under Emscripten)
+bool GraphicsBackend::isVulkan()  // True when running on Vulkan
+const char* GraphicsBackend::name()  // Short backend name: "opengl" / "gles3" / "webgl2" / "d3d11" / "metal" / "webgpu" / "vulkan" / "dummy" / "unknown"
+```
+
+### Build Info
+
+```cpp
+const char* BuildInfo::date()  // Build date in "YYYY-MM-DD" form (local time, CMake configure time)
+const char* BuildInfo::time()  // Build time in "HH:MM:SS" form (local time)
+const char* BuildInfo::dateTime()  // Build date-time in "YYYY-MM-DD HH:MM:SS" form (local time)
+int64_t BuildInfo::timestamp()  // Build timestamp as Unix seconds (UTC)
+int BuildInfo::year()  // Build year (e.g. 2026)
+int BuildInfo::month()  // Build month (1-12)
+int BuildInfo::day()  // Build day of month (1-31)
+int BuildInfo::hour()  // Build hour (0-23)
+int BuildInfo::minute()  // Build minute (0-59)
+int BuildInfo::second()  // Build second (0-59)
+```
+
+### Time - Elapsed
+
+```cpp
+float getElapsedTimef()  // Elapsed seconds (float)
+float getElapsedTime()  // Elapsed seconds (alias for getElapsedTimef)
+uint64_t getElapsedTimeMillis()  // Elapsed milliseconds (int64)
+uint64_t getElapsedTimeMicros()  // Elapsed microseconds (int64)
+void resetElapsedTimeCounter()  // Reset elapsed time
+```
+
+### Time - System
+
+```cpp
+uint64_t getSystemTimeMillis()  // Unix time in milliseconds
+uint64_t getSystemTimeMicros()  // Unix time in microseconds
+uint64_t getUnixTime()  // Current Unix timestamp in seconds
+string getTimestampString()  // Formatted timestamp
+string getTimestampString(const string& format)  // Formatted timestamp
+```
+
+### Time - Current
+
+```cpp
+int getSeconds()  // Current seconds (0-59)
+int getMinutes()  // Current minutes (0-59)
+int getHours()  // Current hours (0-23)
+int getYear()  // Current year
+int getMonth()  // Current month (1-12)
+int getDay()  // Current day (1-31)
+int getWeekday()  // Weekday (0=Sun, 6=Sat)
+```
+
+### Math - Random & Noise
+
+```cpp
+float random()  // Random number
+float random(float max)  // Random number
+float random(float min, float max)  // Random number
+int randomInt(int max)  // Random integer
+int randomInt(int min, int max)  // Random integer
+void randomSeed(unsigned int seed)  // Set random seed
+float noise(float x)  // Perlin noise
+float noise(float x, float y)  // Perlin noise
+float noise(float x, float y, float z)  // Perlin noise
+float signedNoise(float x)  // Perlin noise (-1.0 to 1.0)
+float signedNoise(float x, float y)  // Perlin noise (-1.0 to 1.0)
+float signedNoise(float x, float y, float z)  // Perlin noise (-1.0 to 1.0)
+float signedNoise(float x, float y, float z, float w)  // Perlin noise (-1.0 to 1.0)
+float fbm(float x, float y, int octaves = 4, float lacunarity = 2.0, float gain = 0.5)  // Fractal Brownian Motion noise
+float fbm(float x, float y, float z, int octaves = 4, float lacunarity = 2.0, float gain = 0.5)  // Fractal Brownian Motion noise
+```
+
+### Math - Interpolation
+
+```cpp
+float lerp(float a, float b, float t)  // Linear interpolation
+float clamp(float v, float min, float max)  // Clamp value to range
+float remap(float v, float inMin, float inMax, float outMin, float outMax)  // Remap value from one range to another
+```
+
+### Math - Trigonometry
+
+```cpp
+float sin(float x)  // Sine
+float cos(float x)  // Cosine
+float tan(float x)  // Tangent
+float asin(float x)  // Arc sine
+float acos(float x)  // Arc cosine
+float atan(float x)  // Arc tangent
+float atan2(float y, float x)  // Arc tangent of y/x
+float deg2rad(float degrees)  // Degrees to radians
+float rad2deg(float radians)  // Radians to degrees
+```
+
+### Math - General
+
+```cpp
+float abs(float x)  // Absolute value
+float sqrt(float x)  // Square root
+float sq(float x)  // Square (x*x)
+float pow(float x, float y)  // Power (x^y)
+float log(float x)  // Natural logarithm
+float exp(float x)  // Exponential (e^x)
+float min(float a, float b)  // Minimum
+float max(float a, float b)  // Maximum
+float floor(float x)  // Round down
+float ceil(float x)  // Round up
+float round(float x)  // Round to nearest
+float fmod(float x, float y)  // Floating-point modulo
+float sign(float x)  // Sign (-1, 0, 1)
+float fract(float x)  // Fractional part
+float wrap(float value, float min, float max)  // Wrap value within range [min, max)
+float angleDifference(float angle1, float angle2)  // Shortest angle difference in radians [-TAU/2, TAU/2]
+float angleDifferenceDeg(float deg1, float deg2)  // Shortest angle difference in degrees [-180, 180]
+```
+
+### Math - Geometry
+
+```cpp
+float dist(float x1, float y1, float x2, float y2)  // Distance between points
+float distSquared(float x1, float y1, float x2, float y2)  // Squared distance
+```
+
+### Window & System
+
+```cpp
+void setWindowTitle(const string& title)  // Set window title
+void setWindowSize(int width, int height)  // Set window size
+IVec2 getWindowPosition()  // Get window position in screen coordinates (top-left origin). macOS/Windows only; other platforms return (-1, -1)
+void setWindowPosition(int x, int y)  // Set window position in screen coordinates (top-left origin). macOS/Windows only; no-op on other platforms
+void toggleFullscreen()  // Toggle fullscreen mode
+void setClipboardString(const string& text)  // Copy text to clipboard
+string getClipboardString()  // Get text from clipboard
+float getDpiScale()  // Get display DPI scale factor (e.g. 2.0 for Retina)
+int getFramebufferWidth()  // Get framebuffer width in pixels (window width * DPI scale)
+int getFramebufferHeight()  // Get framebuffer height in pixels (window height * DPI scale)
+float getAspectRatio()  // Get window aspect ratio (width / height)
+void setOrientation(Orientation mask)  // Set allowed screen orientations (mobile). Values: Orientation::Portrait, Landscape, All
+void setKeepScreenOn(bool enabled)  // Prevent display sleep / auto-lock while the app is running. Supported: Android, iOS, macOS, Windows. Linux / Web: no-op
+bool getKeepScreenOn()  // Check whether keep-screen-on is currently enabled
+void setIndependentFps(float updateFps, float drawFps)  // Set independent update and draw frame rates
+bool grabScreen(Pixels& outPixels)  // Capture current screen to Pixels
+bool saveScreenshot(const std::filesystem::path& path)  // Save a screenshot of the rendered frame (png/jpg/bmp). Safe to call from anywhere; capture is deferred to after present(). Returns true when the destination was prepared and the capture queued (parent dir created/writable), not that the file is already written.
+bool startRecording(const string& path, const VideoRecordSettings& settings = {})  // Start recording the window to a video file (native encoder, no ffmpeg)
+void stopRecording()  // Stop the current recording and finalize the file
+bool isRecording()  // Check whether a recording is in progress
+int recordingFrameCount()  // Number of frames captured so far in the current recording
+const string& recordingPath()  // Output file path of the current recording
+bool isFullscreen()  // Check if window is fullscreen
+void setFullscreen(bool fullscreen)  // Set fullscreen mode
+void redraw(int count = 1)  // Request extra redraws (useful for event-driven rendering)
+```
+
+### Utility
+
+```cpp
+void logNotice(const string& message)  // Print to console
+bool compress(const void* src, size_t nbytes, vector<uint8_t>& out, Codec codec)  // Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). The vector form resizes out and returns bool; the raw form writes into dst (capacity dstCapacity) and returns the number of bytes written (or -1), useful for compressing into a region of a buffer / parallel chunks
+bool compress(const void* src, size_t nbytes, void* dst, size_t dstCapacity, Codec codec)  // Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). The vector form resizes out and returns bool; the raw form writes into dst (capacity dstCapacity) and returns the number of bytes written (or -1), useful for compressing into a region of a buffer / parallel chunks
+bool decompress(const void* src, size_t nbytes, vector<uint8_t>& out, size_t decompressedSize, Codec codec)  // Decompress a byte buffer; decompressedSize is the known original byte count. The vector form resizes out and returns bool; the raw form writes into dst (capacity dstCapacity) and returns bytes written (or -1) - it can write into a region of an existing buffer (dst + offset), enabling parallel per-chunk decompression
+bool decompress(const void* src, size_t nbytes, void* dst, size_t dstCapacity, Codec codec)  // Decompress a byte buffer; decompressedSize is the known original byte count. The vector form resizes out and returns bool; the raw form writes into dst (capacity dstCapacity) and returns bytes written (or -1) - it can write into a region of an existing buffer (dst + offset), enabling parallel per-chunk decompression
+string toString(value)  // Convert to string
+void beep()  // Play a beep sound
+void beep(float frequency)  // Play a beep sound
+int toInt(const string& str)  // Convert string to int
+float toFloat(const string& str)  // Convert string to float
+vector<string> splitString(const string& source, const string& delimiter)  // Split string by delimiter
+string joinString(const vector<string>& elements, const string& delimiter)  // Join strings with delimiter
+void stringReplace(string& input, const string& searchStr, const string& replaceStr)  // Replace substring in place
+string toLower(const string& src)  // Convert to lower case
+string toUpper(const string& src)  // Convert to upper case
+void intersectRect(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2, float& ox, float& oy, float& ow, float& oh)  // Compute intersection of two rectangles
+void mcp::registerDebuggerTools()  // Opt in to the MCP debugger tools, letting an AI agent drive the app: input injection (mouse_click, key_press, mouse_move, scroll) plus node selection and scene mutation (select_node, set_node_members). Call once in setup(); calling it IS the opt-in (there is no separate enable step). The tools do nothing unless the MCP server is running (TRUSSC_MCP=1), so it is safe to leave in. Read-only inspection — screenshots and the node tree — needs no opt-in and is always available when MCP is on.
+```
+
+### File
+
+```cpp
+string getDataPath(const string& path)  // Get full path relative to data directory
+string getAbsolutePath(const string& path)  // Get absolute path
+string getFileName(const string& path)  // Get filename from path
+string getBaseName(const string& path)  // Get filename without extension
+string getFileExtension(const string& path)  // Get file extension without dot
+string getParentDirectory(const string& path)  // Get parent directory
+string joinPath(const string& dir, const string& file)  // Join directory and filename
+string getAbsolutePath(const string& path)  // Get absolute path
+bool fileExists(const string& path)  // Check if file exists
+bool directoryExists(const string& path)  // Check if directory exists
+bool createDirectory(const string& path)  // Create directory (and parents)
+vector<string> listDirectory(const string& path)  // List files in directory
+bool removeFile(const string& path)  // Remove file
+int64_t getFileSize(const string& path)  // Get file size in bytes
+string loadTextFile(const string& path)  // Load entire text file
+bool saveTextFile(const string& path, const string& content)  // Save string to text file
+bool appendToFile(const string& path, const string& content)  // Append string to file
+```
+
+### Sound
+
+```cpp
+ Sound()  // Create a sound player
+bool load(const string& path)  // Load sound file. Format auto-detected by extension: .wav .mp3 .ogg .flac .aac .m4a
+bool loadStream(const string& path, int maxPolyphony = 1)  // Stream sound from disk (WAV/MP3/FLAC). Best for long files; cuts memory. maxPolyphony = simultaneous play() count.
+bool isStreaming()  // True if this Sound was loaded via loadStream() (vs eager load())
+void play()  // Play sound
+void stop()  // Stop sound
+void pause()  // Pause playback (resume() to continue)
+void resume()  // Resume paused playback
+bool isPlaying()  // True while playing (false if stopped, paused, or never played)
+bool isPaused()  // True while paused
+bool isLoaded()  // True after a successful load() / loadStream() / loadTestTone()
+float getPosition()  // Get current playback position in seconds
+void setPosition(float seconds)  // Seek to a specific time in seconds. On streams, costs ~10 ms blackout while the ring refills.
+float getDuration()  // Get total duration of the loaded sound in seconds
+void setVolume(float vol)  // Set volume (0.0-1.0)
+float getVolume()  // Get current volume
+void setPan(float pan)  // Set stereo balance (-1.0 left ~ 0 center ~ +1.0 right). On multi-ch devices only affects ch0/ch1.
+float getPan()  // Get current pan value
+void setSpeed(float speed)  // Playback speed [-10, 10]. Negative = reverse (eager only). Streams clamp to [0, 10]. 0 = freeze.
+float getSpeed()  // Get current playback speed
+void setLoop(bool loop)  // Enable/disable looping
+bool isLoop()  // True if looping is enabled
+void setMixMode(MixMode m)  // Channel routing preset. Auto (default) = mono broadcasts / multi 1:1. DownmixMono = average src to all out ch.
+void setChannelMap(const vector<int>& map)  // Per-output-channel routing. 1D: each entry is a src ch index (-1 = silent). 2D: each entry lists src ch indices that sum into that output.
+void setChannelMap(vector<vector<int>> map)  // Per-output-channel routing. 1D: each entry is a src ch index (-1 = silent). 2D: each entry lists src ch indices that sum into that output.
+void setChannelGains(const vector<float>& gains)  // Per-output-channel gain multiplier. Entries beyond .size() default to 1.0. No internal normalization (setVolume is the overall gain).
+void clearChannelMap()  // Clear the explicit channel map; routing falls back to setMixMode rules.
+void clearChannelGains()  // Clear per-channel gains (back to uniform 1.0).
+```
+
+### AudioEngine
+
+```cpp
+AudioEngine& getInstance()  // Get the global AudioEngine singleton
+bool init()  // Initialize / re-initialize audio engine. Re-entrant: calling on a running engine stops the device, migrates active voices to new settings, restarts. ~30-100 ms gap; voices keep playback position.
+bool init(const AudioSettings& settings)  // Initialize / re-initialize audio engine. Re-entrant: calling on a running engine stops the device, migrates active voices to new settings, restarts. ~30-100 ms gap; voices keep playback position.
+void shutdown()  // Shut down the audio device. Usually called automatically at program exit.
+vector<AudioDeviceInfo> listDevices()  // Enumerate available playback devices. Returns name + isDefault for each.
+int getSampleRate()  // Current engine sample rate (Hz). Returns default (48000) if not yet initialized.
+int getChannels()  // Current engine output channel count
+int getMaxPolyphony()  // Max simultaneously-playing Sound voices
+int getBufferSize()  // Current device buffer size in frames (0 = miniaudio default)
+bool isInitialized()  // True after a successful init()
+Event<AudioOutBuffer> audioOut()  // Real-time playback callback event. listen() to add a synthesis / processing listener. Fires per audio buffer on the audio thread; keep RT-safe.
+Event<AudioInBuffer> audioIn()  // Real-time capture callback event (microphone input). RT-safe same as audioOut.
+Event<AudioDeviceChangedArgs> audioDeviceChanged()  // Fires after every successful init() (initial AND re-init). Args carry the resolved device's real name, isDefaultDevice flag, sampleRate, channels, bufferSize, maxPolyphony. Listener runs on the thread that called init() (main), not the audio thread.
+```
+
+### ChipSound
+
+```cpp
+ ChipSoundNote()  // Create a chip sound note (8-bit style sound)
+ChipSoundNote& wave(Wave type)  // Set wave type (Sin, Square, Triangle, Sawtooth, Noise, PinkNoise)
+ChipSoundNote& hz(float frequency)  // Set frequency in Hz
+ChipSoundNote& duration(float seconds)  // Set note duration in seconds
+ChipSoundNote& volume(float vol)  // Set volume (0.0-1.0)
+ChipSoundNote& attack(float seconds)  // Set attack time (ADSR envelope)
+ChipSoundNote& decay(float seconds)  // Set decay time (ADSR envelope)
+ChipSoundNote& sustain(float level)  // Set sustain level (0.0-1.0)
+ChipSoundNote& release(float seconds)  // Set release time (ADSR envelope)
+ChipSoundNote& adsr(float a, float d, float s, float r)  // Set ADSR envelope (attack, decay, sustain, release)
+ChipSoundBundle& add(const ChipSoundNote& note, float time)  // Add a note at specified time (seconds)
+ChipSoundBundle& clear()  // Clear all notes from bundle
+float getDuration()  // Get the total duration of the bundle
+```
+
+### Font
+
+```cpp
+bool load(const string& path, int size)  // Load TTF font file
+bool isLoaded()  // Check if font is loaded
+void drawString(const string& text, float x, float y)  // Draw text at position
+Path getStringPath(const string& text, float x, float y)  // Get text outline as a Path (one subpath per contour). Stays crisp under scale / rotation; use drawStroke / drawFill (holes auto-detected for e, a, O, 日, etc.).
+float getWidth(const string& text)  // Get text width in pixels
+float getHeight(const string& text)  // Get text height in pixels
+float getLineHeight()  // Get line height
+int getSize()  // Get font size
+string systemFontPath(const string& name)  // Resolve a system font name (PostScript / family) to a file path. Returns empty string if not found. macOS uses CoreText; Linux/Windows currently stub.
+vector<string> listSystemFonts()  // Enumerate names of all fonts known to the OS
+```
+
+### Animation
+
+```cpp
+float ease(float t, EaseType type, EaseMode mode)  // Apply easing to value (0-1)
+float easeIn(float t, EaseType type)  // Apply ease-in to value (0-1)
+float easeOut(float t, EaseType type)  // Apply ease-out to value (0-1)
+float easeInOut(float t, EaseType type)  // Apply ease-in-out to value (0-1)
+float getValue()  // Get current tween value
+float getProgress()  // Get progress (0-1)
+float getElapsed()  // Get elapsed time
+float getDuration()  // Get duration
+bool isPlaying()  // Check if playing
+bool isComplete()  // Check if complete
+float getStart()  // Get start value
+float getEnd()  // Get end value
+int getLoopCount()  // Get number of completed loop iterations
+```
+
+### Types - Vec2
+
+```cpp
+ Vec2()  // Create 2D vector (type constructor)
+ Vec2(float x, float y)  // Create 2D vector (type constructor)
+ Vec2(float v)  // Create 2D vector (type constructor)
+Vec2& set(float x, float y)  // Set vector components (type method)
+Vec2& set(Vec2 v)  // Set vector components (type method)
+Vec2 Vec2_fromAngle(float radians)  // Create Vec2 from angle
+Vec2 Vec2_fromAngle(float radians, float length)  // Create Vec2 from angle
+```
+
+### Types - Vec3
+
+```cpp
+ Vec3()  // Create 3D vector (type constructor)
+ Vec3(float x, float y, float z)  // Create 3D vector (type constructor)
+ Vec3(float v)  // Create 3D vector (type constructor)
+Vec3& set(float x, float y, float z)  // Set vector components (type method)
+Vec3& set(Vec3 v)  // Set vector components (type method)
+```
+
+### Types - Color
+
+```cpp
+ Color()  // Create color (type constructor)
+ Color(float r, float g, float b)  // Create color (type constructor)
+ Color(float r, float g, float b, float a)  // Create color (type constructor)
+Color& set(float r, float g, float b)  // Set color components (type method)
+Color& set(float r, float g, float b, float a)  // Set color components (type method)
+Color& set(float gray)  // Set color components (type method)
+Color& set(Color c)  // Set color components (type method)
+ColorHSB toHSB()  // Convert to HSB color space (H: 0-1, S: 0-1, B: 0-1)
+ColorOKLab toOKLab()  // Convert to OKLab color space (perceptually uniform)
+ColorOKLCH toOKLCH()  // Convert to OKLCH color space (L: 0-1, C: 0-0.4, H: 0-1)
+Color Color_fromHSB(float h, float s, float b)  // Create Color from HSB (H: 0-1, S: 0-1, B: 0-1)
+Color Color_fromHSB(float h, float s, float b, float a)  // Create Color from HSB (H: 0-1, S: 0-1, B: 0-1)
+Color colorFromHSB(float h, float s, float b)  // Create Color from HSB (alias for Color_fromHSB)
+Color colorFromHSB(float h, float s, float b, float a)  // Create Color from HSB (alias for Color_fromHSB)
+Color Color_fromOKLCH(float L, float C, float H)  // Create Color from OKLCH
+Color Color_fromOKLCH(float L, float C, float H, float a)  // Create Color from OKLCH
+Color Color_fromOKLab(float L, float a, float b)  // Create Color from OKLab
+Color Color_fromOKLab(float L, float a, float b, float alpha)  // Create Color from OKLab
+```
+
+### Types - ColorHSB
+
+```cpp
+ ColorHSB(float h, float s, float b)  // HSB color type (H: 0-1, S: 0-1, B: 0-1). Use toRGB() to convert to Color
+ ColorHSB(float h, float s, float b, float a)  // HSB color type (H: 0-1, S: 0-1, B: 0-1). Use toRGB() to convert to Color
+Color toRGB()  // Convert ColorHSB to Color (RGB)
+ColorHSB lerp(ColorHSB target, float t)  // Interpolate in HSB space (shortest hue path)
+```
+
+### Types - ColorOKLCH
+
+```cpp
+ ColorOKLCH(float L, float C, float H)  // OKLCH color type (L: 0-1, C: 0-0.4, H: 0-1). Perceptually uniform
+ ColorOKLCH(float L, float C, float H, float a)  // OKLCH color type (L: 0-1, C: 0-0.4, H: 0-1). Perceptually uniform
+Color toRGB()  // Convert ColorOKLCH to Color (RGB)
+ColorOKLCH lerp(ColorOKLCH target, float t)  // Interpolate in OKLCH space (shortest hue path, perceptually uniform)
+```
+
+### Types - Rect
+
+```cpp
+ Rect()  // Create a rectangle (type constructor)
+ Rect(float x, float y, float w, float h)  // Create a rectangle (type constructor)
+Rect& set(float x, float y, float w, float h)  // Set rectangle properties (type method)
+Rect& set(Vec2 pos, float w, float h)  // Set rectangle properties (type method)
+bool contains(float x, float y)  // Check if point is inside (type method)
+bool intersects(Rect other)  // Check intersection (type method)
+```
+
+### Scene Graph
+
+```cpp
+ Node()  // Create a base scene node (C++ only - uses shared_ptr)
+void addChild(shared_ptr<Node> child)  // Add a child node (C++ only)
+void moveToFront()  // Move this node to the end of its parent's child list — drawn last, on top of siblings. No-op if no parent or already last (C++ only)
+void moveToBack()  // Move this node to the beginning of its parent's child list — drawn first, beneath siblings. No-op if no parent or already first (C++ only)
+void destroy()  // Mark node for deferred removal from scene graph (C++ only)
+bool isDead()  // Check if node is marked for destruction (C++ only)
+void setPosition(float x, float y)  // Set position (C++ only)
+void setPosition(Vec3 pos)  // Set position (C++ only)
+ RectNode()  // Create a 2D rectangle node (C++ only - uses shared_ptr)
+void setSize(float w, float h)  // Set size (C++ only)
+void setClipping(bool enabled)  // Enable/disable scissor clipping for RectNode (C++ only)
+void enableEvents()  // Enable mouse/key events for this node (C++ only)
+ ScrollContainer()  // Scrollable container node with clipping (C++ only)
+void setContent(shared_ptr<RectNode> content)  // Set content node for ScrollContainer (C++ only)
+void setScrollY(float y)  // Set vertical scroll position (C++ only)
+ ScrollBar(ScrollContainer* container, Direction dir = Vertical)  // Visual scroll indicator for ScrollContainer (C++ only)
+ LayoutMod(LayoutDirection dir, float spacing = 0)  // Layout modifier for automatic child arrangement (C++ only)
+void updateLayout()  // Recalculate layout (call after adding/removing children) (C++ only)
+ TweenMod()  // Animation modifier for Node properties (position, scale, rotation) with easing (C++ only)
+TweenMod& moveTo(float x, float y)  // Animate position to target (TweenMod method) (C++ only)
+TweenMod& moveTo(Vec3 pos)  // Animate position to target (TweenMod method) (C++ only)
+TweenMod& moveBy(float dx, float dy)  // Animate position by relative amount (TweenMod method) (C++ only)
+TweenMod& scaleTo(float uniform)  // Animate scale to target (TweenMod method) (C++ only)
+TweenMod& scaleTo(float sx, float sy, float sz = 1)  // Animate scale to target (TweenMod method) (C++ only)
+TweenMod& scaleBy(float factor)  // Animate scale by relative multiplier (TweenMod method) (C++ only)
+TweenMod& rotateTo(float radians)  // Animate rotation to target angle or quaternion (TweenMod method) (C++ only)
+TweenMod& rotateTo(Quaternion q)  // Animate rotation to target angle or quaternion (TweenMod method) (C++ only)
+TweenMod& rotateBy(float radians)  // Animate rotation by relative angle (TweenMod method) (C++ only)
+TweenMod& duration(float seconds)  // Set animation duration (TweenMod method) (C++ only)
+TweenMod& ease(EaseType type, EaseMode mode = InOut)  // Set easing function (TweenMod method). Types: Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce. Modes: In, Out, InOut (C++ only)
+TweenMod& delay(float seconds)  // Set delay before animation starts (TweenMod method) (C++ only)
+```
+
+### 3D Setup
+
+```cpp
+void setupScreenPerspective()  // Set up perspective projection (oF-style default 3D)
+void setupScreenPerspective(float fovDeg)  // Set up perspective projection (oF-style default 3D)
+void setupScreenPerspective(float fovDeg, float nearDist, float farDist)  // Set up perspective projection (oF-style default 3D)
+void setupScreenOrtho()  // Set up orthographic projection (2D mode)
+void setupScreenFov(float fovDeg)  // Set up screen projection with specified FOV (0 = ortho, >0 = perspective)
+void setupScreenFov(float fovDeg, float nearDist, float farDist)  // Set up screen projection with specified FOV (0 = ortho, >0 = perspective)
+void setDefaultScreenFov(float fovDeg)  // Set default screen FOV (applied at frame start)
+float getDefaultScreenFov()  // Get current default screen FOV
+Vec3 worldToScreen(const Vec3& worldPos)  // Convert world coordinate to screen coordinate (x, y = screen pos, z = depth 0-1)
+Vec3 screenToWorld(const Vec2& screenPos)  // Convert screen coordinate to world coordinate on Z plane
+Vec3 screenToWorld(const Vec2& screenPos, float worldZ)  // Convert screen coordinate to world coordinate on Z plane
+```
+
+### 3D Camera
+
+```cpp
+void begin()  // Apply camera transform (start 3D mode)
+void end()  // Restore previous transform (end 3D mode)
+void reset()  // Reset camera to default position
+void setTarget(float x, float y, float z)  // Set camera look-at target
+Vec3 getTarget()  // Get camera look-at target
+void setDistance(float distance)  // Set distance from target
+float getDistance()  // Get distance from target
+void setAzimuth(float radians)  // Set orbit azimuth (horizontal angle, radians)
+float getAzimuth()  // Get orbit azimuth (horizontal angle, radians)
+void setElevation(float radians)  // Set orbit elevation (vertical angle, radians; clamped to ~±80°)
+float getElevation()  // Get orbit elevation (vertical angle, radians)
+void setFov(float radians)  // Set field of view in radians
+float getFov()  // Get field of view in radians
+void setFovDeg(float degrees)  // Set field of view in degrees
+void setNearClip(float nearClip)  // Set near clipping plane
+void setFarClip(float farClip)  // Set far clipping plane
+float getNearClip()  // Get near clipping plane distance
+float getFarClip()  // Get far clipping plane distance
+void enableMouseInput()  // Enable mouse input for camera control
+void disableMouseInput()  // Disable mouse input for camera control
+bool isMouseInputEnabled()  // Check if mouse input is enabled
+void mousePressed(int x, int y, int button)  // Handle mouse press event
+void mouseReleased(int x, int y, int button)  // Handle mouse release event
+void mouseDragged(int x, int y, int button)  // Handle mouse drag event
+void mouseScrolled(float dx, float dy)  // Handle mouse scroll event (for zoom)
+Vec3 getPosition()  // Get camera position
+void setSensitivity(float sensitivity)  // Set rotation sensitivity
+void setZoomSensitivity(float sensitivity)  // Set zoom sensitivity
+void setPanSensitivity(float sensitivity)  // Set pan sensitivity
+```
+
+### Lighting & PBR
+
+```cpp
+void addLight(Light& light)  // Add a light to the scene
+void removeLight(Light& light)  // Remove a light from the scene
+void clearLights()  // Remove all lights from the scene
+void setMaterial(Material& material)  // Set material for subsequent mesh draws (activates PBR)
+void clearMaterial()  // Clear material (return to default rendering)
+void setCameraPosition(const Vec3& pos)  // Set camera position for specular calculation
+void setCameraPosition(float x, float y, float z)  // Set camera position for specular calculation
+void setEnvironment(Environment& env)  // Set IBL environment for PBR ambient lighting
+void clearEnvironment()  // Clear IBL environment
+void beginShadowPass(Light& light)  // Begin shadow depth pass from the light's point of view
+void endShadowPass()  // End shadow depth pass
+void shadowDraw(const Mesh& mesh)  // Draw a mesh into the shadow depth pass (depth only)
+```
+
+### Math - 3D
+
+```cpp
+Mat4 Mat4_identity()  // Create an identity matrix
+Mat4 Mat4_translate(float x, float y, float z)  // Create a translation matrix
+Mat4 Mat4_translate(Vec3 v)  // Create a translation matrix
+Mat4 Mat4_rotateX(float radians)  // Create X-axis rotation matrix
+Mat4 Mat4_rotateY(float radians)  // Create Y-axis rotation matrix
+Mat4 Mat4_rotateZ(float radians)  // Create Z-axis rotation matrix
+Mat4 Mat4_scale(float s)  // Create a scaling matrix
+Mat4 Mat4_scale(float sx, float sy, float sz)  // Create a scaling matrix
+Mat4 Mat4_lookAt(Vec3 eye, Vec3 target, Vec3 up)  // Create a view matrix
+Mat4 Mat4_ortho(float left, float right, float bottom, float top, float nearPlane, float farPlane)  // Create an orthographic projection matrix
+Mat4 Mat4_perspective(float fovY, float aspect, float nearPlane, float farPlane)  // Create a perspective projection matrix
+Quaternion Quaternion_identity()  // Create an identity quaternion
+Quaternion Quaternion_fromAxisAngle(Vec3 axis, float radians)  // Create quaternion from axis-angle
+Quaternion Quaternion_fromEuler(float pitch, float yaw, float roll)  // Create quaternion from Euler angles
+Quaternion Quaternion_fromEuler(Vec3 euler)  // Create quaternion from Euler angles
+Quaternion Quaternion_slerp(Quaternion a, Quaternion b, float t)  // Spherical linear interpolation
+```
+
+### Graphics - Advanced
+
+```cpp
+void drawMesh(Mesh mesh)  // Draw a mesh
+void drawPolyline(Polyline polyline)  // Draw a polyline
+Mesh createBox(float size)  // Create a box mesh
+Mesh createBox(float w, float h, float d)  // Create a box mesh
+Mesh createSphere(float radius, int res = 20)  // Create a sphere mesh
+Mesh createCapsule(float radius, float cylinderHeight, int res = 16)  // Create a capsule mesh (Y-up: cylinder capped by two hemispheres)
+void drawTexture(const Texture& tex, float x, float y)  // Draw a texture
+void drawTexture(const Texture& tex, float x, float y, float w, float h)  // Draw a texture
+```
+
+### Graphics - Texture & GPU
+
+```cpp
+ Texture()  // Create a texture
+bool load(const string& path)  // Load image from file
+bool loadFromPixels(const Pixels& pixels)  // Load from pixel data
+void bind(int slot = 0)  // Bind texture
+void unbind(int slot = 0)  // Unbind texture
+int getWidth()  // Get width
+int getHeight()  // Get height
+```
+
+### Graphics - FBO
+
+```cpp
+ Fbo()  // Create an FBO
+void allocate(int w, int h)  // Allocate buffer
+void begin()  // Begin drawing to FBO. No args = preserve previous content. With args = clear with specified color
+void begin(float r, float g, float b, float a = 1.0)  // Begin drawing to FBO. No args = preserve previous content. With args = clear with specified color
+void end()  // End drawing to FBO
+Texture& getTexture()  // Get internal texture
+void readToPixels(Pixels& pixels)  // Read pixels to CPU memory
+```
+
+### Graphics - Shader
+
+```cpp
+ Shader()  // Create a shader (base class, inheritable)
+bool load(const sg_shader_desc* (*descFn)(sg_backend))  // Load from sokol-shdc generated function
+bool isLoaded()  // Check if shader is loaded
+void begin()  // Begin shader (pushes to stack)
+void end()  // End shader (pops from stack)
+void pushShader(Shader& shader)  // Push shader to stack (subsequent draws use this shader)
+void popShader()  // Pop shader from stack
+void setUniform(int slot, float value)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setUniform(int slot, const Vec2& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setUniform(int slot, const Vec3& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setUniform(int slot, const Vec4& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setUniform(int slot, const Color& c)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setUniform(int slot, const vector<float>& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setUniform(int slot, const vector<Vec2>& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setUniform(int slot, const vector<Vec3>& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setUniform(int slot, const vector<Vec4>& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void setTexture(int slot, sg_view view, sg_sampler sampler)  // Bind texture to slot
+```
+
+### Types - Pixels
+
+```cpp
+ Pixels()  // Create pixel buffer
+void allocate(int w, int h, int channels)  // Allocate memory
+uint8_t* getData()  // Get raw data pointer
+Color getColor(int x, int y)  // Get color at pixel
+void setColor(int x, int y, const Color& c)  // Set color at pixel
+bool save(const string& path)  // Save to file
+```
+
+### Types - Mesh
+
+```cpp
+ Mesh()  // Create a new Mesh (constructor)
+void setMode(int mode)  // Set primitive mode (MESH_TRIANGLES, etc.)
+void addVertex(float x, float y, float z)  // Add a vertex
+void addVertex(Vec3 v)  // Add a vertex
+void addColor(float r, float g, float b, float a)  // Add a color for the vertex
+void addColor(Color c)  // Add a color for the vertex
+void addTexCoord(float u, float v)  // Add a texture coordinate
+void addNormal(float x, float y, float z)  // Add a normal vector
+void addIndex(int index)  // Add an index
+void addTriangle(int i1, int i2, int i3)  // Add a triangle (3 indices)
+void clear()  // Clear all data
+void draw()  // Draw the mesh
+```
+
+### Types - Path
+
+```cpp
+ Path()  // Create a new Path (constructor)
+void addVertex(float x, float y)  // Add a vertex
+void lineTo(float x, float y)  // Add a line segment to point
+void bezierTo(float cx1, float cy1, float cx2, float cy2, float x, float y)  // Add a cubic bezier curve
+void quadBezierTo(float cx, float cy, float x, float y)  // Add a quadratic bezier curve
+void curveTo(float x, float y)  // Add a Catmull-Rom curve segment
+void arc(float x, float y, float rX, float rY, float angleBegin, float angleEnd)  // Add an arc
+void close()  // Close the shape
+```
+
+### Types - StrokeMesh
+
+```cpp
+StrokeMesh& setWidth(float width)  // Set stroke width (method chaining)
+StrokeMesh& setCapType(int type)  // Set cap type: Butt, Round, Square (method chaining)
+StrokeMesh& setJoinType(int type)  // Set join type: Miter, Round, Bevel (method chaining)
+StrokeMesh& setMiterLimit(float limit)  // Set miter limit for sharp corners (method chaining)
+StrokeMesh& addVertex(float x, float y)  // Add a vertex (method chaining)
+StrokeMesh& addVertex(float x, float y, float z)  // Add a vertex (method chaining)
+StrokeMesh& addVertexWithWidth(float x, float y, float width)  // Add a vertex with variable width (method chaining)
+StrokeMesh& setClosed(bool closed)  // Set whether the stroke is closed (method chaining)
+StrokeMesh& clear()  // Clear all vertices (method chaining)
+void update()  // Update the internal mesh (required before draw)
+void draw()  // Draw the stroke mesh
+```
+
+### Video
+
+```cpp
+ VideoPlayer()  // Create a video player
+bool load(const string& path)  // Load a video file
+void close()  // Close the video and release resources
+bool isLoaded()  // Check if a video is loaded
+void play()  // Start or resume playback
+void stop()  // Stop playback and reset to beginning
+void setPaused(bool paused)  // Pause or resume playback
+void togglePause()  // Toggle pause state
+void update()  // Update the video frame. Call once per frame in update()
+bool isPlaying()  // Check if video is currently playing (not paused)
+bool isPaused()  // Check if video is paused
+bool isFrameNew()  // Check if a new frame is available since last update
+bool isDone()  // Check if playback has reached the end
+float getWidth()  // Get video width in pixels
+float getHeight()  // Get video height in pixels
+float getDuration()  // Get total duration in seconds
+float getPosition()  // Get current position (0.0 to 1.0)
+void setPosition(float pct)  // Seek to position (0.0 to 1.0)
+float getCurrentTime()  // Get current playback time in seconds
+void setCurrentTime(float seconds)  // Seek to a specific time in seconds
+void setVolume(float vol)  // Set audio volume (0.0 to 1.0)
+float getVolume()  // Get current volume
+void setSpeed(float speed)  // Set playback speed (1.0 = normal, 2.0 = double speed)
+float getSpeed()  // Get current playback speed
+void setPan(float pan)  // Set stereo pan (-1.0 left, 0.0 center, 1.0 right)
+float getPan()  // Get current stereo pan
+void setLoop(bool loop)  // Enable/disable looping
+bool isLoop()  // Check if looping is enabled
+int getCurrentFrame()  // Get current frame number
+int getTotalFrames()  // Get total number of frames
+void setFrame(int frame)  // Seek to a specific frame number
+void nextFrame()  // Advance to the next frame
+void previousFrame()  // Go back to the previous frame
+void firstFrame()  // Go to the first frame
+void setGammaCorrection(float gamma)  // Set gamma correction (1.0 = none). Use ~0.45 to brighten on platforms with dark output (e.g. macOS AVFoundation)
+float getGammaCorrection()  // Get current gamma correction value
+void setUseHwAccel(bool enable)  // Enable/disable hardware decoding. Must be called before load(). Default: true. When enabled, the player probes available HW backends (VAAPI, V4L2M2M, CUDA, etc.) and falls back to software if none are available. Currently affects the Linux backend only.
+bool getUseHwAccel()  // Get HW accel preference (not the actual backend — use isUsingHwAccel() for that)
+bool isUsingHwAccel()  // Check if hardware decoding is currently active (after load)
+string getHwAccelName()  // Get the name of the active decode backend. Returns 'vaapi', 'v4l2m2m', 'cuda', 'videotoolbox', 'mediafoundation', 'software', or 'none'
+void setResyncThreshold(float seconds)  // Set the maximum video/audio drift before hard re-sync. When drift exceeds this threshold, video seeks to match audio position instead of catching up frame-by-frame. Set to 0 to disable. Default: 0.5s. Primarily affects Linux (FFmpeg) backend.
+float getResyncThreshold()  // Get the current resync threshold in seconds
+bool hasAudio()  // Check if the loaded video has an audio track
+bool extractFrame(const string& path, Pixels& outPixels, float timeSec)  // Extract a single frame from a video file without loading the full video. Useful for thumbnails
+ ScreenRecorder()  // Live screen recorder: captures the window (or an Fbo) every frame to a video file (native encoder, no ffmpeg)
+bool start(const string& path, const VideoRecordSettings& settings = {})  // Start live capture (window, or an Fbo for clean GUI-free output); size is taken automatically
+bool start(const Fbo& fbo, const string& path, const VideoRecordSettings& settings = {})  // Start live capture (window, or an Fbo for clean GUI-free output); size is taken automatically
+void stop()  // Stop live capture and finalize the file
+ VideoWriter()  // Low-level video encoder: you feed it frames (deterministic, fixed-rate offline render)
+bool open(const string& path, int width, int height, const VideoRecordSettings& settings = {})  // Open the encoder at the given size (path resolved via getDataPath)
+bool addFrame(const Fbo& fbo)  // Append one frame at the fixed-rate clock (frameIndex/fps)
+bool addFrame(const Pixels& pixels)  // Append one frame at the fixed-rate clock (frameIndex/fps)
+bool addFrameAt(const Fbo& fbo, double timeSec)  // Append one frame at an explicit presentation time (seconds)
+bool addFrameAt(const Pixels& pixels, double timeSec)  // Append one frame at an explicit presentation time (seconds)
+void close()  // Finalize and flush the video file
+```
+
+### Addon: tcxLut (Color Grading)
+
+```cpp
+ tcx::lut::Lut3D()  // Create a 3D LUT for color grading
+bool load(const fs::path& path)  // Load .cube file
+void allocate(int size, const float* data = nullptr)  // Allocate LUT with optional data
+bool isAllocated()  // Check if LUT is allocated
+int getSize()  // Get LUT size (e.g., 32 for 32x32x32)
+Lut3D tcx::lut::createIdentity(int size = 32)  // Create identity LUT (no color change)
+Lut3D tcx::lut::createVintage(int size = 32)  // Create vintage/faded look LUT
+Lut3D tcx::lut::createCinematic(int size = 32)  // Create cinematic orange/teal LUT
+Lut3D tcx::lut::createFilmNoir(int size = 32)  // Create film noir high-contrast B&W LUT
+Lut3D tcx::lut::createWarm(int size = 32)  // Create warm color shift LUT
+Lut3D tcx::lut::createCool(int size = 32)  // Create cool color shift LUT
+Lut3D tcx::lut::createCyberpunk(int size = 32)  // Create cyberpunk neon pink/cyan LUT
+Lut3D tcx::lut::createPastel(int size = 32)  // Create soft pastel LUT
+ tcx::lut::LutShader()  // Create a LUT shader for color grading
+void setTexture(const T& tex)  // Set source texture (VideoGrabber, Texture, Fbo, etc.)
+void setLut(const Lut3D& lut)  // Set LUT to apply
+void setBlend(float blend)  // Set blend amount (0=original, 1=full LUT)
+void draw(float x, float y)  // Draw with LUT applied
+void draw(float x, float y, float w, float h)  // Draw with LUT applied
+void drawSubsection(float x, float y, float w, float h, float sx, float sy, float sw, float sh)  // Draw subsection with LUT applied
+```
+
+### Timers
+
+```cpp
+uint64_t callAfter(double delay, std::function<void()> callback)  // Run callback once after delay seconds. Fired from the update loop (frame-quantized). Returns a timer id.
+uint64_t callEvery(double interval, std::function<void()> callback)  // Run callback repeatedly every interval seconds. Fired from the update loop (frame-quantized). Returns a timer id.
+uint64_t callAfterAsync(double delay, std::function<void()> callback)  // Like callAfter, but fired by a precise background scheduler thread (no frame jitter). The callback runs OFF the main thread: guard shared state with a mutex, never draw from it, and don't cancel while holding that mutex. Native only (uses a real thread). Returns a timer id.
+uint64_t callEveryAsync(double interval, std::function<void()> callback)  // Like callEvery, but fired by a precise background scheduler thread with no drift (reschedules at absolute times). Ideal for sequencer clocks and LED/MIDI output timing. Same threading rules as callAfterAsync. Native only. Returns a timer id.
+void cancelTimer(uint64_t id)  // Cancel a frame timer (callAfter/callEvery) by id.
+void cancelAllTimers()  // Cancel all frame timers on this node.
+void cancelAsyncTimer(uint64_t id)  // Cancel an async timer by id. Blocks until its callback finishes if it is running now (unless called from inside the callback). Do not call while holding the mutex the callback uses.
+void cancelAllAsyncTimers()  // Cancel all async timers on this node (e.g. on mode change). Waits out any in-flight callback. Call it WITHOUT holding the callback's mutex to avoid a deadlock.
+```
+
+### Network
+
+```cpp
+std::vector<NetworkInterface> listNetworkInterfaces()  // List all network interface address entries (IPv4/IPv6, loopback, up or down)
+void printNetworkInterfaces()  // Log the interface list (one line per entry)
+std::string getLocalIp()  // The most likely LAN address (skips loopback/down, IPv4 preferred). "" if none
+std::vector<std::string> getLocalIps()  // Every non-loopback address (one per interface entry)
+bool isLoopback(const std::string& addr)  // True if addr is a loopback address (127.0.0.0/8 or ::1)
+bool isPrivate(const std::string& addr)  // True if addr is a private IPv4 (10/8, 172.16/12, 192.168/16)
+bool isLinkLocal(const std::string& addr)  // True if addr is link-local (169.254/16 or fe80::/10)
+bool sameSubnet(const std::string& a, const std::string& b, const std::string& netmask)  // True if IPv4 a and b are on the same subnet under netmask
+std::string getOui(const std::string& mac)  // The OUI (first 3 bytes) of a MAC, uppercase "A4:83:E7". "" if unparseable
+bool isLocallyAdministered(const std::string& mac)  // True if the MAC's locally-administered bit is set (randomized/virtual MAC)
+```
+
+### Types
+
+#### Vec2 — 2D vector (x, y)
+
+```cpp
+Vec2()
+Vec2(float x, float y)
+Vec2(float v)
+float x  // X component
+float y  // Y component
+Vec2& set(float x, float y)  // Set vector components
+Vec2& set(Vec2 v)  // Set vector components
+float length()  // Get vector length
+float lengthSquared()  // Get squared length (faster, no sqrt)
+Vec2 normalized()  // Get normalized copy
+Vec2& normalize()  // Normalize in place
+Vec2& limit(float max)  // Limit length to max
+float dot(Vec2 v)  // Dot product
+float cross(Vec2 v)  // Cross product (z component)
+float distance(Vec2 v)  // Distance to another vector
+float distanceSquared(Vec2 v)  // Squared distance (faster)
+float angle()  // Angle in radians
+float angle(Vec2 v)  // Angle in radians
+Vec2 rotated(float radians)  // Get rotated copy
+Vec2& rotate(float radians)  // Rotate in place
+Vec2 lerp(Vec2 target, float t)  // Linear interpolation
+Vec2 perpendicular()  // Get perpendicular vector
+Vec2 reflected(Vec2 normal)  // Get reflected vector
+Vec2 Vec2_fromAngle(float radians)  // Create Vec2 from angle
+Vec2 Vec2_fromAngle(float radians, float length)  // Create Vec2 from angle
+```
+
+#### Vec3 — 3D vector (x, y, z)
+
+```cpp
+Vec3()
+Vec3(float x, float y, float z)
+Vec3(float v)
+float x  // X component
+float y  // Y component
+float z  // Z component
+Vec3& set(float x, float y, float z)  // Set vector components
+Vec3& set(Vec3 v)  // Set vector components
+float length()  // Get vector length
+float lengthSquared()  // Get squared length
+Vec3 normalized()  // Get normalized copy
+Vec3& normalize()  // Normalize in place
+Vec3& limit(float max)  // Limit length to max
+float dot(Vec3 v)  // Dot product
+Vec3 cross(Vec3 v)  // Cross product
+float distance(Vec3 v)  // Distance to another vector
+float distanceSquared(Vec3 v)  // Squared distance
+Vec3 lerp(Vec3 target, float t)  // Linear interpolation
+Vec3 reflected(Vec3 normal)  // Get reflected vector
+Vec2 xy()  // Get XY components as Vec2
+```
+
+#### IVec2 — 2D integer vector (x, y)
+
+```cpp
+IVec2()
+IVec2(int x, int y)
+IVec2(int v)
+int x  // X component
+int y  // Y component
+Vec2 toVec2()  // Convert to Vec2 (float)
+```
+
+#### IVec3 — 3D integer vector (x, y, z)
+
+```cpp
+IVec3()
+IVec3(int x, int y, int z)
+IVec3(int v)
+IVec3(IVec2 v, int z)
+int x  // X component
+int y  // Y component
+int z  // Z component
+Vec3 toVec3()  // Convert to Vec3 (float)
+IVec2 xy()  // Get XY components as IVec2
+```
+
+#### IVec2 — 2D integer vector (x, y)
+
+```cpp
+IVec2()
+IVec2(int x, int y)
+IVec2(int v)
+int x  // X component
+int y  // Y component
+Vec2 toVec2()  // Convert to Vec2 (float)
+```
+
+#### IVec3 — 3D integer vector (x, y, z)
+
+```cpp
+IVec3()
+IVec3(int x, int y, int z)
+IVec3(int v)
+IVec3(IVec2 v, int z)
+int x  // X component
+int y  // Y component
+int z  // Z component
+Vec3 toVec3()  // Convert to Vec3 (float)
+IVec2 xy()  // Get XY components as IVec2
+```
+
+#### Color — RGBA color (0.0-1.0 range)
+
+```cpp
+Color()
+Color(float r, float g, float b)
+Color(float r, float g, float b, float a)
+Color(float gray)
+Color(float gray, float a)
+float r  // Red component (0.0-1.0)
+float g  // Green component (0.0-1.0)
+float b  // Blue component (0.0-1.0)
+float a  // Alpha component (0.0-1.0)
+Color& set(float r, float g, float b)  // Set color components
+Color& set(float r, float g, float b, float a)  // Set color components
+Color& set(float gray)  // Set color components
+uint32_t toHex()  // Convert to hex value
+uint32_t toHex(bool includeAlpha)  // Convert to hex value
+Color lerp(Color target, float t)  // Interpolate in OKLab space
+Color lerpRGB(Color target, float t)  // Interpolate in RGB space
+Color clamped()  // Get clamped copy (0.0-1.0)
+ColorLinear toLinear()  // Convert to linear RGB color space
+ColorHSB toHSB()  // Convert to HSB (H: 0-1, S: 0-1, B: 0-1)
+ColorOKLab toOKLab()  // Convert to OKLab (perceptually uniform)
+ColorOKLCH toOKLCH()  // Convert to OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
+Color lerpLinear(Color target, float t)  // Interpolate in linear RGB space
+Color lerpHSB(Color target, float t)  // Interpolate in HSB space
+Color lerpOKLab(Color target, float t)  // Interpolate in OKLab space (perceptually uniform)
+Color lerpOKLCH(Color target, float t)  // Interpolate in OKLCH space (shortest hue path)
+Color Color_fromHex(uint hex)  // Create from hex value
+Color Color_fromHex(uint hex, bool hasAlpha)  // Create from hex value
+Color Color_fromHSB(float h, float s, float b)  // Create from HSB (H: 0-1)
+Color Color_fromHSB(float h, float s, float b, float a)  // Create from HSB (H: 0-1)
+Color Color_fromOKLab(float L, float a, float b)  // Create from OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
+Color Color_fromOKLab(float L, float a, float b, float alpha)  // Create from OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
+Color Color_fromOKLCH(float L, float C, float H)  // Create from OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
+Color Color_fromOKLCH(float L, float C, float H, float a)  // Create from OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
+Color Color_fromLinear(float r, float g, float b)  // Create from linear RGB
+Color Color_fromLinear(float r, float g, float b, float a)  // Create from linear RGB
+Color Color_fromBytes(int r, int g, int b)  // Create from 0-255 values
+Color Color_fromBytes(int r, int g, int b, int a)  // Create from 0-255 values
+```
+
+#### Rect — Rectangle (x, y, width, height)
+
+```cpp
+Rect()
+Rect(float x, float y, float width, float height)
+float x  // X position
+float y  // Y position
+float width  // Width
+float height  // Height
+Rect& set(float x, float y, float w, float h)  // Set rectangle bounds
+float getRight()  // Get right edge (x + width)
+float getBottom()  // Get bottom edge (y + height)
+float getCenterX()  // Get center X
+float getCenterY()  // Get center Y
+bool contains(float px, float py)  // Check if point is inside
+bool intersects(Rect other)  // Check if intersects with another rect
+```
+
+#### Mat4 — 4x4 matrix for 3D transformations
+
+```cpp
+Mat4()
+Mat4 transposed()  // Get transposed matrix
+Mat4 inverted()  // Get inverse matrix
+```
+
+#### Quaternion — Unit quaternion for 3D rotations
+
+```cpp
+Quaternion()
+Quaternion(float w, float x, float y, float z)
+float w  // W component
+float x  // X component
+float y  // Y component
+float z  // Z component
+Vec3 rotate(Vec3 v)  // Rotate a vector
+Vec3 toEuler()  // Convert to Euler angles
+Mat4 toMatrix()  // Convert to rotation matrix
+Quaternion normalized()  // Get normalized quaternion
+float length()  // Get quaternion length
+Quaternion conjugate()  // Get conjugate quaternion
+```
+
+#### Pixels — Pixel buffer for image manipulation
+
+```cpp
+Pixels()
+void allocate(int width, int height)  // Allocate pixel buffer
+void allocate(int width, int height, int channels)  // Allocate pixel buffer
+Color getColor(int x, int y)  // Get pixel color at position
+void setColor(int x, int y, Color color)  // Set pixel color at position
+void halve()  // Replace with 2x2 box-averaged half. Gamma-correct for U8.
+void resize(int newWidth, int newHeight)  // Quality resize: BoxArea on downscale, Catmull-Rom bicubic on upscale, gamma-correct for U8.
+void crop(int x, int y, int w, int h)  // Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge.
+void mirror(bool horizontal, bool vertical)  // Flip in place. Both true is 180°.
+void mirrorH()  // Mirror horizontally (alias for mirror(true, false))
+void mirrorV()  // Mirror vertically (alias for mirror(false, true))
+bool load(string path)  // Load image from file
+bool save(string path)  // Save image to file
+int getWidth()  // Get width
+int getHeight()  // Get height
+bool isAllocated()  // Check if allocated
+void clear()  // Release pixel buffer
+int getChannels()  // Get number of channels
+int getTotalBytes()  // Get total byte size
+uint8_t* getData()  // Get raw data pointer
+bool loadFromMemory(const uint8_t* buffer, int len)  // Load image from memory
+void setFromPixels(const uint8_t* data, int width, int height, int channels)  // Copy from external pixel data
+void copyTo(uint8_t* dst)  // Copy to external buffer
+```
+
+#### Image — Image with CPU pixels and GPU texture
+
+```cpp
+bool load(string path)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
+bool load(string path, bool mipmaps)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
+bool loadFromMemory(const uint8_t* buffer, int len)  // Load image from memory. `mipmaps=true` builds a mip chain.
+bool loadFromMemory(const uint8_t* buffer, int len, bool mipmaps)  // Load image from memory. `mipmaps=true` builds a mip chain.
+bool save(string path)  // Save image to file
+void allocate(int width, int height)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
+void allocate(int width, int height, int channels)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
+void allocate(int width, int height, int channels, bool mipmaps)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
+void clear()  // Release image resources
+void halve()  // Replace with 2x2 box-averaged half. Gamma-correct for U8.
+void resize(int newWidth, int newHeight)  // Quality resize: BoxArea on downscale, Catmull-Rom bicubic on upscale, gamma-correct for U8. Use FBO sampling for fast paths.
+void crop(int x, int y, int w, int h)  // Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge.
+void mirror(bool horizontal, bool vertical)  // Flip the image. `horizontal=true` mirrors left-right; `vertical=true` mirrors top-bottom; both true is 180°.
+void mirrorH()  // Mirror horizontally (alias for mirror(true, false))
+void mirrorV()  // Mirror vertically (alias for mirror(false, true))
+bool isAllocated()  // Check if allocated
+int getWidth()  // Get width
+int getHeight()  // Get height
+int getChannels()  // Get number of channels
+Pixels& getPixels()  // Get pixels reference for direct manipulation
+uint8_t* getPixelsData()  // Get raw pixel data pointer
+Color getColor(int x, int y)  // Get pixel color at position
+void setColor(int x, int y, Color color)  // Set pixel color at position (marks image as dirty)
+void update()  // Apply pixel changes to GPU texture
+void setDirty()  // Mark image as needing update
+Texture& getTexture()  // Get internal texture
+void draw()  // Draw image
+void draw(float x, float y)  // Draw image
+void draw(float x, float y, float w, float h)  // Draw image
+```
+
+#### Texture — GPU texture for rendering
+
+```cpp
+Texture()
+void allocate(int width, int height)  // Allocate texture
+void allocate(Pixels pixels)  // Allocate texture
+void loadData(Pixels pixels)  // Load pixel data to texture
+void bind()  // Bind texture for rendering
+void unbind()  // Unbind texture
+int getWidth()  // Get width
+int getHeight()  // Get height
+bool isAllocated()  // Check if allocated
+void draw(float x, float y)  // Draw texture
+void draw(float x, float y, float w, float h)  // Draw texture
+void drawSubsection(float x, float y, float w, float h, float sx, float sy, float sw, float sh)  // Draw subsection of texture
+void clear()  // Release texture resources
+int getChannels()  // Get number of channels
+TextureUsage getUsage()  // Get texture usage mode
+int getSampleCount()  // Get MSAA sample count
+void setMinFilter(TextureFilter filter)  // Set minification filter
+void setMagFilter(TextureFilter filter)  // Set magnification filter
+void setFilter(TextureFilter filter)  // Set both min and mag filters
+TextureFilter getMinFilter()  // Get minification filter
+TextureFilter getMagFilter()  // Get magnification filter
+void setWrapU(TextureWrap wrap)  // Set horizontal wrap mode
+void setWrapV(TextureWrap wrap)  // Set vertical wrap mode
+void setWrap(TextureWrap wrap)  // Set both wrap modes
+TextureWrap getWrapU()  // Get horizontal wrap mode
+TextureWrap getWrapV()  // Get vertical wrap mode
+```
+
+#### Fbo — Framebuffer object for offscreen rendering
+
+```cpp
+Fbo()
+void allocate(int width, int height)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
+void allocate(int width, int height, int sampleCount)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
+void allocate(int width, int height, int sampleCount, TextureFormat format)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
+void allocate(int width, int height, int sampleCount, TextureFormat format, bool mipmaps)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
+void begin()  // Begin rendering to FBO
+void begin(float r, float g, float b, float a)  // Begin rendering to FBO
+void end()  // End rendering to FBO
+Texture getTexture()  // Get FBO texture
+int getWidth()  // Get width
+int getHeight()  // Get height
+bool isAllocated()  // Check if allocated
+void draw(float x, float y)  // Draw FBO contents
+void draw(float x, float y, float w, float h)  // Draw FBO contents
+int getSampleCount()  // Get MSAA sample count
+bool isActive()  // Check if currently rendering to FBO
+void clear()  // Release FBO resources
+bool save(string path)  // Save FBO contents to file
+bool copyTo(Image image)  // Copy FBO contents to Image
+```
+
+#### Path — Path/Polyline for lines and curves
+
+```cpp
+Path()
+Path(vector<Vec2> verts)
+Path(vector<Vec3> verts)
+void addVertex(float x, float y)  // Add a vertex
+void addVertex(float x, float y, float z)  // Add a vertex
+void addVertex(Vec2 v)  // Add a vertex
+void addVertex(Vec3 v)  // Add a vertex
+vector<Vec3> getVertices()  // Get all vertices
+int size()  // Get vertex count
+bool empty()  // Check if polyline is empty
+void clear()  // Clear all vertices
+void moveTo(float x, float y)  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
+void moveTo(float x, float y, float z)  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
+void moveTo(Vec2 p)  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
+void moveTo(Vec3 p)  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
+void lineTo(float x, float y)  // Add line segment to point
+void lineTo(float x, float y, float z)  // Add line segment to point
+void lineTo(Vec2 p)  // Add line segment to point
+void lineTo(Vec3 p)  // Add line segment to point
+void bezierTo(float cx1, float cy1, float cx2, float cy2, float x, float y, int resolution = -1)  // Add cubic bezier curve (resolution=-1 uses current curve style)
+void bezierTo(Vec2 cp1, Vec2 cp2, Vec2 to, int resolution = -1)  // Add cubic bezier curve (resolution=-1 uses current curve style)
+void bezierTo(Vec3 cp1, Vec3 cp2, Vec3 to, int resolution = -1)  // Add cubic bezier curve (resolution=-1 uses current curve style)
+void quadBezierTo(float cx, float cy, float x, float y, int resolution = -1)  // Add quadratic bezier curve (resolution=-1 uses current curve style)
+void quadBezierTo(Vec2 cp, Vec2 to, int resolution = -1)  // Add quadratic bezier curve (resolution=-1 uses current curve style)
+void quadBezierTo(Vec3 cp, Vec3 to, int resolution = -1)  // Add quadratic bezier curve (resolution=-1 uses current curve style)
+void curveTo(float x, float y, float z = 0, int resolution = -1)  // Add Catmull-Rom curve segment (needs >=4 consecutive calls; resolution=-1 uses current curve style)
+void curveTo(Vec2 to, int resolution = -1)  // Add Catmull-Rom curve segment (needs >=4 consecutive calls; resolution=-1 uses current curve style)
+void curveTo(Vec3 to, int resolution = -1)  // Add Catmull-Rom curve segment (needs >=4 consecutive calls; resolution=-1 uses current curve style)
+void arc(float x, float y, float radius, float angleBegin, float angleEnd, bool clockwise = true)  // Add an arc (angles in radians)
+void arc(Vec2 center, float radius, float angleBegin, float angleEnd, bool clockwise = true)  // Add an arc (angles in radians)
+void arc(Vec3 center, float radius, float angleBegin, float angleEnd, bool clockwise = true)  // Add an arc (angles in radians)
+void close()  // Close the path
+void setClosed(bool closed)  // Set closed state
+bool isClosed()  // Check if path is closed
+Path& reverseWinding()  // Reverse the winding direction (vertex order) of all subpaths, or of one subpath. Under drawFill's non-zero winding rule, reversing a subpath toggles it between filling and cutting — e.g. build a circle contour, then reverseWinding(i) it into a hole punch. Reversing ALL subpaths leaves the render unchanged (only relative direction matters) — handy for imported outlines using the opposite convention.
+Path& reverseWinding(size_t subpath)  // Reverse the winding direction (vertex order) of all subpaths, or of one subpath. Under drawFill's non-zero winding rule, reversing a subpath toggles it between filling and cutting — e.g. build a circle contour, then reverseWinding(i) it into a hole punch. Reversing ALL subpaths leaves the render unchanged (only relative direction matters) — handy for imported outlines using the opposite convention.
+void draw()  // Draw the polyline (fill + 1px stroke based on current style — fill uses triangle fan, convex only). For concave shapes / holes use drawFill.
+void drawFill()  // Fill the path as a concave polygon with holes (earcut tessellation). Subpaths follow the non-zero winding rule (SVG / PostScript default): a subpath wound opposite to its enclosing ring becomes a hole; same-direction subpaths union (never punch holes). Handles glyphs with holes (e, a, O, 日 ...), overlapping contours, and both TrueType / CFF winding conventions. To cut a hole in a hand-built Path, wind the inner subpath opposite (see reverseWinding).
+void drawStroke()  // Thick stroke via StrokeMesh (respects strokeWeight / strokeCap / strokeJoin), per-subpath. Use draw() for 1-pixel lines.
+Rect getBounds()  // Get bounding box as Rect
+float getPerimeter()  // Get total path length
+```
+
+#### Mesh — 3D mesh with vertices, colors, normals, indices
+
+```cpp
+Mesh()
+void setMode(PrimitiveMode mode)  // Set primitive mode (Triangles, Lines, Points, etc.)
+PrimitiveMode getMode()  // Get current primitive mode
+void addVertex(float x, float y, float z)  // Add a vertex
+void addVertex(Vec2 v)  // Add a vertex
+void addVertex(Vec3 v)  // Add a vertex
+vector<Vec3> getVertices()  // Get all vertices
+int getNumVertices()  // Get vertex count
+void addColor(Color c)  // Add a vertex color
+void addColor(float r, float g, float b, float a)  // Add a vertex color
+vector<Color> getColors()  // Get all vertex colors
+int getNumColors()  // Get vertex color count
+bool hasColors()  // Check if mesh has vertex colors
+void addIndex(int index)  // Add an index
+void addTriangle(int i0, int i1, int i2)  // Add a triangle (3 indices)
+vector<int> getIndices()  // Get all indices
+int getNumIndices()  // Get index count
+bool hasIndices()  // Check if mesh has indices
+void addNormal(float nx, float ny, float nz)  // Add a normal vector
+void addNormal(Vec3 n)  // Add a normal vector
+void setNormal(int index, Vec3 n)  // Set normal at index
+Vec3 getNormal(int index)  // Get normal at index
+vector<Vec3> getNormals()  // Get all normals
+int getNumNormals()  // Get normal count
+bool hasNormals()  // Check if mesh has normals
+void addTexCoord(float u, float v)  // Add a texture coordinate
+void addTexCoord(Vec2 t)  // Add a texture coordinate
+vector<Vec2> getTexCoords()  // Get all texture coordinates
+int getNumTexCoords()  // Get texture coordinate count
+bool hasTexCoords()  // Check if mesh has texture coordinates
+bool hasValidTexCoords()  // Check if texture coordinates match vertex count
+void clear()  // Clear all mesh data
+void clearVertices()  // Clear vertices only
+void clearColors()  // Clear colors only
+void clearIndices()  // Clear indices only
+void clearNormals()  // Clear normals only
+void clearTexCoords()  // Clear texture coordinates only
+void transform(Mat4 matrix)  // Apply transformation matrix
+void append(Mesh other)  // Append another mesh
+void draw()  // Draw the mesh
+void draw(Texture texture)  // Draw the mesh
+void draw(Image image)  // Draw the mesh
+void drawWireframe()  // Draw mesh as wireframe
+```
+
+#### Sound — Audio playback
+
+```cpp
+Sound()
+bool load(string path)  // Load audio file. Format auto-detected by extension: .wav .mp3 .ogg .flac .aac .m4a
+void play()  // Play audio
+void stop()  // Stop audio
+bool isLoaded()  // Check if loaded
+bool isPlaying()  // Check if playing
+void setVolume(float volume)  // Set volume (0.0-1.0)
+void setLoop(bool loop)  // Set loop mode
+bool isLoop()  // Check if loop mode is enabled
+void setPan(float pan)  // Set panning (-1.0=left, 0.0=center, 1.0=right)
+float getPan()  // Get current panning
+void setSpeed(float speed)  // Set playback speed (1.0=normal)
+float getSpeed()  // Get current playback speed
+void pause()  // Pause playback
+void resume()  // Resume playback
+bool isPaused()  // Check if paused
+float getPosition()  // Get playback position in seconds
+float getDuration()  // Get total duration in seconds
+```
+
+#### Font — TrueType font for text rendering
+
+```cpp
+Font()
+bool load(string path, int size)  // Load font file
+bool isLoaded()  // Check if loaded
+void drawString(string text, float x, float y)  // Draw text
+Path getGlyphPath(uint32_t codepoint)  // Vector outline of a single glyph as one Path with one subpath per contour. Em-normalized (1.0 = em), screen Y-down, baseline at y=0, pen at x=0. Use Path::drawFill() for filled rendering — holes (e, a, O, 日 ...) are auto-detected via earcut.
+Path getStringPath(string text, float x, float y)  // Vector outline of the whole string at (x, y) as one Path containing every glyph's contours (one subpath each). Uses the same layout pipeline as drawString (writing mode, alignment, wrap, kinsoku, TCY). Logical pixels — drawStroke / drawFill / transform freely.
+Path getStringPath(string text, float x, float y, Direction h, Direction v)  // Vector outline of the whole string at (x, y) as one Path containing every glyph's contours (one subpath each). Uses the same layout pipeline as drawString (writing mode, alignment, wrap, kinsoku, TCY). Logical pixels — drawStroke / drawFill / transform freely.
+float getWidth(string text)  // Get text width
+float getHeight(string text)  // Get text height
+float getLineHeight()  // Get line height
+int getSize()  // Get font size
+void clearAtlas()  // Clear font atlas (GPU memory freed, glyphs re-rasterized on next draw)
+size_t getMemoryUsage()  // Get atlas memory usage in bytes
+size_t getLoadedGlyphCount()  // Get number of loaded glyphs
+size_t getAtlasCount()  // Get number of atlas pages
+void setWritingMode(WritingMode mode)  // Switch between horizontal and vertical (tategaki) writing. Default is Horizontal (existing behavior unchanged).
+WritingMode getWritingMode()  // Current writing mode
+void setTcyDigits(int maxDigits, TcyMode inMode, TcyMode overflowMode)  // Tate-chu-yoko config for ASCII digit runs in vertical text. Runs with <= maxDigits use inMode (typically Combine — squeezed into one cell); longer runs fall back to overflowMode (typically Rotate).
+void setTcyLatin(TcyMode mode)  // Tate-chu-yoko mode for Latin letter runs in vertical text. Default is Rotate (whole run rotated 90 CW).
+```
+
+#### FileWriter — Streaming file writer with immediate flush
+
+```cpp
+FileWriter()
+bool open(string path)  // Open file for writing
+bool open(string path, bool append)  // Open file for writing
+void close()  // Close file
+bool isOpen()  // Check if file is open
+FileWriter& write(string text)  // Write data to file
+FileWriter& write(char c)  // Write data to file
+FileWriter& write(void* data, size_t size)  // Write data to file
+FileWriter& writeLine()  // Write line with newline
+FileWriter& writeLine(string text)  // Write line with newline
+void flush()  // Flush buffer to disk
+```
+
+#### FileReader — Streaming file reader for large files
+
+```cpp
+FileReader()
+bool open(string path)  // Open file for reading
+void close()  // Close file
+bool isOpen()  // Check if file is open
+bool eof()  // Check if at end of file
+string readLine()  // Read one line
+int readChar()  // Read one character (-1 at EOF)
+size_t read(void* buffer, size_t size)  // Read binary data
+void seek(size_t pos)  // Seek to position
+size_t tell()  // Get current position
+size_t remaining()  // Get remaining bytes
+```
+
+#### Light — Light source for 3D PBR rendering (directional, point, or spot)
+
+```cpp
+Light()
+void setDirectional(const Vec3& direction)  // Set as directional light
+void setDirectional(float dx, float dy, float dz)  // Set as directional light
+void setPoint(const Vec3& position)  // Set as point light
+void setPoint(float x, float y, float z)  // Set as point light
+void setSpot(const Vec3& position, const Vec3& direction, float innerHalfAngle, float outerHalfAngle)  // Set as spot light with cone angles
+void setSpot(float px, float py, float pz, float dx, float dy, float dz, float innerHalfAngle, float outerHalfAngle)  // Set as spot light with cone angles
+void setAmbient(const Color& c)  // Set ambient light color
+void setAmbient(float r, float g, float b, float a)  // Set ambient light color
+void setDiffuse(const Color& c)  // Set diffuse (main) light color
+void setDiffuse(float r, float g, float b, float a)  // Set diffuse (main) light color
+void setSpecular(const Color& c)  // Set specular light color
+void setSpecular(float r, float g, float b, float a)  // Set specular light color
+void setIntensity(float intensity)  // Set light intensity multiplier
+void setAttenuation(float constant, float linear, float quadratic)  // Set distance attenuation factors
+void setProjectionTexture(const Texture* tex)  // Set texture for projector-style light (gobo)
+void setLensShift(float sx, float sy)  // Set projector lens shift (-1 to 1, normalized)
+void setProjectorAspect(float aspect)  // Set projector aspect ratio
+void setIesProfile(const IesProfile* ies)  // Attach IES photometric profile for angular intensity
+void enableShadow(int resolution)  // Enable shadow casting (depth map at given resolution)
+void disableShadow()  // Disable shadow casting
+void enable()  // Enable this light
+void disable()  // Disable this light
+void setShadowBias(float bias)  // Set shadow depth bias in world units
+LightType getType()  // Get light type (Directional, Point, or Spot)
+const Vec3& getPosition()  // Get light position
+const Vec3& getDirection()  // Get light direction
+float getIntensity()  // Get light intensity
+const Color& getAmbient()  // Get ambient light color
+const Color& getDiffuse()  // Get diffuse (main) light color
+const Color& getSpecular()  // Get specular light color
+float getConstantAttenuation()  // Get constant attenuation factor
+float getLinearAttenuation()  // Get linear attenuation factor
+float getQuadraticAttenuation()  // Get quadratic attenuation factor
+bool isEnabled()  // Check if light is enabled
+bool isShadowEnabled()  // Check if shadow casting is enabled
+int getShadowResolution()  // Get shadow map resolution
+float getShadowBias()  // Get shadow depth bias
+float getSpotInnerCos()  // Get spot light inner cone cosine
+float getSpotOuterCos()  // Get spot light outer cone cosine
+const Texture* getProjectionTexture()  // Get projection texture (gobo)
+bool hasProjectionTexture()  // Check if a projection texture is set
+float getLensShiftX()  // Get projector horizontal lens shift
+float getLensShiftY()  // Get projector vertical lens shift
+float getProjectorAspect()  // Get projector aspect ratio
+const IesProfile* getIesProfile()  // Get attached IES photometric profile
+bool hasIesProfile()  // Check if an IES profile is attached
+```
+
+#### Material — PBR material (metallic-roughness workflow, glTF 2.0 compatible)
+
+```cpp
+Material()
+Material& setBaseColor(const Color& c)  // Set base color (albedo)
+Material& setBaseColor(float r, float g, float b, float a)  // Set base color (albedo)
+Material& setMetallic(float m)  // Set metallic factor (0=dielectric, 1=metal)
+Material& setRoughness(float r)  // Set roughness factor (0=mirror, 1=matte)
+Material& setEmissive(const Color& c)  // Set emissive color
+Material& setEmissive(float r, float g, float b)  // Set emissive color
+Material& setEmissiveStrength(float s)  // Set emissive strength multiplier
+Material& setAo(float ao)  // Set ambient occlusion factor
+Material& setNormalMap(const Texture* tex)  // Set normal map texture for bump mapping
+Material& setBaseColorTexture(const Texture* tex)  // Set base color (albedo) texture map
+Material& setMetallicRoughnessTexture(const Texture* tex)  // Set metallic-roughness texture (glTF: G=roughness, B=metallic)
+Material& setEmissiveTexture(const Texture* tex)  // Set emissive texture map
+Material& setOcclusionTexture(const Texture* tex)  // Set occlusion texture map
+const Color& getBaseColor()  // Get base color (albedo)
+float getMetallic()  // Get metallic factor
+float getRoughness()  // Get roughness factor
+float getAo()  // Get ambient occlusion factor
+const Color& getEmissive()  // Get emissive color
+float getEmissiveStrength()  // Get emissive strength multiplier
+const Texture* getNormalMap()  // Get normal map texture
+bool hasNormalMap()  // Check if a normal map is set
+const Texture* getBaseColorTexture()  // Get base color texture
+bool hasBaseColorTexture()  // Check if a base color texture is set
+const Texture* getMetallicRoughnessTexture()  // Get metallic-roughness texture
+bool hasMetallicRoughnessTexture()  // Check if a metallic-roughness texture is set
+const Texture* getEmissiveTexture()  // Get emissive texture
+bool hasEmissiveTexture()  // Check if an emissive texture is set
+const Texture* getOcclusionTexture()  // Get occlusion texture
+bool hasOcclusionTexture()  // Check if an occlusion texture is set
+Material gold()  // Gold material preset
+Material silver()  // Silver material preset
+Material copper()  // Copper material preset
+Material iron()  // Iron material preset
+Material plastic(const Color& baseColor, float roughness)  // Plastic material preset
+Material rubber(const Color& baseColor)  // Rubber material preset
+Material bronze()  // Bronze material preset
+Material emerald()  // Emerald material preset
+Material ruby()  // Ruby material preset
+Material fromPhong(const Color& diffuse, const Color& specular, float shininess, const Color& emissive)  // Convert Phong material parameters to PBR (roughness from shininess, metallic estimated from specular luminance)
+```
+
+#### IesProfile — IESNA LM-63 photometric profile for angular light intensity
+
+```cpp
+IesProfile()
+bool load(const string& path)  // Load IES profile from file
+bool loadFromString(const string& data)  // Load IES profile from inline string data
+bool isLoaded()  // Check if profile is loaded
+float getMaxVerticalAngle()  // Get maximum vertical angle in the profile (radians)
+float getMaxCandela()  // Get maximum candela value in the profile
+int getTextureWidth()  // Get width of the generated 1D lookup texture
+```
+
+#### Environment — IBL environment map for PBR ambient lighting (irradiance + prefilter + BRDF LUT)
+
+```cpp
+Environment()
+bool loadFromHDR(const string& path)  // Load environment from HDR image file
+bool loadProcedural()  // Generate a simple procedural sky environment
+bool isLoaded()  // Check if environment is loaded
+void release()  // Release GPU resources
+const Texture& getIrradianceMap()  // Get irradiance cubemap for diffuse IBL
+const Texture& getPrefilterMap()  // Get prefiltered environment cubemap for specular IBL
+const Texture& getBrdfLut()  // Get BRDF integration lookup texture
+int getPrefilterMipLevels()  // Get number of mip levels in the prefilter map
+```
+
+#### Platform — Compile-time OS detection. All methods are constexpr and resolve at compile time based on the target platform.
+
+```cpp
+bool isWeb()  // True on Web (Emscripten / WASM)
+bool isMacOS()  // True on macOS
+bool isIOS()  // True on iOS
+bool isWindows()  // True on Windows
+bool isAndroid()  // True on Android
+bool isLinux()  // True on Linux (desktop, excludes Android)
+bool isApple()  // True on any Apple platform (macOS or iOS)
+bool isMobile()  // True on mobile (iOS or Android)
+bool isDesktop()  // True on desktop (macOS, Windows, or Linux)
+const char* name()  // Short platform name: "web" / "macos" / "ios" / "windows" / "android" / "linux" / "unknown"
+```
+
+#### GraphicsBackend — Runtime sokol_gfx backend query. Values are meaningful only after sg_setup() has completed (i.e. after the first setup() call).
+
+```cpp
+bool isOpenGL()  // True when running on OpenGL (core or GLES3)
+bool isMetal()  // True when running on Apple Metal
+bool isD3D11()  // True when running on Direct3D 11
+bool isWebGPU()  // True when running on WebGPU
+bool isWebGL2()  // True when running on WebGL2 (GLES3 under Emscripten)
+bool isVulkan()  // True when running on Vulkan
+const char* name()  // Short backend name: "opengl" / "gles3" / "webgl2" / "d3d11" / "metal" / "webgpu" / "vulkan" / "dummy" / "unknown"
+```
+
+#### BuildInfo — Build timestamp info injected as compile definitions by trussc_app() at CMake configure time. Refreshes when cmake reconfigures. Date/time fields are local time; timestamp is UTC Unix seconds.
+
+```cpp
+const char* date()  // Build date in "YYYY-MM-DD" form (local time)
+const char* time()  // Build time in "HH:MM:SS" form (local time)
+const char* dateTime()  // Build date-time in "YYYY-MM-DD HH:MM:SS" form (local time)
+int64_t timestamp()  // Build timestamp as Unix seconds (UTC)
+int year()  // Build year (e.g. 2026)
+int month()  // Build month (1-12)
+int day()  // Build day of month (1-31)
+int hour()  // Build hour (0-23)
+int minute()  // Build minute (0-59)
+int second()  // Build second (0-59)
+```
+
+#### NetworkInterface — One address entry of a network interface (returned by listNetworkInterfaces)
+
+```cpp
+std::string name  // Interface name (en0 / Ethernet / wlan0)
+std::string address  // IP address (IPv4 dotted-quad or IPv6 textual)
+std::string netmask  // Subnet mask (IPv4)
+std::string mac  // Hardware MAC address (empty if unavailable)
+bool isIPv4  // True for IPv4, false for IPv6
+bool isLoopback  // True if a loopback interface
+bool isUp  // True if the interface link is up
+const std::string& getName()  // Interface name
+const std::string& getAddress()  // IP address
+const std::string& getNetmask()  // Subnet mask
+const std::string& getMac()  // MAC address
+bool getIsIPv4()  // Whether the address is IPv4
+bool getIsLoopback()  // Whether this is a loopback interface
+bool getIsUp()  // Whether the link is up
+```
+
+#### UdpSocket — UDP socket (send/receive datagrams, broadcast, multicast)
+
+```cpp
+UdpSocket()
+Event<UdpReceiveEventArgs> onReceive  // Fired when data is received
+Event<UdpErrorEventArgs> onError  // Fired on error
+bool create()  // Create the socket explicitly (usually auto-created by bind/connect)
+bool bind(int port, bool startReceiving = true)  // Bind a port for receiving (startReceiving auto-starts the receive thread)
+bool connect(const std::string& host, int port)  // Set the destination for send()
+void close()  // Close the socket
+bool sendTo(const std::string& host, int port, const void* data, size_t size)  // Send data to a specific host and port
+bool sendTo(const std::string& host, int port, const std::string& message)  // Send data to a specific host and port
+bool send(const void* data, size_t size)  // Send to the destination set by connect()
+bool send(const std::string& message)  // Send to the destination set by connect()
+int receive(void* buffer, size_t bufferSize)  // Blocking receive (for non-event use); returns byte count or -1
+int receive(void* buffer, size_t bufferSize, std::string& remoteHost, int& remotePort)  // Blocking receive (for non-event use); returns byte count or -1
+void startReceiving()  // Start the receive thread (auto-called after bind)
+void stopReceiving()  // Stop the receive thread
+bool isReceiving()  // Whether the receive thread is active
+bool setNonBlocking(bool nonBlocking)  // Set non-blocking mode
+bool setBroadcast(bool enable)  // Allow broadcast sending
+bool setReuseAddress(bool enable)  // Allow address reuse (set before bind)
+bool setReusePort(bool enable)  // Allow multiple sockets on the same port (multicast receivers; set before bind)
+bool setReceiveBufferSize(int size)  // Set the receive buffer size
+bool setSendBufferSize(int size)  // Set the send buffer size
+bool setReceiveTimeout(int timeoutMs)  // Set the receive timeout (0 = infinite)
+void setUseThread(bool useThread)  // Whether to use a receive thread (must be false on Wasm)
+bool joinMulticastGroup(const std::string& groupAddr, const std::string& interfaceAddr = "")  // Join a multicast group for receiving (call after bind; "" = default route)
+bool leaveMulticastGroup(const std::string& groupAddr, const std::string& interfaceAddr = "")  // Leave a previously joined multicast group
+bool setMulticastTTL(int ttl)  // Hop limit for outgoing multicast (default 1 = local subnet)
+bool setMulticastLoopback(bool enable)  // Whether outgoing multicast loops back to local listeners (default on)
+bool setMulticastInterface(const std::string& interfaceAddr)  // Pick the NIC for outgoing multicast ("" = default route)
+int getLocalPort()  // The bound local port
+bool isValid()  // Whether the socket is valid
+const std::string& getConnectedHost()  // Destination host from connect()
+int getConnectedPort()  // Destination port from connect()
+```
+
+#### UdpReceiveEventArgs — Event args for UdpSocket::onReceive
+
+```cpp
+std::vector<char> data  // Received data
+std::string remoteHost  // Source host
+int remotePort  // Source port
+```
+
+#### UdpErrorEventArgs — Event args for UdpSocket::onError
+
+```cpp
+std::string message  // Error message
+int errorCode  // Error code
+```
+
+#### TcpClient — TCP client connection (connect, send/receive a stream)
+
+```cpp
+TcpClient()
+Event<TcpConnectEventArgs> onConnect  // Fired when the connection completes
+Event<TcpReceiveEventArgs> onReceive  // Fired when data is received
+Event<TcpDisconnectEventArgs> onDisconnect  // Fired when disconnected
+Event<TcpErrorEventArgs> onError  // Fired on error
+bool connect(const std::string& host, int port)  // Connect to a server (blocking)
+void connectAsync(const std::string& host, int port)  // Connect asynchronously (notifies via onConnect)
+void disconnect()  // Disconnect
+bool isConnected()  // Whether currently connected
+bool send(const void* data, size_t size)  // Send data to the server
+bool send(const std::vector<char>& data)  // Send data to the server
+bool send(const std::string& message)  // Send data to the server
+void setReceiveBufferSize(size_t size)  // Set the receive buffer size
+void setBlocking(bool blocking)  // Set blocking mode
+void setUseThread(bool useThread)  // Whether to use threads (must be false on Wasm)
+bool isUsingThread()  // Whether threading is in use
+std::string getRemoteHost()  // Remote host name
+int getRemotePort()  // Remote port
+```
+
+#### TcpConnectEventArgs — Event args for TcpClient::onConnect
+
+```cpp
+bool success  // Whether the connection succeeded
+std::string message  // Connection message
+```
+
+#### TcpReceiveEventArgs — Event args for TcpClient::onReceive
+
+```cpp
+std::vector<char> data  // Received data
+```
+
+#### TcpDisconnectEventArgs — Event args for TcpClient::onDisconnect
+
+```cpp
+std::string reason  // Disconnect reason
+bool wasClean  // Whether it was a clean disconnect
+```
+
+#### TcpErrorEventArgs — Event args for TcpClient::onError
+
+```cpp
+std::string message  // Error message
+int errorCode  // Error code
+```
+
+#### TcpServer — TCP server (accept clients, send/broadcast)
+
+```cpp
+TcpServer()
+Event<TcpClientConnectEventArgs> onClientConnect  // Fired when a client connects
+Event<TcpServerReceiveEventArgs> onReceive  // Fired when data is received from a client
+Event<TcpClientDisconnectEventArgs> onClientDisconnect  // Fired when a client disconnects
+Event<TcpServerErrorEventArgs> onError  // Fired on a server or per-client error
+bool start(int port, int maxClients = 10)  // Start listening on a port
+void stop()  // Stop the server
+bool isRunning()  // Whether the server is running
+void disconnectClient(int clientId)  // Disconnect a specific client
+void disconnectAllClients()  // Disconnect all clients
+int getClientCount()  // Number of connected clients
+std::vector<int> getClientIds()  // IDs of all connected clients
+const TcpServerClient* getClient(int clientId)  // Client info (nullptr if not found)
+bool send(int clientId, const void* data, size_t size)  // Send data to a specific client
+bool send(int clientId, const std::vector<char>& data)  // Send data to a specific client
+bool send(int clientId, const std::string& message)  // Send data to a specific client
+void broadcast(const void* data, size_t size)  // Broadcast data to all clients
+void broadcast(const std::vector<char>& data)  // Broadcast data to all clients
+void broadcast(const std::string& message)  // Broadcast data to all clients
+void setReceiveBufferSize(size_t size)  // Set the receive buffer size
+int getPort()  // The listening port
+```
+
+#### TcpServerClient — A client connected to a TcpServer (read-only handle)
+
+```cpp
+int getId()  // Client ID assigned by the server
+const std::string& getHost()  // Client IP address
+int getPort()  // Client port
+```
+
+#### TcpClientConnectEventArgs — Event args for TcpServer::onClientConnect
+
+```cpp
+int clientId  // Client ID
+std::string host  // Client IP address
+int port  // Client port
+```
+
+#### TcpServerReceiveEventArgs — Event args for TcpServer::onReceive
+
+```cpp
+int clientId  // Client ID
+std::vector<char> data  // Received data
+```
+
+#### TcpClientDisconnectEventArgs — Event args for TcpServer::onClientDisconnect
+
+```cpp
+int clientId  // Client ID
+std::string reason  // Disconnect reason
+bool wasClean  // Whether the disconnect was clean
+```
+
+#### TcpServerErrorEventArgs — Event args for TcpServer::onError
+
+```cpp
+std::string message  // Error message
+int errorCode  // Error code
+int clientId  // Client ID (-1 = server-level error, not a specific client)
+```
+
+#### Serial — Cross-platform serial port (USB/COM): connect, read/write bytes
+
+```cpp
+Serial()
+bool setup(const std::string& portName, int baudRate)  // Connect to a port by path or by index from listDevices()
+bool setup(int deviceIndex, int baudRate)  // Connect to a port by path or by index from listDevices()
+void close()  // Disconnect and release resources
+bool isInitialized()  // Whether currently connected
+const std::string& getDevicePath()  // Current device path
+int available()  // Number of bytes available to read
+int readBytes(void* buffer, int length)  // Read bytes; returns actual count (>=0) or -1 on error
+int readBytes(std::string& buffer, int length)  // Read bytes; returns actual count (>=0) or -1 on error
+int readByte()  // Read a single byte; 0-255 on success, -1 no data, -2 error
+int writeBytes(const void* buffer, int length)  // Write bytes; returns actual count or -1 on error
+int writeBytes(const std::string& buffer)  // Write bytes; returns actual count or -1 on error
+bool writeByte(unsigned char byte)  // Write a single byte; true on success
+void flushInput()  // Clear the input buffer
+void flushOutput()  // Clear the output buffer
+void flush()  // Clear both input and output buffers
+void drain()  // Wait until output transmission completes
+std::vector<SerialDeviceInfo> listDevices()  // List available serial devices
+void printDevices()  // Log all available serial devices
+```
+
+#### SerialDeviceInfo — Info for one serial device (from Serial::listDevices)
+
+```cpp
+int deviceId  // Device index
+std::string devicePath  // Device path (e.g. COM3, /dev/tty.usbserial-*)
+std::string deviceName  // Device name
+int getDeviceID()  // Device index
+const std::string& getDevicePath()  // Device path
+const std::string& getDeviceName()  // Device name
+```
+
+### Constants
+
+```cpp
+TAU = 6.283...  // Full circle (2*PI)
+HALF_TAU = 3.141...  // Half circle (PI)
+QUARTER_TAU = 1.570...  // Quarter circle (PI/2)
+PI = 3.141...  // Pi (use TAU instead)
+StrokeCap::Butt = 0  // Flat line cap (no extension)
+StrokeCap::Round = 1  // Rounded line cap
+StrokeCap::Square = 2  // Square line cap (extends by half stroke width)
+StrokeJoin::Miter = 0  // Sharp corner join
+StrokeJoin::Round = 1  // Rounded corner join
+StrokeJoin::Bevel = 2  // Beveled corner join
+WritingMode::Horizontal = 0  // Left-to-right horizontal text (default)
+WritingMode::VerticalRL = 1  // Top-to-bottom columns, columns flow right-to-left (Japanese tategaki)
+TcyMode::Rotate = 0  // Rotate the whole Latin / digit run 90 degrees CW so it reads top-to-bottom
+TcyMode::Upright = 1  // Each glyph upright, one per CJK-sized cell (一文字ずつ正立)
+TcyMode::Combine = 2  // Squeeze a Latin / digit run into a single CJK cell (true 縦中横)
+FONT_SANS = string  // System sans-serif font path (CDN URL on Web)
+FONT_SERIF = string  // System serif font path (CDN URL on Web)
+FONT_MONO = string  // System monospace font path (CDN URL on Web)
+FONT_SANS_JA = string  // Japanese sans-serif font (Hiragino Sans on macOS, Yu Gothic on Win, Noto Sans CJK JP on Linux/Android, Google Fonts CDN URL on Web)
+FONT_SERIF_JA = string  // Japanese serif font (Hiragino Mincho on macOS, Yu Mincho on Win, Noto Serif CJK JP on Linux/Android, Google Fonts CDN URL on Web)
+Wave::Sin = 0  // Sine wave (smooth, pure tone)
+Wave::Square = 1  // Square wave (harsh, 8-bit style)
+Wave::Triangle = 2  // Triangle wave (softer than square)
+Wave::Sawtooth = 3  // Sawtooth wave (bright, buzzy)
+Wave::Noise = 4  // White noise
+Wave::PinkNoise = 5  // Pink noise (1/f noise, more natural)
+Wave::Silent = 6  // Silent (no sound)
+Cursor::Default = 0  // System default cursor
+Cursor::Arrow = 1  // Arrow cursor
+Cursor::IBeam = 2  // Text input cursor
+Cursor::Crosshair = 3  // Crosshair cursor
+Cursor::Hand = 4  // Pointing hand cursor
+Cursor::ResizeEW = 5  // East-west resize cursor
+Cursor::ResizeNS = 6  // North-south resize cursor
+Cursor::ResizeNWSE = 7  // NW-SE diagonal resize cursor
+Cursor::ResizeNESW = 8  // NE-SW diagonal resize cursor
+Cursor::ResizeAll = 9  // Move/resize all directions cursor
+Cursor::NotAllowed = 10  // Not allowed cursor
+Cursor::Custom0 = 11  // Custom cursor slot 0 (bind image first)
+Cursor::Custom1 = 12  // Custom cursor slot 1
+Cursor::Custom2 = 13  // Custom cursor slot 2
+Cursor::Custom3 = 14  // Custom cursor slot 3
+KEY_SPACE = 32  // Space key
+KEY_ESCAPE = 256  // Escape key
+KEY_ENTER = 257  // Enter/Return key
+KEY_TAB = 258  // Tab key
+KEY_BACKSPACE = 259  // Backspace key
+KEY_DELETE = 261  // Delete key
+KEY_RIGHT = 262  // Right arrow key
+KEY_LEFT = 263  // Left arrow key
+KEY_DOWN = 264  // Down arrow key
+KEY_UP = 265  // Up arrow key
+KEY_LEFT_SHIFT = 340  // Left Shift key
+KEY_RIGHT_SHIFT = 344  // Right Shift key
+KEY_LEFT_CONTROL = 341  // Left Control key
+KEY_RIGHT_CONTROL = 345  // Right Control key
+KEY_LEFT_ALT = 342  // Left Alt/Option key
+KEY_RIGHT_ALT = 346  // Right Alt/Option key
+KEY_LEFT_SUPER = 343  // Left Super/Command key
+KEY_RIGHT_SUPER = 347  // Right Super/Command key
+MOUSE_BUTTON_LEFT = 0  // Left mouse button
+MOUSE_BUTTON_RIGHT = 1  // Right mouse button
+MOUSE_BUTTON_MIDDLE = 2  // Middle mouse button
+VideoCodec::H264 = 0  // H.264 / AVC — broad compatibility (default)
+VideoCodec::HEVC = 1  // H.265 / HEVC — smaller files, hardware-encoded
+VideoCodec::ProRes422 = 2  // Apple ProRes 422 — editing-grade, macOS/iOS only (.mov)
+VideoCodec::ProRes4444 = 3  // Apple ProRes 4444 — highest quality + alpha, macOS/iOS only (.mov)
+```
+
+<!-- API-INDEX-END -->
+
 ## Addons
 
 Addons add optional features. To use: run `trusscli addon add <addon>` (or check the addon in the GUI), then `#include` the addon header.
@@ -750,24 +2690,45 @@ using namespace tcx::box2d;
 ```
 
 ### Bundled Addons (ship with TrussC)
-| Addon | Category | Description |
-|-------|----------|-------------|
-| tcxBox2d | physics | 2D physics engine (Box2D) |
-| tcxCurl | network | HTTPS client (libcurl) |
-| tcxDepthCamera | 3d | Unified depth / point-cloud camera interface |
-| tcxDepthRecord | 3d | Record & replay depth recordings (.tcdc) |
-| tcxGltf | 3d | glTF 2.0 / GLB model loader (cgltf) |
-| tcxHap | video | HAP/HAPQ video codec (GPU-compressed) |
-| tcxImGui | gui | Dear ImGui integration |
-| tcxLua | bridges | Lua scripting binding |
-| tcxLut | graphics | 3D LUT color grading (.cube format) |
-| tcxMidi | sound | MIDI input/output (libremidi) |
-| tcxNodeInspector | gui | Runtime hierarchy + inspector + gizmo (Unity-style debug panel) |
-| tcxObj | 3d | Wavefront OBJ model import/export |
-| tcxOsc | network | Open Sound Control (OSC) protocol |
-| tcxQuadWarp | graphics | Quad warping for projection mapping |
-| tcxTls | network | TLS/SSL secure sockets (mbedTLS) |
-| tcxWebSocket | network | WebSocket client (native + Web) |
+
+<!-- ADDON-LIST-START -->
+
+_Auto-generated from the TrussC-org/trussc-addons registry. Add one with `trusscli addon add <name>`._
+
+**Bundled (ship with TrussC):**
+
+- **tcxBox2d** — 2D physics engine (Box2D) [physics]
+- **tcxCurl** — HTTPS client (libcurl) [network]
+- **tcxDepthCamera** — Unified interface for depth / point-cloud cameras (Orbbec, Kinect, RealSense, ...) [3d]
+- **tcxDepthRecord** — Record & replay depth recordings (.tcdc) for any tcxDepthCamera [3d]
+- **tcxGltf** — glTF 2.0 / GLB model loader (cgltf) [3d]
+- **tcxHap** — Hap video codec for fast GPU playback [video]
+- **tcxImGui** — Dear ImGui integration [gui]
+- **tcxLua** — Lua binding [bridges]
+- **tcxLut** — 3D LUT color grading [graphics]
+- **tcxMidi** — MIDI input/output (libremidi backend). Event + polling APIs, virtual ports, and full channel-voice + sysex sending. Works with controllers like the Novation Launchpad. [sound]
+- **tcxNodeInspector** — Runtime hierarchy tree + reflected property inspector for the Node graph (ImGui) [gui]
+- **tcxObj** — Wavefront OBJ model import/export [3d]
+- **tcxOsc** — OSC (Open Sound Control) protocol [network]
+- **tcxQuadWarp** — Quad warp / projection mapping [graphics]
+- **tcxTls** — TLS/SSL support (mbedTLS) [network]
+- **tcxWebSocket** — WebSocket client and server [network]
+
+**Community:**
+
+- **tcxArtnet** — Art-Net (DMX512-over-UDP) sender for stage lighting and DMX fixtures. Broadcast or unicast, multi-universe, manual send plus background auto-refresh. [hardware]
+- **tcxAruco** — ArUco marker detection (OpenCV-based) [computer-vision]
+- **tcxAzureKinect** — Azure Kinect DK (k4a) backend for tcxDepthCamera — depth, color, IR, point cloud [hardware]
+- **tcxGlitch** — Databending-style glitch effects (JPEG/BMP/PNG) for Fbo/Texture/Image [graphics]
+- **tcxGPT** — OpenAI ChatGPT API client [ai]
+- **tcxIME** — IME (Input Method Editor) support for non-Latin text input [gui]
+- **tcxMQTT** — MQTT 3.1.1 client (lwmqtt + TrussC TcpClient). Sync polling and async Event<T> patterns both supported. MQTTS via tcxTls + setTransport. [network]
+- **tcxOpenCV** — OpenCV integration for computer vision [computer-vision]
+- **tcxPhysics** — 3D rigid body physics (Jolt Physics) [physics]
+- **tcxPly** — Read/write PLY (Stanford Polygon) files as a tc::Mesh — meshes and point clouds, ASCII & binary [3d]
+- **tcxSyphon** — Syphon GPU texture sharing (publish/receive frames between macOS apps) [graphics]
+
+<!-- ADDON-LIST-END -->
 
 ### Community Addons
 

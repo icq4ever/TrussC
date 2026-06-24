@@ -70,7 +70,7 @@ Source code is available in the `examples/` directory.
 
 Comprehensive API reference is available at **[trussc.org/reference](https://trussc.org/reference/)**.
 
-Markdown version is also available in [docs/REFERENCE.md](docs/REFERENCE.md).
+For AI coding assistants, [docs/FOR_AI_ASSISTANT.md](docs/FOR_AI_ASSISTANT.md) carries an auto-generated C++ API index.
 
 ## Why TAU?
 
@@ -130,7 +130,7 @@ src/                  # Platform-specific implementations
 ## Documentation
 
 - [GET_STARTED.md](docs/GET_STARTED.md) - Getting started guide
-- [REFERENCE.md](docs/REFERENCE.md) - API Reference
+- [API Reference](https://trussc.org/reference/) - Full API reference (web)
 - [TrussC_vs_openFrameworks.md](docs/TrussC_vs_openFrameworks.md) - API mapping for oF users
 - [ADDONS.md](docs/ADDONS.md) - How to use addons
 - [AI_AUTOMATION.md](docs/AI_AUTOMATION.md) - MCP Integration & Automation
