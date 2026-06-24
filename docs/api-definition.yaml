@@ -255,6 +255,26 @@ categories:
   # ==========================================================================
   # Graphics - Shapes
   # ==========================================================================
+      - name: srgbToLinear
+        return: "float"
+        signatures:
+          - params: "float x"
+            params_simple: "x"
+        description: "Convert a single sRGB channel value to linear RGB"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "srgbToLinear(${1:x})"
+      - name: linearToSrgb
+        return: "float"
+        signatures:
+          - params: "float x"
+            params_simple: "x"
+        description: "Convert a single linear RGB channel value to sRGB"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "linearToSrgb(${1:x})"
   - id: graphics_shapes
     name: "Graphics - Shapes"
     name_ja: "グラフィックス - 図形"
@@ -1171,6 +1191,16 @@ categories:
   # ==========================================================================
   # Transform
   # ==========================================================================
+      - name: getCurveMode
+        return: "CurveStyle::Mode"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Current curve tessellation mode (fixed segment count vs. adaptive tolerance)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getCurveMode()"
   - id: transform
     name: "Transform"
     name_ja: "変換"
@@ -1788,6 +1818,38 @@ categories:
   # ==========================================================================
   # Time - Frame
   # ==========================================================================
+      - name: events
+        return: "CoreEvents&"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the global CoreEvents hub holding all framework events (setup, update, draw, keyPressed, mousePressed, etc.); use events().eventName.listen(callback) to subscribe"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "events()"
+
+      - name: isOverlayHovered
+        return: "bool"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "True when an overlay currently has the pointer over it (e.g. cursor over a tcxImGui panel); guard raw mouse input so clicks on UI panels are not also handled by the app"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "isOverlayHovered()"
+
+      - name: isOverlayFocused
+        return: "bool"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "True when an overlay currently owns keyboard focus (e.g. a text input is active); guard raw key input so typing into a UI field is not also handled by the app"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "isOverlayFocused()"
   - id: time_frame
     name: "Time - Frame"
     name_ja: "時間 - フレーム"
@@ -1843,6 +1905,56 @@ categories:
   # ==========================================================================
   # Memory
   # ==========================================================================
+      - name: sleepMillis
+        return: "void"
+        signatures:
+          - params: "int millis"
+            params_simple: "millis"
+        description: "Block the current thread for the given number of milliseconds"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "sleepMillis(${1:millis})"
+      - name: sleepMicros
+        return: "void"
+        signatures:
+          - params: "int micros"
+            params_simple: "micros"
+        description: "Block the current thread for the given number of microseconds"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "sleepMicros(${1:micros})"
+      - name: getUpdateCount
+        return: "uint64_t"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the number of update() calls since the app started"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getUpdateCount()"
+      - name: getDrawCount
+        return: "uint64_t"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the number of draw() calls since the app started"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getDrawCount()"
+      - name: getFpsSettings
+        return: "FpsSettings"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the current FPS configuration (update/draw target rates, actual VSync rate, sync flag)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getFpsSettings()"
   - id: memory
     name: "Memory"
     name_ja: "メモリ"
@@ -2024,6 +2136,176 @@ categories:
   # ==========================================================================
   # Graphics Backend
   # ==========================================================================
+      - name: setImmersiveMode
+        return: "void"
+        signatures:
+          - params: "bool enabled"
+            params_simple: "enabled"
+        description: "Hide system UI for immersive fullscreen. Android: sticky immersive (status + navigation bars). iOS: hides status bar + home indicator. Desktop: no-op"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setImmersiveMode(${1:true})"
+      - name: getImmersiveMode
+        return: "bool"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Return whether immersive mode is currently enabled"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getImmersiveMode()"
+      - name: captureWindow
+        return: "bool"
+        signatures:
+          - params: "Pixels& outPixels"
+            params_simple: "outPixels"
+        description: "Capture the current window contents into a Pixels object. Returns true on success"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "captureWindow(${1:outPixels})"
+      - name: getSystemVolume
+        return: "float"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get system output volume (0.0-1.0)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getSystemVolume()"
+      - name: setSystemVolume
+        return: "void"
+        signatures:
+          - params: "float volume"
+            params_simple: "volume"
+        description: "Set system output volume (0.0-1.0). iOS: not supported by the OS (logs a warning)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setSystemVolume(${1:volume})"
+      - name: getSystemBrightness
+        return: "float"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get screen brightness (0.0-1.0). iOS: linear. Android: gamma-corrected (perceptual). Desktop: returns -1 (not supported)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getSystemBrightness()"
+      - name: setSystemBrightness
+        return: "void"
+        signatures:
+          - params: "float brightness"
+            params_simple: "brightness"
+        description: "Set screen brightness (0.0-1.0). Meaning of the value differs by platform (iOS linear, Android perceptual). Desktop: not supported"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setSystemBrightness(${1:brightness})"
+      - name: getThermalState
+        return: "ThermalState"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the coarse-grained device thermal state (Nominal / Fair / Serious / Critical)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getThermalState()"
+      - name: getThermalTemperature
+        return: "float"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get device temperature in Celsius, or -1 if unavailable"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getThermalTemperature()"
+      - name: getBatteryLevel
+        return: "float"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get battery charge level (0.0-1.0), or -1 if unavailable (e.g. desktop without a battery)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getBatteryLevel()"
+      - name: isBatteryCharging
+        return: "bool"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Return true if the battery is currently charging"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "isBatteryCharging()"
+      - name: getAccelerometer
+        return: "Vec3"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get accelerometer reading in g-force (1.0 = Earth gravity). Mobile only; desktop returns zero"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getAccelerometer()"
+      - name: getGyroscope
+        return: "Vec3"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get gyroscope angular velocity in rad/s. Mobile only; desktop returns zero"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getGyroscope()"
+      - name: getDeviceOrientation
+        return: "Quaternion"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the fused device attitude (accelerometer + gyroscope + magnetometer) as a quaternion. Mobile only"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getDeviceOrientation()"
+      - name: getCompassHeading
+        return: "float"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get compass heading in radians (0 = north, clockwise). Mobile only"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getCompassHeading()"
+      - name: isProximityClose
+        return: "bool"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Return true when the proximity sensor detects a nearby object (e.g. phone held to the ear)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "isProximityClose()"
+      - name: getLocation
+        return: "Location"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the most recent GPS / WiFi location fix. Starts location updates on the first call"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getLocation()"
   - id: graphics_backend
     name: "Graphics Backend"
     name_ja: "グラフィックスバックエンド"
@@ -2863,6 +3145,163 @@ categories:
   # ==========================================================================
   # Math - Geometry
   # ==========================================================================
+      - name: applyWindow
+        return: "void"
+        signatures:
+          - params: "vector<float>& signal, WindowType type"
+            params_simple: "signal, type"
+          - params: "vector<complex<float>>& signal, WindowType type"
+            params_simple: "signal, type"
+        description: "Apply a window function (in place) to a signal to reduce spectral leakage before FFT"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "applyWindow(${1:signal}, ${2:type})"
+
+      - name: isPowerOfTwo
+        return: "bool"
+        signatures:
+          - params: "int n"
+            params_simple: "n"
+        description: "Return true if n is a positive power of two"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "isPowerOfTwo(${1:n})"
+
+      - name: nextPowerOfTwo
+        return: "int"
+        signatures:
+          - params: "int n"
+            params_simple: "n"
+        description: "Return the smallest power of two greater than or equal to n"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "nextPowerOfTwo(${1:n})"
+
+      - name: fft
+        return: "void"
+        signatures:
+          - params: "vector<complex<float>>& data"
+            params_simple: "data"
+        description: "In-place forward FFT (Cooley-Tukey radix-2); the data size must be a power of two"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "fft(${1:data})"
+
+      - name: ifft
+        return: "void"
+        signatures:
+          - params: "vector<complex<float>>& data"
+            params_simple: "data"
+        description: "In-place inverse FFT; the data size must be a power of two"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "ifft(${1:data})"
+
+      - name: toComplex
+        return: "vector<complex<float>>"
+        signatures:
+          - params: "const vector<float>& real"
+            params_simple: "real"
+        description: "Convert a real-valued signal into a complex array with zero imaginary parts"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "toComplex(${1:real})"
+
+      - name: fftReal
+        return: "vector<complex<float>>"
+        signatures:
+          - params: "const vector<float>& signal"
+            params_simple: "signal"
+          - params: "const vector<float>& signal, WindowType window"
+            params_simple: "signal, window"
+        description: "Compute the FFT of a real-valued signal, optionally applying a window function first"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "fftReal(${1:signal})"
+
+      - name: fftMagnitude
+        return: "vector<float>"
+        signatures:
+          - params: "const vector<complex<float>>& spectrum"
+            params_simple: "spectrum"
+        description: "Return the magnitude (amplitude) of each bin in a spectrum"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "fftMagnitude(${1:spectrum})"
+
+      - name: fftMagnitudeDb
+        return: "vector<float>"
+        signatures:
+          - params: "const vector<complex<float>>& spectrum, float minDb = -100.0f"
+            params_simple: "spectrum, minDb"
+        description: "Return the magnitude of each bin in decibels, clamped to minDb"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "fftMagnitudeDb(${1:spectrum})"
+
+      - name: fftPhase
+        return: "vector<float>"
+        signatures:
+          - params: "const vector<complex<float>>& spectrum"
+            params_simple: "spectrum"
+        description: "Return the phase angle (radians) of each bin in a spectrum"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "fftPhase(${1:spectrum})"
+
+      - name: fftPower
+        return: "vector<float>"
+        signatures:
+          - params: "const vector<complex<float>>& spectrum"
+            params_simple: "spectrum"
+        description: "Return the power spectrum (magnitude squared) of each bin"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "fftPower(${1:spectrum})"
+
+      - name: binToFrequency
+        return: "float"
+        signatures:
+          - params: "int bin, int fftSize, int sampleRate"
+            params_simple: "bin, fftSize, sampleRate"
+        description: "Convert an FFT bin index to its frequency in Hz"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "binToFrequency(${1:bin}, ${2:fftSize}, ${3:sampleRate})"
+
+      - name: frequencyToBin
+        return: "int"
+        signatures:
+          - params: "float freq, int fftSize, int sampleRate"
+            params_simple: "freq, fftSize, sampleRate"
+        description: "Convert a frequency in Hz to the nearest FFT bin index"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "frequencyToBin(${1:freq}, ${2:fftSize}, ${3:sampleRate})"
+
+      - name: windowFunction
+        return: "float"
+        signatures:
+          - params: "WindowType type, int i, int n"
+            params_simple: "type, i, n"
+        description: "Return the window coefficient for sample i of n for the given window type"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "windowFunction(${1:type}, ${2:i}, ${3:n})"
   - id: math_geometry
     name: "Math - Geometry"
     name_ja: "数学 - 幾何"
@@ -3180,6 +3619,66 @@ categories:
   # ==========================================================================
   # Utility
   # ==========================================================================
+      - name: getBackendName
+        return: "string"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the active graphics backend name (e.g. \"Metal (macOS)\", \"D3D11\", \"OpenGL\", \"WebGPU\")"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getBackendName()"
+      - name: bringWindowToFront
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Activate and raise the application window, giving it focus. Desktop only; no-op on mobile/web"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "bringWindowToFront()"
+      - name: getDisplayScaleFactor
+        return: "float"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the DPI scale of the main display (available before window creation). macOS: 1.0 or 2.0 (Retina); other platforms: 1.0"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getDisplayScaleFactor()"
+      - name: setWindowDecorated
+        return: "void"
+        signatures:
+          - params: "bool decorated"
+            params_simple: "decorated"
+        description: "Toggle the window's standard decorations (title bar, borders, buttons). false = borderless but still focusable and closable. Desktop only"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setWindowDecorated(${1:true})"
+      - name: setWindowSizeLogical
+        return: "void"
+        signatures:
+          - params: "int width, int height"
+            params_simple: "width, height"
+        description: "Resize the window to the given logical size (logical pixels)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setWindowSizeLogical(${1:width}, ${2:height})"
+      - name: runHeadlessApp
+        return: "int"
+        signatures:
+          - params: "const HeadlessSettings& settings = HeadlessSettings()"
+            params_simple: "settings"
+        description: "Run an app class without a window or graphics context (update loop only). Template on the app type; returns the process exit code"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "runHeadlessApp<${1:AppClass}>()"
   - id: utility
     name: "Utility"
     name_ja: "ユーティリティ"
@@ -3357,6 +3856,332 @@ categories:
   # ==========================================================================
   # File
   # ==========================================================================
+# Logging — canonical non-prefixed names (logNotice already exists). tc-prefixed
+# variants are deprecated and intentionally NOT documented.
+      - name: logVerbose
+        return: "LogStream"
+        signatures:
+          - params: "const string& module = \"\""
+            params_simple: "module"
+        description: "Stream-based verbose-level log output"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "logVerbose() << ${1:value}"
+
+      - name: logWarning
+        return: "LogStream"
+        signatures:
+          - params: "const string& module = \"\""
+            params_simple: "module"
+        description: "Stream-based warning-level log output"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "logWarning() << ${1:value}"
+
+      - name: logError
+        return: "LogStream"
+        signatures:
+          - params: "const string& module = \"\""
+            params_simple: "module"
+        description: "Stream-based error-level log output"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "logError() << ${1:value}"
+
+      - name: logFatal
+        return: "LogStream"
+        signatures:
+          - params: "const string& module = \"\""
+            params_simple: "module"
+        description: "Stream-based fatal-level log output"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "logFatal() << ${1:value}"
+
+      - name: logAt
+        return: "LogStream"
+        signatures:
+          - params: "LogLevel level = LogLevel::Notice"
+            params_simple: "level"
+        description: "Stream-based log output at a runtime-selected level"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "logAt(${1:LogLevel::Warning}) << ${2:value}"
+
+      - name: getLogger
+        return: "Logger&"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Access the global logger instance"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getLogger()"
+
+      - name: setConsoleLogLevel
+        return: "void"
+        signatures:
+          - params: "LogLevel level"
+            params_simple: "level"
+        description: "Set the minimum log level printed to the console"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setConsoleLogLevel(${1:LogLevel::Notice})"
+
+      - name: setFileLogLevel
+        return: "void"
+        signatures:
+          - params: "LogLevel level"
+            params_simple: "level"
+        description: "Set the minimum log level written to the log file"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setFileLogLevel(${1:LogLevel::Notice})"
+
+      - name: setLogFile
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+            params_simple: "path"
+        description: "Open a file to receive log output"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setLogFile(${1:\"log.txt\"})"
+
+      - name: closeLogFile
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Close the current log file"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "closeLogFile()"
+
+      - name: compressBound
+        return: "size_t"
+        signatures:
+          - params: "size_t nbytes, Codec codec"
+            params_simple: "nbytes, codec"
+        description: "Worst-case compressed size, for sizing a destination buffer"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "compressBound(${1:nbytes}, ${2:Codec::LZ4})"
+
+      - name: toInt64
+        return: "int64_t"
+        signatures:
+          - params: "const string& str"
+            params_simple: "str"
+        description: "Parse a string into a 64-bit integer"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "toInt64(${1:str})"
+
+      - name: toDouble
+        return: "double"
+        signatures:
+          - params: "const string& str"
+            params_simple: "str"
+        description: "Parse a string into a double"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "toDouble(${1:str})"
+
+      - name: toBool
+        return: "bool"
+        signatures:
+          - params: "const string& str"
+            params_simple: "str"
+        description: "Parse a string into a bool"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "toBool(${1:str})"
+
+      - name: toBinary
+        return: "string"
+        signatures:
+          - params: "int value"
+            params_simple: "value"
+        description: "Convert an integer to a binary string"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "toBinary(${1:value})"
+
+      - name: hexToInt
+        return: "int"
+        signatures:
+          - params: "const string& hexStr"
+            params_simple: "hexStr"
+        description: "Parse a hex string into a signed int"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "hexToInt(${1:hexStr})"
+
+      - name: hexToUInt
+        return: "unsigned int"
+        signatures:
+          - params: "const string& hexStr"
+            params_simple: "hexStr"
+        description: "Parse a hex string into an unsigned int"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "hexToUInt(${1:hexStr})"
+
+      - name: toBase64
+        return: "string"
+        signatures:
+          - params: "const unsigned char* bytes, size_t len"
+            params_simple: "bytes, len"
+        description: "Encode raw bytes as a Base64 string"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "toBase64(${1:bytes}, ${2:len})"
+
+      - name: isStringInString
+        return: "bool"
+        signatures:
+          - params: "const string& haystack, const string& needle"
+            params_simple: "haystack, needle"
+        description: "Check whether one string contains another"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "isStringInString(${1:haystack}, ${2:needle})"
+
+      - name: stringTimesInString
+        return: "size_t"
+        signatures:
+          - params: "const string& haystack, const string& needle"
+            params_simple: "haystack, needle"
+        description: "Count occurrences of a substring in a string"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "stringTimesInString(${1:haystack}, ${2:needle})"
+
+      - name: trim
+        return: "string"
+        signatures:
+          - params: "const string& src"
+            params_simple: "src"
+        description: "Trim whitespace from both ends of a string"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "trim(${1:src})"
+
+      - name: trimFront
+        return: "string"
+        signatures:
+          - params: "const string& src"
+            params_simple: "src"
+        description: "Trim leading whitespace from a string"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "trimFront(${1:src})"
+
+      - name: trimBack
+        return: "string"
+        signatures:
+          - params: "const string& src"
+            params_simple: "src"
+        description: "Trim trailing whitespace from a string"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "trimBack(${1:src})"
+
+      - name: parseJson
+        return: "Json"
+        signatures:
+          - params: "const string& str"
+            params_simple: "str"
+        description: "Parse a JSON string into a Json object; returns an empty Json on parse error."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "parseJson(${1:str})"
+      - name: toJsonString
+        return: "string"
+        signatures:
+          - params: "const Json& j, int indent = 2"
+            params_simple: "j, indent"
+        description: "Serialize a Json object to a string. indent sets the pretty-print width (negative for compact)."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "toJsonString(${1:j})"
+      - name: parseXml
+        return: "Xml"
+        signatures:
+          - params: "const string& str"
+            params_simple: "str"
+        description: "Parse an XML string into an Xml object."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "parseXml(${1:str})"
+
+      - name: reflectToJson
+        return: "Json"
+        signatures:
+          - params: "T& obj"
+            params_simple: "obj"
+        description: "Return all reflected (TC_REFLECT) members of obj as a Json object. Works on any reflected type such as a Node or Mod."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "reflectToJson(${1:obj})"
+      - name: reflectFromJson
+        return: "JsonReadReflector"
+        signatures:
+          - params: "T& obj, const Json& j"
+            params_simple: "obj, j"
+        description: "Apply the keys of a Json object onto obj's reflected (TC_REFLECT) members. Returns the reflector so callers can inspect which members were applied, skipped, read-only, or unknown."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "reflectFromJson(${1:obj}, ${2:json})"
+      - name: isMainThread
+        return: "bool"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Whether the calling thread is the main (scene) thread. The main thread ID is recorded on the first call to getMainThreadId()."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "isMainThread()"
+      - name: getMainThreadId
+        return: "thread::id"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the main thread ID. Records the current thread's ID on the first call, so it must first be called from the main thread."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getMainThreadId()"
   - id: file
     name: "File"
     name_ja: "ファイル"
@@ -3592,6 +4417,86 @@ categories:
   # ==========================================================================
   # Sound
   # ==========================================================================
+      - name: loadJson
+        return: "Json"
+        signatures:
+          - params: "const string& path"
+            params_simple: "path"
+        description: "Load a JSON file and return it as a Json object. Relative paths are resolved via getDataPath; returns an empty Json on error."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "loadJson(${1:path})"
+      - name: saveJson
+        return: "bool"
+        signatures:
+          - params: "const Json& j, const string& path, int indent = 2"
+            params_simple: "j, path, indent"
+        description: "Write a Json object to a file. Relative paths are resolved via getDataPath. indent sets the pretty-print width (negative for compact). Returns true on success."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "saveJson(${1:j}, ${2:path})"
+      - name: loadXml
+        return: "Xml"
+        signatures:
+          - params: "const string& path"
+            params_simple: "path"
+        description: "Load an XML file and return it as an Xml object. Relative paths are resolved via getDataPath."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "loadXml(${1:path})"
+      - name: setDataPathRoot
+        return: "void"
+        signatures:
+          - params: "const string& path"
+            params_simple: "path"
+        description: "Set the root directory used to resolve relative data paths. A relative path is resolved against the executable directory; an absolute path (starting with /) is used as-is. A trailing slash is added automatically."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setDataPathRoot(${1:path})"
+      - name: getDataPathRoot
+        return: "string"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the current data path root (with trailing slash)."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getDataPathRoot()"
+      - name: setDataPathToResources
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Point the data path root at the macOS app bundle's Contents/Resources/data folder for distribution. No-op on non-macOS platforms."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setDataPathToResources()"
+      - name: getExecutablePath
+        return: "string"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the absolute path of the running executable."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getExecutablePath()"
+      - name: getExecutableDir
+        return: "string"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the directory containing the running executable (with trailing slash)."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getExecutableDir()"
   - id: sound
     name: "Sound"
     name_ja: "サウンド"
@@ -3910,6 +4815,28 @@ categories:
   # ==========================================================================
   # AudioEngine
   # ==========================================================================
+# Paste under category id "sound" -> functions:
+      - name: setBeepVolume
+        return: "void"
+        signatures:
+          - params: "float vol"
+            params_simple: "vol"
+        description: "Set the output volume for beep() (0.0-1.0)."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setBeepVolume(${1:vol})"
+
+      - name: getBeepVolume
+        return: "float"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the current beep() output volume (0.0-1.0)."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getBeepVolume()"
   - id: audioengine
     name: "AudioEngine"
     name_ja: "オーディオエンジン"
@@ -4052,6 +4979,61 @@ categories:
   # ==========================================================================
   # ChipSound
   # ==========================================================================
+# Paste under category id "audioengine" -> functions:
+      - name: initAudio
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Initialize the global AudioEngine. Called automatically by Sound::load() / play(), so manual use is only needed to start audio early (e.g. before an audioOut synthesis listener)."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "initAudio()"
+
+      - name: shutdownAudio
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Shut down the global AudioEngine and close the audio device. Usually unnecessary (runs at program exit)."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "shutdownAudio()"
+
+      - name: getAudioAnalysisBuffer
+        return: "size_t"
+        signatures:
+          - params: "float* outBuffer, size_t numSamples"
+            params_simple: "outBuffer, numSamples"
+        description: "Copy the latest mixed output samples (mono, L+R average) into outBuffer for FFT / visualization. numSamples is capped at the analysis buffer size (4096). Returns the number of samples written."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getAudioAnalysisBuffer(${1:outBuffer}, ${2:numSamples})"
+
+      - name: getMicInput
+        return: "MicInput&"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the global MicInput singleton (microphone capture). Call start() on it to open the device."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getMicInput()"
+
+      - name: getMicAnalysisBuffer
+        return: "size_t"
+        signatures:
+          - params: "float* outBuffer, size_t numSamples"
+            params_simple: "outBuffer, numSamples"
+        description: "Copy the latest microphone input samples into outBuffer. Convenience wrapper over getMicInput().getBuffer(). numSamples is capped at the mic buffer size (4096). Returns the number of samples written."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getMicAnalysisBuffer(${1:outBuffer}, ${2:numSamples})"
   - id: chipsound
     name: "ChipSound"
     name_ja: "チップサウンド"
@@ -4354,6 +5336,36 @@ categories:
   # ==========================================================================
   # Animation
   # ==========================================================================
+      - name: registerGlyph
+        return: "void"
+        signatures:
+          - params: "const Glyph &g"
+            params_simple: "g"
+        description: "Register one bitmap glyph so drawBitmapString can render its codepoint. Replaces any glyph already registered at the same codepoint and marks the atlas dirty for re-upload"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "registerGlyph(${1:glyph})"
+      - name: registerGlyphs
+        return: "void"
+        signatures:
+          - params: "const Glyph (&glyphs)[N]"
+            params_simple: "glyphs"
+        description: "Register a fixed-size array of bitmap glyphs in one call (template over the array size)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "registerGlyphs(${1:glyphs})"
+      - name: updateGlyph
+        return: "void"
+        signatures:
+          - params: "uint32_t cp, const uint8_t *newData"
+            params_simple: "cp, newData"
+        description: "Swap the pixel data of an already-registered glyph without changing its atlas position. Useful for animating a glyph by updating its data each frame"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "updateGlyph(${1:codepoint}, ${2:newData})"
   - id: animation
     name: "Animation"
     name_ja: "アニメーション"
@@ -5304,6 +6316,36 @@ categories:
   # ==========================================================================
   # 3D Setup
   # ==========================================================================
+      - name: getSelectedNode
+        return: "Node*"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the currently selected node (the last-clicked node, held by the Node system; null if none). A tool such as an inspector can read it and drive it via setSelectedNode()."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getSelectedNode()"
+      - name: setSelectedNode
+        return: "void"
+        signatures:
+          - params: "Node* n"
+            params_simple: "n"
+        description: "Set the currently selected node. Pass nullptr to clear the selection."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "setSelectedNode(${1:n})"
+      - name: getRootNode
+        return: "Node*"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the running App as the root of the node tree (set by the framework while the app is alive, null otherwise). Lets tools walk the whole tree without the app passing itself around."
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getRootNode()"
   - id: graphics_3d_setup
     name: "3D Setup"
     name_ja: "3Dセットアップ"
@@ -5739,6 +6781,16 @@ categories:
   # ==========================================================================
   # Lighting & PBR
   # ==========================================================================
+      - name: getCameraPosition
+        return: "const Vec3&"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Current camera position used for specular/PBR view vector"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getCameraPosition()"
   - id: graphics_lighting
     name: "Lighting & PBR"
     name_ja: "照明・PBR"
@@ -5870,6 +6922,36 @@ categories:
   # ==========================================================================
   # Math - 3D (Matrix / Quaternion)
   # ==========================================================================
+      - name: getNumLights
+        return: "int"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Number of currently active lights"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getNumLights()"
+      - name: getEnvironment
+        return: "Environment*"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the current environment (IBL/skybox), or nullptr if none is set"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "getEnvironment()"
+      - name: calculateLighting
+        return: "Color"
+        signatures:
+          - params: "const Vec3& worldPos, const Vec3& worldNormal, const Material& material"
+            params_simple: "worldPos, worldNormal, material"
+        description: "CPU-side lighting result for a world position and normal, summing all active lights with the given material"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "calculateLighting(${1:worldPos}, ${2:worldNormal}, ${3:material})"
   - id: math_3d
     name: "Math - 3D"
     name_ja: "数学 - 3D"
@@ -6255,6 +7337,36 @@ categories:
         sketch: true
         snippet: "getHeight()"
 
+      - name: channelCount
+        return: "int"
+        signatures:
+          - params: "TextureFormat fmt"
+            params_simple: "fmt"
+        description: "Number of color channels for a TextureFormat (1, 2, or 4)"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "channelCount(${1:fmt})"
+      - name: bytesPerPixel
+        return: "int"
+        signatures:
+          - params: "TextureFormat fmt"
+            params_simple: "fmt"
+        description: "Bytes per pixel for a TextureFormat"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "bytesPerPixel(${1:fmt})"
+      - name: isFloatFormat
+        return: "bool"
+        signatures:
+          - params: "TextureFormat fmt"
+            params_simple: "fmt"
+        description: "Whether a TextureFormat uses floating-point components"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "isFloatFormat(${1:fmt})"
   - id: graphics_fbo
     name: "Graphics - FBO"
     name_ja: "グラフィックス - FBO"
@@ -7527,6 +8639,16 @@ categories:
   # ==========================================================================
   # tcxLut Addon - LUT (Color Grading)
   # ==========================================================================
+      - name: videoCodecName
+        return: "const char *"
+        signatures:
+          - params: "VideoCodec c"
+            params_simple: "c"
+        description: "Return a human-readable name for a VideoCodec value (e.g. \"H.264\", \"HEVC\", \"ProRes 422\")"
+        description_ja: ""
+        description_ko: ""
+        sketch: false
+        snippet: "videoCodecName(${1:codec})"
   - id: addon_tcxlut
     name: "Addon: tcxLut (Color Grading)"
     name_ja: "アドオン: tcxLut（カラーグレーディング）"
@@ -8708,6 +9830,37 @@ enums:
 # ==========================================================================
 # Macros (preprocessor macros)
 # ==========================================================================
+  - name: Orientation
+    description: "Screen orientation mask passed to setOrientation (iOS/Android); values are bit flags and can be combined with |"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    values:
+      - name: Portrait
+        value: 2
+        description: "Portrait, home button at bottom"
+      - name: PortraitUpsideDown
+        value: 4
+        description: "Portrait, home button at top"
+      - name: LandscapeLeft
+        value: 16
+        description: "Landscape, home button on the left"
+      - name: LandscapeRight
+        value: 8
+        description: "Landscape, home button on the right"
+      - name: Landscape
+        value: 24
+        description: "Either landscape orientation"
+      - name: All
+        value: 30
+        description: "All four orientations"
+      - name: AllButUpsideDown
+        value: 26
+        description: "All orientations except portrait-upside-down"
+
+# (none new — ThermalState already exists in api-definition.yaml; getDeviceOrientation
+#  returns Quaternion so the screen-orientation Orientation enum is not emitted here.)
+
 macros:
   - name: TC_RUN_APP
     signature: "TC_RUN_APP(AppClass, settings)"
@@ -11226,6 +12379,14 @@ types:
         description_ja: "ワイヤーフレームで描画"
         description_ko: "메쉬를 와이어프레임으로 그림"
         snippet: "drawWireframe()"
+      - name: drawGpuPbr
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Draw the mesh through the GPU PBR pipeline (uploads to GPU buffers as needed, then renders using active lights, material and environment)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "drawGpuPbr()"
 
   - name: Sound
     description: "Audio playback"
@@ -13775,3 +14936,3036 @@ types:
         description_ja: "デバイス名"
         description_ko: "장치 이름"
         snippet: "getDeviceName()"
+
+  - name: SoundSource
+    description: "Abstract base for anything Sound::play() can consume. Two concrete subclasses: SoundBuffer (eager, full PCM in RAM) and SoundStream (decoded on demand from disk). Holds the shared channels / sampleRate fields and the kind() / getDuration() interface."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: channels
+        type: int
+        description: "Channel count of the source (1 = mono, 2 = stereo, ...)"
+        description_ja: ""
+        description_ko: ""
+      - name: sampleRate
+        type: int
+        description: "Source sample rate in Hz"
+        description_ja: ""
+        description_ko: ""
+    methods:
+      - name: kind
+        return: "SoundSource::Kind"
+        signatures:
+          - params: ""
+        description: "Source kind (Eager for SoundBuffer, Stream for SoundStream). Lets the mixer dispatch without a virtual call per frame."
+        description_ja: ""
+        description_ko: ""
+        snippet: "kind()"
+      - name: getDuration
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Duration in seconds. numSamples/sampleRate for buffers; the decoded file's duration for streams."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getDuration()"
+
+  - name: SoundBuffer
+    description: "Eager sound source: the full file decoded into interleaved float PCM held in RAM. Derives from SoundSource (inherits channels / sampleRate / kind() / getDuration()). Also provides waveform generators, an ADSR envelope, and mixing helpers, so it doubles as a procedural-audio scratch buffer. Best for short SFX and zero-latency play / seek / multi-instance."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "SoundBuffer()"
+    properties:
+      - name: samples
+        type: "vector<float>"
+        description: "Interleaved PCM samples (channels interleaved per frame)"
+        description_ja: ""
+        description_ko: ""
+      - name: numSamples
+        type: size_t
+        description: "Number of samples per channel (frame count)"
+        description_ja: ""
+        description_ko: ""
+    methods:
+      - name: load
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+        description: "Decode a file into PCM, auto-detecting format from the extension (.wav .mp3 .ogg .flac .aac .m4a, case-insensitive). Returns false on failure."
+        description_ja: ""
+        description_ko: ""
+        snippet: "load(${1:path})"
+      - name: loadWav
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+        description: "Decode a WAV file into PCM."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadWav(${1:path})"
+      - name: loadMp3
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+        description: "Decode an MP3 file into PCM."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadMp3(${1:path})"
+      - name: loadOgg
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+        description: "Decode an OGG Vorbis file into PCM (via stb_vorbis)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadOgg(${1:path})"
+      - name: loadFlac
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+        description: "Decode a FLAC file into PCM."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadFlac(${1:path})"
+      - name: loadAac
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+        description: "Decode an AAC / M4A file into PCM (platform-specific; returns false on unsupported platforms)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadAac(${1:path})"
+      - name: loadWavFromMemory
+        return: "bool"
+        signatures:
+          - params: "const void* data, size_t dataSize"
+        description: "Decode WAV data from a memory buffer."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadWavFromMemory(${1:data}, ${2:dataSize})"
+      - name: loadMp3FromMemory
+        return: "bool"
+        signatures:
+          - params: "const void* data, size_t dataSize"
+        description: "Decode MP3 data from a memory buffer."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadMp3FromMemory(${1:data}, ${2:dataSize})"
+      - name: loadOggFromMemory
+        return: "bool"
+        signatures:
+          - params: "const void* data, size_t dataSize"
+        description: "Decode OGG Vorbis data from a memory buffer."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadOggFromMemory(${1:data}, ${2:dataSize})"
+      - name: loadFlacFromMemory
+        return: "bool"
+        signatures:
+          - params: "const void* data, size_t dataSize"
+        description: "Decode FLAC data from a memory buffer."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadFlacFromMemory(${1:data}, ${2:dataSize})"
+      - name: loadAacFromMemory
+        return: "bool"
+        signatures:
+          - params: "const void* data, size_t dataSize"
+        description: "Decode AAC data from a memory buffer (platform-specific; returns false on unsupported platforms)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadAacFromMemory(${1:data}, ${2:dataSize})"
+      - name: loadPcmFromMemory
+        return: "bool"
+        signatures:
+          - params: "const void* data, size_t dataSize, int numChannels, int rate, int bitsPerSample = 16, bool bigEndian = false"
+        description: "Load raw interleaved PCM (16-bit signed or 32-bit float) from memory with explicit format. Returns false for unsupported bit depths."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadPcmFromMemory(${1:data}, ${2:dataSize}, ${3:numChannels}, ${4:rate})"
+      - name: getDuration
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Duration in seconds (numSamples / sampleRate)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getDuration()"
+      - name: generateSineWave
+        return: "void"
+        signatures:
+          - params: "float frequency, float duration, float volume = 0.5f, int sr = 44100"
+        description: "Fill the buffer with a mono sine wave of the given frequency (Hz) and duration (seconds)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "generateSineWave(${1:frequency}, ${2:duration})"
+      - name: generateSquareWave
+        return: "void"
+        signatures:
+          - params: "float frequency, float duration, float volume = 0.5f, int sr = 44100"
+        description: "Fill the buffer with a mono square wave."
+        description_ja: ""
+        description_ko: ""
+        snippet: "generateSquareWave(${1:frequency}, ${2:duration})"
+      - name: generateTriangleWave
+        return: "void"
+        signatures:
+          - params: "float frequency, float duration, float volume = 0.5f, int sr = 44100"
+        description: "Fill the buffer with a mono triangle wave."
+        description_ja: ""
+        description_ko: ""
+        snippet: "generateTriangleWave(${1:frequency}, ${2:duration})"
+      - name: generateSawtoothWave
+        return: "void"
+        signatures:
+          - params: "float frequency, float duration, float volume = 0.5f, int sr = 44100"
+        description: "Fill the buffer with a mono sawtooth wave."
+        description_ja: ""
+        description_ko: ""
+        snippet: "generateSawtoothWave(${1:frequency}, ${2:duration})"
+      - name: generateNoise
+        return: "void"
+        signatures:
+          - params: "float duration, float volume = 0.5f, int sr = 44100"
+        description: "Fill the buffer with mono white noise."
+        description_ja: ""
+        description_ko: ""
+        snippet: "generateNoise(${1:duration})"
+      - name: generatePinkNoise
+        return: "void"
+        signatures:
+          - params: "float duration, float volume = 0.5f, int sr = 44100"
+        description: "Fill the buffer with mono pink noise (1/f spectrum, Paul Kellet's method)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "generatePinkNoise(${1:duration})"
+      - name: generateSilence
+        return: "void"
+        signatures:
+          - params: "float duration, int sr = 44100"
+        description: "Fill the buffer with silence of the given duration (useful as a base for mixFrom)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "generateSilence(${1:duration})"
+      - name: applyADSR
+        return: "void"
+        signatures:
+          - params: "float attack, float decay, float sustainLevel, float release"
+        description: "Apply an ADSR amplitude envelope to the buffer in place (attack / decay / release in seconds, sustainLevel 0-1)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "applyADSR(${1:attack}, ${2:decay}, ${3:sustainLevel}, ${4:release})"
+      - name: mixFrom
+        return: "void"
+        signatures:
+          - params: "const SoundBuffer& other, size_t offsetSamples, float volume = 1.0f"
+        description: "Additively mix another buffer into this one starting at offsetSamples, growing this buffer if needed."
+        description_ja: ""
+        description_ko: ""
+        snippet: "mixFrom(${1:other}, ${2:offsetSamples})"
+      - name: clip
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Hard-clip all samples into the -1.0 .. 1.0 range."
+        description_ja: ""
+        description_ko: ""
+        snippet: "clip()"
+    static_methods:
+      - name: SoundBuffer_getAdtsSampleRateIndex
+        return: "int"
+        signatures:
+          - params: "int sampleRate"
+        description: "ADTS sample-rate index for the given rate (AAC-in-MOV container helper)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "SoundBuffer::getAdtsSampleRateIndex(${1:sampleRate})"
+      - name: SoundBuffer_createAdtsHeader
+        return: "void"
+        signatures:
+          - params: "uint8_t* header, int frameLength, int sampleRate, int channels, int profile = 2"
+        description: "Write a 7-byte ADTS header for one raw AAC frame into header (AAC-in-MOV container helper)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "SoundBuffer::createAdtsHeader(${1:header}, ${2:frameLength}, ${3:sampleRate}, ${4:channels})"
+
+  - name: SoundStream
+    description: "Streaming sound source: the file stays open and is decoded on demand into a small per-voice ring buffer instead of full PCM in RAM. Derives from SoundSource (inherits channels / sampleRate / kind() / getDuration()). Best for long files (BGM, podcasts). Trade-offs vs SoundBuffer: setSpeed() is treated as 1.0, setPosition() seeks with a ~10 ms refill, and each polyphony slot costs one open file handle + decoder + ring buffer."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "SoundStream()"
+    methods:
+      - name: loadStream
+        return: "bool"
+        signatures:
+          - params: "const string& path, int maxPolyphony = 1"
+        description: "Open the file, validate format (.wav .mp3 .flac .ogg), and populate channels / sampleRate / duration. maxPolyphony reserves that many concurrent decoder slots. Returns false if the file can't be opened or the format is unsupported."
+        description_ja: ""
+        description_ko: ""
+        snippet: "loadStream(${1:path})"
+      - name: getDuration
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Decoded file duration in seconds."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getDuration()"
+      - name: getPath
+        return: "const string&"
+        signatures:
+          - params: ""
+        description: "Path the stream was opened from."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getPath()"
+      - name: getMaxPolyphony
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Number of concurrent decoder slots reserved at loadStream()."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getMaxPolyphony()"
+
+  - name: AudioEngine
+    description: "Singleton miniaudio-based mixer engine. Owns the output device, mixes all playing Sound voices, exposes real-time audioOut / audioIn / audioDeviceChanged events, and an FFT analysis ring buffer. Access via AudioEngine::getInstance(); most apps drive it indirectly through the Sound class and the global initAudio() / shutdownAudio() helpers."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    methods:
+      - name: init
+        return: "bool"
+        signatures:
+          - params: ""
+          - params: "const AudioSettings& settings"
+        description: "Initialize the engine with defaults, or with an AudioSettings override. Re-init on a running engine migrates active voices to the new settings. Returns true on success."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance().init()"
+      - name: shutdown
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Stop and close the audio device."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance().shutdown()"
+      - name: getSampleRate
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Current engine output sample rate (Hz). Returns the default (48000) before init()."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance().getSampleRate()"
+      - name: getChannels
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Current engine output channel count."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance().getChannels()"
+      - name: getMaxPolyphony
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Maximum number of simultaneously-playing Sound voices."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance().getMaxPolyphony()"
+      - name: getBufferSize
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Current device buffer size in frames (0 = miniaudio default)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance().getBufferSize()"
+      - name: isInitialized
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "True after a successful init()."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance().isInitialized()"
+      - name: getAnalysisBuffer
+        return: "size_t"
+        signatures:
+          - params: "float* outBuffer, size_t numSamples"
+        description: "Copy the latest mixed output samples (mono, L+R average) into outBuffer. numSamples is capped at 4096. Returns the number of samples written. (Global wrapper: getAudioAnalysisBuffer.)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance().getAnalysisBuffer(${1:outBuffer}, ${2:numSamples})"
+    static_methods:
+      - name: AudioEngine_getInstance
+        return: "AudioEngine&"
+        signatures:
+          - params: ""
+        description: "Get the global AudioEngine singleton."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::getInstance()"
+      - name: AudioEngine_listDevices
+        return: "vector<AudioDeviceInfo>"
+        signatures:
+          - params: ""
+        description: "Enumerate available playback devices (name + isDefault). Empty if unsupported on the platform."
+        description_ja: ""
+        description_ko: ""
+        snippet: "AudioEngine::listDevices()"
+
+  - name: MicInput
+    description: "Microphone capture (miniaudio). Opens an input device and exposes the latest samples through a ring buffer. Use the global getMicInput() to access the shared instance, then start() it; getMicAnalysisBuffer() is a convenience wrapper over getBuffer()."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "MicInput()"
+    methods:
+      - name: start
+        return: "bool"
+        signatures:
+          - params: "int sampleRate = 44100"
+        description: "Open the microphone device at the given sample rate and begin capturing. Returns false on failure."
+        description_ja: ""
+        description_ko: ""
+        snippet: "start()"
+      - name: stop
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Stop capture and close the microphone device."
+        description_ja: ""
+        description_ko: ""
+        snippet: "stop()"
+      - name: getBuffer
+        return: "size_t"
+        signatures:
+          - params: "float* outBuffer, size_t numSamples"
+        description: "Copy the latest captured samples into outBuffer. numSamples is capped at the ring buffer size (4096). Returns the number of samples written."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getBuffer(${1:outBuffer}, ${2:numSamples})"
+      - name: isRunning
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "True while the microphone device is open and capturing."
+        description_ja: ""
+        description_ko: ""
+        snippet: "isRunning()"
+      - name: getSampleRate
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Sample rate the microphone was opened at."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getSampleRate()"
+
+  - name: AudioSettings
+    description: "Configuration passed to AudioEngine::init() to override engine defaults (sample rate, channels, buffer size, polyphony, device). Empty deviceName selects the system default playback device."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: sampleRate
+        type: int
+        description: "Engine output sample rate in Hz (default 96000)"
+        description_ja: ""
+        description_ko: ""
+      - name: channels
+        type: int
+        description: "Output channel count (1 = mono, 2 = stereo; default 2)"
+        description_ja: ""
+        description_ko: ""
+      - name: bufferSize
+        type: int
+        description: "Requested device buffer size in frames; 0 = let miniaudio choose"
+        description_ja: ""
+        description_ko: ""
+      - name: maxPolyphony
+        type: int
+        description: "Max simultaneously-playing Sound voices (default 32)"
+        description_ja: ""
+        description_ko: ""
+      - name: deviceName
+        type: string
+        description: "Playback device name; empty = system default. Use AudioEngine::listDevices() to enumerate."
+        description_ja: ""
+        description_ko: ""
+
+  - name: AudioDeviceInfo
+    description: "One entry in the list returned by AudioEngine::listDevices()."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: name
+        type: string
+        description: "Device name (pass to AudioSettings::deviceName)"
+        description_ja: ""
+        description_ko: ""
+      - name: isDefault
+        type: bool
+        description: "True if this is the system default playback device"
+        description_ja: ""
+        description_ko: ""
+
+  - name: AudioDeviceChangedArgs
+    description: "Argument type for the AudioEngine::audioDeviceChanged event, fired after every successful init() (initial and re-init). Reports the resolved device's real name (never empty)."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: deviceName
+        type: string
+        description: "Actual device name now active (resolved, never empty)"
+        description_ja: ""
+        description_ko: ""
+      - name: isDefaultDevice
+        type: bool
+        description: "True when the opened device is the OS's current default playback device"
+        description_ja: ""
+        description_ko: ""
+      - name: sampleRate
+        type: int
+        description: "Active engine sample rate in Hz"
+        description_ja: ""
+        description_ko: ""
+      - name: channels
+        type: int
+        description: "Active output channel count"
+        description_ja: ""
+        description_ko: ""
+      - name: bufferSize
+        type: int
+        description: "Active device buffer size in frames"
+        description_ja: ""
+        description_ko: ""
+      - name: maxPolyphony
+        type: int
+        description: "Active max polyphony"
+        description_ja: ""
+        description_ko: ""
+
+  - name: AudioOutBuffer
+    description: "Argument type for the AudioEngine::audioOut event. Holds the interleaved mutable output buffer for a single audio callback. Listeners should ADD their contribution to data (voices are already mixed in); do not call engine APIs from here."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: data
+        type: "float*"
+        description: "Interleaved mutable output, frameCount * channels samples"
+        description_ja: ""
+        description_ko: ""
+      - name: frameCount
+        type: int
+        description: "Number of frames in this callback"
+        description_ja: ""
+        description_ko: ""
+      - name: channels
+        type: int
+        description: "Channel count (floats per frame)"
+        description_ja: ""
+        description_ko: ""
+      - name: sampleRate
+        type: int
+        description: "Engine output sample rate in Hz"
+        description_ja: ""
+        description_ko: ""
+      - name: framePosition
+        type: uint64_t
+        description: "Monotonic count of output frames emitted since engine init (sample-accurate time/phase reference)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: AudioInBuffer
+    description: "Argument type for the AudioEngine::audioIn event. Holds the interleaved read-only microphone input for a single capture callback. Process and return quickly; do not call engine APIs from here."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: data
+        type: "const float*"
+        description: "Interleaved read-only mic input, frameCount * channels samples"
+        description_ja: ""
+        description_ko: ""
+      - name: frameCount
+        type: int
+        description: "Number of frames in this callback"
+        description_ja: ""
+        description_ko: ""
+      - name: channels
+        type: int
+        description: "Channel count (floats per frame)"
+        description_ja: ""
+        description_ko: ""
+      - name: sampleRate
+        type: int
+        description: "Input sample rate in Hz"
+        description_ja: ""
+        description_ko: ""
+      - name: framePosition
+        type: uint64_t
+        description: "Monotonic count of input frames received since capture start"
+        description_ja: ""
+        description_ko: ""
+
+  - name: ChipSoundBundle
+    description: "A timeline of chiptune notes (ChipSoundNote + start time) that builds into a single mixed Sound. Add notes at times, then call build() to render the mix with ADSR and clipping applied."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "ChipSoundBundle()"
+    properties:
+      - name: entries
+        type: "vector<ChipSoundBundle::Entry>"
+        description: "The scheduled notes (each Entry pairs a ChipSoundNote with its start time in seconds)"
+        description_ja: ""
+        description_ko: ""
+      - name: volume
+        type: float
+        description: "Master volume multiplier applied when mixing (default 1.0)"
+        description_ja: ""
+        description_ko: ""
+    methods:
+      - name: add
+        return: "void"
+        signatures:
+          - params: "const ChipSoundNote& note, float time"
+          - params: "ChipSoundNote::Wave wave, float hz, float duration, float time, float vol = 0.5f"
+        description: "Schedule a note to start at the given time (seconds). The second overload constructs the note inline from wave / frequency / duration."
+        description_ja: ""
+        description_ko: ""
+        snippet: "add(${1:note}, ${2:time})"
+      - name: clear
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Remove all scheduled notes."
+        description_ja: ""
+        description_ko: ""
+        snippet: "clear()"
+      - name: getDuration
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Total duration in seconds, auto-computed from the last note's end."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getDuration()"
+      - name: build
+        return: "Sound"
+        signatures:
+          - params: ""
+        description: "Render all scheduled notes into a single mixed, clipped Sound ready to play."
+        description_ja: ""
+        description_ko: ""
+        snippet: "build()"
+
+  - name: Logger
+    description: "Logging core with console and file output and an onLog event; access the global instance via getLogger()"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    methods:
+      - name: log
+        return: "void"
+        signatures:
+          - params: "LogLevel level, const string& message"
+        description: "Emit a log message at the given level"
+        description_ja: ""
+        description_ko: ""
+        snippet: "log(${1:LogLevel::Notice}, ${2:message})"
+      - name: setConsoleLogLevel
+        return: "void"
+        signatures:
+          - params: "LogLevel level"
+        description: "Set the minimum console log level"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setConsoleLogLevel(${1:LogLevel::Notice})"
+      - name: getConsoleLogLevel
+        return: "LogLevel"
+        signatures:
+          - params: ""
+        description: "Get the current console log level"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getConsoleLogLevel()"
+      - name: setLogFile
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+        description: "Open a file to receive log output"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setLogFile(${1:path})"
+      - name: closeFile
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Close the current log file"
+        description_ja: ""
+        description_ko: ""
+        snippet: "closeFile()"
+      - name: setFileLogLevel
+        return: "void"
+        signatures:
+          - params: "LogLevel level"
+        description: "Set the minimum file log level"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setFileLogLevel(${1:LogLevel::Notice})"
+      - name: getFileLogLevel
+        return: "LogLevel"
+        signatures:
+          - params: ""
+        description: "Get the current file log level"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getFileLogLevel()"
+      - name: getLogFilePath
+        return: "const string&"
+        signatures:
+          - params: ""
+        description: "Get the path of the current log file"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getLogFilePath()"
+      - name: isFileOpen
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Check whether a log file is currently open"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isFileOpen()"
+
+  - name: CoreEvents
+    description: "Hub of all framework core events. Each member is an Event you subscribe to with .listen(callback); access the global instance via events()"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: setup
+        type: "Event<void>"
+        description: "Fired after app setup completes"
+        description_ja: ""
+        description_ko: ""
+      - name: update
+        type: "Event<void>"
+        description: "Fired before update each frame"
+        description_ja: ""
+        description_ko: ""
+      - name: draw
+        type: "Event<void>"
+        description: "Fired before draw each frame"
+        description_ja: ""
+        description_ko: ""
+      - name: onRender
+        type: "Event<void>"
+        description: "Fired after sokol_gl flush, while the render pass is still active"
+        description_ja: ""
+        description_ko: ""
+      - name: afterFrame
+        type: "Event<void>"
+        description: "Fired after present() (swapchain committed, outside any pass)"
+        description_ja: ""
+        description_ko: ""
+      - name: exit
+        type: "Event<void>"
+        description: "Fired on app exit"
+        description_ja: ""
+        description_ko: ""
+      - name: exitRequested
+        type: "Event<ExitRequestEventArgs>"
+        description: "Fired when an exit is requested; set args.cancel = true to cancel it"
+        description_ja: ""
+        description_ko: ""
+      - name: keyPressed
+        type: "Event<KeyEventArgs>"
+        description: "Fired when a key is pressed"
+        description_ja: ""
+        description_ko: ""
+      - name: keyReleased
+        type: "Event<KeyEventArgs>"
+        description: "Fired when a key is released"
+        description_ja: ""
+        description_ko: ""
+      - name: mousePressed
+        type: "Event<MouseEventArgs>"
+        description: "Fired when a mouse button is pressed"
+        description_ja: ""
+        description_ko: ""
+      - name: mouseReleased
+        type: "Event<MouseEventArgs>"
+        description: "Fired when a mouse button is released"
+        description_ja: ""
+        description_ko: ""
+      - name: mouseMoved
+        type: "Event<MouseMoveEventArgs>"
+        description: "Fired when the mouse moves with no button held"
+        description_ja: ""
+        description_ko: ""
+      - name: mouseDragged
+        type: "Event<MouseDragEventArgs>"
+        description: "Fired when the mouse moves with a button held"
+        description_ja: ""
+        description_ko: ""
+      - name: mouseScrolled
+        type: "Event<ScrollEventArgs>"
+        description: "Fired when the mouse wheel / trackpad scrolls"
+        description_ja: ""
+        description_ko: ""
+      - name: windowResized
+        type: "Event<ResizeEventArgs>"
+        description: "Fired when the window is resized"
+        description_ja: ""
+        description_ko: ""
+      - name: filesDropped
+        type: "Event<DragDropEventArgs>"
+        description: "Fired when files are dropped onto the window"
+        description_ja: ""
+        description_ko: ""
+      - name: clipboardPasted
+        type: "Event<ClipboardPastedEventArgs>"
+        description: "Fired on a paste gesture (Cmd+V / Ctrl+V / browser paste); args.text holds the content"
+        description_ja: ""
+        description_ko: ""
+      - name: console
+        type: "Event<ConsoleEventArgs>"
+        description: "Fired when a command line is received from stdin"
+        description_ja: ""
+        description_ko: ""
+      - name: touchPressed
+        type: "Event<TouchEventArgs>"
+        description: "Fired when a touch begins (Android/iOS, multi-touch)"
+        description_ja: ""
+        description_ko: ""
+      - name: touchMoved
+        type: "Event<TouchEventArgs>"
+        description: "Fired when a touch moves (Android/iOS, multi-touch)"
+        description_ja: ""
+        description_ko: ""
+      - name: touchReleased
+        type: "Event<TouchEventArgs>"
+        description: "Fired when a touch ends or is cancelled (check args.cancelled)"
+        description_ja: ""
+        description_ko: ""
+      - name: rawEvent
+        type: "Event<const sapp_event>"
+        description: "Fired for every raw sokol_app event (for addons needing the full sapp_event)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: Event
+    description: "Generic event you subscribe to with listen(callback) and fire with notify(arg). The template parameter is the argument type passed to listeners by reference; Event<void> is the no-argument specialization (callbacks and notify take no argument). listen() returns an EventListener RAII token that disconnects when destroyed"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    methods:
+      - name: listen
+        return: "EventListener"
+        signatures:
+          - params: "Callback callback, int priority = EventPriority::App"
+            params_simple: "callback, priority"
+          - params: "Callback callback, Deliver deliver, int priority = EventPriority::App"
+            params_simple: "callback, deliver, priority"
+        description: "Register a listener callback and return an EventListener token; lower priority runs first, and Deliver::Main runs the callback on the main thread"
+        description_ja: ""
+        description_ko: ""
+        snippet: "listen(${1:callback})"
+      - name: notify
+        return: "void"
+        signatures:
+          - params: "T& arg"
+            params_simple: "arg"
+        description: "Fire the event, calling all listeners in priority order (no argument for Event<void>); stops early if a listener marks an input arg consumed"
+        description_ja: ""
+        description_ko: ""
+        snippet: "notify(${1:arg})"
+      - name: listenerCount
+        return: "size_t"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Number of currently registered listeners"
+        description_ja: ""
+        description_ko: ""
+        snippet: "listenerCount()"
+      - name: clear
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Remove all listeners"
+        description_ja: ""
+        description_ko: ""
+        snippet: "clear()"
+
+  - name: EventListener
+    description: "RAII token returned by Event::listen(); the listener is automatically disconnected when this token is destroyed or reassigned. Move-only"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    methods:
+      - name: disconnect
+        return: "void"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Explicitly disconnect the listener now (otherwise happens automatically on destruction)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "disconnect()"
+      - name: isConnected
+        return: "bool"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "True while the listener is still connected to its event"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isConnected()"
+
+  - name: KeyEventArgs
+    description: "Arguments for keyPressed / keyReleased events"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: key
+        type: int
+        description: "Key code (KEY_* / SAPP_KEYCODE_*)"
+        description_ja: ""
+        description_ko: ""
+      - name: isRepeat
+        type: bool
+        description: "True if this is a repeat from holding the key"
+        description_ja: ""
+        description_ko: ""
+      - name: shift
+        type: bool
+        description: "Shift modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: ctrl
+        type: bool
+        description: "Ctrl modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: alt
+        type: bool
+        description: "Alt modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: super
+        type: bool
+        description: "Super / Command modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: consumed
+        type: bool
+        description: "Set true in a listener to stop propagation to lower-priority listeners"
+        description_ja: ""
+        description_ko: ""
+
+  - name: MouseEventArgs
+    description: "Arguments for mousePressed / mouseReleased events. pos is local space, globalPos is screen space (equal at app level)"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: pos
+        type: Vec2
+        description: "Cursor position in the receiving node's local space (== globalPos at app level)"
+        description_ja: ""
+        description_ko: ""
+      - name: globalPos
+        type: Vec2
+        description: "Cursor position in screen space"
+        description_ja: ""
+        description_ko: ""
+      - name: button
+        type: int
+        description: "Mouse button (MOUSE_BUTTON_LEFT / RIGHT / MIDDLE)"
+        description_ja: ""
+        description_ko: ""
+      - name: x
+        type: float
+        description: "Legacy mirror of pos.x (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: y
+        type: float
+        description: "Legacy mirror of pos.y (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: shift
+        type: bool
+        description: "Shift modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: ctrl
+        type: bool
+        description: "Ctrl modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: alt
+        type: bool
+        description: "Alt modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: super
+        type: bool
+        description: "Super / Command modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: consumed
+        type: bool
+        description: "Set true in a listener to stop propagation to lower-priority listeners"
+        description_ja: ""
+        description_ko: ""
+
+  - name: MouseMoveEventArgs
+    description: "Arguments for mouseMoved (cursor moving with no button held)"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: pos
+        type: Vec2
+        description: "Cursor position in local space (== globalPos at app level)"
+        description_ja: ""
+        description_ko: ""
+      - name: globalPos
+        type: Vec2
+        description: "Cursor position in screen space"
+        description_ja: ""
+        description_ko: ""
+      - name: delta
+        type: Vec2
+        description: "Movement since the last event, in local space"
+        description_ja: ""
+        description_ko: ""
+      - name: globalDelta
+        type: Vec2
+        description: "Movement since the last event, in screen space"
+        description_ja: ""
+        description_ko: ""
+      - name: x
+        type: float
+        description: "Legacy mirror of pos.x (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: y
+        type: float
+        description: "Legacy mirror of pos.y (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: deltaX
+        type: float
+        description: "Legacy mirror of delta.x (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: deltaY
+        type: float
+        description: "Legacy mirror of delta.y (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: shift
+        type: bool
+        description: "Shift modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: ctrl
+        type: bool
+        description: "Ctrl modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: alt
+        type: bool
+        description: "Alt modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: super
+        type: bool
+        description: "Super / Command modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: consumed
+        type: bool
+        description: "Set true in a listener to stop propagation to lower-priority listeners"
+        description_ja: ""
+        description_ko: ""
+
+  - name: MouseDragEventArgs
+    description: "Arguments for mouseDragged (cursor moving with a button held)"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: pos
+        type: Vec2
+        description: "Cursor position in local space (== globalPos at app level)"
+        description_ja: ""
+        description_ko: ""
+      - name: globalPos
+        type: Vec2
+        description: "Cursor position in screen space"
+        description_ja: ""
+        description_ko: ""
+      - name: delta
+        type: Vec2
+        description: "Movement since the last event, in local space"
+        description_ja: ""
+        description_ko: ""
+      - name: globalDelta
+        type: Vec2
+        description: "Movement since the last event, in screen space"
+        description_ja: ""
+        description_ko: ""
+      - name: button
+        type: int
+        description: "Mouse button being dragged (MOUSE_BUTTON_*)"
+        description_ja: ""
+        description_ko: ""
+      - name: x
+        type: float
+        description: "Legacy mirror of pos.x (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: y
+        type: float
+        description: "Legacy mirror of pos.y (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: deltaX
+        type: float
+        description: "Legacy mirror of delta.x (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: deltaY
+        type: float
+        description: "Legacy mirror of delta.y (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: shift
+        type: bool
+        description: "Shift modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: ctrl
+        type: bool
+        description: "Ctrl modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: alt
+        type: bool
+        description: "Alt modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: super
+        type: bool
+        description: "Super / Command modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: consumed
+        type: bool
+        description: "Set true in a listener to stop propagation to lower-priority listeners"
+        description_ja: ""
+        description_ko: ""
+
+  - name: ScrollEventArgs
+    description: "Arguments for mouseScrolled events"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: pos
+        type: Vec2
+        description: "Cursor position in local space (== globalPos at app level)"
+        description_ja: ""
+        description_ko: ""
+      - name: globalPos
+        type: Vec2
+        description: "Cursor position in screen space"
+        description_ja: ""
+        description_ko: ""
+      - name: scroll
+        type: Vec2
+        description: "Scroll amount (x: horizontal, y: vertical)"
+        description_ja: ""
+        description_ko: ""
+      - name: scrollX
+        type: float
+        description: "Legacy mirror of scroll.x (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: scrollY
+        type: float
+        description: "Legacy mirror of scroll.y (removed at v1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: shift
+        type: bool
+        description: "Shift modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: ctrl
+        type: bool
+        description: "Ctrl modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: alt
+        type: bool
+        description: "Alt modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: super
+        type: bool
+        description: "Super / Command modifier held"
+        description_ja: ""
+        description_ko: ""
+      - name: consumed
+        type: bool
+        description: "Set true in a listener to stop propagation to lower-priority listeners"
+        description_ja: ""
+        description_ko: ""
+
+  - name: ResizeEventArgs
+    description: "Arguments for windowResized events"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: width
+        type: int
+        description: "New window width in pixels"
+        description_ja: ""
+        description_ko: ""
+      - name: height
+        type: int
+        description: "New window height in pixels"
+        description_ja: ""
+        description_ko: ""
+
+  - name: DragDropEventArgs
+    description: "Arguments for filesDropped events"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: files
+        type: "vector<string>"
+        description: "Paths of the dropped files"
+        description_ja: ""
+        description_ko: ""
+      - name: x
+        type: float
+        description: "Drop position x"
+        description_ja: ""
+        description_ko: ""
+      - name: y
+        type: float
+        description: "Drop position y"
+        description_ja: ""
+        description_ko: ""
+
+  - name: ClipboardPastedEventArgs
+    description: "Arguments for clipboardPasted events; the only reliable way to read the clipboard on the Web platform"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: text
+        type: string
+        description: "Pasted clipboard content (already read for you)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: TouchPoint
+    description: "A single finger within a TouchEventArgs"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: id
+        type: int
+        description: "Touch ID, persistent across move events"
+        description_ja: ""
+        description_ko: ""
+      - name: x
+        type: float
+        description: "Touch x position"
+        description_ja: ""
+        description_ko: ""
+      - name: y
+        type: float
+        description: "Touch y position"
+        description_ja: ""
+        description_ko: ""
+      - name: pressure
+        type: float
+        description: "Touch pressure (0.0-1.0; not yet reported by sokol, defaults to 1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: changed
+        type: bool
+        description: "True if this touch was part of the current action"
+        description_ja: ""
+        description_ko: ""
+
+  - name: TouchEventArgs
+    description: "Arguments for touchPressed / touchMoved / touchReleased events (multi-touch, Android/iOS)"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: touches
+        type: "TouchPoint[8]"
+        description: "Array of active touch points (up to MAX_TOUCHES = 8)"
+        description_ja: ""
+        description_ko: ""
+      - name: numTouches
+        type: int
+        description: "Number of valid entries in touches"
+        description_ja: ""
+        description_ko: ""
+      - name: cancelled
+        type: bool
+        description: "True when touchReleased fires due to system cancellation (incoming call, system gesture)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: ExitRequestEventArgs
+    description: "Arguments for the exitRequested event"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: cancel
+        type: bool
+        description: "Set true in a listener to cancel the requested exit"
+        description_ja: ""
+        description_ko: ""
+
+  - name: LogEventArgs
+    description: "Arguments delivered for each log message (level, text, and timestamp)"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: level
+        type: LogLevel
+        description: "Severity of the log message"
+        description_ja: ""
+        description_ko: ""
+      - name: message
+        type: string
+        description: "The log message text"
+        description_ja: ""
+        description_ko: ""
+      - name: timestamp
+        type: string
+        description: "Timestamp string (HH:MM:SS.mmm) generated when the message was logged"
+        description_ja: ""
+        description_ko: ""
+
+  - name: ConsoleEventArgs
+    description: "Arguments for the console event (a command line received from stdin)"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: raw
+        type: string
+        description: "Raw input line (e.g. \"tcdebug screenshot /tmp/a.png\")"
+        description_ja: ""
+        description_ko: ""
+      - name: args
+        type: "vector<string>"
+        description: "Input line split on whitespace (e.g. [\"tcdebug\", \"screenshot\", \"/tmp/a.png\"])"
+        description_ja: ""
+        description_ko: ""
+
+  - name: FullscreenShader
+    description: "Shader specialization for fullscreen post-processing effects (position + texcoord quad). Set uniforms via setParams, then call draw to render a fullscreen quad."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "FullscreenShader()"
+    methods:
+      - name: setParams
+        return: "void"
+        signatures:
+          - params: "const T& params"
+            params_simple: "params"
+        description: "Set uniform parameter block (template; copies the struct bytes). Call before draw."
+        description_ja: ""
+        description_ko: ""
+        snippet: "setParams(${1:params})"
+      - name: draw
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Draw a fullscreen quad with this shader applied"
+        description_ja: ""
+        description_ko: ""
+        snippet: "draw()"
+
+  - name: Ray
+    description: "A ray with an origin and a normalized direction, used for unified hit testing and picking"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: origin
+        type: Vec3
+        description: "Ray origin point"
+        description_ja: ""
+        description_ko: ""
+      - name: direction
+        type: Vec3
+        description: "Ray direction (normalized)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: ColorLinear
+    description: "A color in linear RGB space (no gamma encoding), 0.0-1.0 float per channel"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: r
+        type: float
+        description: "Red component (linear, 0.0-1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: g
+        type: float
+        description: "Green component (linear, 0.0-1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: b
+        type: float
+        description: "Blue component (linear, 0.0-1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: a
+        type: float
+        description: "Alpha component (0.0-1.0)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: ColorOKLab
+    description: "A color in the OKLab perceptual color space (lightness + two opponent axes)"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: L
+        type: float
+        description: "Lightness (0.0-1.0)"
+        description_ja: ""
+        description_ko: ""
+      - name: a
+        type: float
+        description: "Green-Red opponent axis (approx -0.4 to 0.4)"
+        description_ja: ""
+        description_ko: ""
+      - name: b
+        type: float
+        description: "Blue-Yellow opponent axis (approx -0.4 to 0.4)"
+        description_ja: ""
+        description_ko: ""
+      - name: alpha
+        type: float
+        description: "Alpha component (0.0-1.0)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: Json
+    description: "Alias for nlohmann::json (using Json = nlohmann::json). Used as the in-memory JSON value type by loadJson, saveJson, parseJson and toJsonString. See the nlohmann/json documentation for its full API."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+  - name: Xml
+    description: "XML document wrapper around pugixml. Loads, saves and queries XML; node-level access is via XmlNode returned from root() and child()."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "Xml()"
+    methods:
+      - name: load
+        return: "bool"
+        signatures:
+          - params: "const string& path"
+            params_simple: "path"
+        description: "Load an XML document from a file. Relative paths are resolved via getDataPath. Returns true on success."
+        description_ja: ""
+        description_ko: ""
+        snippet: "load(${1:path})"
+      - name: parse
+        return: "bool"
+        signatures:
+          - params: "const string& str"
+            params_simple: "str"
+        description: "Parse an XML document from a string. Returns true on success."
+        description_ja: ""
+        description_ko: ""
+        snippet: "parse(${1:str})"
+      - name: save
+        return: "bool"
+        signatures:
+          - params: "const string& path, const string& indent = \"  \""
+            params_simple: "path, indent"
+        description: "Save the document to a file. Relative paths are resolved via getDataPath. indent sets the per-level indentation string. Returns true on success."
+        description_ja: ""
+        description_ko: ""
+        snippet: "save(${1:path})"
+      - name: toString
+        return: "string"
+        signatures:
+          - params: "const string& indent = \"  \""
+            params_simple: "indent"
+        description: "Serialize the document to an XML string. indent sets the per-level indentation string."
+        description_ja: ""
+        description_ko: ""
+        snippet: "toString()"
+      - name: root
+        return: "XmlNode"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Get the document's root element node."
+        description_ja: ""
+        description_ko: ""
+        snippet: "root()"
+      - name: addRoot
+        return: "XmlNode"
+        signatures:
+          - params: "const string& name"
+            params_simple: "name"
+        description: "Append a new root element with the given name and return it."
+        description_ja: ""
+        description_ko: ""
+        snippet: "addRoot(${1:name})"
+      - name: child
+        return: "XmlNode"
+        signatures:
+          - params: "const string& name"
+            params_simple: "name"
+        description: "Find a direct child node of the document by name."
+        description_ja: ""
+        description_ko: ""
+        snippet: "child(${1:name})"
+      - name: document
+        return: "XmlDocument&"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Access the underlying pugixml document for advanced operations."
+        description_ja: ""
+        description_ko: ""
+        snippet: "document()"
+      - name: empty
+        return: "bool"
+        signatures:
+          - params: ""
+            params_simple: ""
+        description: "Return true if the document has no content."
+        description_ja: ""
+        description_ko: ""
+        snippet: "empty()"
+      - name: addDeclaration
+        return: "void"
+        signatures:
+          - params: "const string& version = \"1.0\", const string& encoding = \"UTF-8\""
+            params_simple: "version, encoding"
+        description: "Prepend an XML declaration (<?xml ...?>) with the given version and encoding."
+        description_ja: ""
+        description_ko: ""
+        snippet: "addDeclaration()"
+  - name: XmlDocument
+    description: "Alias for pugi::xml_document. The owning XML document type underlying the Xml wrapper; see the pugixml documentation for its full API."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+  - name: XmlNode
+    description: "Alias for pugi::xml_node. A single element/node within an XML document, returned by Xml::root() and Xml::child(); see the pugixml documentation for node query and manipulation methods."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+  - name: XmlAttribute
+    description: "Alias for pugi::xml_attribute. A name/value attribute on an XmlNode; see the pugixml documentation for its API."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+  - name: XmlParseResult
+    description: "Alias for pugi::xml_parse_result. Result of an XML parse operation, carrying success status, error description and offset."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+
+  - name: Mod
+    description: "Attachable behavior base class for Node. Subclass it, override the lifecycle and input hooks, and attach with node->addMod<T>(). Lifecycle: setup() on attach, then each frame earlyUpdate() -> Node::update() -> update() -> draw(), and onDestroy() on removal. Override isExclusive() to allow only one instance per Node, and canAttachTo() to restrict attachment."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    methods:
+      - name: getOwner
+        return: "Node*"
+        signatures:
+          - params: ""
+        description: "Get the owner Node this Mod is attached to."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getOwner()"
+      - name: removeSelf
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Remove this Mod from its owner (no need to name its own type). Safe to call from inside the Mod's own update/draw/event handler; destruction is deferred until the current dispatch finishes. (protected)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "removeSelf()"
+      - name: setup
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Override: called once when the Mod is attached to the Node. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setup()"
+      - name: earlyUpdate
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Override: called every frame BEFORE Node::update(). Use for applying transforms, tweens, physics. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "earlyUpdate()"
+      - name: update
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Override: called every frame AFTER Node::update(). Use for reactions to node state changes. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "update()"
+      - name: draw
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Override: called during the draw phase, after Node::draw(). (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "draw()"
+      - name: onDestroy
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Override: called when the Mod is removed or the Node is destroyed. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onDestroy()"
+      - name: onMousePress
+        return: "bool"
+        signatures:
+          - params: "const MouseEventArgs& e"
+        description: "Override: mouse press on the hit node. Return true to consume the event (counts as the node consuming it). (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onMousePress(${1:e})"
+      - name: onMouseRelease
+        return: "bool"
+        signatures:
+          - params: "const MouseEventArgs& e"
+        description: "Override: mouse release on the hit node. Return true to consume. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onMouseRelease(${1:e})"
+      - name: onMouseMove
+        return: "bool"
+        signatures:
+          - params: "const MouseMoveEventArgs& e"
+        description: "Override: mouse move over the hit node. Return true to consume. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onMouseMove(${1:e})"
+      - name: onMouseDrag
+        return: "bool"
+        signatures:
+          - params: "const MouseDragEventArgs& e"
+        description: "Override: mouse drag on the hit node. Return true to consume. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onMouseDrag(${1:e})"
+      - name: onMouseScroll
+        return: "bool"
+        signatures:
+          - params: "const ScrollEventArgs& e"
+        description: "Override: mouse scroll over the hit node. Return true to consume. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onMouseScroll(${1:e})"
+      - name: onKeyPress
+        return: "bool"
+        signatures:
+          - params: "const KeyEventArgs& e"
+        description: "Override: key press (broadcast to mods on every node). Return true to consume. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onKeyPress(${1:e})"
+      - name: onKeyRelease
+        return: "bool"
+        signatures:
+          - params: "const KeyEventArgs& e"
+        description: "Override: key release (broadcast to mods on every node). Return true to consume. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onKeyRelease(${1:e})"
+      - name: onMouseEnter
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Override: pointer entered the owner node. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onMouseEnter()"
+      - name: onMouseLeave
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Override: pointer left the owner node. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "onMouseLeave()"
+      - name: hitTest
+        return: "bool"
+        signatures:
+          - params: "const Ray& localRay, float& outDistance"
+        description: "Override: screen-space pointer picking (NOT physics collision). Define a hit shape in the node's LOCAL space; if the node's own test OR any mod's returns true, the node is the hit. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "hitTest(${1:localRay}, ${2:outDistance})"
+      - name: isExclusive
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Override to return true if only one instance of this Mod type may be attached per Node (e.g. LayoutMod). Default false. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isExclusive()"
+      - name: canAttachTo
+        return: "bool"
+        signatures:
+          - params: "Node* node"
+        description: "Override to restrict which Node types this Mod can attach to. Return false to reject attachment. Default true. (protected, virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "canAttachTo(${1:node})"
+
+  - name: RectNodeButton
+    description: "Simple clickable button node (a RectNode subclass). Set normalColor/hoverColor/pressColor and label; it draws a filled rect that changes color on hover/press and a centered label. Events are enabled on construction. Listen on its inherited mousePressed/mouseReleased events for clicks."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "RectNodeButton()"
+    properties:
+      - name: normalColor
+        type: Color
+        description: "Fill color when idle (default dark grey)."
+        description_ja: ""
+        description_ko: ""
+      - name: hoverColor
+        type: Color
+        description: "Fill color when the pointer is over the button."
+        description_ja: ""
+        description_ko: ""
+      - name: pressColor
+        type: Color
+        description: "Fill color while pressed."
+        description_ja: ""
+        description_ko: ""
+      - name: label
+        type: string
+        description: "Text drawn centered on the button (skipped if empty)."
+        description_ja: ""
+        description_ko: ""
+    methods:
+      - name: isPressed
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the button is currently pressed."
+        description_ja: ""
+        description_ko: ""
+        snippet: "isPressed()"
+      - name: draw
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Draw the button: fills the rect with the state-dependent color and draws the centered label. (override)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "draw()"
+
+  - name: Thread
+    description: "Base class for background threads (ofThread compatible). Subclass it, override the protected pure-virtual threadedFunction() with a while (isThreadRunning()) { ... } loop, then control it with startThread()/stopThread()/waitForThread(). A protected mutex dataMutex_ is available for sharing data."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "Thread()"
+    methods:
+      - name: startThread
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Start the background thread (runs threadedFunction). No-op if already running."
+        description_ja: ""
+        description_ko: ""
+        snippet: "startThread()"
+      - name: stopThread
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Send the stop signal: isThreadRunning() returns false inside threadedFunction so a while-loop can exit. Does not block."
+        description_ja: ""
+        description_ko: ""
+        snippet: "stopThread()"
+      - name: waitForThread
+        return: "void"
+        signatures:
+          - params: "bool callStopThread = true"
+        description: "Wait (join) for the thread to finish. If callStopThread is true (default), calls stopThread() first."
+        description_ja: ""
+        description_ko: ""
+        snippet: "waitForThread()"
+      - name: isThreadRunning
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the thread is currently running."
+        description_ja: ""
+        description_ko: ""
+        snippet: "isThreadRunning()"
+      - name: getThreadId
+        return: "thread::id"
+        signatures:
+          - params: ""
+        description: "Get the underlying thread's ID."
+        description_ja: ""
+        description_ko: ""
+        snippet: "getThreadId()"
+      - name: threadedFunction
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Override this with the work to run on the thread; recommended pattern is while (isThreadRunning()) { ... }. (protected, pure virtual)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "threadedFunction()"
+    static_methods:
+      - name: Thread_sleep
+        return: "void"
+        signatures:
+          - params: "unsigned long milliseconds"
+        description: "Pause the current thread for the given number of milliseconds."
+        description_ja: ""
+        description_ko: ""
+        snippet: "Thread::sleep(${1:milliseconds})"
+      - name: Thread_yield
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Yield execution to other threads."
+        description_ja: ""
+        description_ko: ""
+        snippet: "Thread::yield()"
+      - name: Thread_isCurrentThreadTheMainThread
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the current thread is the main thread. The main thread ID must be recorded first (call getMainThreadId() from the main thread)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "Thread::isCurrentThreadTheMainThread()"
+      - name: Thread_getMainThreadId
+        return: "thread::id"
+        signatures:
+          - params: ""
+        description: "Get the main thread ID, recording the current thread's ID on the first call."
+        description_ja: ""
+        description_ko: ""
+        snippet: "Thread::getMainThreadId()"
+
+  - name: ThreadChannel
+    description: "Thread-safe FIFO queue for one-way inter-thread communication (ofThreadChannel compatible), template<typename T>. Producer-Consumer pattern: a worker thread send()s values and another thread receive()s them. Use two channels for bidirectional communication."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "ThreadChannel<T>()"
+    methods:
+      - name: send
+        return: "bool"
+        signatures:
+          - params: "const T& value"
+          - params: "T&& value"
+        description: "Send a value onto the queue (copy or move overload). Returns false if the channel is closed (with the move overload the value is invalidated even on failure)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "send(${1:value})"
+      - name: receive
+        return: "bool"
+        signatures:
+          - params: "T& value"
+        description: "Receive a value (blocking): waits until data arrives, writing it into value. Returns false if the channel is closed."
+        description_ja: ""
+        description_ko: ""
+        snippet: "receive(${1:value})"
+      - name: tryReceive
+        return: "bool"
+        signatures:
+          - params: "T& value"
+          - params: "T& value, int64_t timeoutMs"
+        description: "Receive a value without blocking, or waiting at most timeoutMs milliseconds (timeout overload). Returns false immediately/after the timeout if no data."
+        description_ja: ""
+        description_ko: ""
+        snippet: "tryReceive(${1:value})"
+      - name: close
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Close the channel, waking all waiting threads. After closing, send/receive return false."
+        description_ja: ""
+        description_ko: ""
+        snippet: "close()"
+      - name: clear
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Clear the queue, discarding all pending values."
+        description_ja: ""
+        description_ko: ""
+        snippet: "clear()"
+      - name: empty
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the queue is empty (approximate)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "empty()"
+      - name: size
+        return: "size_t"
+        signatures:
+          - params: ""
+        description: "Number of queued values (approximate)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "size()"
+      - name: isClosed
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether the channel has been closed."
+        description_ja: ""
+        description_ko: ""
+        snippet: "isClosed()"
+
+  - name: HitResult
+    description: "Result of a node hit test (this is Node::HitResult). Returned by Node::findHitNode() / findHitNodeFromScreen(); call hit() to check whether anything was hit."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: node
+        type: Node::Ptr
+        description: "The hit node (shared_ptr), or null if nothing was hit."
+        description_ja: ""
+        description_ko: ""
+      - name: distance
+        type: float
+        description: "Distance from the ray origin to the hit point."
+        description_ja: ""
+        description_ko: ""
+      - name: localPoint
+        type: Vec3
+        description: "Hit position in the hit node's local coordinates."
+        description_ja: ""
+        description_ko: ""
+    methods:
+      - name: hit
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Whether a node was hit (node is non-null)."
+        description_ja: ""
+        description_ko: ""
+        snippet: "hit()"
+
+  - name: NodeWeakPtr
+    description: "Alias for weak_ptr<Node> (using NodeWeakPtr = weak_ptr<Node>). A non-owning weak reference to a Node; lock() it to obtain a NodePtr if the node still exists."
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+
+  - name: Location
+    description: "GPS / WiFi location fix returned by getLocation()"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: latitude
+        type: double
+        description: "Latitude in degrees"
+        description_ja: ""
+        description_ko: ""
+      - name: longitude
+        type: double
+        description: "Longitude in degrees"
+        description_ja: ""
+        description_ko: ""
+      - name: altitude
+        type: double
+        description: "Altitude in meters"
+        description_ja: ""
+        description_ko: ""
+      - name: accuracy
+        type: float
+        description: "Horizontal accuracy in meters; -1 if not available yet"
+        description_ja: ""
+        description_ko: ""
+
+  - name: FpsSettings
+    description: "FPS configuration returned by getFpsSettings(). Rates use VSYNC (-1) and EVENT_DRIVEN (0) sentinels, or a fixed fps"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: updateFps
+        type: float
+        description: "Target update rate: VSYNC (-1), EVENT_DRIVEN (0), or a fixed fps"
+        description_ja: ""
+        description_ko: ""
+      - name: drawFps
+        type: float
+        description: "Target draw rate: VSYNC (-1), EVENT_DRIVEN (0), or a fixed fps"
+        description_ja: ""
+        description_ko: ""
+      - name: actualVsyncFps
+        type: float
+        description: "Actual monitor refresh rate (0 if unknown)"
+        description_ja: ""
+        description_ko: ""
+      - name: synced
+        type: bool
+        description: "true when update and draw run in sync (1:1)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: WindowSettings
+    description: "Window configuration passed to the app at startup (size, title, DPI, MSAA, fullscreen, decoration, VSync). Setters chain"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: width
+        type: int
+        description: "Window width (default 1280)"
+        description_ja: ""
+        description_ko: ""
+      - name: height
+        type: int
+        description: "Window height (default 720)"
+        description_ja: ""
+        description_ko: ""
+      - name: title
+        type: string
+        description: "Window title (default \"TrussC App\")"
+        description_ja: ""
+        description_ko: ""
+      - name: highDpi
+        type: bool
+        description: "High DPI support for sharp rendering on Retina (default true)"
+        description_ja: ""
+        description_ko: ""
+      - name: pixelPerfect
+        type: bool
+        description: "true: coords match framebuffer size; false: coords use logical size (default false)"
+        description_ja: ""
+        description_ko: ""
+      - name: sampleCount
+        type: int
+        description: "MSAA sample count (default 4)"
+        description_ja: ""
+        description_ko: ""
+      - name: fullscreen
+        type: bool
+        description: "Start in fullscreen (default false)"
+        description_ja: ""
+        description_ko: ""
+      - name: decorated
+        type: bool
+        description: "false: borderless/chromeless window with no title bar (default true)"
+        description_ja: ""
+        description_ko: ""
+      - name: clipboardSize
+        type: int
+        description: "Clipboard buffer size in bytes (default 65536)"
+        description_ja: ""
+        description_ko: ""
+      - name: swapInterval
+        type: int
+        description: "VSync present interval: 1 = on (default), 0 = off, N = every Nth refresh"
+        description_ja: ""
+        description_ko: ""
+    methods:
+      - name: setSize
+        return: "WindowSettings&"
+        signatures:
+          - params: "int w, int h"
+        description: "Set window size (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setSize(${1:w}, ${2:h})"
+      - name: setTitle
+        return: "WindowSettings&"
+        signatures:
+          - params: "const string& t"
+        description: "Set window title (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setTitle(${1:title})"
+      - name: setHighDpi
+        return: "WindowSettings&"
+        signatures:
+          - params: "bool enabled"
+        description: "Enable/disable high DPI support (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setHighDpi(${1:true})"
+      - name: setPixelPerfect
+        return: "WindowSettings&"
+        signatures:
+          - params: "bool enabled"
+        description: "Set pixel-perfect mode: true = framebuffer-size coords, false = logical-size coords (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setPixelPerfect(${1:true})"
+      - name: setSampleCount
+        return: "WindowSettings&"
+        signatures:
+          - params: "int count"
+        description: "Set MSAA sample count (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setSampleCount(${1:count})"
+      - name: setFullscreen
+        return: "WindowSettings&"
+        signatures:
+          - params: "bool enabled"
+        description: "Enable/disable fullscreen at startup (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setFullscreen(${1:true})"
+      - name: setDecorated
+        return: "WindowSettings&"
+        signatures:
+          - params: "bool enabled"
+        description: "false = borderless/chromeless window that can still take focus and be closed programmatically (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setDecorated(${1:true})"
+      - name: setClipboardSize
+        return: "WindowSettings&"
+        signatures:
+          - params: "int size"
+        description: "Set clipboard buffer size in bytes (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setClipboardSize(${1:size})"
+      - name: setSwapInterval
+        return: "WindowSettings&"
+        signatures:
+          - params: "int interval"
+        description: "Set VSync present interval: 1 = on, 0 = off, N = every Nth refresh (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setSwapInterval(${1:interval})"
+
+  - name: HeadlessSettings
+    description: "Settings for runHeadlessApp() (no window / graphics). Currently just the target update rate"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: targetFps
+        type: float
+        description: "Target update rate (default 60)"
+        description_ja: ""
+        description_ko: ""
+    methods:
+      - name: setFps
+        return: "HeadlessSettings&"
+        signatures:
+          - params: "float fps"
+        description: "Set the target update rate (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setFps(${1:fps})"
+
+  - name: FileDialogResult
+    description: "Result of a load/save file dialog"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: filePath
+        type: string
+        description: "Full path to the chosen file"
+        description_ja: ""
+        description_ko: ""
+      - name: fileName
+        type: string
+        description: "Filename only (no directory)"
+        description_ja: ""
+        description_ko: ""
+      - name: success
+        type: bool
+        description: "true if a file was chosen, false if the dialog was cancelled"
+        description_ja: ""
+        description_ko: ""
+
+  - name: Vec4
+    description: "4D vector (x, y, z, w). Used for homogeneous coordinates and RGBA-style data"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+        - params: "float x, float y, float z, float w"
+        - params: "float v"
+        - params: "const Vec3& v, float w = 1.0f"
+        - params: "const Vec2& v, float z = 0.0f, float w = 1.0f"
+      snippet: "Vec4(${1:x}, ${2:y}, ${3:z}, ${4:w})"
+    properties:
+      - name: x
+        type: float
+        description: "X component"
+        description_ja: ""
+        description_ko: ""
+      - name: y
+        type: float
+        description: "Y component"
+        description_ja: ""
+        description_ko: ""
+      - name: z
+        type: float
+        description: "Z component"
+        description_ja: ""
+        description_ko: ""
+      - name: w
+        type: float
+        description: "W component"
+        description_ja: ""
+        description_ko: ""
+    methods:
+      - name: set
+        return: "Vec4&"
+        signatures:
+          - params: "float x, float y, float z, float w"
+          - params: "const Vec4& v"
+        description: "Set all components (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "set(${1:x}, ${2:y}, ${3:z}, ${4:w})"
+      - name: length
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Get the vector's magnitude"
+        description_ja: ""
+        description_ko: ""
+        snippet: "length()"
+      - name: lengthSquared
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Get the squared magnitude (cheaper than length())"
+        description_ja: ""
+        description_ko: ""
+        snippet: "lengthSquared()"
+      - name: normalized
+        return: "Vec4"
+        signatures:
+          - params: ""
+        description: "Return a unit-length copy of this vector"
+        description_ja: ""
+        description_ko: ""
+        snippet: "normalized()"
+      - name: normalize
+        return: "Vec4&"
+        signatures:
+          - params: ""
+        description: "Normalize this vector in place (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "normalize()"
+      - name: dot
+        return: "float"
+        signatures:
+          - params: "const Vec4& v"
+        description: "Dot product with another vector"
+        description_ja: ""
+        description_ko: ""
+        snippet: "dot(${1:v})"
+      - name: lerp
+        return: "Vec4"
+        signatures:
+          - params: "const Vec4& v, float t"
+        description: "Linearly interpolate toward v by t (0..1)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "lerp(${1:v}, ${2:t})"
+      - name: xy
+        return: "Vec2"
+        signatures:
+          - params: ""
+        description: "Get the (x, y) components as a Vec2"
+        description_ja: ""
+        description_ko: ""
+        snippet: "xy()"
+      - name: xyz
+        return: "Vec3"
+        signatures:
+          - params: ""
+        description: "Get the (x, y, z) components as a Vec3"
+        description_ja: ""
+        description_ko: ""
+        snippet: "xyz()"
+
+  - name: Mat3
+    description: "3x3 matrix for 2D affine / homography transforms (row-major). Includes static factories and a homography solver"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+        - params: "float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22"
+      snippet: "Mat3()"
+    methods:
+      - name: at
+        return: "float&"
+        signatures:
+          - params: "int row, int col"
+        description: "Access the element at (row, col)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "at(${1:row}, ${2:col})"
+      - name: transposed
+        return: "Mat3"
+        signatures:
+          - params: ""
+        description: "Return the transpose of this matrix"
+        description_ja: ""
+        description_ko: ""
+        snippet: "transposed()"
+      - name: determinant
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Compute the determinant"
+        description_ja: ""
+        description_ko: ""
+        snippet: "determinant()"
+      - name: inverted
+        return: "Mat3"
+        signatures:
+          - params: ""
+        description: "Return the inverse matrix (identity if singular)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "inverted()"
+    static_methods:
+      - name: Mat3_identity
+        return: "Mat3"
+        signatures:
+          - params: ""
+        description: "Return the identity matrix"
+        description_ja: ""
+        description_ko: ""
+        snippet: "Mat3::identity()"
+      - name: Mat3_translate
+        return: "Mat3"
+        signatures:
+          - params: "float tx, float ty"
+          - params: "const Vec2& t"
+        description: "Build a 2D translation matrix"
+        description_ja: ""
+        description_ko: ""
+        snippet: "Mat3::translate(${1:tx}, ${2:ty})"
+      - name: Mat3_rotate
+        return: "Mat3"
+        signatures:
+          - params: "float radians"
+        description: "Build a 2D rotation matrix (radians)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "Mat3::rotate(${1:radians})"
+      - name: Mat3_scale
+        return: "Mat3"
+        signatures:
+          - params: "float sx, float sy"
+          - params: "float s"
+          - params: "const Vec2& s"
+        description: "Build a 2D scale matrix"
+        description_ja: ""
+        description_ko: ""
+        snippet: "Mat3::scale(${1:sx}, ${2:sy})"
+      - name: Mat3_getHomography
+        return: "Mat3"
+        signatures:
+          - params: "const Vec2 src[4], const Vec2 dst[4]"
+        description: "Compute the homography matrix mapping 4 source points to 4 destination points (solves H * src = dst)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "Mat3::getHomography(${1:src}, ${2:dst})"
+
+  - name: VideoGrabber
+    description: "Webcam capture source. Call setup() once, then update() every frame; getTexture() (via HasTexture) gives the live frame. Move-only. Camera permission is requested automatically on macOS"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+      snippet: "VideoGrabber()"
+    methods:
+      - name: listDevices
+        return: "vector<VideoDeviceInfo>"
+        signatures:
+          - params: ""
+        description: "Return the list of available camera devices"
+        description_ja: ""
+        description_ko: ""
+        snippet: "listDevices()"
+      - name: setDeviceID
+        return: "void"
+        signatures:
+          - params: "int deviceId"
+        description: "Select which camera to use; call before setup()"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setDeviceID(${1:deviceId})"
+      - name: getDeviceID
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Return the selected device ID"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getDeviceID()"
+      - name: setDesiredFrameRate
+        return: "void"
+        signatures:
+          - params: "int fps"
+        description: "Request a capture frame rate; call before setup()"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setDesiredFrameRate(${1:fps})"
+      - name: getDesiredFrameRate
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Return the requested frame rate (-1 if unspecified)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getDesiredFrameRate()"
+      - name: setVerbose
+        return: "void"
+        signatures:
+          - params: "bool verbose"
+        description: "Enable or disable verbose logging"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setVerbose(${1:verbose})"
+      - name: isVerbose
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Return whether verbose logging is enabled"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isVerbose()"
+      - name: setup
+        return: "bool"
+        signatures:
+          - params: "int width = 640, int height = 480"
+        description: "Start the camera at the requested size. Returns false if permission is not yet granted (it is requested asynchronously); keep calling update() and capture begins once granted"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setup(${1:width}, ${2:height})"
+      - name: close
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Stop the camera and release its resources"
+        description_ja: ""
+        description_ko: ""
+        snippet: "close()"
+      - name: update
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Poll for a new frame and upload it to the texture. Call every frame; also completes a setup() that was waiting on permission"
+        description_ja: ""
+        description_ko: ""
+        snippet: "update()"
+      - name: isFrameNew
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Return true if a new frame arrived during the most recent update()"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isFrameNew()"
+      - name: isInitialized
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Return true once the camera is set up and capturing"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isInitialized()"
+      - name: isPendingPermission
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Return true while waiting for camera permission to be granted"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isPendingPermission()"
+      - name: getWidth
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Return the captured frame width in pixels"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getWidth()"
+      - name: getHeight
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Return the captured frame height in pixels"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getHeight()"
+      - name: getDeviceName
+        return: "const string &"
+        signatures:
+          - params: ""
+        description: "Return the name of the active capture device"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getDeviceName()"
+      - name: getPixels
+        return: "unsigned char *"
+        signatures:
+          - params: ""
+        description: "Return a pointer to the current RGBA pixel buffer"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getPixels()"
+      - name: copyToImage
+        return: "void"
+        signatures:
+          - params: "Image &image"
+        description: "Copy the current frame into an Image (allocating/updating it as needed)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "copyToImage(${1:image})"
+      - name: getTexture
+        return: "Texture &"
+        signatures:
+          - params: ""
+        description: "Return the texture holding the live camera frame (HasTexture override)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getTexture()"
+    static_methods:
+      - name: VideoGrabber_checkCameraPermission
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Return whether camera access has been granted (macOS 10.14+)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "VideoGrabber::checkCameraPermission()"
+      - name: VideoGrabber_requestCameraPermission
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Request camera access asynchronously (macOS)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "VideoGrabber::requestCameraPermission()"
+
+  - name: Tween
+    description: "Animates a value of type T with easing. Templated over any lerp-able type (float, Vec2, Vec3, Vec4, Color, etc.). Auto-updates each frame via events().update once start() is called; chainable setters configure it"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+        - params: "T start, T end, float duration, EaseType type = EaseType::Cubic, EaseMode mode = EaseMode::InOut"
+      snippet: "Tween<${1:T}>(${2:start}, ${3:end}, ${4:duration})"
+    methods:
+      - name: from
+        return: "Tween &"
+        signatures:
+          - params: "T value"
+        description: "Set the start value (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "from(${1:value})"
+      - name: to
+        return: "Tween &"
+        signatures:
+          - params: "T value"
+        description: "Set the end value (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "to(${1:value})"
+      - name: duration
+        return: "Tween &"
+        signatures:
+          - params: "float seconds"
+        description: "Set the animation duration in seconds (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "duration(${1:seconds})"
+      - name: ease
+        return: "Tween &"
+        signatures:
+          - params: "EaseType type, EaseMode mode = EaseMode::InOut"
+          - params: "EaseType inType, EaseType outType"
+        description: "Set the easing curve; the two-type overload uses an asymmetric ease (one curve in, another out)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "ease(${1:type})"
+      - name: loop
+        return: "Tween &"
+        signatures:
+          - params: "int count = -1"
+        description: "Repeat the animation: -1 = infinite, 0 = no loop, N = repeat N times (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "loop(${1:count})"
+      - name: yoyo
+        return: "Tween &"
+        signatures:
+          - params: "bool enable = true"
+        description: "Reverse direction on each loop iteration (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "yoyo(${1:enable})"
+      - name: delay
+        return: "Tween &"
+        signatures:
+          - params: "float seconds"
+        description: "Delay before the animation starts, in seconds (chainable)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "delay(${1:seconds})"
+      - name: start
+        return: "Tween &"
+        signatures:
+          - params: ""
+        description: "Start (or restart) the animation and begin auto-updating each frame"
+        description_ja: ""
+        description_ko: ""
+        snippet: "start()"
+      - name: pause
+        return: "Tween &"
+        signatures:
+          - params: ""
+        description: "Pause the animation, keeping its current progress"
+        description_ja: ""
+        description_ko: ""
+        snippet: "pause()"
+      - name: resume
+        return: "Tween &"
+        signatures:
+          - params: ""
+        description: "Resume a paused animation"
+        description_ja: ""
+        description_ko: ""
+        snippet: "resume()"
+      - name: reset
+        return: "Tween &"
+        signatures:
+          - params: ""
+        description: "Stop the animation and reset progress to the start"
+        description_ja: ""
+        description_ko: ""
+        snippet: "reset()"
+      - name: finish
+        return: "Tween &"
+        signatures:
+          - params: ""
+        description: "Jump immediately to the end value and fire the complete event"
+        description_ja: ""
+        description_ko: ""
+        snippet: "finish()"
+      - name: getValue
+        return: "T"
+        signatures:
+          - params: ""
+        description: "Return the current eased value"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getValue()"
+      - name: getProgress
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Return normalized progress through the current iteration (0.0-1.0)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getProgress()"
+      - name: getElapsed
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Return elapsed time in seconds within the current iteration"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getElapsed()"
+      - name: getDuration
+        return: "float"
+        signatures:
+          - params: ""
+        description: "Return the configured duration in seconds"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getDuration()"
+      - name: isPlaying
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Return true while the animation is actively playing"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isPlaying()"
+      - name: isComplete
+        return: "bool"
+        signatures:
+          - params: ""
+        description: "Return true once the animation (all loops) has finished"
+        description_ja: ""
+        description_ko: ""
+        snippet: "isComplete()"
+      - name: getStart
+        return: "T"
+        signatures:
+          - params: ""
+        description: "Return the start value"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getStart()"
+      - name: getEnd
+        return: "T"
+        signatures:
+          - params: ""
+        description: "Return the end value"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getEnd()"
+      - name: getLoopCount
+        return: "int"
+        signatures:
+          - params: ""
+        description: "Return how many loop iterations have completed so far"
+        description_ja: ""
+        description_ko: ""
+        snippet: "getLoopCount()"
+
+  - name: VideoDeviceInfo
+    description: "Information about an available camera device, returned by VideoGrabber::listDevices()"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: deviceId
+        type: int
+        description: "Numeric device ID (pass to setDeviceID); -1 if unknown"
+        description_ja: ""
+        description_ko: ""
+      - name: deviceName
+        type: string
+        description: "Human-readable device name"
+        description_ja: ""
+        description_ko: ""
+      - name: uniqueId
+        type: string
+        description: "Stable unique identifier for the device"
+        description_ja: ""
+        description_ko: ""
+
+  - name: VideoRecordSettings
+    description: "Encoder settings passed to VideoWriter::open(), ScreenRecorder::start(), and startRecording()"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: codec
+        type: VideoCodec
+        description: "Output codec (default H264)"
+        description_ja: ""
+        description_ko: ""
+      - name: fps
+        type: float
+        description: "Capture/output frame rate. For ScreenRecorder this is the capture ceiling; for VideoWriter it is the exact output rate (default 60)"
+        description_ja: ""
+        description_ko: ""
+      - name: bitrate
+        type: int
+        description: "Target bits/sec for H.264/HEVC; 0 = auto. Ignored by ProRes"
+        description_ja: ""
+        description_ko: ""
+      - name: keyframeInterval
+        type: int
+        description: "Frames between keyframes; 0 = encoder default"
+        description_ja: ""
+        description_ko: ""
+
+  - name: Glyph
+    description: "A bitmap glyph to register via registerGlyph(): a codepoint plus packed 1-bit pixel rows. The data pointer must outlive every drawBitmapString call"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: codepoint
+        type: uint32_t
+        description: "Unicode codepoint this glyph renders"
+        description_ja: ""
+        description_ko: ""
+      - name: data
+        type: const uint8_t *
+        description: "Packed bitmap rows (MSB first); must outlive all draw calls"
+        description_ja: ""
+        description_ko: ""
+      - name: width
+        type: Width
+        description: "Glyph width: Halfwidth (8x13) or Fullwidth (16x13)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: PlacedGlyph
+    description: "One laid-out glyph emitted by Font::forEachGlyph (nested as Font::PlacedGlyph). Carries the final codepoint and pen position so visitors can render quads, build vector paths, or hit-test independently of the layout pass"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    properties:
+      - name: codepoint
+        type: uint32_t
+        description: "Final codepoint after vertical-form mapping"
+        description_ja: ""
+        description_ko: ""
+      - name: drawX
+        type: float
+        description: "Pen X position; the glyph's own xoffset is added on top"
+        description_ja: ""
+        description_ko: ""
+      - name: baselineY
+        type: float
+        description: "Baseline Y position; the glyph's own yoffset is added on top"
+        description_ja: ""
+        description_ko: ""
+      - name: rotationCw
+        type: float
+        description: "Clockwise rotation in radians: 0 (upright) or TAU/4 (90 degrees, vertical text)"
+        description_ja: ""
+        description_ko: ""
+      - name: pivotX
+        type: float
+        description: "Rotation center X (used only when rotationCw is non-zero)"
+        description_ja: ""
+        description_ko: ""
+      - name: pivotY
+        type: float
+        description: "Rotation center Y (used only when rotationCw is non-zero)"
+        description_ja: ""
+        description_ko: ""
+      - name: scaleX
+        type: float
+        description: "Horizontal scale (1.0 normally, less than 1 for TCY combine)"
+        description_ja: ""
+        description_ko: ""
+
+  - name: GlyphVisitor
+    description: "Alias for function<void(const Font::PlacedGlyph&)> (nested as Font::GlyphVisitor). The per-glyph callback type accepted by Font::forEachGlyph"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+
+  - name: StrokeMesh
+    description: "Variable-width polyline stroke geometry with caps, joins and miter limit; build it from points or a Path, then update() and draw()"
+    description_ja: ""
+    description_ko: ""
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+        - params: "const Path& polyline"
+      snippet: "StrokeMesh()"
+    methods:
+      - name: setWidth
+        return: "void"
+        signatures:
+          - params: "float width"
+        description: "Set the stroke width"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setWidth(${1:5.0})"
+      - name: setColor
+        return: "void"
+        signatures:
+          - params: "const Color& color"
+        description: "Set the stroke color"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setColor(${1:color})"
+      - name: setCapType
+        return: "void"
+        signatures:
+          - params: "CapType type"
+        description: "Set the line cap shape (StrokeMesh::CapType: Butt, Round, Square)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setCapType(${1:StrokeMesh::CapType::Round})"
+      - name: setJoinType
+        return: "void"
+        signatures:
+          - params: "JoinType type"
+        description: "Set the line join shape (StrokeMesh::JoinType: Miter, Round, Bevel)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setJoinType(${1:StrokeMesh::JoinType::Round})"
+      - name: setMiterLimit
+        return: "void"
+        signatures:
+          - params: "float limit"
+        description: "Set the miter limit for sharp corners"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setMiterLimit(${1:10.0})"
+      - name: addVertex
+        return: "void"
+        signatures:
+          - params: "float x, float y, float z = 0"
+          - params: "const Vec2& p"
+          - params: "const Vec3& p"
+        description: "Append a vertex to the stroke path"
+        description_ja: ""
+        description_ko: ""
+        snippet: "addVertex(${1:x}, ${2:y})"
+      - name: addVertexWithWidth
+        return: "void"
+        signatures:
+          - params: "float x, float y, float width"
+          - params: "const Vec3& p, float width"
+        description: "Append a vertex with a per-vertex width"
+        description_ja: ""
+        description_ko: ""
+        snippet: "addVertexWithWidth(${1:x}, ${2:y}, ${3:width})"
+      - name: setWidths
+        return: "void"
+        signatures:
+          - params: "const vector<float>& w"
+        description: "Set per-vertex widths from a list"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setWidths(${1:widths})"
+      - name: setShape
+        return: "void"
+        signatures:
+          - params: "const Path& polyline"
+        description: "Set the stroke shape from a Path"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setShape(${1:path})"
+      - name: setClosed
+        return: "void"
+        signatures:
+          - params: "bool closed"
+        description: "Set whether the stroke forms a closed loop"
+        description_ja: ""
+        description_ko: ""
+        snippet: "setClosed(${1:true})"
+      - name: clear
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Remove all vertices"
+        description_ja: ""
+        description_ko: ""
+        snippet: "clear()"
+      - name: update
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Rebuild the internal triangle mesh (call before draw after edits)"
+        description_ja: ""
+        description_ko: ""
+        snippet: "update()"
+      - name: draw
+        return: "void"
+        signatures:
+          - params: ""
+        description: "Draw the stroke mesh"
+        description_ja: ""
+        description_ko: ""
+        snippet: "draw()"

@@ -785,6 +785,8 @@ void setColor(float r, float g, float b, float a)  // Set drawing color (0.0-1.0
 void setColorHSB(float h, float s, float b)  // Set color from HSB (H: 0-1)
 void setColorOKLCH(float L, float C, float H)  // Set color from OKLCH
 void setColorOKLab(float L, float a, float b)  // Set color from OKLab
+float srgbToLinear(float x)  // Convert a single sRGB channel value to linear RGB
+float linearToSrgb(float x)  // Convert a single linear RGB channel value to sRGB
 ```
 
 ### Graphics - Shapes
@@ -897,6 +899,7 @@ void resetBlendMode()  // Reset blend mode to Alpha (default)
 void pushStyle()  // Push current style (color, fill, stroke, blend) onto stack
 void popStyle()  // Pop style from stack, restoring previous state
 void resetStyle()  // Reset all style settings to defaults
+CurveStyle::Mode getCurveMode()  // Current curve tessellation mode (fixed segment count vs. adaptive tolerance)
 ```
 
 ### Transform
@@ -966,6 +969,9 @@ Cursor getCursor()  // Get the current mouse cursor shape
 void bindCursorImage(Cursor cursor, int width, int height, const unsigned char* pixels, int hotspotX = 0, int hotspotY = 0)  // Bind a custom image to a cursor slot (RGBA pixels or Image)
 void bindCursorImage(Cursor cursor, const Image& image, int hotspotX = 0, int hotspotY = 0)  // Bind a custom image to a cursor slot (RGBA pixels or Image)
 void unbindCursorImage(Cursor cursor)  // Unbind a custom cursor image, restoring the system default
+CoreEvents& events()  // Get the global CoreEvents hub holding all framework events (setup, update, draw, keyPressed, mousePressed, etc.); use events().eventName.listen(callback) to subscribe
+bool isOverlayHovered()  // True when an overlay currently has the pointer over it (e.g. cursor over a tcxImGui panel); guard raw mouse input so clicks on UI panels are not also handled by the app
+bool isOverlayFocused()  // True when an overlay currently owns keyboard focus (e.g. a text input is active); guard raw key input so typing into a UI field is not also handled by the app
 ```
 
 ### Time - Frame
@@ -975,6 +981,11 @@ double getDeltaTime()  // Seconds since last frame
 double getFrameRate()  // Current FPS
 float getFps()  // Get current FPS (alias for getFrameRate)
 uint64_t getFrameCount()  // Total frames rendered
+void sleepMillis(int millis)  // Block the current thread for the given number of milliseconds
+void sleepMicros(int micros)  // Block the current thread for the given number of microseconds
+uint64_t getUpdateCount()  // Get the number of update() calls since the app started
+uint64_t getDrawCount()  // Get the number of draw() calls since the app started
+FpsSettings getFpsSettings()  // Get the current FPS configuration (update/draw target rates, actual VSync rate, sync flag)
 ```
 
 ### Memory
@@ -1002,6 +1013,23 @@ bool Platform::isApple()  // True on any Apple platform (macOS or iOS)
 bool Platform::isMobile()  // True on mobile (iOS or Android)
 bool Platform::isDesktop()  // True on desktop (macOS, Windows, or Linux)
 const char* Platform::name()  // Short platform name: "web" / "macos" / "ios" / "windows" / "android" / "linux" / "unknown"
+void setImmersiveMode(bool enabled)  // Hide system UI for immersive fullscreen. Android: sticky immersive (status + navigation bars). iOS: hides status bar + home indicator. Desktop: no-op
+bool getImmersiveMode()  // Return whether immersive mode is currently enabled
+bool captureWindow(Pixels& outPixels)  // Capture the current window contents into a Pixels object. Returns true on success
+float getSystemVolume()  // Get system output volume (0.0-1.0)
+void setSystemVolume(float volume)  // Set system output volume (0.0-1.0). iOS: not supported by the OS (logs a warning)
+float getSystemBrightness()  // Get screen brightness (0.0-1.0). iOS: linear. Android: gamma-corrected (perceptual). Desktop: returns -1 (not supported)
+void setSystemBrightness(float brightness)  // Set screen brightness (0.0-1.0). Meaning of the value differs by platform (iOS linear, Android perceptual). Desktop: not supported
+ThermalState getThermalState()  // Get the coarse-grained device thermal state (Nominal / Fair / Serious / Critical)
+float getThermalTemperature()  // Get device temperature in Celsius, or -1 if unavailable
+float getBatteryLevel()  // Get battery charge level (0.0-1.0), or -1 if unavailable (e.g. desktop without a battery)
+bool isBatteryCharging()  // Return true if the battery is currently charging
+Vec3 getAccelerometer()  // Get accelerometer reading in g-force (1.0 = Earth gravity). Mobile only; desktop returns zero
+Vec3 getGyroscope()  // Get gyroscope angular velocity in rad/s. Mobile only; desktop returns zero
+Quaternion getDeviceOrientation()  // Get the fused device attitude (accelerometer + gyroscope + magnetometer) as a quaternion. Mobile only
+float getCompassHeading()  // Get compass heading in radians (0 = north, clockwise). Mobile only
+bool isProximityClose()  // Return true when the proximity sensor detects a nearby object (e.g. phone held to the ear)
+Location getLocation()  // Get the most recent GPS / WiFi location fix. Starts location updates on the first call
 ```
 
 ### Graphics Backend
@@ -1125,6 +1153,22 @@ float fract(float x)  // Fractional part
 float wrap(float value, float min, float max)  // Wrap value within range [min, max)
 float angleDifference(float angle1, float angle2)  // Shortest angle difference in radians [-TAU/2, TAU/2]
 float angleDifferenceDeg(float deg1, float deg2)  // Shortest angle difference in degrees [-180, 180]
+void applyWindow(vector<float>& signal, WindowType type)  // Apply a window function (in place) to a signal to reduce spectral leakage before FFT
+void applyWindow(vector<complex<float>>& signal, WindowType type)  // Apply a window function (in place) to a signal to reduce spectral leakage before FFT
+bool isPowerOfTwo(int n)  // Return true if n is a positive power of two
+int nextPowerOfTwo(int n)  // Return the smallest power of two greater than or equal to n
+void fft(vector<complex<float>>& data)  // In-place forward FFT (Cooley-Tukey radix-2); the data size must be a power of two
+void ifft(vector<complex<float>>& data)  // In-place inverse FFT; the data size must be a power of two
+vector<complex<float>> toComplex(const vector<float>& real)  // Convert a real-valued signal into a complex array with zero imaginary parts
+vector<complex<float>> fftReal(const vector<float>& signal)  // Compute the FFT of a real-valued signal, optionally applying a window function first
+vector<complex<float>> fftReal(const vector<float>& signal, WindowType window)  // Compute the FFT of a real-valued signal, optionally applying a window function first
+vector<float> fftMagnitude(const vector<complex<float>>& spectrum)  // Return the magnitude (amplitude) of each bin in a spectrum
+vector<float> fftMagnitudeDb(const vector<complex<float>>& spectrum, float minDb = -100.0f)  // Return the magnitude of each bin in decibels, clamped to minDb
+vector<float> fftPhase(const vector<complex<float>>& spectrum)  // Return the phase angle (radians) of each bin in a spectrum
+vector<float> fftPower(const vector<complex<float>>& spectrum)  // Return the power spectrum (magnitude squared) of each bin
+float binToFrequency(int bin, int fftSize, int sampleRate)  // Convert an FFT bin index to its frequency in Hz
+int frequencyToBin(float freq, int fftSize, int sampleRate)  // Convert a frequency in Hz to the nearest FFT bin index
+float windowFunction(WindowType type, int i, int n)  // Return the window coefficient for sample i of n for the given window type
 ```
 
 ### Math - Geometry
@@ -1162,6 +1206,12 @@ const string& recordingPath()  // Output file path of the current recording
 bool isFullscreen()  // Check if window is fullscreen
 void setFullscreen(bool fullscreen)  // Set fullscreen mode
 void redraw(int count = 1)  // Request extra redraws (useful for event-driven rendering)
+string getBackendName()  // Get the active graphics backend name (e.g. "Metal (macOS)", "D3D11", "OpenGL", "WebGPU")
+void bringWindowToFront()  // Activate and raise the application window, giving it focus. Desktop only; no-op on mobile/web
+float getDisplayScaleFactor()  // Get the DPI scale of the main display (available before window creation). macOS: 1.0 or 2.0 (Retina); other platforms: 1.0
+void setWindowDecorated(bool decorated)  // Toggle the window's standard decorations (title bar, borders, buttons). false = borderless but still focusable and closable. Desktop only
+void setWindowSizeLogical(int width, int height)  // Resize the window to the given logical size (logical pixels)
+int runHeadlessApp(const HeadlessSettings& settings = HeadlessSettings())  // Run an app class without a window or graphics context (update loop only). Template on the app type; returns the process exit code
 ```
 
 ### Utility
@@ -1184,6 +1234,36 @@ string toLower(const string& src)  // Convert to lower case
 string toUpper(const string& src)  // Convert to upper case
 void intersectRect(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2, float& ox, float& oy, float& ow, float& oh)  // Compute intersection of two rectangles
 void mcp::registerDebuggerTools()  // Opt in to the MCP debugger tools, letting an AI agent drive the app: input injection (mouse_click, key_press, mouse_move, scroll) plus node selection and scene mutation (select_node, set_node_members). Call once in setup(); calling it IS the opt-in (there is no separate enable step). The tools do nothing unless the MCP server is running (TRUSSC_MCP=1), so it is safe to leave in. Read-only inspection — screenshots and the node tree — needs no opt-in and is always available when MCP is on.
+LogStream logVerbose(const string& module = "")  // Stream-based verbose-level log output
+LogStream logWarning(const string& module = "")  // Stream-based warning-level log output
+LogStream logError(const string& module = "")  // Stream-based error-level log output
+LogStream logFatal(const string& module = "")  // Stream-based fatal-level log output
+LogStream logAt(LogLevel level = LogLevel::Notice)  // Stream-based log output at a runtime-selected level
+Logger& getLogger()  // Access the global logger instance
+void setConsoleLogLevel(LogLevel level)  // Set the minimum log level printed to the console
+void setFileLogLevel(LogLevel level)  // Set the minimum log level written to the log file
+bool setLogFile(const string& path)  // Open a file to receive log output
+void closeLogFile()  // Close the current log file
+size_t compressBound(size_t nbytes, Codec codec)  // Worst-case compressed size, for sizing a destination buffer
+int64_t toInt64(const string& str)  // Parse a string into a 64-bit integer
+double toDouble(const string& str)  // Parse a string into a double
+bool toBool(const string& str)  // Parse a string into a bool
+string toBinary(int value)  // Convert an integer to a binary string
+int hexToInt(const string& hexStr)  // Parse a hex string into a signed int
+unsigned int hexToUInt(const string& hexStr)  // Parse a hex string into an unsigned int
+string toBase64(const unsigned char* bytes, size_t len)  // Encode raw bytes as a Base64 string
+bool isStringInString(const string& haystack, const string& needle)  // Check whether one string contains another
+size_t stringTimesInString(const string& haystack, const string& needle)  // Count occurrences of a substring in a string
+string trim(const string& src)  // Trim whitespace from both ends of a string
+string trimFront(const string& src)  // Trim leading whitespace from a string
+string trimBack(const string& src)  // Trim trailing whitespace from a string
+Json parseJson(const string& str)  // Parse a JSON string into a Json object; returns an empty Json on parse error.
+string toJsonString(const Json& j, int indent = 2)  // Serialize a Json object to a string. indent sets the pretty-print width (negative for compact).
+Xml parseXml(const string& str)  // Parse an XML string into an Xml object.
+Json reflectToJson(T& obj)  // Return all reflected (TC_REFLECT) members of obj as a Json object. Works on any reflected type such as a Node or Mod.
+JsonReadReflector reflectFromJson(T& obj, const Json& j)  // Apply the keys of a Json object onto obj's reflected (TC_REFLECT) members. Returns the reflector so callers can inspect which members were applied, skipped, read-only, or unknown.
+bool isMainThread()  // Whether the calling thread is the main (scene) thread. The main thread ID is recorded on the first call to getMainThreadId().
+thread::id getMainThreadId()  // Get the main thread ID. Records the current thread's ID on the first call, so it must first be called from the main thread.
 ```
 
 ### File
@@ -1206,6 +1286,14 @@ int64_t getFileSize(const string& path)  // Get file size in bytes
 string loadTextFile(const string& path)  // Load entire text file
 bool saveTextFile(const string& path, const string& content)  // Save string to text file
 bool appendToFile(const string& path, const string& content)  // Append string to file
+Json loadJson(const string& path)  // Load a JSON file and return it as a Json object. Relative paths are resolved via getDataPath; returns an empty Json on error.
+bool saveJson(const Json& j, const string& path, int indent = 2)  // Write a Json object to a file. Relative paths are resolved via getDataPath. indent sets the pretty-print width (negative for compact). Returns true on success.
+Xml loadXml(const string& path)  // Load an XML file and return it as an Xml object. Relative paths are resolved via getDataPath.
+void setDataPathRoot(const string& path)  // Set the root directory used to resolve relative data paths. A relative path is resolved against the executable directory; an absolute path (starting with /) is used as-is. A trailing slash is added automatically.
+string getDataPathRoot()  // Get the current data path root (with trailing slash).
+void setDataPathToResources()  // Point the data path root at the macOS app bundle's Contents/Resources/data folder for distribution. No-op on non-macOS platforms.
+string getExecutablePath()  // Get the absolute path of the running executable.
+string getExecutableDir()  // Get the directory containing the running executable (with trailing slash).
 ```
 
 ### Sound
@@ -1239,6 +1327,8 @@ void setChannelMap(vector<vector<int>> map)  // Per-output-channel routing. 1D: 
 void setChannelGains(const vector<float>& gains)  // Per-output-channel gain multiplier. Entries beyond .size() default to 1.0. No internal normalization (setVolume is the overall gain).
 void clearChannelMap()  // Clear the explicit channel map; routing falls back to setMixMode rules.
 void clearChannelGains()  // Clear per-channel gains (back to uniform 1.0).
+void setBeepVolume(float vol)  // Set the output volume for beep() (0.0-1.0).
+float getBeepVolume()  // Get the current beep() output volume (0.0-1.0).
 ```
 
 ### AudioEngine
@@ -1257,6 +1347,11 @@ bool isInitialized()  // True after a successful init()
 Event<AudioOutBuffer> audioOut()  // Real-time playback callback event. listen() to add a synthesis / processing listener. Fires per audio buffer on the audio thread; keep RT-safe.
 Event<AudioInBuffer> audioIn()  // Real-time capture callback event (microphone input). RT-safe same as audioOut.
 Event<AudioDeviceChangedArgs> audioDeviceChanged()  // Fires after every successful init() (initial AND re-init). Args carry the resolved device's real name, isDefaultDevice flag, sampleRate, channels, bufferSize, maxPolyphony. Listener runs on the thread that called init() (main), not the audio thread.
+void initAudio()  // Initialize the global AudioEngine. Called automatically by Sound::load() / play(), so manual use is only needed to start audio early (e.g. before an audioOut synthesis listener).
+void shutdownAudio()  // Shut down the global AudioEngine and close the audio device. Usually unnecessary (runs at program exit).
+size_t getAudioAnalysisBuffer(float* outBuffer, size_t numSamples)  // Copy the latest mixed output samples (mono, L+R average) into outBuffer for FFT / visualization. numSamples is capped at the analysis buffer size (4096). Returns the number of samples written.
+MicInput& getMicInput()  // Get the global MicInput singleton (microphone capture). Call start() on it to open the device.
+size_t getMicAnalysisBuffer(float* outBuffer, size_t numSamples)  // Copy the latest microphone input samples into outBuffer. Convenience wrapper over getMicInput().getBuffer(). numSamples is capped at the mic buffer size (4096). Returns the number of samples written.
 ```
 
 ### ChipSound
@@ -1290,6 +1385,9 @@ float getLineHeight()  // Get line height
 int getSize()  // Get font size
 string systemFontPath(const string& name)  // Resolve a system font name (PostScript / family) to a file path. Returns empty string if not found. macOS uses CoreText; Linux/Windows currently stub.
 vector<string> listSystemFonts()  // Enumerate names of all fonts known to the OS
+void registerGlyph(const Glyph &g)  // Register one bitmap glyph so drawBitmapString can render its codepoint. Replaces any glyph already registered at the same codepoint and marks the atlas dirty for re-upload
+void registerGlyphs(const Glyph (&glyphs)[N])  // Register a fixed-size array of bitmap glyphs in one call (template over the array size)
+void updateGlyph(uint32_t cp, const uint8_t *newData)  // Swap the pixel data of an already-registered glyph without changing its atlas position. Useful for animating a glyph by updating its data each frame
 ```
 
 ### Animation
@@ -1418,6 +1516,9 @@ TweenMod& rotateBy(float radians)  // Animate rotation by relative angle (TweenM
 TweenMod& duration(float seconds)  // Set animation duration (TweenMod method) (C++ only)
 TweenMod& ease(EaseType type, EaseMode mode = InOut)  // Set easing function (TweenMod method). Types: Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce. Modes: In, Out, InOut (C++ only)
 TweenMod& delay(float seconds)  // Set delay before animation starts (TweenMod method) (C++ only)
+Node* getSelectedNode()  // Get the currently selected node (the last-clicked node, held by the Node system; null if none). A tool such as an inspector can read it and drive it via setSelectedNode().
+void setSelectedNode(Node* n)  // Set the currently selected node. Pass nullptr to clear the selection.
+Node* getRootNode()  // Get the running App as the root of the node tree (set by the framework while the app is alive, null otherwise). Lets tools walk the whole tree without the app passing itself around.
 ```
 
 ### 3D Setup
@@ -1468,6 +1569,7 @@ Vec3 getPosition()  // Get camera position
 void setSensitivity(float sensitivity)  // Set rotation sensitivity
 void setZoomSensitivity(float sensitivity)  // Set zoom sensitivity
 void setPanSensitivity(float sensitivity)  // Set pan sensitivity
+const Vec3& getCameraPosition()  // Current camera position used for specular/PBR view vector
 ```
 
 ### Lighting & PBR
@@ -1485,6 +1587,9 @@ void clearEnvironment()  // Clear IBL environment
 void beginShadowPass(Light& light)  // Begin shadow depth pass from the light's point of view
 void endShadowPass()  // End shadow depth pass
 void shadowDraw(const Mesh& mesh)  // Draw a mesh into the shadow depth pass (depth only)
+int getNumLights()  // Number of currently active lights
+Environment* getEnvironment()  // Get the current environment (IBL/skybox), or nullptr if none is set
+Color calculateLighting(const Vec3& worldPos, const Vec3& worldNormal, const Material& material)  // CPU-side lighting result for a world position and normal, summing all active lights with the given material
 ```
 
 ### Math - 3D
@@ -1536,6 +1641,9 @@ void bind(int slot = 0)  // Bind texture
 void unbind(int slot = 0)  // Unbind texture
 int getWidth()  // Get width
 int getHeight()  // Get height
+int channelCount(TextureFormat fmt)  // Number of color channels for a TextureFormat (1, 2, or 4)
+int bytesPerPixel(TextureFormat fmt)  // Bytes per pixel for a TextureFormat
+bool isFloatFormat(TextureFormat fmt)  // Whether a TextureFormat uses floating-point components
 ```
 
 ### Graphics - FBO
@@ -1687,6 +1795,7 @@ bool addFrame(const Pixels& pixels)  // Append one frame at the fixed-rate clock
 bool addFrameAt(const Fbo& fbo, double timeSec)  // Append one frame at an explicit presentation time (seconds)
 bool addFrameAt(const Pixels& pixels, double timeSec)  // Append one frame at an explicit presentation time (seconds)
 void close()  // Finalize and flush the video file
+const char * videoCodecName(VideoCodec c)  // Return a human-readable name for a VideoCodec value (e.g. "H.264", "HEVC", "ProRes 422")
 ```
 
 ### Addon: tcxLut (Color Grading)
@@ -2143,6 +2252,7 @@ void draw()  // Draw the mesh
 void draw(Texture texture)  // Draw the mesh
 void draw(Image image)  // Draw the mesh
 void drawWireframe()  // Draw mesh as wireframe
+void drawGpuPbr()  // Draw the mesh through the GPU PBR pipeline (uploads to GPU buffers as needed, then renders using active lights, material and environment)
 ```
 
 #### Sound — Audio playback
@@ -2611,6 +2721,685 @@ const std::string& getDevicePath()  // Device path
 const std::string& getDeviceName()  // Device name
 ```
 
+#### SoundSource — Abstract base for anything Sound::play() can consume. Two concrete subclasses: SoundBuffer (eager, full PCM in RAM) and SoundStream (decoded on demand from disk). Holds the shared channels / sampleRate fields and the kind() / getDuration() interface.
+
+```cpp
+int channels  // Channel count of the source (1 = mono, 2 = stereo, ...)
+int sampleRate  // Source sample rate in Hz
+SoundSource::Kind kind()  // Source kind (Eager for SoundBuffer, Stream for SoundStream). Lets the mixer dispatch without a virtual call per frame.
+float getDuration()  // Duration in seconds. numSamples/sampleRate for buffers; the decoded file's duration for streams.
+```
+
+#### SoundBuffer — Eager sound source: the full file decoded into interleaved float PCM held in RAM. Derives from SoundSource (inherits channels / sampleRate / kind() / getDuration()). Also provides waveform generators, an ADSR envelope, and mixing helpers, so it doubles as a procedural-audio scratch buffer. Best for short SFX and zero-latency play / seek / multi-instance.
+
+```cpp
+SoundBuffer()
+vector<float> samples  // Interleaved PCM samples (channels interleaved per frame)
+size_t numSamples  // Number of samples per channel (frame count)
+bool load(const string& path)  // Decode a file into PCM, auto-detecting format from the extension (.wav .mp3 .ogg .flac .aac .m4a, case-insensitive). Returns false on failure.
+bool loadWav(const string& path)  // Decode a WAV file into PCM.
+bool loadMp3(const string& path)  // Decode an MP3 file into PCM.
+bool loadOgg(const string& path)  // Decode an OGG Vorbis file into PCM (via stb_vorbis).
+bool loadFlac(const string& path)  // Decode a FLAC file into PCM.
+bool loadAac(const string& path)  // Decode an AAC / M4A file into PCM (platform-specific; returns false on unsupported platforms).
+bool loadWavFromMemory(const void* data, size_t dataSize)  // Decode WAV data from a memory buffer.
+bool loadMp3FromMemory(const void* data, size_t dataSize)  // Decode MP3 data from a memory buffer.
+bool loadOggFromMemory(const void* data, size_t dataSize)  // Decode OGG Vorbis data from a memory buffer.
+bool loadFlacFromMemory(const void* data, size_t dataSize)  // Decode FLAC data from a memory buffer.
+bool loadAacFromMemory(const void* data, size_t dataSize)  // Decode AAC data from a memory buffer (platform-specific; returns false on unsupported platforms).
+bool loadPcmFromMemory(const void* data, size_t dataSize, int numChannels, int rate, int bitsPerSample = 16, bool bigEndian = false)  // Load raw interleaved PCM (16-bit signed or 32-bit float) from memory with explicit format. Returns false for unsupported bit depths.
+float getDuration()  // Duration in seconds (numSamples / sampleRate).
+void generateSineWave(float frequency, float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with a mono sine wave of the given frequency (Hz) and duration (seconds).
+void generateSquareWave(float frequency, float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with a mono square wave.
+void generateTriangleWave(float frequency, float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with a mono triangle wave.
+void generateSawtoothWave(float frequency, float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with a mono sawtooth wave.
+void generateNoise(float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with mono white noise.
+void generatePinkNoise(float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with mono pink noise (1/f spectrum, Paul Kellet's method).
+void generateSilence(float duration, int sr = 44100)  // Fill the buffer with silence of the given duration (useful as a base for mixFrom).
+void applyADSR(float attack, float decay, float sustainLevel, float release)  // Apply an ADSR amplitude envelope to the buffer in place (attack / decay / release in seconds, sustainLevel 0-1).
+void mixFrom(const SoundBuffer& other, size_t offsetSamples, float volume = 1.0f)  // Additively mix another buffer into this one starting at offsetSamples, growing this buffer if needed.
+void clip()  // Hard-clip all samples into the -1.0 .. 1.0 range.
+int SoundBuffer_getAdtsSampleRateIndex(int sampleRate)  // ADTS sample-rate index for the given rate (AAC-in-MOV container helper).
+void SoundBuffer_createAdtsHeader(uint8_t* header, int frameLength, int sampleRate, int channels, int profile = 2)  // Write a 7-byte ADTS header for one raw AAC frame into header (AAC-in-MOV container helper).
+```
+
+#### SoundStream — Streaming sound source: the file stays open and is decoded on demand into a small per-voice ring buffer instead of full PCM in RAM. Derives from SoundSource (inherits channels / sampleRate / kind() / getDuration()). Best for long files (BGM, podcasts). Trade-offs vs SoundBuffer: setSpeed() is treated as 1.0, setPosition() seeks with a ~10 ms refill, and each polyphony slot costs one open file handle + decoder + ring buffer.
+
+```cpp
+SoundStream()
+bool loadStream(const string& path, int maxPolyphony = 1)  // Open the file, validate format (.wav .mp3 .flac .ogg), and populate channels / sampleRate / duration. maxPolyphony reserves that many concurrent decoder slots. Returns false if the file can't be opened or the format is unsupported.
+float getDuration()  // Decoded file duration in seconds.
+const string& getPath()  // Path the stream was opened from.
+int getMaxPolyphony()  // Number of concurrent decoder slots reserved at loadStream().
+```
+
+#### AudioEngine — Singleton miniaudio-based mixer engine. Owns the output device, mixes all playing Sound voices, exposes real-time audioOut / audioIn / audioDeviceChanged events, and an FFT analysis ring buffer. Access via AudioEngine::getInstance(); most apps drive it indirectly through the Sound class and the global initAudio() / shutdownAudio() helpers.
+
+```cpp
+bool init()  // Initialize the engine with defaults, or with an AudioSettings override. Re-init on a running engine migrates active voices to the new settings. Returns true on success.
+bool init(const AudioSettings& settings)  // Initialize the engine with defaults, or with an AudioSettings override. Re-init on a running engine migrates active voices to the new settings. Returns true on success.
+void shutdown()  // Stop and close the audio device.
+int getSampleRate()  // Current engine output sample rate (Hz). Returns the default (48000) before init().
+int getChannels()  // Current engine output channel count.
+int getMaxPolyphony()  // Maximum number of simultaneously-playing Sound voices.
+int getBufferSize()  // Current device buffer size in frames (0 = miniaudio default).
+bool isInitialized()  // True after a successful init().
+size_t getAnalysisBuffer(float* outBuffer, size_t numSamples)  // Copy the latest mixed output samples (mono, L+R average) into outBuffer. numSamples is capped at 4096. Returns the number of samples written. (Global wrapper: getAudioAnalysisBuffer.)
+AudioEngine& AudioEngine_getInstance()  // Get the global AudioEngine singleton.
+vector<AudioDeviceInfo> AudioEngine_listDevices()  // Enumerate available playback devices (name + isDefault). Empty if unsupported on the platform.
+```
+
+#### MicInput — Microphone capture (miniaudio). Opens an input device and exposes the latest samples through a ring buffer. Use the global getMicInput() to access the shared instance, then start() it; getMicAnalysisBuffer() is a convenience wrapper over getBuffer().
+
+```cpp
+MicInput()
+bool start(int sampleRate = 44100)  // Open the microphone device at the given sample rate and begin capturing. Returns false on failure.
+void stop()  // Stop capture and close the microphone device.
+size_t getBuffer(float* outBuffer, size_t numSamples)  // Copy the latest captured samples into outBuffer. numSamples is capped at the ring buffer size (4096). Returns the number of samples written.
+bool isRunning()  // True while the microphone device is open and capturing.
+int getSampleRate()  // Sample rate the microphone was opened at.
+```
+
+#### AudioSettings — Configuration passed to AudioEngine::init() to override engine defaults (sample rate, channels, buffer size, polyphony, device). Empty deviceName selects the system default playback device.
+
+```cpp
+int sampleRate  // Engine output sample rate in Hz (default 96000)
+int channels  // Output channel count (1 = mono, 2 = stereo; default 2)
+int bufferSize  // Requested device buffer size in frames; 0 = let miniaudio choose
+int maxPolyphony  // Max simultaneously-playing Sound voices (default 32)
+string deviceName  // Playback device name; empty = system default. Use AudioEngine::listDevices() to enumerate.
+```
+
+#### AudioDeviceInfo — One entry in the list returned by AudioEngine::listDevices().
+
+```cpp
+string name  // Device name (pass to AudioSettings::deviceName)
+bool isDefault  // True if this is the system default playback device
+```
+
+#### AudioDeviceChangedArgs — Argument type for the AudioEngine::audioDeviceChanged event, fired after every successful init() (initial and re-init). Reports the resolved device's real name (never empty).
+
+```cpp
+string deviceName  // Actual device name now active (resolved, never empty)
+bool isDefaultDevice  // True when the opened device is the OS's current default playback device
+int sampleRate  // Active engine sample rate in Hz
+int channels  // Active output channel count
+int bufferSize  // Active device buffer size in frames
+int maxPolyphony  // Active max polyphony
+```
+
+#### AudioOutBuffer — Argument type for the AudioEngine::audioOut event. Holds the interleaved mutable output buffer for a single audio callback. Listeners should ADD their contribution to data (voices are already mixed in); do not call engine APIs from here.
+
+```cpp
+float* data  // Interleaved mutable output, frameCount * channels samples
+int frameCount  // Number of frames in this callback
+int channels  // Channel count (floats per frame)
+int sampleRate  // Engine output sample rate in Hz
+uint64_t framePosition  // Monotonic count of output frames emitted since engine init (sample-accurate time/phase reference)
+```
+
+#### AudioInBuffer — Argument type for the AudioEngine::audioIn event. Holds the interleaved read-only microphone input for a single capture callback. Process and return quickly; do not call engine APIs from here.
+
+```cpp
+const float* data  // Interleaved read-only mic input, frameCount * channels samples
+int frameCount  // Number of frames in this callback
+int channels  // Channel count (floats per frame)
+int sampleRate  // Input sample rate in Hz
+uint64_t framePosition  // Monotonic count of input frames received since capture start
+```
+
+#### ChipSoundBundle — A timeline of chiptune notes (ChipSoundNote + start time) that builds into a single mixed Sound. Add notes at times, then call build() to render the mix with ADSR and clipping applied.
+
+```cpp
+ChipSoundBundle()
+vector<ChipSoundBundle::Entry> entries  // The scheduled notes (each Entry pairs a ChipSoundNote with its start time in seconds)
+float volume  // Master volume multiplier applied when mixing (default 1.0)
+void add(const ChipSoundNote& note, float time)  // Schedule a note to start at the given time (seconds). The second overload constructs the note inline from wave / frequency / duration.
+void add(ChipSoundNote::Wave wave, float hz, float duration, float time, float vol = 0.5f)  // Schedule a note to start at the given time (seconds). The second overload constructs the note inline from wave / frequency / duration.
+void clear()  // Remove all scheduled notes.
+float getDuration()  // Total duration in seconds, auto-computed from the last note's end.
+Sound build()  // Render all scheduled notes into a single mixed, clipped Sound ready to play.
+```
+
+#### Logger — Logging core with console and file output and an onLog event; access the global instance via getLogger()
+
+```cpp
+void log(LogLevel level, const string& message)  // Emit a log message at the given level
+void setConsoleLogLevel(LogLevel level)  // Set the minimum console log level
+LogLevel getConsoleLogLevel()  // Get the current console log level
+bool setLogFile(const string& path)  // Open a file to receive log output
+void closeFile()  // Close the current log file
+void setFileLogLevel(LogLevel level)  // Set the minimum file log level
+LogLevel getFileLogLevel()  // Get the current file log level
+const string& getLogFilePath()  // Get the path of the current log file
+bool isFileOpen()  // Check whether a log file is currently open
+```
+
+#### CoreEvents — Hub of all framework core events. Each member is an Event you subscribe to with .listen(callback); access the global instance via events()
+
+```cpp
+Event<void> setup  // Fired after app setup completes
+Event<void> update  // Fired before update each frame
+Event<void> draw  // Fired before draw each frame
+Event<void> onRender  // Fired after sokol_gl flush, while the render pass is still active
+Event<void> afterFrame  // Fired after present() (swapchain committed, outside any pass)
+Event<void> exit  // Fired on app exit
+Event<ExitRequestEventArgs> exitRequested  // Fired when an exit is requested; set args.cancel = true to cancel it
+Event<KeyEventArgs> keyPressed  // Fired when a key is pressed
+Event<KeyEventArgs> keyReleased  // Fired when a key is released
+Event<MouseEventArgs> mousePressed  // Fired when a mouse button is pressed
+Event<MouseEventArgs> mouseReleased  // Fired when a mouse button is released
+Event<MouseMoveEventArgs> mouseMoved  // Fired when the mouse moves with no button held
+Event<MouseDragEventArgs> mouseDragged  // Fired when the mouse moves with a button held
+Event<ScrollEventArgs> mouseScrolled  // Fired when the mouse wheel / trackpad scrolls
+Event<ResizeEventArgs> windowResized  // Fired when the window is resized
+Event<DragDropEventArgs> filesDropped  // Fired when files are dropped onto the window
+Event<ClipboardPastedEventArgs> clipboardPasted  // Fired on a paste gesture (Cmd+V / Ctrl+V / browser paste); args.text holds the content
+Event<ConsoleEventArgs> console  // Fired when a command line is received from stdin
+Event<TouchEventArgs> touchPressed  // Fired when a touch begins (Android/iOS, multi-touch)
+Event<TouchEventArgs> touchMoved  // Fired when a touch moves (Android/iOS, multi-touch)
+Event<TouchEventArgs> touchReleased  // Fired when a touch ends or is cancelled (check args.cancelled)
+Event<const sapp_event> rawEvent  // Fired for every raw sokol_app event (for addons needing the full sapp_event)
+```
+
+#### Event — Generic event you subscribe to with listen(callback) and fire with notify(arg). The template parameter is the argument type passed to listeners by reference; Event<void> is the no-argument specialization (callbacks and notify take no argument). listen() returns an EventListener RAII token that disconnects when destroyed
+
+```cpp
+EventListener listen(Callback callback, int priority = EventPriority::App)  // Register a listener callback and return an EventListener token; lower priority runs first, and Deliver::Main runs the callback on the main thread
+EventListener listen(Callback callback, Deliver deliver, int priority = EventPriority::App)  // Register a listener callback and return an EventListener token; lower priority runs first, and Deliver::Main runs the callback on the main thread
+void notify(T& arg)  // Fire the event, calling all listeners in priority order (no argument for Event<void>); stops early if a listener marks an input arg consumed
+size_t listenerCount()  // Number of currently registered listeners
+void clear()  // Remove all listeners
+```
+
+#### EventListener — RAII token returned by Event::listen(); the listener is automatically disconnected when this token is destroyed or reassigned. Move-only
+
+```cpp
+void disconnect()  // Explicitly disconnect the listener now (otherwise happens automatically on destruction)
+bool isConnected()  // True while the listener is still connected to its event
+```
+
+#### KeyEventArgs — Arguments for keyPressed / keyReleased events
+
+```cpp
+int key  // Key code (KEY_* / SAPP_KEYCODE_*)
+bool isRepeat  // True if this is a repeat from holding the key
+bool shift  // Shift modifier held
+bool ctrl  // Ctrl modifier held
+bool alt  // Alt modifier held
+bool super  // Super / Command modifier held
+bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
+```
+
+#### MouseEventArgs — Arguments for mousePressed / mouseReleased events. pos is local space, globalPos is screen space (equal at app level)
+
+```cpp
+Vec2 pos  // Cursor position in the receiving node's local space (== globalPos at app level)
+Vec2 globalPos  // Cursor position in screen space
+int button  // Mouse button (MOUSE_BUTTON_LEFT / RIGHT / MIDDLE)
+float x  // Legacy mirror of pos.x (removed at v1.0)
+float y  // Legacy mirror of pos.y (removed at v1.0)
+bool shift  // Shift modifier held
+bool ctrl  // Ctrl modifier held
+bool alt  // Alt modifier held
+bool super  // Super / Command modifier held
+bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
+```
+
+#### MouseMoveEventArgs — Arguments for mouseMoved (cursor moving with no button held)
+
+```cpp
+Vec2 pos  // Cursor position in local space (== globalPos at app level)
+Vec2 globalPos  // Cursor position in screen space
+Vec2 delta  // Movement since the last event, in local space
+Vec2 globalDelta  // Movement since the last event, in screen space
+float x  // Legacy mirror of pos.x (removed at v1.0)
+float y  // Legacy mirror of pos.y (removed at v1.0)
+float deltaX  // Legacy mirror of delta.x (removed at v1.0)
+float deltaY  // Legacy mirror of delta.y (removed at v1.0)
+bool shift  // Shift modifier held
+bool ctrl  // Ctrl modifier held
+bool alt  // Alt modifier held
+bool super  // Super / Command modifier held
+bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
+```
+
+#### MouseDragEventArgs — Arguments for mouseDragged (cursor moving with a button held)
+
+```cpp
+Vec2 pos  // Cursor position in local space (== globalPos at app level)
+Vec2 globalPos  // Cursor position in screen space
+Vec2 delta  // Movement since the last event, in local space
+Vec2 globalDelta  // Movement since the last event, in screen space
+int button  // Mouse button being dragged (MOUSE_BUTTON_*)
+float x  // Legacy mirror of pos.x (removed at v1.0)
+float y  // Legacy mirror of pos.y (removed at v1.0)
+float deltaX  // Legacy mirror of delta.x (removed at v1.0)
+float deltaY  // Legacy mirror of delta.y (removed at v1.0)
+bool shift  // Shift modifier held
+bool ctrl  // Ctrl modifier held
+bool alt  // Alt modifier held
+bool super  // Super / Command modifier held
+bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
+```
+
+#### ScrollEventArgs — Arguments for mouseScrolled events
+
+```cpp
+Vec2 pos  // Cursor position in local space (== globalPos at app level)
+Vec2 globalPos  // Cursor position in screen space
+Vec2 scroll  // Scroll amount (x: horizontal, y: vertical)
+float scrollX  // Legacy mirror of scroll.x (removed at v1.0)
+float scrollY  // Legacy mirror of scroll.y (removed at v1.0)
+bool shift  // Shift modifier held
+bool ctrl  // Ctrl modifier held
+bool alt  // Alt modifier held
+bool super  // Super / Command modifier held
+bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
+```
+
+#### ResizeEventArgs — Arguments for windowResized events
+
+```cpp
+int width  // New window width in pixels
+int height  // New window height in pixels
+```
+
+#### DragDropEventArgs — Arguments for filesDropped events
+
+```cpp
+vector<string> files  // Paths of the dropped files
+float x  // Drop position x
+float y  // Drop position y
+```
+
+#### ClipboardPastedEventArgs — Arguments for clipboardPasted events; the only reliable way to read the clipboard on the Web platform
+
+```cpp
+string text  // Pasted clipboard content (already read for you)
+```
+
+#### TouchPoint — A single finger within a TouchEventArgs
+
+```cpp
+int id  // Touch ID, persistent across move events
+float x  // Touch x position
+float y  // Touch y position
+float pressure  // Touch pressure (0.0-1.0; not yet reported by sokol, defaults to 1.0)
+bool changed  // True if this touch was part of the current action
+```
+
+#### TouchEventArgs — Arguments for touchPressed / touchMoved / touchReleased events (multi-touch, Android/iOS)
+
+```cpp
+TouchPoint[8] touches  // Array of active touch points (up to MAX_TOUCHES = 8)
+int numTouches  // Number of valid entries in touches
+bool cancelled  // True when touchReleased fires due to system cancellation (incoming call, system gesture)
+```
+
+#### ExitRequestEventArgs — Arguments for the exitRequested event
+
+```cpp
+bool cancel  // Set true in a listener to cancel the requested exit
+```
+
+#### LogEventArgs — Arguments delivered for each log message (level, text, and timestamp)
+
+```cpp
+LogLevel level  // Severity of the log message
+string message  // The log message text
+string timestamp  // Timestamp string (HH:MM:SS.mmm) generated when the message was logged
+```
+
+#### ConsoleEventArgs — Arguments for the console event (a command line received from stdin)
+
+```cpp
+string raw  // Raw input line (e.g. "tcdebug screenshot /tmp/a.png")
+vector<string> args  // Input line split on whitespace (e.g. ["tcdebug", "screenshot", "/tmp/a.png"])
+```
+
+#### FullscreenShader — Shader specialization for fullscreen post-processing effects (position + texcoord quad). Set uniforms via setParams, then call draw to render a fullscreen quad.
+
+```cpp
+FullscreenShader()
+void setParams(const T& params)  // Set uniform parameter block (template; copies the struct bytes). Call before draw.
+void draw()  // Draw a fullscreen quad with this shader applied
+```
+
+#### Ray — A ray with an origin and a normalized direction, used for unified hit testing and picking
+
+```cpp
+Vec3 origin  // Ray origin point
+Vec3 direction  // Ray direction (normalized)
+```
+
+#### ColorLinear — A color in linear RGB space (no gamma encoding), 0.0-1.0 float per channel
+
+```cpp
+float r  // Red component (linear, 0.0-1.0)
+float g  // Green component (linear, 0.0-1.0)
+float b  // Blue component (linear, 0.0-1.0)
+float a  // Alpha component (0.0-1.0)
+```
+
+#### ColorOKLab — A color in the OKLab perceptual color space (lightness + two opponent axes)
+
+```cpp
+float L  // Lightness (0.0-1.0)
+float a  // Green-Red opponent axis (approx -0.4 to 0.4)
+float b  // Blue-Yellow opponent axis (approx -0.4 to 0.4)
+float alpha  // Alpha component (0.0-1.0)
+```
+
+#### Xml — XML document wrapper around pugixml. Loads, saves and queries XML; node-level access is via XmlNode returned from root() and child().
+
+```cpp
+Xml()
+bool load(const string& path)  // Load an XML document from a file. Relative paths are resolved via getDataPath. Returns true on success.
+bool parse(const string& str)  // Parse an XML document from a string. Returns true on success.
+bool save(const string& path, const string& indent = "  ")  // Save the document to a file. Relative paths are resolved via getDataPath. indent sets the per-level indentation string. Returns true on success.
+string toString(const string& indent = "  ")  // Serialize the document to an XML string. indent sets the per-level indentation string.
+XmlNode root()  // Get the document's root element node.
+XmlNode addRoot(const string& name)  // Append a new root element with the given name and return it.
+XmlNode child(const string& name)  // Find a direct child node of the document by name.
+XmlDocument& document()  // Access the underlying pugixml document for advanced operations.
+bool empty()  // Return true if the document has no content.
+void addDeclaration(const string& version = "1.0", const string& encoding = "UTF-8")  // Prepend an XML declaration (<?xml ...?>) with the given version and encoding.
+```
+
+#### Mod — Attachable behavior base class for Node. Subclass it, override the lifecycle and input hooks, and attach with node->addMod<T>(). Lifecycle: setup() on attach, then each frame earlyUpdate() -> Node::update() -> update() -> draw(), and onDestroy() on removal. Override isExclusive() to allow only one instance per Node, and canAttachTo() to restrict attachment.
+
+```cpp
+Node* getOwner()  // Get the owner Node this Mod is attached to.
+void removeSelf()  // Remove this Mod from its owner (no need to name its own type). Safe to call from inside the Mod's own update/draw/event handler; destruction is deferred until the current dispatch finishes. (protected)
+void setup()  // Override: called once when the Mod is attached to the Node. (protected, virtual)
+void earlyUpdate()  // Override: called every frame BEFORE Node::update(). Use for applying transforms, tweens, physics. (protected, virtual)
+void update()  // Override: called every frame AFTER Node::update(). Use for reactions to node state changes. (protected, virtual)
+void draw()  // Override: called during the draw phase, after Node::draw(). (protected, virtual)
+void onDestroy()  // Override: called when the Mod is removed or the Node is destroyed. (protected, virtual)
+bool onMousePress(const MouseEventArgs& e)  // Override: mouse press on the hit node. Return true to consume the event (counts as the node consuming it). (protected, virtual)
+bool onMouseRelease(const MouseEventArgs& e)  // Override: mouse release on the hit node. Return true to consume. (protected, virtual)
+bool onMouseMove(const MouseMoveEventArgs& e)  // Override: mouse move over the hit node. Return true to consume. (protected, virtual)
+bool onMouseDrag(const MouseDragEventArgs& e)  // Override: mouse drag on the hit node. Return true to consume. (protected, virtual)
+bool onMouseScroll(const ScrollEventArgs& e)  // Override: mouse scroll over the hit node. Return true to consume. (protected, virtual)
+bool onKeyPress(const KeyEventArgs& e)  // Override: key press (broadcast to mods on every node). Return true to consume. (protected, virtual)
+bool onKeyRelease(const KeyEventArgs& e)  // Override: key release (broadcast to mods on every node). Return true to consume. (protected, virtual)
+void onMouseEnter()  // Override: pointer entered the owner node. (protected, virtual)
+void onMouseLeave()  // Override: pointer left the owner node. (protected, virtual)
+bool hitTest(const Ray& localRay, float& outDistance)  // Override: screen-space pointer picking (NOT physics collision). Define a hit shape in the node's LOCAL space; if the node's own test OR any mod's returns true, the node is the hit. (protected, virtual)
+bool isExclusive()  // Override to return true if only one instance of this Mod type may be attached per Node (e.g. LayoutMod). Default false. (protected, virtual)
+bool canAttachTo(Node* node)  // Override to restrict which Node types this Mod can attach to. Return false to reject attachment. Default true. (protected, virtual)
+```
+
+#### RectNodeButton — Simple clickable button node (a RectNode subclass). Set normalColor/hoverColor/pressColor and label; it draws a filled rect that changes color on hover/press and a centered label. Events are enabled on construction. Listen on its inherited mousePressed/mouseReleased events for clicks.
+
+```cpp
+RectNodeButton()
+Color normalColor  // Fill color when idle (default dark grey).
+Color hoverColor  // Fill color when the pointer is over the button.
+Color pressColor  // Fill color while pressed.
+string label  // Text drawn centered on the button (skipped if empty).
+bool isPressed()  // Whether the button is currently pressed.
+void draw()  // Draw the button: fills the rect with the state-dependent color and draws the centered label. (override)
+```
+
+#### Thread — Base class for background threads (ofThread compatible). Subclass it, override the protected pure-virtual threadedFunction() with a while (isThreadRunning()) { ... } loop, then control it with startThread()/stopThread()/waitForThread(). A protected mutex dataMutex_ is available for sharing data.
+
+```cpp
+Thread()
+void startThread()  // Start the background thread (runs threadedFunction). No-op if already running.
+void stopThread()  // Send the stop signal: isThreadRunning() returns false inside threadedFunction so a while-loop can exit. Does not block.
+void waitForThread(bool callStopThread = true)  // Wait (join) for the thread to finish. If callStopThread is true (default), calls stopThread() first.
+bool isThreadRunning()  // Whether the thread is currently running.
+thread::id getThreadId()  // Get the underlying thread's ID.
+void threadedFunction()  // Override this with the work to run on the thread; recommended pattern is while (isThreadRunning()) { ... }. (protected, pure virtual)
+void Thread_sleep(unsigned long milliseconds)  // Pause the current thread for the given number of milliseconds.
+void Thread_yield()  // Yield execution to other threads.
+bool Thread_isCurrentThreadTheMainThread()  // Whether the current thread is the main thread. The main thread ID must be recorded first (call getMainThreadId() from the main thread).
+thread::id Thread_getMainThreadId()  // Get the main thread ID, recording the current thread's ID on the first call.
+```
+
+#### ThreadChannel — Thread-safe FIFO queue for one-way inter-thread communication (ofThreadChannel compatible), template<typename T>. Producer-Consumer pattern: a worker thread send()s values and another thread receive()s them. Use two channels for bidirectional communication.
+
+```cpp
+ThreadChannel()
+bool send(const T& value)  // Send a value onto the queue (copy or move overload). Returns false if the channel is closed (with the move overload the value is invalidated even on failure).
+bool send(T&& value)  // Send a value onto the queue (copy or move overload). Returns false if the channel is closed (with the move overload the value is invalidated even on failure).
+bool receive(T& value)  // Receive a value (blocking): waits until data arrives, writing it into value. Returns false if the channel is closed.
+bool tryReceive(T& value)  // Receive a value without blocking, or waiting at most timeoutMs milliseconds (timeout overload). Returns false immediately/after the timeout if no data.
+bool tryReceive(T& value, int64_t timeoutMs)  // Receive a value without blocking, or waiting at most timeoutMs milliseconds (timeout overload). Returns false immediately/after the timeout if no data.
+void close()  // Close the channel, waking all waiting threads. After closing, send/receive return false.
+void clear()  // Clear the queue, discarding all pending values.
+bool empty()  // Whether the queue is empty (approximate).
+size_t size()  // Number of queued values (approximate).
+bool isClosed()  // Whether the channel has been closed.
+```
+
+#### HitResult — Result of a node hit test (this is Node::HitResult). Returned by Node::findHitNode() / findHitNodeFromScreen(); call hit() to check whether anything was hit.
+
+```cpp
+Node::Ptr node  // The hit node (shared_ptr), or null if nothing was hit.
+float distance  // Distance from the ray origin to the hit point.
+Vec3 localPoint  // Hit position in the hit node's local coordinates.
+bool hit()  // Whether a node was hit (node is non-null).
+```
+
+#### Location — GPS / WiFi location fix returned by getLocation()
+
+```cpp
+double latitude  // Latitude in degrees
+double longitude  // Longitude in degrees
+double altitude  // Altitude in meters
+float accuracy  // Horizontal accuracy in meters; -1 if not available yet
+```
+
+#### FpsSettings — FPS configuration returned by getFpsSettings(). Rates use VSYNC (-1) and EVENT_DRIVEN (0) sentinels, or a fixed fps
+
+```cpp
+float updateFps  // Target update rate: VSYNC (-1), EVENT_DRIVEN (0), or a fixed fps
+float drawFps  // Target draw rate: VSYNC (-1), EVENT_DRIVEN (0), or a fixed fps
+float actualVsyncFps  // Actual monitor refresh rate (0 if unknown)
+bool synced  // true when update and draw run in sync (1:1)
+```
+
+#### WindowSettings — Window configuration passed to the app at startup (size, title, DPI, MSAA, fullscreen, decoration, VSync). Setters chain
+
+```cpp
+int width  // Window width (default 1280)
+int height  // Window height (default 720)
+string title  // Window title (default "TrussC App")
+bool highDpi  // High DPI support for sharp rendering on Retina (default true)
+bool pixelPerfect  // true: coords match framebuffer size; false: coords use logical size (default false)
+int sampleCount  // MSAA sample count (default 4)
+bool fullscreen  // Start in fullscreen (default false)
+bool decorated  // false: borderless/chromeless window with no title bar (default true)
+int clipboardSize  // Clipboard buffer size in bytes (default 65536)
+int swapInterval  // VSync present interval: 1 = on (default), 0 = off, N = every Nth refresh
+WindowSettings& setSize(int w, int h)  // Set window size (chainable)
+WindowSettings& setTitle(const string& t)  // Set window title (chainable)
+WindowSettings& setHighDpi(bool enabled)  // Enable/disable high DPI support (chainable)
+WindowSettings& setPixelPerfect(bool enabled)  // Set pixel-perfect mode: true = framebuffer-size coords, false = logical-size coords (chainable)
+WindowSettings& setSampleCount(int count)  // Set MSAA sample count (chainable)
+WindowSettings& setFullscreen(bool enabled)  // Enable/disable fullscreen at startup (chainable)
+WindowSettings& setDecorated(bool enabled)  // false = borderless/chromeless window that can still take focus and be closed programmatically (chainable)
+WindowSettings& setClipboardSize(int size)  // Set clipboard buffer size in bytes (chainable)
+WindowSettings& setSwapInterval(int interval)  // Set VSync present interval: 1 = on, 0 = off, N = every Nth refresh (chainable)
+```
+
+#### HeadlessSettings — Settings for runHeadlessApp() (no window / graphics). Currently just the target update rate
+
+```cpp
+float targetFps  // Target update rate (default 60)
+HeadlessSettings& setFps(float fps)  // Set the target update rate (chainable)
+```
+
+#### FileDialogResult — Result of a load/save file dialog
+
+```cpp
+string filePath  // Full path to the chosen file
+string fileName  // Filename only (no directory)
+bool success  // true if a file was chosen, false if the dialog was cancelled
+```
+
+#### Vec4 — 4D vector (x, y, z, w). Used for homogeneous coordinates and RGBA-style data
+
+```cpp
+Vec4()
+Vec4(float x, float y, float z, float w)
+Vec4(float v)
+Vec4(const Vec3& v, float w = 1.0f)
+Vec4(const Vec2& v, float z = 0.0f, float w = 1.0f)
+float x  // X component
+float y  // Y component
+float z  // Z component
+float w  // W component
+Vec4& set(float x, float y, float z, float w)  // Set all components (chainable)
+Vec4& set(const Vec4& v)  // Set all components (chainable)
+float length()  // Get the vector's magnitude
+float lengthSquared()  // Get the squared magnitude (cheaper than length())
+Vec4 normalized()  // Return a unit-length copy of this vector
+Vec4& normalize()  // Normalize this vector in place (chainable)
+float dot(const Vec4& v)  // Dot product with another vector
+Vec4 lerp(const Vec4& v, float t)  // Linearly interpolate toward v by t (0..1)
+Vec2 xy()  // Get the (x, y) components as a Vec2
+Vec3 xyz()  // Get the (x, y, z) components as a Vec3
+```
+
+#### Mat3 — 3x3 matrix for 2D affine / homography transforms (row-major). Includes static factories and a homography solver
+
+```cpp
+Mat3()
+Mat3(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22)
+float& at(int row, int col)  // Access the element at (row, col)
+Mat3 transposed()  // Return the transpose of this matrix
+float determinant()  // Compute the determinant
+Mat3 inverted()  // Return the inverse matrix (identity if singular)
+Mat3 Mat3_identity()  // Return the identity matrix
+Mat3 Mat3_translate(float tx, float ty)  // Build a 2D translation matrix
+Mat3 Mat3_translate(const Vec2& t)  // Build a 2D translation matrix
+Mat3 Mat3_rotate(float radians)  // Build a 2D rotation matrix (radians)
+Mat3 Mat3_scale(float sx, float sy)  // Build a 2D scale matrix
+Mat3 Mat3_scale(float s)  // Build a 2D scale matrix
+Mat3 Mat3_scale(const Vec2& s)  // Build a 2D scale matrix
+Mat3 Mat3_getHomography(const Vec2 src[4], const Vec2 dst[4])  // Compute the homography matrix mapping 4 source points to 4 destination points (solves H * src = dst)
+```
+
+#### VideoGrabber — Webcam capture source. Call setup() once, then update() every frame; getTexture() (via HasTexture) gives the live frame. Move-only. Camera permission is requested automatically on macOS
+
+```cpp
+VideoGrabber()
+vector<VideoDeviceInfo> listDevices()  // Return the list of available camera devices
+void setDeviceID(int deviceId)  // Select which camera to use; call before setup()
+int getDeviceID()  // Return the selected device ID
+void setDesiredFrameRate(int fps)  // Request a capture frame rate; call before setup()
+int getDesiredFrameRate()  // Return the requested frame rate (-1 if unspecified)
+void setVerbose(bool verbose)  // Enable or disable verbose logging
+bool isVerbose()  // Return whether verbose logging is enabled
+bool setup(int width = 640, int height = 480)  // Start the camera at the requested size. Returns false if permission is not yet granted (it is requested asynchronously); keep calling update() and capture begins once granted
+void close()  // Stop the camera and release its resources
+void update()  // Poll for a new frame and upload it to the texture. Call every frame; also completes a setup() that was waiting on permission
+bool isFrameNew()  // Return true if a new frame arrived during the most recent update()
+bool isInitialized()  // Return true once the camera is set up and capturing
+bool isPendingPermission()  // Return true while waiting for camera permission to be granted
+int getWidth()  // Return the captured frame width in pixels
+int getHeight()  // Return the captured frame height in pixels
+const string & getDeviceName()  // Return the name of the active capture device
+unsigned char * getPixels()  // Return a pointer to the current RGBA pixel buffer
+void copyToImage(Image &image)  // Copy the current frame into an Image (allocating/updating it as needed)
+Texture & getTexture()  // Return the texture holding the live camera frame (HasTexture override)
+bool VideoGrabber_checkCameraPermission()  // Return whether camera access has been granted (macOS 10.14+)
+void VideoGrabber_requestCameraPermission()  // Request camera access asynchronously (macOS)
+```
+
+#### Tween — Animates a value of type T with easing. Templated over any lerp-able type (float, Vec2, Vec3, Vec4, Color, etc.). Auto-updates each frame via events().update once start() is called; chainable setters configure it
+
+```cpp
+Tween()
+Tween(T start, T end, float duration, EaseType type = EaseType::Cubic, EaseMode mode = EaseMode::InOut)
+Tween & from(T value)  // Set the start value (chainable)
+Tween & to(T value)  // Set the end value (chainable)
+Tween & duration(float seconds)  // Set the animation duration in seconds (chainable)
+Tween & ease(EaseType type, EaseMode mode = EaseMode::InOut)  // Set the easing curve; the two-type overload uses an asymmetric ease (one curve in, another out)
+Tween & ease(EaseType inType, EaseType outType)  // Set the easing curve; the two-type overload uses an asymmetric ease (one curve in, another out)
+Tween & loop(int count = -1)  // Repeat the animation: -1 = infinite, 0 = no loop, N = repeat N times (chainable)
+Tween & yoyo(bool enable = true)  // Reverse direction on each loop iteration (chainable)
+Tween & delay(float seconds)  // Delay before the animation starts, in seconds (chainable)
+Tween & start()  // Start (or restart) the animation and begin auto-updating each frame
+Tween & pause()  // Pause the animation, keeping its current progress
+Tween & resume()  // Resume a paused animation
+Tween & reset()  // Stop the animation and reset progress to the start
+Tween & finish()  // Jump immediately to the end value and fire the complete event
+T getValue()  // Return the current eased value
+float getProgress()  // Return normalized progress through the current iteration (0.0-1.0)
+float getElapsed()  // Return elapsed time in seconds within the current iteration
+float getDuration()  // Return the configured duration in seconds
+bool isPlaying()  // Return true while the animation is actively playing
+bool isComplete()  // Return true once the animation (all loops) has finished
+T getStart()  // Return the start value
+T getEnd()  // Return the end value
+int getLoopCount()  // Return how many loop iterations have completed so far
+```
+
+#### VideoDeviceInfo — Information about an available camera device, returned by VideoGrabber::listDevices()
+
+```cpp
+int deviceId  // Numeric device ID (pass to setDeviceID); -1 if unknown
+string deviceName  // Human-readable device name
+string uniqueId  // Stable unique identifier for the device
+```
+
+#### VideoRecordSettings — Encoder settings passed to VideoWriter::open(), ScreenRecorder::start(), and startRecording()
+
+```cpp
+VideoCodec codec  // Output codec (default H264)
+float fps  // Capture/output frame rate. For ScreenRecorder this is the capture ceiling; for VideoWriter it is the exact output rate (default 60)
+int bitrate  // Target bits/sec for H.264/HEVC; 0 = auto. Ignored by ProRes
+int keyframeInterval  // Frames between keyframes; 0 = encoder default
+```
+
+#### Glyph — A bitmap glyph to register via registerGlyph(): a codepoint plus packed 1-bit pixel rows. The data pointer must outlive every drawBitmapString call
+
+```cpp
+uint32_t codepoint  // Unicode codepoint this glyph renders
+const uint8_t * data  // Packed bitmap rows (MSB first); must outlive all draw calls
+Width width  // Glyph width: Halfwidth (8x13) or Fullwidth (16x13)
+```
+
+#### PlacedGlyph — One laid-out glyph emitted by Font::forEachGlyph (nested as Font::PlacedGlyph). Carries the final codepoint and pen position so visitors can render quads, build vector paths, or hit-test independently of the layout pass
+
+```cpp
+uint32_t codepoint  // Final codepoint after vertical-form mapping
+float drawX  // Pen X position; the glyph's own xoffset is added on top
+float baselineY  // Baseline Y position; the glyph's own yoffset is added on top
+float rotationCw  // Clockwise rotation in radians: 0 (upright) or TAU/4 (90 degrees, vertical text)
+float pivotX  // Rotation center X (used only when rotationCw is non-zero)
+float pivotY  // Rotation center Y (used only when rotationCw is non-zero)
+float scaleX  // Horizontal scale (1.0 normally, less than 1 for TCY combine)
+```
+
+#### StrokeMesh — Variable-width polyline stroke geometry with caps, joins and miter limit; build it from points or a Path, then update() and draw()
+
+```cpp
+StrokeMesh()
+StrokeMesh(const Path& polyline)
+void setWidth(float width)  // Set the stroke width
+void setColor(const Color& color)  // Set the stroke color
+void setCapType(CapType type)  // Set the line cap shape (StrokeMesh::CapType: Butt, Round, Square)
+void setJoinType(JoinType type)  // Set the line join shape (StrokeMesh::JoinType: Miter, Round, Bevel)
+void setMiterLimit(float limit)  // Set the miter limit for sharp corners
+void addVertex(float x, float y, float z = 0)  // Append a vertex to the stroke path
+void addVertex(const Vec2& p)  // Append a vertex to the stroke path
+void addVertex(const Vec3& p)  // Append a vertex to the stroke path
+void addVertexWithWidth(float x, float y, float width)  // Append a vertex with a per-vertex width
+void addVertexWithWidth(const Vec3& p, float width)  // Append a vertex with a per-vertex width
+void setWidths(const vector<float>& w)  // Set per-vertex widths from a list
+void setShape(const Path& polyline)  // Set the stroke shape from a Path
+void setClosed(bool closed)  // Set whether the stroke forms a closed loop
+void clear()  // Remove all vertices
+void update()  // Rebuild the internal triangle mesh (call before draw after edits)
+void draw()  // Draw the stroke mesh
+```
+
 ### Enums
 
 ```cpp
@@ -2877,6 +3666,16 @@ enum class KinsokuLevel {  // Line-breaking (kinsoku) strictness for vertical / 
   Off = 0,  // No line-break prohibition rules
   PunctuationOnly = 1,  // Only punctuation kinsoku rules
   Standard = 2,  // Standard kinsoku rules
+}
+
+enum class Orientation {  // Screen orientation mask passed to setOrientation (iOS/Android); values are bit flags and can be combined with |
+  Portrait = 2,  // Portrait, home button at bottom
+  PortraitUpsideDown = 4,  // Portrait, home button at top
+  LandscapeLeft = 16,  // Landscape, home button on the left
+  LandscapeRight = 8,  // Landscape, home button on the right
+  Landscape = 24,  // Either landscape orientation
+  All = 30,  // All four orientations
+  AllButUpsideDown = 26,  // All orientations except portrait-upside-down
 }
 ```
 
