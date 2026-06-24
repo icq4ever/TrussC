@@ -146,7 +146,7 @@ void tcApp::keyPressed(int key) {
             }
         }
     }
-    else if (key == 'p' || key == 'P') {
+    else if (key == 'P') {
         // P: Pause/Resume
         if (musicLoaded) {
             if (music.isPaused()) {
@@ -158,7 +158,7 @@ void tcApp::keyPressed(int key) {
             }
         }
     }
-    else if (key == 's' || key == 'S') {
+    else if (key == 'S') {
         // S: Play sound effect
         if (sfxLoaded) {
             sfx.play();

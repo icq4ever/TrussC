@@ -90,7 +90,7 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'r' || key == 'R') {
+    if (key == 'R') {
         bgColor_ = Color(0.1f, 0.1f, 0.12f);
         slider1_->setValue(0.1f);
         slider2_->setValue(0.1f);

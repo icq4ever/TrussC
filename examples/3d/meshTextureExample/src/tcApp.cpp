@@ -217,7 +217,7 @@ void tcApp::draw() {
 void tcApp::keyPressed(int key) {
     if (key == ' ') {
         currentTexture_ = (currentTexture_ + 1) % 2;
-    } else if (key == 'w' || key == 'W') {
+    } else if (key == 'W') {
         showWireframe_ = !showWireframe_;
     }
 }

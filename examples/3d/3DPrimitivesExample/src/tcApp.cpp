@@ -204,15 +204,15 @@ void tcApp::keyPressed(int key) {
         resolution = 4;
         rebuildPrimitives();
     }
-    else if (key == 's' || key == 'S') {
+    else if (key == 'S') {
         bFill = !bFill;
         logNotice("tcApp") << "Fill: " << (bFill ? "ON" : "OFF");
     }
-    else if (key == 'w' || key == 'W') {
+    else if (key == 'W') {
         bWireframe = !bWireframe;
         logNotice("tcApp") << "Wireframe: " << (bWireframe ? "ON" : "OFF");
     }
-    else if (key == 'l' || key == 'L') {
+    else if (key == 'L') {
         bLighting = !bLighting;
         logNotice("tcApp") << "Lighting: " << (bLighting ? "ON" : "OFF");
     }

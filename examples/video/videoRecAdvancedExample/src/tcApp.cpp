@@ -91,15 +91,15 @@ string tcApp::statusLine() {
 void tcApp::keyPressed(int key) {
     if (exporting_) return;  // busy
 
-    if (key == 'r' || key == 'R') {
+    if (key == 'R') {
         // ScreenRecorder instance, source = whole window (white + green).
         if (rec_.isRecording()) rec_.stop();
         else                    rec_.start("advanced_window.mp4", { .fps = fps_ });
-    } else if (key == 'f' || key == 'F') {
+    } else if (key == 'F') {
         // ScreenRecorder instance, source = the Fbo (green only, GUI-free).
         if (rec_.isRecording()) rec_.stop();
         else                    rec_.start(fbo_, "advanced_fbo.mp4", { .fps = fps_ });
-    } else if (key == 'e' || key == 'E') {
+    } else if (key == 'E') {
         // VideoWriter, offline deterministic export of the Fbo.
         if (!rec_.isRecording()) startExport();
     }

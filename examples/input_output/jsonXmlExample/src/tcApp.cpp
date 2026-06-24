@@ -24,9 +24,9 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'j' || key == 'J') {
+    if (key == 'J') {
         testJson();
-    } else if (key == 'x' || key == 'X') {
+    } else if (key == 'X') {
         testXml();
     }
 }

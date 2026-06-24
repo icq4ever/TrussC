@@ -161,7 +161,7 @@ void tcApp::keyPressed(int key) {
             logError("FileWriter") << "Failed to open log.txt for writing";
         }
     }
-    else if (key == 'r' || key == 'R') {
+    else if (key == 'R') {
         // Read the log file using FileReader
         readLines_.clear();
         totalLinesRead_ = 0;
@@ -179,7 +179,7 @@ void tcApp::keyPressed(int key) {
             logError("FileReader") << "Failed to open log.txt for reading";
         }
     }
-    else if (key == 'c' || key == 'C') {
+    else if (key == 'C') {
         // Create logs directory
         if (createDirectory("logs")) {
             logsExists_ = true;

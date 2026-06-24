@@ -162,7 +162,7 @@ void tcApp::keyPressed(int key) {
             }
         }
     }
-    else if (key == 'p' || key == 'P') {
+    else if (key == 'P') {
         if (musicLoaded) {
             if (music.isPaused()) {
                 music.resume();
@@ -173,7 +173,7 @@ void tcApp::keyPressed(int key) {
             }
         }
     }
-    else if (key == 's' || key == 'S') {
+    else if (key == 'S') {
         if (sfxLoaded) {
             sfx.play();
             logNotice("tcApp") << "SFX playing";

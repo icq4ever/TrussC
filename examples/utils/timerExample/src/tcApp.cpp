@@ -151,7 +151,7 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'r' || key == 'R') {
+    if (key == 'R') {
         // Reset: recreate nodes
         removeAllChildren();
         balls_.clear();

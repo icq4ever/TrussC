@@ -138,7 +138,7 @@ void tcApp::keyPressed(int key) {
             }
         }
     }
-    else if (key == 'r' || key == 'R') {
+    else if (key == 'R') {
         video_.stop();
         video_.play();
     }
@@ -158,7 +158,7 @@ void tcApp::keyPressed(int key) {
         // Volume down
         video_.setVolume(video_.getVolume() - 0.1f);
     }
-    else if (key == 'i' || key == 'I') {
+    else if (key == 'I') {
         showInfo_ = !showInfo_;
     }
 }

@@ -135,7 +135,7 @@ void tcApp::draw() {
 void tcApp::keyPressed(int key) {
     if (key == ' ') {
         startAnimations();
-    } else if (key == 'r' || key == 'R') {
+    } else if (key == 'R') {
         resetPositions();
     }
 }

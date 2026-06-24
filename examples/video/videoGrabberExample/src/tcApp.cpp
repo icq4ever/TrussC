@@ -74,7 +74,7 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'f' || key == 'F') {
+    if (key == 'F') {
         flipH_ = !flipH_;
     }
 }

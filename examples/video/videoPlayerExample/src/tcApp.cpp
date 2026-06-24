@@ -126,7 +126,7 @@ void tcApp::keyPressed(int key) {
             }
         }
     }
-    else if (key == 'r' || key == 'R') {
+    else if (key == 'R') {
         video_.stop();
         video_.play();
     }
@@ -154,10 +154,10 @@ void tcApp::keyPressed(int key) {
         // Speed up
         video_.setSpeed(video_.getSpeed() + 0.25f);
     }
-    else if (key == 'i' || key == 'I') {
+    else if (key == 'I') {
         showInfo_ = !showInfo_;
     }
-    else if (key == 'l' || key == 'L') {
+    else if (key == 'L') {
         // Open file dialog
         auto result = loadDialog("Select Video File", "");
         if (result.success) {
