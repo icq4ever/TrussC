@@ -201,26 +201,45 @@ private:
 // Global logger
 // ---------------------------------------------------------------------------
 // Non-inline: Host/Guest share the same logger on Windows hot-reload
-Logger& tcGetLogger();
+Logger& getLogger();
 
 // ---------------------------------------------------------------------------
 // Convenience functions
 // ---------------------------------------------------------------------------
-inline void tcSetConsoleLogLevel(LogLevel level) {
-    tcGetLogger().setConsoleLogLevel(level);
+inline void setConsoleLogLevel(LogLevel level) {
+    getLogger().setConsoleLogLevel(level);
 }
 
-inline void tcSetFileLogLevel(LogLevel level) {
-    tcGetLogger().setFileLogLevel(level);
+inline void setFileLogLevel(LogLevel level) {
+    getLogger().setFileLogLevel(level);
 }
 
-inline bool tcSetLogFile(const std::string& path) {
-    return tcGetLogger().setLogFile(path);
+inline bool setLogFile(const std::string& path) {
+    return getLogger().setLogFile(path);
 }
 
-inline void tcCloseLogFile() {
-    tcGetLogger().closeFile();
+inline void closeLogFile() {
+    getLogger().closeFile();
 }
+
+// ---------------------------------------------------------------------------
+// Deprecated tc-prefixed aliases (legacy, pre-namespace naming).
+// Removed in v1.0.0 — the tc:: namespace makes the prefix redundant.
+// ---------------------------------------------------------------------------
+[[deprecated("Use getLogger() instead. Will be removed in v1.0.0")]]
+inline Logger& tcGetLogger() { return getLogger(); }
+
+[[deprecated("Use setConsoleLogLevel() instead. Will be removed in v1.0.0")]]
+inline void tcSetConsoleLogLevel(LogLevel level) { setConsoleLogLevel(level); }
+
+[[deprecated("Use setFileLogLevel() instead. Will be removed in v1.0.0")]]
+inline void tcSetFileLogLevel(LogLevel level) { setFileLogLevel(level); }
+
+[[deprecated("Use setLogFile() instead. Will be removed in v1.0.0")]]
+inline bool tcSetLogFile(const std::string& path) { return setLogFile(path); }
+
+[[deprecated("Use closeLogFile() instead. Will be removed in v1.0.0")]]
+inline void tcCloseLogFile() { closeLogFile(); }
 
 // ---------------------------------------------------------------------------
 // LogStream - Stream-based log output
@@ -236,7 +255,7 @@ public:
             if (!module_.empty()) {
                 msg = "[" + module_ + "] " + msg;
             }
-            tcGetLogger().log(level_, msg);
+            getLogger().log(level_, msg);
         }
     }
 
@@ -274,12 +293,11 @@ private:
 // ---------------------------------------------------------------------------
 // Log output functions (stream-based)
 // Usage:
-//   tcLog() << "message";                    // Default (Notice)
-//   tcLog(LogLevel::Warning) << "warning";   // Level specified
+//   logAt(LogLevel::Warning) << "warning";   // Runtime-selected level
 //   logNotice("ClassName") << "message";     // With module name
 //   logNotice() << "message";                // Without module name
 // ---------------------------------------------------------------------------
-inline LogStream tcLog(LogLevel level = LogLevel::Notice) {
+inline LogStream logAt(LogLevel level = LogLevel::Notice) {
     return LogStream(level);
 }
 
@@ -304,12 +322,19 @@ inline LogStream logFatal(const std::string& module = "") {
 }
 
 // ---------------------------------------------------------------------------
-// Backward compatibility aliases (deprecated, use non-prefixed versions)
+// Deprecated tc-prefixed aliases (legacy, pre-namespace naming). v1.0.0 removal.
 // ---------------------------------------------------------------------------
+[[deprecated("Use logAt() instead. Will be removed in v1.0.0")]]
+inline LogStream tcLog(LogLevel level = LogLevel::Notice) { return logAt(level); }
+[[deprecated("Use logVerbose() instead. Will be removed in v1.0.0")]]
 inline LogStream tcLogVerbose(const std::string& module = "") { return logVerbose(module); }
+[[deprecated("Use logNotice() instead. Will be removed in v1.0.0")]]
 inline LogStream tcLogNotice(const std::string& module = "") { return logNotice(module); }
+[[deprecated("Use logWarning() instead. Will be removed in v1.0.0")]]
 inline LogStream tcLogWarning(const std::string& module = "") { return logWarning(module); }
+[[deprecated("Use logError() instead. Will be removed in v1.0.0")]]
 inline LogStream tcLogError(const std::string& module = "") { return logError(module); }
+[[deprecated("Use logFatal() instead. Will be removed in v1.0.0")]]
 inline LogStream tcLogFatal(const std::string& module = "") { return logFatal(module); }
 
 } // namespace trussc

@@ -375,7 +375,7 @@ ElapsedTimeClock& getElapsedClock() {
 }
 } // namespace internal
 
-Logger& tcGetLogger() {
+Logger& getLogger() {
     static Logger logger;
     return logger;
 }

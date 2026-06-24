@@ -3,7 +3,7 @@
 
 void tcApp::setup() {
     setWindowTitle("jsonXmlExample");
-    tcSetConsoleLogLevel(LogLevel::Verbose);
+    setConsoleLogLevel(LogLevel::Verbose);
 
     addMessage("=== JSON/XML Example ===");
     addMessage("");
