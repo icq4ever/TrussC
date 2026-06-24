@@ -85,6 +85,8 @@ categories:
     name_ko: "이벤트"
     functions:
       - name: mousePressed
+        examples:
+          - mouseExample
         return: "void"
         signatures:
           - params: "float x, float y, int button"
@@ -96,6 +98,8 @@ categories:
         snippet: "void mousePressed(float x, float y, int button) {\n\t$0\n}"
 
       - name: mouseReleased
+        examples:
+          - mouseExample
         return: "void"
         signatures:
           - params: "float x, float y, int button"
@@ -107,6 +111,8 @@ categories:
         snippet: "void mouseReleased(float x, float y, int button) {\n\t$0\n}"
 
       - name: mouseMoved
+        examples:
+          - mouseExample
         return: "void"
         signatures:
           - params: "float x, float y"
@@ -118,6 +124,8 @@ categories:
         snippet: "void mouseMoved(float x, float y) {\n\t$0\n}"
 
       - name: mouseDragged
+        examples:
+          - mouseExample
         return: "void"
         signatures:
           - params: "float x, float y, int button"
@@ -129,6 +137,8 @@ categories:
         snippet: "void mouseDragged(float x, float y, int button) {\n\t$0\n}"
 
       - name: keyPressed
+        examples:
+          - keyboardExample
         return: "void"
         signatures:
           - params: "int key"
@@ -140,6 +150,8 @@ categories:
         snippet: "void keyPressed(int key) {\n\t$0\n}"
 
       - name: keyReleased
+        examples:
+          - keyboardExample
         return: "void"
         signatures:
           - params: "int key"
@@ -187,6 +199,9 @@ categories:
         snippet: "clear(${1:0.0})"
 
       - name: setColor
+        examples:
+          - graphicsExample
+          - 3DPrimitivesExample
         return: "void"
         signatures:
           - params: "float gray"
@@ -246,6 +261,8 @@ categories:
     name_ko: "그래픽 - 도형"
     functions:
       - name: drawRect
+        examples:
+          - graphicsExample
         return: "void"
         signatures:
           - params: "float x, float y, float w, float h"
@@ -305,6 +322,8 @@ categories:
         snippet: "drawRectSquircle(${1:x}, ${2:y}, ${3:w}, ${4:h}, ${5:radius})"
 
       - name: drawCircle
+        examples:
+          - graphicsExample
         keywords: ["circle", "round", "ellipse", "ball", "dot"]
         return: "void"
         signatures:
@@ -362,6 +381,8 @@ categories:
         snippet: "drawPoint(${1:x}, ${2:y})"
 
       - name: drawLine
+        examples:
+          - graphicsExample
         return: "void"
         signatures:
           - params: "float x1, float y1, float x2, float y2"
@@ -602,6 +623,9 @@ categories:
         snippet: "drawStroke(${1:x1}, ${2:y1}, ${3:x2}, ${4:y2})"
 
       - name: drawBitmapString
+        examples:
+          - fontExample
+          - bitmapStringExtendedExample
         return: "void"
         signatures:
           - params: "const string& text, float x, float y"
@@ -833,6 +857,8 @@ categories:
         snippet: "fill()"
 
       - name: noFill
+        examples:
+          - graphicsExample
         return: "void"
         signatures:
           - params: ""
@@ -1151,6 +1177,10 @@ categories:
     name_ko: "변환"
     functions:
       - name: translate
+        examples:
+          - easyCamExample
+          - meshAppendExample
+          - 3DPrimitivesExample
         return: "void"
         signatures:
           - params: "float x, float y"
@@ -1280,6 +1310,10 @@ categories:
         snippet: "scale(${1:s})"
 
       - name: pushMatrix
+        examples:
+          - easyCamExample
+          - meshAppendExample
+          - 3DPrimitivesExample
         return: "void"
         signatures:
           - params: ""
@@ -1292,6 +1326,10 @@ categories:
         snippet: "pushMatrix()"
 
       - name: popMatrix
+        examples:
+          - easyCamExample
+          - meshAppendExample
+          - 3DPrimitivesExample
         return: "void"
         signatures:
           - params: ""
@@ -2521,6 +2559,8 @@ categories:
     name_ko: "수학 - 삼각함수"
     functions:
       - name: sin
+        examples:
+          - vectorMathExample
         return: "float"
         signatures:
           - params: "float x"
@@ -8797,6 +8837,9 @@ types:
         snippet: "xy()"
 
   - name: Color
+    examples:
+      - graphicsExample
+      - colorExample
     description: "RGBA color (0.0-1.0 range)"
     description_ja: "RGBAカラー (0.0-1.0範囲)"
     description_ko: "RGBA 색상 (0.0-1.0 범위)"
