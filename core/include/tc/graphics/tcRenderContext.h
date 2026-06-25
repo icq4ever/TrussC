@@ -207,7 +207,7 @@ public:
             return std::max(3, style_.curve.resolution);
         }
         float effTol = style_.curve.tolerance / getCurrentScale();
-        return segmentsForCircle(radius, effTol);
+        return internal::segmentsForCircle(radius, effTol);
     }
     int decideArcSegments(float radius, float angleSpan) const {
         if (style_.curve.mode == CurveStyle::Mode::Resolution) {
@@ -216,7 +216,7 @@ public:
             return std::max(2, n);
         }
         float effTol = style_.curve.tolerance / getCurrentScale();
-        return segmentsForArc(radius, angleSpan, effTol);
+        return internal::segmentsForArc(radius, angleSpan, effTol);
     }
 
     // -----------------------------------------------------------------------

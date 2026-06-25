@@ -393,6 +393,10 @@ public:
 //   - Each polyphony slot costs one open file handle + one decoder +
 //     one ring buffer (default ~16 KB).
 // ---------------------------------------------------------------------------
+// Per-voice decoder + ring-buffer state. Full definition lives in
+// tcAudio_impl.cpp (where miniaudio's headers are visible).
+namespace internal { struct StreamInstance; }
+
 class SoundStream : public SoundSource {
 public:
     SoundStream() : SoundSource(SoundSource::Stream) {}
@@ -417,7 +421,7 @@ private:
                                   // to avoid pulling miniaudio.h into the header.
     float duration_ = 0.0f;
 
-    friend struct StreamInstance;
+    friend struct internal::StreamInstance;
     friend class AudioEngine;
 };
 
@@ -425,9 +429,9 @@ private:
 // Per-PlayingSound stream state. Owns a miniaudio decoder and a ring
 // buffer fed by StreamWorker. Mixer reads from `ring`. Declared as a
 // forward declaration here; full definition is in tcAudio_impl.cpp
-// where miniaudio's headers are visible.
+// where miniaudio's headers are visible (see internal::StreamInstance
+// forward-declared above).
 // ---------------------------------------------------------------------------
-struct StreamInstance;
 
 // ---------------------------------------------------------------------------
 // MixMode — high-level routing preset for how a Sound's source channels
@@ -541,7 +545,7 @@ struct PlayingSound {
 
     // Per-instance streaming state. Null for eager voices; allocated by
     // AudioEngine::play() when buffer->kind() == Stream.
-    std::shared_ptr<StreamInstance> stream;
+    std::shared_ptr<internal::StreamInstance> stream;
 
     std::atomic<float> volume{1.0f};
     std::atomic<float> pan{0.0f};        // -1.0 (left) ~ 0.0 (center) ~ 1.0 (right)

@@ -1304,25 +1304,25 @@ protected:
     // (e.g. in cleanup() / on mode change); ~Node cancels any leftovers and
     // waits for an in-flight callback to finish.
     uint64_t callAfterAsync(double delay, std::function<void()> callback) {
-        return AsyncScheduler::get().after(asyncOwner(), delay, std::move(callback));
+        return internal::AsyncScheduler::get().after(asyncOwner(), delay, std::move(callback));
     }
 
     uint64_t callEveryAsync(double interval, std::function<void()> callback) {
-        return AsyncScheduler::get().every(asyncOwner(), interval, std::move(callback));
+        return internal::AsyncScheduler::get().every(asyncOwner(), interval, std::move(callback));
     }
 
     void cancelAsyncTimer(uint64_t id) {
-        AsyncScheduler::get().cancel(id);
+        internal::AsyncScheduler::get().cancel(id);
     }
 
     void cancelAllAsyncTimers() {
-        if (asyncOwner_) AsyncScheduler::get().cancelOwner(asyncOwner_);
+        if (asyncOwner_) internal::AsyncScheduler::get().cancelOwner(asyncOwner_);
     }
 
 private:
     uint64_t asyncOwner_ = 0;   // lazily assigned scheduler owner token
     uint64_t asyncOwner() {
-        if (!asyncOwner_) asyncOwner_ = AsyncScheduler::newOwner();
+        if (!asyncOwner_) asyncOwner_ = internal::AsyncScheduler::newOwner();
         return asyncOwner_;
     }
 

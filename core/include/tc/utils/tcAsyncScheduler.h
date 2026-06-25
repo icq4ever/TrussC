@@ -31,6 +31,8 @@
 
 namespace trussc {
 
+namespace internal {
+
 class AsyncScheduler {
 public:
     using Clock    = std::chrono::steady_clock;
@@ -177,5 +179,7 @@ private:
     bool                    stop_ = false;
     std::thread             worker_;    // declared last: starts after the rest
 };
+
+} // namespace internal
 
 } // namespace trussc

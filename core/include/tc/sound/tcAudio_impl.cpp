@@ -59,6 +59,8 @@ namespace trussc {
 // vulnerable to long decode stalls.
 // =============================================================================
 
+namespace internal {
+
 struct StreamInstance {
     static constexpr size_t RING_FRAMES = 16384;          // power of 2
     static constexpr size_t RING_MASK   = RING_FRAMES - 1;
@@ -104,6 +106,12 @@ struct StreamInstance {
     }
     uint64_t space() const { return RING_FRAMES - available(); }
 };
+
+} // namespace internal
+
+// Implementation detail: the rest of this TU refers to StreamInstance
+// unqualified. (This is a .cpp, not a public header.)
+using internal::StreamInstance;
 
 // ---------------------------------------------------------------------------
 // StreamWorker — single thread + condition variable; refills any registered

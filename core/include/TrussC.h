@@ -2126,7 +2126,7 @@ namespace internal {
         // Run work marshalled from worker threads (runOnMainThread, Event
         // Deliver::Main). Done before update/draw so queued tree edits land
         // while no traversal is in flight.
-        drainMainThreadQueue();
+        internal::drainMainThreadQueue();
 
         // Process console input (fire events)
         console::processQueue();

@@ -47,6 +47,8 @@ inline constexpr int kMaxCircleSegments = 1024;
 //     N                >= HALF_TAU / acos(1 - tolerance/r)
 //
 // Both inputs are pre-divided by the current scale by the caller.
+namespace internal {
+
 inline int segmentsForCircle(float radius, float tolerance) {
     if (radius <= 0.0f) return 0;
     if (tolerance <= 0.0f) return kMaxCircleSegments;
@@ -66,6 +68,8 @@ inline int segmentsForArc(float radius, float angleSpan, float tolerance) {
     int n = (int)std::ceil(full * std::abs(angleSpan) / TAU);
     return std::max(2, n);
 }
+
+} // namespace internal
 
 // =============================================================================
 // Bezier subdivision (de Casteljau) — adaptive flatness-driven recursion.
