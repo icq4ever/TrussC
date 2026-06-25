@@ -24,6 +24,8 @@ enum class TextureFormat {
     RGBA16,      // 4ch, 16-bit unorm/ch (high-precision integer; texture-sharing interop)
 };
 
+namespace internal {
+
 // Convert TextureFormat to sokol format
 inline sg_pixel_format toSokolFormat(TextureFormat fmt) {
     switch (fmt) {
@@ -41,6 +43,8 @@ inline sg_pixel_format toSokolFormat(TextureFormat fmt) {
         default:                   return SG_PIXELFORMAT_RGBA8;
     }
 }
+
+} // namespace internal
 
 // Number of color channels
 inline int channelCount(TextureFormat fmt) {
@@ -158,7 +162,7 @@ public:
         sampleCount_ = sampleCount;
         numMipLevels_ = mipLevels < 1 ? 1 : mipLevels;
         mipmapped_ = numMipLevels_ > 1;
-        pixelFormat_ = toSokolFormat(format);
+        pixelFormat_ = internal::toSokolFormat(format);
 
         createResources(nullptr);
     }
@@ -187,7 +191,7 @@ public:
         channels_ = channelCount(format);
         usage_ = usage;
         sampleCount_ = 1;
-        pixelFormat_ = toSokolFormat(format);
+        pixelFormat_ = internal::toSokolFormat(format);
         isCubemap_ = true;
         numMipLevels_ = (mipLevels < 1) ? 1 : mipLevels;
         mipmapped_ = numMipLevels_ > 1;
