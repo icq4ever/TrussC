@@ -911,7 +911,7 @@ private:
         sgl_texture(view_, sampler_);
 
         // Draw with current color
-        Color col = getDefaultContext().getColor();
+        Color col = getColor();
         sgl_begin_quads();
         sgl_c4f(col.r, col.g, col.b, col.a);
 

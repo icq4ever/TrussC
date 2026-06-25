@@ -1319,7 +1319,7 @@ protected:
             sgl_enable_texture();
             sgl_texture(atlas.getView(), sampler_);
 
-            Color col = getDefaultContext().getColor();
+            Color col = getColor();
             sgl_c4f(col.r, col.g, col.b, col.a);
 
             sgl_begin_quads();
