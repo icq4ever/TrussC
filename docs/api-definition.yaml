@@ -9736,7 +9736,7 @@ categories:
           - PrimitiveMode
           - PrimitiveType
         keywords: ["primitive","triangles","lines","points","topology"]
-        return: void
+        return: "Mesh&"
         signatures:
           - params: "PrimitiveMode"
             params_simple: "mode"
@@ -9820,7 +9820,7 @@ categories:
           - addTriangle
           - addVertex
         keywords: ["index","element","ibo","face","topology"]
-        return: void
+        return: "Mesh&"
         signatures:
           - params: "unsigned int"
             params_simple: "index"
@@ -9835,7 +9835,7 @@ categories:
           - addIndex
           - addVertex
         keywords: ["triangle","face","tri","indices"]
-        return: void
+        return: "Mesh&"
         signatures:
           - params: "unsigned int, unsigned int, unsigned int"
             params_simple: "i1, i2, i3"
@@ -9847,7 +9847,7 @@ categories:
       - name: clear
         self: Mesh
         keywords: ["reset","empty","remove","delete"]
-        return: "void"
+        return: "Mesh&"
         signatures:
           - params: ""
             params_simple: ""
@@ -10019,7 +10019,7 @@ categories:
           - setStrokeWeight
           - addVertexWithWidth
         keywords: ["thickness","weight","size","line width"]
-        return: void
+        return: "StrokeMesh&"
         signatures:
           - params: "float width"
             params_simple: "width"
@@ -10031,7 +10031,7 @@ categories:
       - name: setColor
         self: StrokeMesh
         keywords: ["color","tint","rgba","fill"]
-        return: void
+        return: "StrokeMesh&"
         signatures:
           - params: "const Color &color"
             params_simple: "color"
@@ -10047,7 +10047,7 @@ categories:
           - setStrokeCap
           - StrokeCap
         keywords: ["cap","endcap","butt","round","square"]
-        return: void
+        return: "StrokeMesh&"
         signatures:
           - params: "StrokeMesh::CapType"
             params_simple: "type"
@@ -10064,7 +10064,7 @@ categories:
           - StrokeJoin
           - setMiterLimit
         keywords: ["join","corner","miter","bevel","round"]
-        return: void
+        return: "StrokeMesh&"
         signatures:
           - params: "StrokeMesh::JoinType"
             params_simple: "type"
@@ -10080,7 +10080,7 @@ categories:
           - setJoinType
           - StrokeJoin
         keywords: ["miter","corner","sharp","limit"]
-        return: void
+        return: "StrokeMesh&"
         signatures:
           - params: "float limit"
             params_simple: "limit"
@@ -10130,7 +10130,7 @@ categories:
           - Path
           - setClosed
         keywords: ["path","outline","geometry","from path"]
-        return: void
+        return: "StrokeMesh&"
         signatures:
           - params: "const Path &"
             params_simple: "path"
@@ -10146,7 +10146,7 @@ categories:
           - setShape
           - close
         keywords: ["closed","loop","open","join"]
-        return: void
+        return: "StrokeMesh&"
         signatures:
           - params: "bool closed"
             params_simple: "closed"
@@ -10158,7 +10158,7 @@ categories:
       - name: clear
         self: StrokeMesh
         keywords: ["reset","empty","remove","delete"]
-        return: void
+        return: "StrokeMesh&"
         signatures:
           - params: ""
             params_simple: ""
@@ -15344,7 +15344,7 @@ types:
     methods:
       - name: setMode
         self: Mesh
-        return: "void"
+        return: "Mesh&"
         signatures:
           - params: "PrimitiveMode mode"
             params_simple: "mode"
@@ -15452,7 +15452,7 @@ types:
         description_ko: "메쉬에 정점 색상이 있는지 확인"
       - name: addIndex
         self: Mesh
-        return: void
+        return: "Mesh&"
         signatures:
           - params: "unsigned int index"
             params_simple: "index"
@@ -15470,7 +15470,7 @@ types:
         description_ko: "여러 인덱스를 추가"
       - name: addTriangle
         self: Mesh
-        return: void
+        return: "Mesh&"
         signatures:
           - params: "unsigned int i0, unsigned int i1, unsigned int i2"
             params_simple: "i0, i1, i2"
@@ -15527,7 +15527,7 @@ types:
       - name: setNormal
         self: Mesh
         sketch: false
-        return: void
+        return: "Mesh&"
         signatures:
           - params: "size_t index, const Vec3 & n"
             params_simple: "index, n"
@@ -15623,7 +15623,7 @@ types:
         description_ko: "텍스처 좌표 개수가 정점 개수와 일치하는지 확인"
       - name: clear
         self: Mesh
-        return: "void"
+        return: "Mesh&"
         signatures:
           - params: ""
         description: "Clear all mesh data"
@@ -15632,7 +15632,7 @@ types:
       - name: clearVertices
         self: Mesh
         sketch: false
-        return: "void"
+        return: "Mesh&"
         signatures:
           - params: ""
         description: "Clear vertices only"
@@ -15641,7 +15641,7 @@ types:
       - name: clearColors
         self: Mesh
         sketch: false
-        return: "void"
+        return: "Mesh&"
         signatures:
           - params: ""
         description: "Clear colors only"
@@ -15650,7 +15650,7 @@ types:
       - name: clearIndices
         self: Mesh
         sketch: false
-        return: "void"
+        return: "Mesh&"
         signatures:
           - params: ""
         description: "Clear indices only"
@@ -15659,7 +15659,7 @@ types:
       - name: clearNormals
         self: Mesh
         sketch: false
-        return: "void"
+        return: "Mesh&"
         signatures:
           - params: ""
         description: "Clear normals only"
@@ -15668,7 +15668,7 @@ types:
       - name: clearTexCoords
         self: Mesh
         sketch: false
-        return: "void"
+        return: "Mesh&"
         signatures:
           - params: ""
         description: "Clear texture coordinates only"
@@ -15726,7 +15726,7 @@ types:
       - name: transform
         self: Mesh
         sketch: false
-        return: void
+        return: "Mesh&"
         signatures:
           - params: "const Mat4 & m"
             params_simple: "m"
@@ -15736,7 +15736,7 @@ types:
       - name: append
         self: Mesh
         sketch: false
-        return: void
+        return: "Mesh&"
         signatures:
           - params: "const Mesh & other"
             params_simple: "other"
@@ -19371,7 +19371,7 @@ types:
         description_ko: "지정한 시각 (초) 에 시작하는 노트를 스케줄. 두 번째 오버로드는 wave / frequency / duration 으로 노트를 인라인 생성한다"
       - name: clear
         self: ChipSoundBundle
-        return: "void"
+        return: "ChipSoundBundle&"
         signatures:
           - params: ""
         description: "Remove all scheduled notes."
@@ -22313,7 +22313,7 @@ types:
         description_ko: "정점별 너비와 함께 정점을 추가"
       - name: setWidths
         self: StrokeMesh
-        return: "void"
+        return: "StrokeMesh&"
         signatures:
           - params: "const vector<float>& w"
         description: "Set per-vertex widths from a list"
