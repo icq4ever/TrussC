@@ -12,7 +12,7 @@
 #   keywords: [..]   # search aliases for fuzzy/keyword lookup on the web reference
 #   index: false     # exclude this symbol from the FOR_AI_ASSISTANT.md C++ API index
 
-# Coverage-audit configuration (consumed by docs/scripts/coverage-audit.js).
+# Coverage-audit configuration (consumed by docs/tests/coverage-audit.js).
 # The public contract is everything directly in trussc:: ; anything intentionally
 # non-public MUST live under one of these namespaces. The C++->yaml coverage
 # check enumerates the real public API via the clang AST and excludes any symbol

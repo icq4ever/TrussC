@@ -136,7 +136,7 @@ tools/build/
 
 # Tools like sokol-shdc are auto-downloaded on first build
 core/tools/
-docs/scripts/node_modules/
+docs/node_modules/
 
 # =============================================================================
 # Project Generator Auto-generated Files
