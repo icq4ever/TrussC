@@ -7,17 +7,16 @@
 
 namespace trussc {
 
-// ---------------------------------------------------------------------------
-// Stroke vertex (position + color + width)
-// ---------------------------------------------------------------------------
-struct StrokeVertex {
-    Vec3 pos;
-    Color color;
-    float width;
-};
-
 // Internal state for shape/stroke drawing
 namespace internal {
+
+    // Stroke vertex (position + color + width)
+    struct StrokeVertex {
+        Vec3 pos;
+        Color color;
+        float width;
+    };
+
     // Shape (polygon) vertices
     inline std::vector<Vec3> shapeVertices;
     inline bool shapeStarted = false;

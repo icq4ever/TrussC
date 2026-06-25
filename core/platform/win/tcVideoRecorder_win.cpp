@@ -66,6 +66,7 @@ namespace trussc {
 // ---------------------------------------------------------------------------
 // Platform state (IMFSinkWriter holds the encoder + mp4 file sink)
 // ---------------------------------------------------------------------------
+namespace internal {
 struct VideoWriterPlatformData {
     IMFSinkWriter* writer = nullptr;
     DWORD streamIndex = 0;
@@ -76,6 +77,8 @@ struct VideoWriterPlatformData {
     bool  usedHardware = false;
     bool  failed = false;
 };
+}  // namespace internal
+using internal::VideoWriterPlatformData;
 
 namespace {
 

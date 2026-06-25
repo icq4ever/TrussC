@@ -705,7 +705,7 @@ public:
     void drawFill() const {
         const std::vector<std::array<float, 2>> tris = buildFillTriangles();
         if (tris.empty()) return;
-        const Color col = getDefaultContext().getColor();
+        const Color col = getColor();
         sgl_begin_triangles();
         sgl_c4f(col.r, col.g, col.b, col.a);
         for (const auto& p : tris) sgl_v2f(p[0], p[1]);

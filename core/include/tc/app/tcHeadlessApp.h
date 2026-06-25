@@ -126,7 +126,7 @@ int runHeadlessApp(const HeadlessSettings& settings = HeadlessSettings()) {
 
         // Run work marshalled from worker threads (runOnMainThread, Event
         // Deliver::Main) on the main thread, mirroring the windowed _frame_cb.
-        drainMainThreadQueue();
+        internal::drainMainThreadQueue();
 
         // Fixed timestep update
         while (accumulator >= targetDelta) {

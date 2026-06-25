@@ -526,6 +526,8 @@ inline Host g_host;
 // runHotReloadApp — entry point for hot reload mode
 // ---------------------------------------------------------------------------
 
+namespace internal {
+
 inline int runHotReloadApp(const WindowSettings& settings) {
     using namespace hot_reload;
 
@@ -588,11 +590,11 @@ inline int runHotReloadApp(const WindowSettings& settings) {
         App* app = g_host.getApp();
         if (app) app->handleMouseReleased(e);
     };
-    internal::appMouseMovedFunc = [](const MouseEventRaw& e) {
+    internal::appMouseMovedFunc = [](const internal::MouseEventRaw& e) {
         App* app = g_host.getApp();
         if (app) app->handleMouseMoved(e);
     };
-    internal::appMouseDraggedFunc = [](const MouseEventRaw& e) {
+    internal::appMouseDraggedFunc = [](const internal::MouseEventRaw& e) {
         App* app = g_host.getApp();
         if (app) app->handleMouseDragged(e);
     };
@@ -641,6 +643,8 @@ inline int runHotReloadApp(const WindowSettings& settings) {
     sapp_run(&desc);
     return 0;
 }
+
+} // namespace internal
 
 } // namespace trussc
 

@@ -37,7 +37,7 @@ namespace trussc {
 // Web is single-threaded — everything already runs on the main thread, so
 // there is nothing to marshal and no queue to drain.
 inline void runOnMainThread(const std::function<void()>& fn) { if (fn) fn(); }
-inline void drainMainThreadQueue() {}
+namespace internal { inline void drainMainThreadQueue() {} }
 
 #else
 
@@ -60,12 +60,15 @@ inline void runOnMainThread(std::function<void()> fn) {
 }
 
 // Drain all pending main-thread work. Called by the framework once per frame
-// (in _frame_cb, before update/draw). Headless loops can call it manually.
+// (in _frame_cb, before update/draw). Headless loops call it via the
+// framework's run loop; exposed under internal:: for those paths.
+namespace internal {
 inline void drainMainThreadQueue() {
     std::function<void()> fn;
-    while (internal::mainThreadQueue().tryReceive(fn)) {
+    while (mainThreadQueue().tryReceive(fn)) {
         if (fn) fn();
     }
+}
 }
 
 #endif

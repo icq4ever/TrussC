@@ -25,6 +25,8 @@
 
 namespace trussc {
 
+namespace internal { class VideoPlayerPlatformAccess; }  // friend, defined below
+
 // ---------------------------------------------------------------------------
 // VideoPlayer - Standard video playback (RGBA output)
 // ---------------------------------------------------------------------------
@@ -434,13 +436,14 @@ private:
                                      float timeSec, float* outDuration);
 
     // Allow platform implementations to access internals
-    friend class VideoPlayerPlatformAccess;
+    friend class internal::VideoPlayerPlatformAccess;
 
 #if defined(__linux__) && !defined(__ANDROID__)
     void drawNV12Platform(float x, float y, float w, float h) const;
 #endif
 };
 
+namespace internal {
 // Helper class for platform implementations to access protected members
 class VideoPlayerPlatformAccess {
 public:
@@ -461,5 +464,6 @@ public:
         return player.mutex_;
     }
 };
+} // namespace internal
 
 } // namespace trussc

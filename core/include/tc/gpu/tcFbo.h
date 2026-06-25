@@ -16,7 +16,7 @@ namespace trussc {
 class Fbo;
 
 // Static helper function for calling FBO's clearColor
-inline void _fboClearColorHelper(float r, float g, float b, float a);
+namespace internal { inline void _fboClearColorHelper(float r, float g, float b, float a); }
 
 // ---------------------------------------------------------------------------
 // Fbo Class - inherits from HasTexture
@@ -71,7 +71,7 @@ public:
         numMipLevels_ = mipmaps_
             ? 1 + (int)std::floor(std::log2((float)std::max(w, h)))
             : 1;
-        sg_pixel_format sgFormat = toSokolFormat(format);
+        sg_pixel_format sgFormat = internal::toSokolFormat(format);
 
         // MSAA case
         if (sampleCount_ > 1) {
@@ -425,7 +425,7 @@ private:
         auto& s = getShared(sampleCount, format);
         if (s.initialized) return;
 
-        sg_pixel_format sgFormat = toSokolFormat(format);
+        sg_pixel_format sgFormat = internal::toSokolFormat(format);
 
         // Create sgl context (match main context buffer sizes)
         sgl_context_desc_t ctx_desc = {};
@@ -475,7 +475,7 @@ private:
         auto& s = getSharedMip(format);
         if (s.initialized) return;
 
-        sg_pixel_format sgFormat = toSokolFormat(format);
+        sg_pixel_format sgFormat = internal::toSokolFormat(format);
 
         // Fullscreen quad (triangle strip). UV 0..1 across the quad so a
         // bilinear sample of the previous mip is enough to produce a 2x2
@@ -667,9 +667,9 @@ private:
         internal::loadPipeline(internal::activeFill2D());
 
         internal::currentFbo = this;
-        internal::currentFboColorFormat = toSokolFormat(format_);
+        internal::currentFboColorFormat = internal::toSokolFormat(format_);
         internal::currentFboSampleCount = sampleCount_;
-        internal::fboClearColorFunc = _fboClearColorHelper;
+        internal::fboClearColorFunc = internal::_fboClearColorHelper;
     }
 
 private:
@@ -722,11 +722,13 @@ private:
 // ---------------------------------------------------------------------------
 // Helper function called from tc::clear()
 // ---------------------------------------------------------------------------
+namespace internal {
 inline void _fboClearColorHelper(float r, float g, float b, float a) {
     Fbo* fbo = static_cast<Fbo*>(internal::currentFbo);
     if (fbo) {
         fbo->clearColor(r, g, b, a);
     }
 }
+} // namespace internal
 
 } // namespace trussc

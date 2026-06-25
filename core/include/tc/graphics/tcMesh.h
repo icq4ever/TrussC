@@ -504,7 +504,7 @@ public:
 
         bool useColors = hasColors() && colors_.size() >= vertices_.size();
         bool useIndices = hasIndices();
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
         auto& writer = internal::getActiveWriter();
 
         // Convert PrimitiveMode to PrimitiveType and begin
@@ -648,7 +648,7 @@ public:
         bool useColors = hasColors() && colors_.size() >= vertices_.size();
         bool useIndices = hasIndices();
         bool useTexCoords = hasValidTexCoords();
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
 
         // Enable texture
         texture.bind();
@@ -725,7 +725,7 @@ public:
             return;
         }
 
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
         sgl_begin_lines();
 
         if (hasIndices()) {
@@ -778,7 +778,7 @@ private:
     void drawTriangleFan(bool useColors, bool useIndices) const {
         if (vertices_.size() < 3) return;
 
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
         auto& writer = internal::getActiveWriter();
         writer.begin(PrimitiveType::Triangles);
 
@@ -821,7 +821,7 @@ private:
     void drawLineLoop(bool useColors, bool useIndices) const {
         if (vertices_.size() < 2) return;
 
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
         auto& writer = internal::getActiveWriter();
         writer.begin(PrimitiveType::LineStrip);
 

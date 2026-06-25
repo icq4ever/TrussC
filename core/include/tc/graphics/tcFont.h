@@ -90,6 +90,10 @@
 
 namespace trussc {
 
+// Atlas / cache internals — not part of the public Font API. The user-facing
+// Font class below wraps all of this.
+namespace internal {
+
 // ---------------------------------------------------------------------------
 // Font cache key (font path + size)
 // ---------------------------------------------------------------------------
@@ -854,6 +858,8 @@ private:
     std::unordered_map<FontCacheKey, std::shared_ptr<FontAtlasManager>, FontCacheKeyHash> cache_;
 };
 
+} // namespace internal
+
 // ---------------------------------------------------------------------------
 // TrueType font class (user-facing)
 // Inheritable: Override to implement custom font system
@@ -920,7 +926,7 @@ public:
             return false;
 #endif
         } else {
-            atlasManager_ = SharedFontCache::getInstance().getOrCreate(cacheKey_);
+            atlasManager_ = internal::SharedFontCache::getInstance().getOrCreate(cacheKey_);
         }
 
         return atlasManager_ != nullptr;
@@ -935,13 +941,13 @@ private:
     // Context for async font loading
     struct FontLoadContext {
         Font* font;
-        FontCacheKey key;
+        internal::FontCacheKey key;
     };
 
     static void onFetchSuccess(emscripten_fetch_t* fetch) {
         FontLoadContext* ctx = reinterpret_cast<FontLoadContext*>(fetch->userData);
 
-        ctx->font->atlasManager_ = SharedFontCache::getInstance().getOrCreateFromMemory(
+        ctx->font->atlasManager_ = internal::SharedFontCache::getInstance().getOrCreateFromMemory(
             ctx->key,
             reinterpret_cast<const uint8_t*>(fetch->data),
             fetch->numBytes
@@ -965,8 +971,8 @@ private:
 
     void loadFromUrlAsync(const std::string& url, int size) {
         // Check cache first (don't try to load from file)
-        FontCacheKey key{url, size};
-        auto cached = SharedFontCache::getInstance().get(key);
+        internal::FontCacheKey key{url, size};
+        auto cached = internal::SharedFontCache::getInstance().get(key);
         if (cached) {
             atlasManager_ = cached;
             return;
@@ -1247,7 +1253,7 @@ protected:
                 } else if (cp == '\t') {
                     w += atlasManager_->getSpaceAdvance() * s * 4;
                 } else {
-                    const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                    const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
                     if (g && g->isValid()) w += g->getAdvance() * s;
                 }
             }
@@ -1290,7 +1296,7 @@ protected:
                 cursorX += atlasManager_->getSpaceAdvance() * s * 4;
                 continue;
             }
-            const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+            const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
             if (!g || !g->isValid()) continue;
 
             visitor(PlacedGlyph{cp, cursorX, cursorY, 0.f, 0.f, 0.f, 1.f});
@@ -1310,7 +1316,7 @@ protected:
         const size_t atlasCount = atlasManager_->getAtlasCount();
 
         for (size_t atlasIdx = 0; atlasIdx < atlasCount; ++atlasIdx) {
-            const AtlasState& atlas = atlasManager_->getAtlas(atlasIdx);
+            const internal::AtlasState& atlas = atlasManager_->getAtlas(atlasIdx);
             if (!atlas.isTextureValid()) continue;
 
             // Accumulating Fill2D for the active target (swapchain or FBO). Unifies
@@ -1319,13 +1325,13 @@ protected:
             sgl_enable_texture();
             sgl_texture(atlas.getView(), sampler_);
 
-            Color col = getDefaultContext().getColor();
+            Color col = getColor();
             sgl_c4f(col.r, col.g, col.b, col.a);
 
             sgl_begin_quads();
 
             for (const PlacedGlyph& pg : placed) {
-                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(pg.codepoint);
+                const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(pg.codepoint);
                 if (!g || !g->isValid() || g->getAtlasIndex() != atlasIdx) continue;
                 if (g->getWidth() <= 0 || g->getHeight() <= 0) continue;
 
@@ -1415,11 +1421,11 @@ protected:
             uint32_t cp = decodeUTF8(text, i);
             if (cp == '\n') { toks.push_back({VTokKind_::Newline, {}, 0}); continue; }
             if (cp == '\t') continue;  // ignored in vertical for now
-            if (isAsciiDigit(cp)) {
+            if (internal::isAsciiDigit(cp)) {
                 if (toks.empty() || toks.back().kind != VTokKind_::DigitRun)
                     toks.push_back({VTokKind_::DigitRun, {}, 0});
                 toks.back().cps.push_back(cp);
-            } else if (isAsciiLetter(cp)) {
+            } else if (internal::isAsciiLetter(cp)) {
                 if (toks.empty() || toks.back().kind != VTokKind_::LatinRun)
                     toks.push_back({VTokKind_::LatinRun, {}, 0});
                 toks.back().cps.push_back(cp);
@@ -1432,7 +1438,7 @@ protected:
         for (auto& t : toks) {
             if (t.kind == VTokKind_::Single) {
                 atlasManager_->getOrLoadGlyph(t.cp);
-                uint32_t vcp = getVerticalCodepoint(t.cp);
+                uint32_t vcp = internal::getVerticalCodepoint(t.cp);
                 if (vcp != 0 && atlasManager_->fontHasGlyph(vcp)) {
                     atlasManager_->getOrLoadGlyph(vcp);
                 }
@@ -1454,7 +1460,7 @@ protected:
         auto runHorizWidth = [&](const VTok_& t) -> float {
             float w = 0;
             for (uint32_t cp : t.cps) {
-                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
                 if (g && g->isValid()) w += g->getAdvance() * s;
             }
             return w;
@@ -1529,22 +1535,22 @@ protected:
 
             if (t.kind == VTokKind_::Single) {
                 const uint32_t cp = t.cp;
-                const VertOrient vo = getVerticalOrientation(cp);
-                const uint32_t vcp = getVerticalCodepoint(cp);
+                const internal::VertOrient vo = internal::getVerticalOrientation(cp);
+                const uint32_t vcp = internal::getVerticalCodepoint(cp);
                 const bool hasVert = (vcp != 0 && atlasManager_->fontHasGlyph(vcp));
 
-                if (vo == VertOrient::U
-                    || (vo == VertOrient::Tu)
-                    || (vo == VertOrient::Tr && hasVert)) {
+                if (vo == internal::VertOrient::U
+                    || (vo == internal::VertOrient::Tu)
+                    || (vo == internal::VertOrient::Tr && hasVert)) {
                     // Upright path.
                     const uint32_t useCp = hasVert ? vcp : cp;
-                    const GlyphInfo* g = atlasManager_->getOrLoadGlyph(useCp);
+                    const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(useCp);
                     if (g && g->isValid()) {
                         float drawX = colCenterX - g->getAdvance() * s / 2.f;
                         float baselineY = colY + asc;
                         // Fallback offset for Tu without vertical form.
-                        if (vo == VertOrient::Tu && !hasVert) {
-                            VertOffset off = getVerticalPunctOffset(cp);
+                        if (vo == internal::VertOrient::Tu && !hasVert) {
+                            internal::VertOffset off = internal::getVerticalPunctOffset(cp);
                             drawX     += off.dx * em;
                             baselineY += off.dy * em;
                         }
@@ -1552,7 +1558,7 @@ protected:
                     }
                 } else {
                     // Rotate 90° CW around cell center.
-                    const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                    const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
                     if (g && g->isValid()) {
                         float cx = colCenterX;
                         float cy = colY + cellH / 2.f;
@@ -1575,7 +1581,7 @@ protected:
                     float cursorX   = cx - rw / 2.f;
                     float baselineY = cy - em / 2.f + asc;
                     for (uint32_t cp : t.cps) {
-                        const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                        const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
                         if (!g || !g->isValid()) continue;
                         visitor(PlacedGlyph{cp, cursorX, baselineY, QUARTER_TAU, cx, cy, 1.f});
                         cursorX += g->getAdvance() * s;
@@ -1585,7 +1591,7 @@ protected:
                 }
                 case TcyMode::Upright: {
                     for (uint32_t cp : t.cps) {
-                        const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                        const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
                         if (g && g->isValid()) {
                             float drawX = colCenterX - g->getAdvance() * s / 2.f;
                             float baselineY = colY + asc;
@@ -1603,7 +1609,7 @@ protected:
                     float cursorX = cellLeft + (em - scaledW) / 2.f;
                     float baselineY = colY + asc;
                     for (uint32_t cp : t.cps) {
-                        const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                        const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
                         if (!g || !g->isValid()) continue;
                         visitor(PlacedGlyph{cp, cursorX, baselineY, 0.f, 0.f, 0.f, xscale});
                         cursorX += g->getAdvance() * s * xscale;
@@ -1635,8 +1641,8 @@ protected:
     bool kinsokuLineStart(uint32_t cp) const {
         switch (kinsokuLevel_) {
             case KinsokuLevel::Off:             return false;
-            case KinsokuLevel::PunctuationOnly: return isPunctuationOnlyLineStart(cp);
-            case KinsokuLevel::Standard:        return isLineStartProhibited(cp);
+            case KinsokuLevel::PunctuationOnly: return internal::isPunctuationOnlyLineStart(cp);
+            case KinsokuLevel::Standard:        return internal::isLineStartProhibited(cp);
         }
         return false;
     }
@@ -1644,7 +1650,7 @@ protected:
         switch (kinsokuLevel_) {
             case KinsokuLevel::Off:             return false;
             case KinsokuLevel::PunctuationOnly: return false;  // no opening bracket subset for puncts-only
-            case KinsokuLevel::Standard:        return isLineEndProhibited(cp);
+            case KinsokuLevel::Standard:        return internal::isLineEndProhibited(cp);
         }
         return false;
     }
@@ -1672,7 +1678,7 @@ protected:
             if (cp != '\n') {
                 if (cp == '\t') adv = spaceAdv * 4;
                 else {
-                    const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                    const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
                     adv = (g && g->isValid()) ? g->getAdvance() * s : 0;
                 }
             }
@@ -1695,8 +1701,8 @@ protected:
             if (b == '\n') return false;            // hard newline handled separately
             if (a == ' ' || a == '\t') return true; // after whitespace
             if (a == '-') return true;              // after hyphen
-            const bool aCjk = isCjkChar(a);
-            const bool bCjk = isCjkChar(b);
+            const bool aCjk = internal::isCjkChar(a);
+            const bool bCjk = internal::isCjkChar(b);
             if (aCjk || bCjk) {
                 if (kinsokuLineEnd(a)) return false;   // can't end on opener (when kinsoku active)
                 if (kinsokuLineStart(b)) return false; // can't start on kinsoku
@@ -1798,14 +1804,14 @@ protected:
             uint32_t cp = decodeUTF8(text, i);
             if (cp == '\n') { toks.push_back({TK::NL, before, i, 0}); continue; }
             if (cp == '\t') continue;
-            if (isAsciiDigit(cp)) {
+            if (internal::isAsciiDigit(cp)) {
                 if (!toks.empty() && toks.back().kind == TK::Digit)
                     toks.back().byteEnd = i;
                 else
                     toks.push_back({TK::Digit, before, i, 0});
                 continue;
             }
-            if (isAsciiLetter(cp)) {
+            if (internal::isAsciiLetter(cp)) {
                 if (!toks.empty() && toks.back().kind == TK::Latin)
                     toks.back().byteEnd = i;
                 else
@@ -1819,7 +1825,7 @@ protected:
             float w = 0;
             for (size_t bi = t.byteStart; bi < t.byteEnd; ) {
                 uint32_t cp = decodeUTF8(text, bi);
-                const GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
+                const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(cp);
                 if (g && g->isValid()) w += g->getAdvance() * s;
             }
             return w;
@@ -1983,7 +1989,7 @@ public:
                 continue;
             }
 
-            const GlyphInfo* g = atlasManager_->getOrLoadGlyph(codepoint);
+            const internal::GlyphInfo* g = atlasManager_->getOrLoadGlyph(codepoint);
             if (g && g->isValid()) {
                 width += g->getAdvance() * s;
             }
@@ -2106,7 +2112,7 @@ public:
         return atlasManager_ ? atlasManager_->getAtlasCount() : 0;
     }
 
-    const AtlasState* getAtlas(size_t index) const {
+    const internal::AtlasState* getAtlas(size_t index) const {
         return atlasManager_ ? &atlasManager_->getAtlas(index) : nullptr;
     }
 
@@ -2118,12 +2124,12 @@ public:
     }
 
     static size_t getTotalCacheMemoryUsage() {
-        return SharedFontCache::getInstance().getTotalMemoryUsage();
+        return internal::SharedFontCache::getInstance().getTotalMemoryUsage();
     }
 
 private:
-    std::shared_ptr<FontAtlasManager> atlasManager_;
-    FontCacheKey cacheKey_;
+    std::shared_ptr<internal::FontAtlasManager> atlasManager_;
+    internal::FontCacheKey cacheKey_;
     float dpiScale_ = 1.0f;    // DPI scale at load time (physical/logical ratio)
     int logicalSize_ = 0;      // User-requested font size (logical pixels)
 

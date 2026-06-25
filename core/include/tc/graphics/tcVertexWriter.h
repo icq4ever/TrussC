@@ -35,6 +35,11 @@ enum class PrimitiveType {
     Quads
 };
 
+// The writer classes and shader-stack plumbing below are framework
+// internals. Draw functions reach them via internal::getActiveWriter();
+// ShaderVertex / PrimitiveType above stay public (shader-authoring API).
+namespace internal {
+
 // ---------------------------------------------------------------------------
 // VertexWriter interface - abstraction for sokol_gl vs shader drawing
 // ---------------------------------------------------------------------------
@@ -140,7 +145,6 @@ struct DeferredShaderDraw {
 // ---------------------------------------------------------------------------
 // Global shader stack and vertex writers
 // ---------------------------------------------------------------------------
-namespace internal {
     inline std::vector<Shader*> shaderStack;
     inline SglWriter sglWriter;
     inline ShaderWriter shaderWriter;

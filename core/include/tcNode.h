@@ -920,8 +920,8 @@ private:
 
     // Move/drag carrier: localize pos AND the movement delta into this node's
     // local space. globalPos / globalDelta / button / modifiers are preserved.
-    MouseEventRaw localizeMouse(const MouseEventRaw& s) {
-        MouseEventRaw a = s;
+    internal::MouseEventRaw localizeMouse(const internal::MouseEventRaw& s) {
+        internal::MouseEventRaw a = s;
         Vec3 lp = globalToLocal(Vec3(s.globalPos.x, s.globalPos.y, 0));
         Vec3 lpPrev = globalToLocal(Vec3(s.globalPos.x - s.globalDelta.x,
                                          s.globalPos.y - s.globalDelta.y, 0));
@@ -989,20 +989,20 @@ private:
         return nullptr;
     }
 
-    Ptr dispatchMouseMove(const MouseEventRaw& e) {
+    Ptr dispatchMouseMove(const internal::MouseEventRaw& e) {
         // Send drag event to grabbed node
         if (internal::grabbedNode) {
-            MouseEventRaw local = internal::grabbedNode->localizeMouse(e);
+            internal::MouseEventRaw local = internal::grabbedNode->localizeMouse(e);
             local.button = internal::grabbedButton;
-            internal::grabbedNode->fireMouseDrag(toDragArgs(local));
+            internal::grabbedNode->fireMouseDrag(internal::toDragArgs(local));
         }
 
         // Also send move event to hit node (for hover, etc.)
         HitResult result = findHitNodeFromScreen(e.globalPos.x, e.globalPos.y);
 
         if (result.hit()) {
-            MouseEventRaw local = result.node->localizeMouse(e);
-            if (result.node->fireMouseMove(toMoveArgs(local))) {
+            internal::MouseEventRaw local = result.node->localizeMouse(e);
+            if (result.node->fireMouseMove(internal::toMoveArgs(local))) {
                 return result.node;
             }
         }
@@ -1304,25 +1304,25 @@ protected:
     // (e.g. in cleanup() / on mode change); ~Node cancels any leftovers and
     // waits for an in-flight callback to finish.
     uint64_t callAfterAsync(double delay, std::function<void()> callback) {
-        return AsyncScheduler::get().after(asyncOwner(), delay, std::move(callback));
+        return internal::AsyncScheduler::get().after(asyncOwner(), delay, std::move(callback));
     }
 
     uint64_t callEveryAsync(double interval, std::function<void()> callback) {
-        return AsyncScheduler::get().every(asyncOwner(), interval, std::move(callback));
+        return internal::AsyncScheduler::get().every(asyncOwner(), interval, std::move(callback));
     }
 
     void cancelAsyncTimer(uint64_t id) {
-        AsyncScheduler::get().cancel(id);
+        internal::AsyncScheduler::get().cancel(id);
     }
 
     void cancelAllAsyncTimers() {
-        if (asyncOwner_) AsyncScheduler::get().cancelOwner(asyncOwner_);
+        if (asyncOwner_) internal::AsyncScheduler::get().cancelOwner(asyncOwner_);
     }
 
 private:
     uint64_t asyncOwner_ = 0;   // lazily assigned scheduler owner token
     uint64_t asyncOwner() {
-        if (!asyncOwner_) asyncOwner_ = AsyncScheduler::newOwner();
+        if (!asyncOwner_) asyncOwner_ = internal::AsyncScheduler::newOwner();
         return asyncOwner_;
     }
 
