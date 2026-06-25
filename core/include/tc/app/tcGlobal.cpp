@@ -266,7 +266,7 @@ void present() {
 
     ensureSwapchainPass();
 
-    flushDeferredShaderDraws();
+    internal::flushDeferredShaderDraws();
 
     events().onRender.notify();
 

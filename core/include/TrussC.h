@@ -411,7 +411,7 @@ inline void clear(const Color& c) {
 }
 
 // Forward declaration (implemented in tcShader.h after Shader class)
-void flushDeferredShaderDraws();
+namespace internal { void flushDeferredShaderDraws(); }
 
 // パス管理関数（non-inline: Hot Reload時にHost/Guest間で同じグローバル状態を参照するため）
 // 実装は tc/app/tcGlobal.cpp
