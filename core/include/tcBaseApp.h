@@ -201,13 +201,13 @@ public:
         if (!e.consumed) dispatchMouseRelease(e);
     }
 
-    void handleMouseMoved(const MouseEventRaw& e) {
-        mouseMoved(toMoveArgs(e));
+    void handleMouseMoved(const internal::MouseEventRaw& e) {
+        mouseMoved(internal::toMoveArgs(e));
         if (!e.consumed) dispatchMouseMove(e);
     }
 
-    void handleMouseDragged(const MouseEventRaw& e) {
-        mouseDragged(toDragArgs(e));
+    void handleMouseDragged(const internal::MouseEventRaw& e) {
+        mouseDragged(internal::toDragArgs(e));
         if (!e.consumed) dispatchMouseMove(e);  // drag + hover share the node-tree move dispatch
     }
 
