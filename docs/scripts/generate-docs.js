@@ -196,6 +196,40 @@ function pickLang(base, ja, ko, lang) {
     return base || '';
 }
 
+// --- Operator rendering helpers (operators: / free_operators: schema) -------
+// Operators carry symbol / rhs / result (+ lhs for free, unary flag). const-ness
+// is the C++ convention, not stored: compound-assignment and [] mutate, the rest
+// (value-returning binary/unary/comparison) are const.
+function opIsConst(sym) { return !(/=$/.test(sym) && !/^(==|!=|<=|>=)$/.test(sym)) && sym !== '[]'; }
+const _bare = (t) => String(t || '').replace(/^const\s+/, '').replace(/\s*&$/, '').trim();
+// Human-readable form, e.g. "Vec2 + Vec2 → Vec2", "-Vec2 → Vec2", "float * Vec2 → Vec2".
+function opDisplay(op, owner) {
+    const s = op.symbol, res = op.result;
+    if (op.lhs !== undefined) return `${_bare(op.lhs)} ${s} ${_bare(op.rhs)} → ${res}`;
+    if (op.unary) return `${s}${owner} → ${res}`;
+    if (s === '[]') return `${owner}[${_bare(op.rhs)}] → ${res}`;
+    return `${owner} ${s} ${_bare(op.rhs)} → ${res}`;
+}
+// C++ declaration form, e.g. "Vec2 operator+(const Vec2&) const".
+function opCpp(op, owner) {
+    const res = op.result || owner;
+    if (op.lhs !== undefined) return `${res} operator${op.symbol}(${op.lhs}, ${op.rhs})`;
+    if (op.unary) return `${res} operator${op.symbol}()${opIsConst(op.symbol) ? ' const' : ''}`;
+    return `${res} operator${op.symbol}(${op.rhs || ''})${opIsConst(op.symbol) ? ' const' : ''}`;
+}
+// Reference-data objects for one owner's operators (members + free), language-picked.
+function mapOperators(src, owner, lang) {
+    const all = [...(src.operators || []).map(o => ({ ...o })), ...(src.free_operators || []).map(o => ({ ...o, free: true }))];
+    return all.map(o => ({
+        symbol: o.symbol,
+        signature: opDisplay(o, owner),
+        cpp: opCpp(o, owner),
+        free: !!o.free,
+        desc: lang ? pickLang(o.description, o.description_ja, o.description_ko, lang) : o.description,
+        ...(lang ? {} : { desc_ja: o.description_ja || '', desc_ko: o.description_ko || '' }),
+    }));
+}
+
 // Optional platform-support annotation. Absent `platforms` = universal (all platforms);
 // only restricted symbols carry it. Tokens: linux/windows/macos/ios/android/wasm.
 // Mutates `entry` in place; no-op when `src.platforms` is absent/empty.
@@ -383,6 +417,10 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
                 }, m, lang));
             }
 
+            if (type.operators || type.free_operators) {
+                typeData.operators = mapOperators(type, type.name, lang);
+            }
+
             types.push(typeData);
         }
     }
@@ -400,6 +438,7 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
         };
         if (!lang) { out.desc_ja = e.description_ja || ''; out.desc_ko = e.description_ko || ''; }
         if (Array.isArray(e.related) && e.related.length) out.related = e.related;
+        if (e.operators || e.free_operators) out.operators = mapOperators(e, e.name, lang);
         return out;
     });
 
@@ -885,6 +924,16 @@ void draw() {
                 }
                 md += '\n';
             }
+
+            // Operators
+            const typeOps = [...(type.operators || []), ...(type.free_operators || []).map(o => ({ ...o, lhs: o.lhs }))];
+            if (typeOps.length > 0) {
+                md += `**Operators:**\n`;
+                for (const o of typeOps) {
+                    md += `- \`${opDisplay(o, type.name)}\` - ${o.description}\n`;
+                }
+                md += '\n';
+            }
         }
     }
 
@@ -1198,6 +1247,8 @@ function buildApiIndexSection(api) {
             }
             if (type.methods) type.methods.forEach(addMethod);
             if (type.static_methods) type.static_methods.forEach(addMethod);
+            for (const o of (type.operators || [])) lines.push(`${opCpp(o, type.name)}${o.description ? `  // ${o.description}` : ''}`);
+            for (const o of (type.free_operators || [])) lines.push(`friend ${opCpp(o, type.name)}${o.description ? `  // ${o.description}` : ''}`);
             if (!lines.length) continue;
             typeBlocks.push(`#### ${type.name}${type.description ? ` — ${type.description}` : ''}\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\``);
         }
@@ -1210,7 +1261,9 @@ function buildApiIndexSection(api) {
                 const val = (v.value !== undefined && v.value !== null) ? ` = ${v.value}` : '';
                 return `  ${v.name}${val},${v.description ? `  // ${v.description}` : ''}`;
             }).join('\n');
-            return `enum class ${e.name} {${e.description ? `  // ${e.description}` : ''}\n${vals}\n}`;
+            const ops = [...(e.operators || []), ...(e.free_operators || [])]
+                .map(o => `\nfriend ${opCpp(o, e.name)};${o.description ? `  // ${o.description}` : ''}`).join('');
+            return `enum class ${e.name} {${e.description ? `  // ${e.description}` : ''}\n${vals}\n}${ops}`;
         });
         if (blocks.length) md += `### Enums\n\n\`\`\`cpp\n${blocks.join('\n\n')}\n\`\`\`\n\n`;
     }

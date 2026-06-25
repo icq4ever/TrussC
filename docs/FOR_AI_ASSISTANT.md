@@ -1886,6 +1886,23 @@ Vec2 perpendicular()  // Get perpendicular vector
 Vec2 reflected(const Vec2 & normal)  // Get reflected vector
 Vec2 Vec2_fromAngle(float radians)  // Create Vec2 from angle
 Vec2 Vec2_fromAngle(float radians, float length)  // Create Vec2 from angle
+float& operator[](int)  // Component access by index
+Vec2 operator+(const Vec2&) const  // Component-wise addition
+Vec2 operator-(const Vec2&) const  // Component-wise subtraction
+Vec2 operator*(float) const  // Scalar multiplication
+Vec2 operator/(float) const  // Scalar division
+Vec2 operator*(const Vec2&) const  // Component-wise multiplication
+Vec2 operator/(const Vec2&) const  // Component-wise division
+Vec2 operator-() const  // Negation
+Vec2& operator+=(const Vec2&)  // In-place addition
+Vec2& operator-=(const Vec2&)  // In-place subtraction
+Vec2& operator*=(float)  // In-place scalar multiplication
+Vec2& operator/=(float)  // In-place scalar division
+Vec2& operator*=(const Vec2&)  // In-place component-wise multiplication
+Vec2& operator/=(const Vec2&)  // In-place component-wise division
+bool operator==(const Vec2&) const  // Equality comparison
+bool operator!=(const Vec2&) const  // Inequality comparison
+friend Vec2 operator*(float, const Vec2&)  // Component-wise multiplication
 ```
 
 #### Vec3 — 3D vector (x, y, z)
@@ -1911,6 +1928,23 @@ float distanceSquared(const Vec3 & v)  // Squared distance
 Vec3 lerp(const Vec3 & v, float t)  // Linear interpolation
 Vec3 reflected(const Vec3 & normal)  // Get reflected vector
 Vec2 xy()  // Get XY components as Vec2
+float& operator[](int)  // Component access by index
+Vec3 operator+(const Vec3&) const  // Component-wise addition
+Vec3 operator-(const Vec3&) const  // Component-wise subtraction
+Vec3 operator*(float) const  // Scalar multiplication
+Vec3 operator/(float) const  // Scalar division
+Vec3 operator*(const Vec3&) const  // Component-wise multiplication
+Vec3 operator/(const Vec3&) const  // Component-wise division
+Vec3 operator-() const  // Negation
+Vec3& operator+=(const Vec3&)  // In-place addition
+Vec3& operator-=(const Vec3&)  // In-place subtraction
+Vec3& operator*=(float)  // In-place scalar multiplication
+Vec3& operator/=(float)  // In-place scalar division
+Vec3& operator*=(const Vec3&)  // In-place component-wise multiplication
+Vec3& operator/=(const Vec3&)  // In-place component-wise division
+bool operator==(const Vec3&) const  // Equality comparison
+bool operator!=(const Vec3&) const  // Inequality comparison
+friend Vec3 operator*(float, const Vec3&)  // Component-wise multiplication
 ```
 
 #### IVec2 — 2D integer vector (x, y)
@@ -1922,6 +1956,16 @@ IVec2(int v)
 int x  // X component
 int y  // Y component
 Vec2 toVec2()  // Convert to Vec2 (float)
+IVec2 operator+(const IVec2&) const  // Component-wise addition
+IVec2 operator-(const IVec2&) const  // Component-wise subtraction
+IVec2 operator*(int) const  // Scalar multiplication
+IVec2 operator-() const  // Negation
+IVec2& operator+=(const IVec2&)  // In-place addition
+IVec2& operator-=(const IVec2&)  // In-place subtraction
+IVec2& operator*=(int)  // In-place scalar multiplication
+bool operator==(const IVec2&) const  // Equality comparison
+bool operator!=(const IVec2&) const  // Inequality comparison
+friend IVec2 operator*(int, const IVec2&)  // Component-wise multiplication
 ```
 
 #### IVec3 — 3D integer vector (x, y, z)
@@ -1936,6 +1980,16 @@ int y  // Y component
 int z  // Z component
 Vec3 toVec3()  // Convert to Vec3 (float)
 IVec2 xy()  // Get XY components as IVec2
+IVec3 operator+(const IVec3&) const  // Component-wise addition
+IVec3 operator-(const IVec3&) const  // Component-wise subtraction
+IVec3 operator*(int) const  // Scalar multiplication
+IVec3 operator-() const  // Negation
+IVec3& operator+=(const IVec3&)  // In-place addition
+IVec3& operator-=(const IVec3&)  // In-place subtraction
+IVec3& operator*=(int)  // In-place scalar multiplication
+bool operator==(const IVec3&) const  // Equality comparison
+bool operator!=(const IVec3&) const  // Inequality comparison
+friend IVec3 operator*(int, const IVec3&)  // Component-wise multiplication
 ```
 
 #### IVec2 — 2D integer vector (x, y)
@@ -2003,6 +2057,12 @@ Color Color_fromLinear(float r, float g, float b)  // Create from linear RGB
 Color Color_fromLinear(float r, float g, float b, float a)  // Create from linear RGB
 Color Color_fromBytes(int r, int g, int b)  // Create from 0-255 values
 Color Color_fromBytes(int r, int g, int b, int a)  // Create from 0-255 values
+Color operator+(const Color&) const  // Component-wise addition
+Color operator-(const Color&) const  // Component-wise subtraction
+Color operator*(float) const  // Scalar multiplication
+Color operator/(float) const  // Scalar division
+bool operator==(const Color&) const  // Equality comparison
+bool operator!=(const Color&) const  // Inequality comparison
 ```
 
 #### Rect — Rectangle (x, y, width, height)
@@ -2029,6 +2089,9 @@ bool intersects(const Rect & other)  // Check if intersects with another rect
 Mat4()
 Mat4 transposed()  // Get transposed matrix
 Mat4 inverted()  // Get inverse matrix
+Mat4 operator*(const Mat4&) const  // Composition (matrix product)
+Vec3 operator*(const Vec3&) const  // Transform vector by Mat4
+Vec4 operator*(const Vec4&) const  // Transform vector by Mat4
 ```
 
 #### Quaternion — Unit quaternion for 3D rotations
@@ -2046,6 +2109,9 @@ Mat4 toMatrix()  // Convert to rotation matrix
 Quaternion normalized()  // Get normalized quaternion
 float length()  // Get quaternion length
 Quaternion conjugate()  // Get conjugate quaternion
+bool operator==(const Quaternion&) const  // Equality comparison
+bool operator!=(const Quaternion&) const  // Inequality comparison
+Quaternion operator*(const Quaternion&) const  // Composition (matrix product)
 ```
 
 #### Pixels — Pixel buffer for image manipulation
@@ -2209,6 +2275,7 @@ void drawFill()  // Fill the path as a concave polygon with holes (earcut tessel
 void drawStroke()  // Thick stroke via StrokeMesh (respects strokeWeight / strokeCap / strokeJoin), per-subpath. Use draw() for 1-pixel lines.
 Rect getBounds()  // Get bounding box as Rect
 float getPerimeter()  // Get total path length
+Vec3& operator[](int)  // Component access by index
 ```
 
 #### Mesh — 3D mesh with vertices, colors, normals, indices
@@ -3097,6 +3164,13 @@ float r  // Red component (linear, 0.0-1.0)
 float g  // Green component (linear, 0.0-1.0)
 float b  // Blue component (linear, 0.0-1.0)
 float a  // Alpha component (0.0-1.0)
+ColorLinear operator+(const ColorLinear&) const  // Component-wise addition
+ColorLinear operator-(const ColorLinear&) const  // Component-wise subtraction
+ColorLinear operator*(float) const  // Scalar multiplication
+ColorLinear operator/(float) const  // Scalar division
+ColorLinear operator*(const ColorLinear&) const  // Component-wise multiplication
+bool operator==(const ColorLinear&) const  // Equality comparison
+bool operator!=(const ColorLinear&) const  // Inequality comparison
 ```
 
 #### ColorOKLab — A color in the OKLab perceptual color space (lightness + two opponent axes)
@@ -3280,6 +3354,19 @@ float dot(const Vec4& v)  // Dot product with another vector
 Vec4 lerp(const Vec4& v, float t)  // Linearly interpolate toward v by t (0..1)
 Vec2 xy()  // Get the (x, y) components as a Vec2
 Vec3 xyz()  // Get the (x, y, z) components as a Vec3
+float& operator[](int)  // Component access by index
+Vec4 operator+(const Vec4&) const  // Component-wise addition
+Vec4 operator-(const Vec4&) const  // Component-wise subtraction
+Vec4 operator*(float) const  // Scalar multiplication
+Vec4 operator/(float) const  // Scalar division
+Vec4 operator-() const  // Negation
+Vec4& operator+=(const Vec4&)  // In-place addition
+Vec4& operator-=(const Vec4&)  // In-place subtraction
+Vec4& operator*=(float)  // In-place scalar multiplication
+Vec4& operator/=(float)  // In-place scalar division
+bool operator==(const Vec4&) const  // Equality comparison
+bool operator!=(const Vec4&) const  // Inequality comparison
+friend Vec4 operator*(float, const Vec4&)  // Component-wise multiplication
 ```
 
 #### Mat3 — 3x3 matrix for 2D affine / homography transforms (row-major). Includes static factories and a homography solver
@@ -3299,6 +3386,9 @@ Mat3 Mat3_scale(float sx, float sy)  // Build a 2D scale matrix
 Mat3 Mat3_scale(float s)  // Build a 2D scale matrix
 Mat3 Mat3_scale(const Vec2& s)  // Build a 2D scale matrix
 Mat3 Mat3_getHomography(const Vec2 src[4], const Vec2 dst[4])  // Compute the homography matrix mapping 4 source points to 4 destination points (solves H * src = dst)
+Mat3 operator*(const Mat3&) const  // Composition (matrix product)
+Vec2 operator*(const Vec2&) const  // Transform vector by Mat3
+Vec3 operator*(const Vec3&) const  // Transform vector by Mat3
 ```
 
 #### VideoGrabber — Webcam capture source. Call setup() once, then update() every frame; getTexture() (via HasTexture) gives the live frame. Move-only. Camera permission is requested automatically on macOS
@@ -3694,6 +3784,8 @@ enum class Orientation {  // Screen orientation mask passed to setOrientation (i
   All = 30,  // All four orientations
   AllButUpsideDown = 26,  // All orientations except portrait-upside-down
 }
+friend Orientation operator|(Orientation, Orientation);  // Combine flags
+friend Orientation operator&(Orientation, Orientation);  // Mask / test flags
 ```
 
 ### Macros
