@@ -28,6 +28,8 @@
 
 namespace trussc {
 
+namespace internal {
+
 // Demangle a raw type_info name into a readable string (platform-specific).
 inline std::string demangleTypeName(const char* mangled) {
 #if defined(__GNUG__) || defined(__clang__)
@@ -47,6 +49,8 @@ inline std::string demangleTypeName(const char* mangled) {
 #endif
 }
 
+} // namespace internal
+
 // Readable name for a type, cached per type (one demangle per type, ever).
 // Returns a reference into a process-wide cache, valid for the program's life.
 inline const std::string& typeName(const std::type_info& ti) {
@@ -56,7 +60,7 @@ inline const std::string& typeName(const std::type_info& ti) {
     std::type_index key(ti);
     auto it = cache.find(key);
     if (it != cache.end()) return it->second;
-    return cache.emplace(key, demangleTypeName(ti.name())).first->second;
+    return cache.emplace(key, internal::demangleTypeName(ti.name())).first->second;
 }
 
 // Convenience: readable name for a static type T.
@@ -64,6 +68,8 @@ template <typename T>
 inline const std::string& typeName() {
     return typeName(typeid(T));
 }
+
+namespace internal {
 
 // Strip the namespace qualifier from a (possibly templated) type name:
 //   "trussc::RectNode"  -> "RectNode"
@@ -78,6 +84,8 @@ inline std::string unqualifiedTypeName(const std::string& full) {
     return sep == std::string::npos ? full : full.substr(sep + 2);
 }
 
+} // namespace internal
+
 // Short (unqualified) type name, cached per type like typeName().
 inline const std::string& shortTypeName(const std::type_info& ti) {
     static std::unordered_map<std::type_index, std::string> cache;
@@ -86,7 +94,7 @@ inline const std::string& shortTypeName(const std::type_info& ti) {
     std::type_index key(ti);
     auto it = cache.find(key);
     if (it != cache.end()) return it->second;
-    return cache.emplace(key, unqualifiedTypeName(typeName(ti))).first->second;
+    return cache.emplace(key, internal::unqualifiedTypeName(typeName(ti))).first->second;
 }
 
 } // namespace trussc
