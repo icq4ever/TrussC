@@ -259,7 +259,7 @@ categories:
           - setColor
           - setBlendMode
         keywords: ["reset","empty","remove","delete"]
-        return: "ChipSoundBundle&"
+        return: "void"
         signatures:
           - params: ""
             params_simple: ""
@@ -861,7 +861,7 @@ categories:
 
       - name: getTextAlignH
         keywords: ["horizontal","alignment","justify","left right"]
-        return: "TextAlign"
+        return: "Direction"
         signatures:
           - params: ""
             params_simple: ""
@@ -872,7 +872,7 @@ categories:
 
       - name: getTextAlignV
         keywords: ["vertical","alignment","top bottom","baseline"]
-        return: "TextAlign"
+        return: "Direction"
         signatures:
           - params: ""
             params_simple: ""
@@ -8816,6 +8816,9 @@ categories:
     functions:
       # Mat4 static factory functions
       - name: Mat4_identity
+        self: Mat4
+        static: true
+        cppName: identity
         related:
           - Mat4
         keywords: ["matrix","identity","4x4","transform","reset"]
@@ -15116,11 +15119,11 @@ types:
         description_ko: "정점을 추가"
       - name: addVertices
         self: Path
-        return: "Path@"
+        return: "void"
         signatures:
-          - params: "array<Vec3>@ verts"
+          - params: "const std::vector<Vec3>& verts"
             params_simple: "verts"
-          - params: "array<Vec2>@ verts"
+          - params: "const std::vector<Vec2>& verts"
             params_simple: "verts"
         description: "Add multiple vertices"
         description_ja: "複数の頂点を追加"
