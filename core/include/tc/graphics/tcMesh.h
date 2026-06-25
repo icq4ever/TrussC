@@ -242,6 +242,7 @@ public:
 
     std::vector<Vec2>& getTexCoords() { return texCoords_; }
     const std::vector<Vec2>& getTexCoords() const { return texCoords_; }
+    int getNumTexCoords() const { return static_cast<int>(texCoords_.size()); }
     bool hasTexCoords() const { return !texCoords_.empty(); }
     bool hasValidTexCoords() const {
         return hasTexCoords() && texCoords_.size() >= vertices_.size();

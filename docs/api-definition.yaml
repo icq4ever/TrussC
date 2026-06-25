@@ -4735,11 +4735,9 @@ categories:
         signatures:
           - params: "const void* src, size_t nbytes, vector<uint8_t>& out, Codec codec"
             params_simple: "src, nbytes, out, codec"
-          - params: "const void* src, size_t nbytes, void* dst, size_t dstCapacity, Codec codec"
-            params_simple: "src, nbytes, dst, dstCapacity, codec"
-        description: "Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). The vector form resizes out and returns bool; the raw form writes into dst (capacity dstCapacity) and returns the number of bytes written (or -1), useful for compressing into a region of a buffer / parallel chunks"
-        description_ja: "バイト列を指定コーデック（Codec::None / Codec::LZ4）で圧縮する。vector版は out をリサイズして bool を返す。raw版は dst（容量 dstCapacity）に書き込み、書き込みバイト数（失敗 -1）を返す（バッファの一部への圧縮・並列チャンク向け）"
-        description_ko: "지정한 코덱(Codec::None / Codec::LZ4)으로 바이트 버퍼를 압축. vector형은 out을 리사이즈하고 bool 반환, raw형은 dst(용량 dstCapacity)에 써서 바이트 수(실패 -1) 반환 (버퍼 일부 압축·병렬 청크용)"
+        description: "Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). Resizes out and returns true on success."
+        description_ja: "バイト列を指定コーデック（Codec::None / Codec::LZ4）で圧縮する。out をリサイズして成功時 true を返す"
+        description_ko: "지정한 코덱(Codec::None / Codec::LZ4)으로 바이트 버퍼를 압축. out을 리사이즈하고 성공 시 true 반환"
         sketch: false
 
       - name: decompress
@@ -4752,11 +4750,9 @@ categories:
         signatures:
           - params: "const void* src, size_t nbytes, vector<uint8_t>& out, size_t decompressedSize, Codec codec"
             params_simple: "src, nbytes, out, decompressedSize, codec"
-          - params: "const void* src, size_t nbytes, void* dst, size_t dstCapacity, Codec codec"
-            params_simple: "src, nbytes, dst, dstCapacity, codec"
-        description: "Decompress a byte buffer; decompressedSize is the known original byte count. The vector form resizes out and returns bool; the raw form writes into dst (capacity dstCapacity) and returns bytes written (or -1) - it can write into a region of an existing buffer (dst + offset), enabling parallel per-chunk decompression"
-        description_ja: "バイト列を展開する。decompressedSize は元の（展開後）バイト数。vector版は out をリサイズして bool を返す。raw版は dst（容量 dstCapacity）に書き込みバイト数（失敗 -1）を返し、既存バッファの途中（dst + offset）にも書ける（並列チャンク展開向け）"
-        description_ko: "바이트 버퍼를 해제. decompressedSize는 원본 바이트 수. vector형은 out을 리사이즈하고 bool 반환, raw형은 dst(용량 dstCapacity)에 써서 바이트 수(실패 -1) 반환하며 기존 버퍼 일부(dst + offset)에도 쓸 수 있음 (병렬 청크 해제용)"
+        description: "Decompress a byte buffer; decompressedSize is the known original byte count. Resizes out and returns true on success (false / cleared out on size mismatch or failure)."
+        description_ja: "バイト列を展開する。decompressedSize は元の（展開後）バイト数。out をリサイズして成功時 true を返す（サイズ不一致・失敗時は false で out をクリア）"
+        description_ko: "바이트 버퍼를 해제. decompressedSize는 원본 바이트 수. out을 리사이즈하고 성공 시 true 반환 (크기 불일치·실패 시 false, out 비움)"
         sketch: false
 
       - name: toString
@@ -6294,23 +6290,6 @@ categories:
         description_ko: "init()이 성공했으면 true"
         sketch: false
 
-      - name: audioOut
-        related:
-          - Event
-          - AudioOutBuffer
-          - audioIn
-          - getAudioAnalysisBuffer
-          - Wave
-        keywords: ["playback","synthesis","callback","dsp","render","buffer"]
-        return: "Event<AudioOutBuffer>"
-        signatures:
-          - params: ""
-            params_simple: ""
-        description: "Real-time playback callback event. listen() to add a synthesis / processing listener. Fires per audio buffer on the audio thread; keep RT-safe."
-        description_ja: "リアルタイム再生コールバック event。listen() でシンセ / 処理用 listener を追加。各バッファごとに audio thread で発火、RT-safe を維持"
-        description_ko: "실시간 재생 콜백 이벤트. listen()으로 신스 / 처리 리스너 추가. 버퍼별로 오디오 스레드에서 발화, RT-safe 유지"
-        sketch: false
-
       - name: audioIn
         self: App
         related:
@@ -6327,21 +6306,6 @@ categories:
         description: "Real-time capture callback event (microphone input). RT-safe same as audioOut."
         description_ja: "リアルタイム入力コールバック event (マイク入力)。RT-safe 要件は audioOut と同様"
         description_ko: "실시간 캡처 콜백 이벤트 (마이크 입력). RT-safe 요건은 audioOut과 동일"
-        sketch: false
-
-      - name: audioDeviceChanged
-        self: AudioEngine
-        related:
-          - Event
-          - AudioDeviceChangedArgs
-        keywords: ["device","callback","event","reinit","changed"]
-        return: "Event<AudioDeviceChangedArgs>"
-        signatures:
-          - params: ""
-            params_simple: ""
-        description: "Fires after every successful init() (initial AND re-init). Args carry the resolved device's real name, isDefaultDevice flag, sampleRate, channels, bufferSize, maxPolyphony. Listener runs on the thread that called init() (main), not the audio thread."
-        description_ja: "成功した init() (初回 / 再 init) 後に発火。args は解決済みデバイス名、isDefaultDevice、sampleRate、channels、bufferSize、maxPolyphony。listener は init() を呼んだスレッド (通常 main) で実行"
-        description_ko: "성공한 init() (초기 / 재 init) 후 발화. args는 해결된 장치명, isDefaultDevice, sampleRate, channels, bufferSize, maxPolyphony. listener는 init()을 호출한 스레드 (보통 main)에서 실행"
         sketch: false
 
   # ==========================================================================
@@ -6439,122 +6403,6 @@ categories:
         description_ja: "チップサウンドノートを作成（8bitスタイルのサウンド）"
         description_ko: "칩 사운드 노트를 생성 (8비트 스타일 사운드)"
         sketch: false
-
-      - name: wave
-        related:
-          - Wave
-          - hz
-          - adsr
-        keywords: ["waveform","oscillator","square","sine","noise","shape"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "Wave type"
-            params_simple: "type"
-        description: "Set wave type (Sin, Square, Triangle, Sawtooth, Noise, PinkNoise)"
-        description_ja: "波形タイプを設定"
-        description_ko: "파형 타입을 설정 (Sin, Square, Triangle, Sawtooth, Noise, PinkNoise)"
-        sketch: true
-
-      - name: hz
-        cppName: "clockinfo::hz"
-        keywords: ["frequency","pitch","tone","hertz","note"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "float frequency"
-            params_simple: "frequency"
-        description: "Set frequency in Hz"
-        description_ja: "周波数を設定（Hz）"
-        description_ko: "주파수를 Hz로 설정"
-        sketch: true
-
-      - name: duration
-        related:
-          - Tween
-        keywords: ["length","time","seconds","span"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "float seconds"
-            params_simple: "seconds"
-        description: "Set note duration in seconds"
-        description_ja: "ノートの長さを設定（秒）"
-        description_ko: "노트 길이를 초 단위로 설정"
-        sketch: true
-
-      - name: volume
-        keywords: ["loudness","gain","amplitude","level"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "float vol"
-            params_simple: "vol"
-        description: "Set volume (0.0-1.0)"
-        description_ja: "音量を設定"
-        description_ko: "음량을 설정 (0.0-1.0)"
-        sketch: true
-
-      - name: attack
-        keywords: ["envelope","adsr","fade in","onset","rise"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "float seconds"
-            params_simple: "seconds"
-        description: "Set attack time (ADSR envelope)"
-        description_ja: "アタック時間を設定"
-        description_ko: "어택 시간을 설정 (ADSR 엔벨로프)"
-        sketch: true
-
-      - name: decay
-        template: true
-        keywords: ["envelope","adsr","falloff","drop"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "float seconds"
-            params_simple: "seconds"
-        description: "Set decay time (ADSR envelope)"
-        description_ja: "ディケイ時間を設定"
-        description_ko: "디케이 시간을 설정 (ADSR 엔벨로프)"
-        sketch: true
-
-      - name: sustain
-        cppName: "ChipSoundNote::sustain"
-        keywords: ["envelope","adsr","hold","level"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "float level"
-            params_simple: "level"
-        description: "Set sustain level (0.0-1.0)"
-        description_ja: "サスティンレベルを設定"
-        description_ko: "서스테인 레벨을 설정 (0.0-1.0)"
-        sketch: true
-
-      - name: release
-        template: true
-        related:
-          - releaseSglBuffers
-        keywords: ["envelope","adsr","fade out","tail","fall"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "float seconds"
-            params_simple: "seconds"
-        description: "Set release time (ADSR envelope)"
-        description_ja: "リリース時間を設定"
-        description_ko: "릴리스 시간을 설정 (ADSR 엔벨로프)"
-        sketch: true
-
-      - name: adsr
-        related:
-          - attack
-          - decay
-          - sustain
-          - release
-        keywords: ["envelope","attack","decay","sustain","shape"]
-        return: "ChipSoundNote&"
-        signatures:
-          - params: "float a, float d, float s, float r"
-            params_simple: "a, d, s, r"
-        description: "Set ADSR envelope (attack, decay, sustain, release)"
-        description_ja: "ADSRエンベロープを設定"
-        description_ko: "ADSR 엔벨로프 설정 (어택, 디케이, 서스테인, 릴리스)"
-        sketch: true
 
       - name: build
         self: ChipSoundNote
@@ -7722,19 +7570,6 @@ categories:
         description: "Check if node is marked for destruction (C++ only)"
         description_ja: "ノードが削除予約されているか（C++のみ）"
         description_ko: "노드가 제거 대상으로 표시되었는지 확인 (C++ 전용)"
-        sketch: false
-
-      - name: setPosition
-        keywords: ["seek","jump","scrub","playhead","normalized"]
-        return: "void"
-        signatures:
-          - params: "float x, float y"
-            params_simple: "x, y"
-          - params: "Vec3 pos"
-            params_simple: "pos"
-        description: "Set position (C++ only)"
-        description_ja: "位置を設定（C++のみ）"
-        description_ko: "위치를 설정 (C++ 전용)"
         sketch: false
 
       - name: RectNode
@@ -9067,21 +8902,6 @@ categories:
         description_ko: "메쉬를 그림"
         sketch: true
 
-      - name: drawPolyline
-        related:
-          - Path
-          - drawCurve
-          - beginShape
-        keywords: ["polyline","line strip","path","curve","ofPolyline","outline"]
-        return: "void"
-        signatures:
-          - params: "Polyline polyline"
-            params_simple: "polyline"
-        description: "Draw a polyline"
-        description_ja: "ポリラインを描画"
-        description_ko: "폴리라인을 그림"
-        sketch: true
-
       - name: createBox
         related:
           - Mesh
@@ -9202,24 +9022,6 @@ categories:
         description_ko: "캡슐 메쉬를 생성 (Y축, 원기둥 양 끝을 반구로 막은 형태)"
         sketch: true
 
-      - name: drawTexture
-        related:
-          - Texture
-          - createTexture
-          - Image
-          - drawSubsection
-        keywords: ["texture","image","blit","draw image","ofTexture","quad"]
-        return: "void"
-        signatures:
-          - params: "const Texture& tex, float x, float y"
-            params_simple: "tex, x, y"
-          - params: "const Texture& tex, float x, float y, float w, float h"
-            params_simple: "tex, x, y, w, h"
-        description: "Draw a texture"
-        description_ja: "テクスチャを描画"
-        description_ko: "텍스처를 그림"
-        sketch: true
-
   # ==========================================================================
   # Graphics - Texture & GPU
   # ==========================================================================
@@ -9257,21 +9059,6 @@ categories:
         description_ja: "ファイルから画像を読み込む"
         description_ko: "파일에서 이미지를 로드"
         sketch: true
-
-      - name: loadFromPixels
-        related:
-          - Pixels
-          - readToPixels
-          - Image
-        keywords: ["upload","buffer","data","raw","memory"]
-        return: "bool"
-        signatures:
-          - params: "const Pixels& pixels"
-            params_simple: "pixels"
-        description: "Load from pixel data"
-        description_ja: "ピクセルデータから読み込む"
-        description_ko: "픽셀 데이터에서 로드"
-        sketch: false
 
       - name: bind
         self: Texture
@@ -9448,22 +9235,6 @@ categories:
         description_ja: "内部テクスチャを取得"
         description_ko: "내부 텍스처를 얻음"
         sketch: true
-
-      - name: readToPixels
-        related:
-          - Pixels
-          - captureWindow
-          - grabScreen
-          - loadFromPixels
-        keywords: ["readback","download","cpu","grab","capture"]
-        return: "void"
-        signatures:
-          - params: "Pixels& pixels"
-            params_simple: "pixels"
-        description: "Read pixels to CPU memory"
-        description_ja: "ピクセルをCPUメモリに読み出す"
-        description_ko: "픽셀을 CPU 메모리로 읽음"
-        sketch: false
 
   - id: graphics_shader
     name: "Graphics - Shader"
@@ -11042,7 +10813,6 @@ categories:
         cppName: createCinematic
         addon: tcxLut
         related:
-          - tcx::lut::createCyberpunk
           - tcx::lut::createWarm
           - tcx::lut::Lut3D
         keywords: ["cinematic","orange teal","film","movie look","lut"]
@@ -11092,7 +10862,6 @@ categories:
         addon: tcxLut
         related:
           - tcx::lut::createWarm
-          - tcx::lut::createCyberpunk
         keywords: ["cool","blue","cold","color shift","lut"]
         return: "Lut3D"
         signatures:
@@ -11101,21 +10870,6 @@ categories:
         description: "Create cool color shift LUT"
         description_ja: "寒色系LUTを生成"
         description_ko: "차가운 색조 시프트 LUT를 생성"
-        sketch: false
-
-      - name: tcx::lut::createCyberpunk
-        cppName: createCyberpunk
-        related:
-          - tcx::lut::createCinematic
-          - tcx::lut::createCool
-        keywords: ["cyberpunk","neon","pink cyan","synthwave","lut"]
-        return: "Lut3D"
-        signatures:
-          - params: "int size = 32"
-            params_simple: "size"
-        description: "Create cyberpunk neon pink/cyan LUT"
-        description_ja: "サイバーパンク（ネオンピンク/シアン）LUTを生成"
-        description_ko: "사이버펑크 네온 핑크/시안 LUT를 생성"
         sketch: false
 
       - name: tcx::lut::createPastel
@@ -14677,8 +14431,6 @@ types:
         self: Image
         return: void
         signatures:
-          - params: ""
-            params_simple: ""
           - params: "float x, float y"
             params_simple: "x, y"
           - params: "float x, float y, float w, float h"
@@ -15598,6 +15350,7 @@ types:
         description_ko: "모든 텍스처 좌표를 얻음"
       - name: getNumTexCoords
         self: Mesh
+        const: true
         sketch: false
         return: int
         signatures:
@@ -18990,6 +18743,19 @@ types:
     description: "Singleton miniaudio-based mixer engine. Owns the output device, mixes all playing Sound voices, exposes real-time audioOut / audioIn / audioDeviceChanged events, and an FFT analysis ring buffer. Access via AudioEngine::getInstance(); most apps drive it indirectly through the Sound class and the global initAudio() / shutdownAudio() helpers."
     description_ja: "miniaudio ベースのシングルトンミキサーエンジン。出力デバイスを所有し、再生中の全 Sound ボイスをミックスし、リアルタイムの audioOut / audioIn / audioDeviceChanged イベントと FFT 解析リングバッファを公開する。AudioEngine::getInstance() でアクセス。多くのアプリは Sound クラスとグローバルの initAudio() / shutdownAudio() ヘルパー経由で間接的に利用する"
     description_ko: "miniaudio 기반 싱글톤 믹서 엔진. 출력 디바이스를 소유하고, 재생 중인 모든 Sound 보이스를 믹스하며, 실시간 audioOut / audioIn / audioDeviceChanged 이벤트와 FFT 분석 링 버퍼를 노출한다. AudioEngine::getInstance() 로 접근. 대부분의 앱은 Sound 클래스와 전역 initAudio() / shutdownAudio() 헬퍼를 통해 간접적으로 사용한다"
+    properties:
+      - name: audioOut
+        self: AudioEngine
+        type: "Event<AudioOutBuffer>"
+        description: "Real-time playback callback event. listen() to add a synthesis / processing listener. Fires per audio buffer on the audio thread; keep RT-safe."
+        description_ja: "リアルタイム再生コールバック event。listen() でシンセ / 処理用 listener を追加。各バッファごとに audio thread で発火、RT-safe を維持"
+        description_ko: "실시간 재생 콜백 이벤트. listen()으로 신스 / 처리 리스너 추가. 버퍼별로 오디오 스레드에서 발화, RT-safe 유지"
+      - name: audioDeviceChanged
+        self: AudioEngine
+        type: "Event<AudioDeviceChangedArgs>"
+        description: "Fires after every successful init() (initial AND re-init). Args carry the resolved device's real name, isDefaultDevice flag, sampleRate, channels, bufferSize, maxPolyphony. Listener runs on the thread that called init() (main), not the audio thread."
+        description_ja: "成功した init() (初回 / 再 init) 後に発火。args は解決済みデバイス名、isDefaultDevice、sampleRate、channels、bufferSize、maxPolyphony。listener は init() を呼んだスレッド (通常 main) で実行"
+        description_ko: "성공한 init() (초기 / 재 init) 후 발화. args는 해결된 장치명, isDefaultDevice, sampleRate, channels, bufferSize, maxPolyphony. listener는 init()을 호출한 스레드 (보통 main)에서 실행"
     sketch: false
     methods:
       - name: init
@@ -19333,6 +19099,81 @@ types:
         description: "Monotonic count of input frames received since capture start"
         description_ja: "キャプチャ開始以降に受信した入力フレームの単調カウント"
         description_ko: "캡처 시작 이후 수신한 입력 프레임의 단조 카운트"
+
+  - name: ChipSoundNote
+    related:
+      - ChipSoundBundle
+      - Sound
+      - Wave
+      - createChipBundle
+    keywords: ["chiptune","8bit","synth","note","retro","tone","adsr","envelope"]
+    description: "One 8-bit-style note: a plain aggregate of public fields (wave, hz, volume, duration, and the ADSR envelope attack/decay/sustain/release). Set fields directly via designated initializers ({ .wave = Wave::Square, .hz = 440, .duration = 0.2f }) or the constructor, then build() it into a Sound (or add() it to a ChipSoundBundle)."
+    description_ja: "8bit スタイルの 1 音。public フィールド (wave, hz, volume, duration, ADSR の attack/decay/sustain/release) の素の集約体。指定初期化子 ({ .wave = Wave::Square, .hz = 440, .duration = 0.2f }) かコンストラクタで直接設定し、build() で Sound 化 (または ChipSoundBundle に add())"
+    description_ko: "8비트 스타일 한 음. public 필드(wave, hz, volume, duration, ADSR의 attack/decay/sustain/release)의 단순 집합체. 지정 초기화자({ .wave = Wave::Square, .hz = 440, .duration = 0.2f })나 생성자로 직접 설정한 뒤 build()로 Sound화(또는 ChipSoundBundle에 add())"
+    sketch: false
+    constructor:
+      signatures:
+        - params: ""
+        - params: "Wave w, float freq, float dur, float vol = 0.5f"
+    properties:
+      - name: wave
+        self: ChipSoundNote
+        type: "Wave"
+        description: "Waveform (Sin, Square, Triangle, Sawtooth, Noise, PinkNoise, Silent)"
+        description_ja: "波形 (Sin, Square, Triangle, Sawtooth, Noise, PinkNoise, Silent)"
+        description_ko: "파형 (Sin, Square, Triangle, Sawtooth, Noise, PinkNoise, Silent)"
+      - name: hz
+        self: ChipSoundNote
+        type: "float"
+        description: "Frequency in Hz (ignored for Noise / Silent)"
+        description_ja: "周波数 (Hz)。Noise / Silent では無視"
+        description_ko: "주파수 (Hz). Noise / Silent에서는 무시"
+      - name: volume
+        self: ChipSoundNote
+        type: "float"
+        description: "Volume (0.0-1.0)"
+        description_ja: "音量 (0.0-1.0)"
+        description_ko: "음량 (0.0-1.0)"
+      - name: duration
+        self: ChipSoundNote
+        type: "float"
+        description: "Note duration in seconds"
+        description_ja: "ノートの長さ (秒)"
+        description_ko: "노트 길이 (초)"
+      - name: attack
+        self: ChipSoundNote
+        type: "float"
+        description: "ADSR attack time in seconds"
+        description_ja: "ADSR アタック時間 (秒)"
+        description_ko: "ADSR 어택 시간 (초)"
+      - name: decay
+        self: ChipSoundNote
+        type: "float"
+        description: "ADSR decay time in seconds"
+        description_ja: "ADSR ディケイ時間 (秒)"
+        description_ko: "ADSR 디케이 시간 (초)"
+      - name: sustain
+        self: ChipSoundNote
+        type: "float"
+        description: "ADSR sustain level (0.0-1.0)"
+        description_ja: "ADSR サスティンレベル (0.0-1.0)"
+        description_ko: "ADSR 서스테인 레벨 (0.0-1.0)"
+      - name: release
+        self: ChipSoundNote
+        type: "float"
+        description: "ADSR release time in seconds"
+        description_ja: "ADSR リリース時間 (秒)"
+        description_ko: "ADSR 릴리스 시간 (초)"
+    methods:
+      - name: build
+        self: ChipSoundNote
+        const: true
+        return: "Sound"
+        signatures:
+          - params: ""
+        description: "Render this note (with its ADSR envelope) into a playable Sound"
+        description_ja: "この音 (ADSR エンベロープ込み) を再生可能な Sound にレンダリング"
+        description_ko: "이 음(ADSR 엔벨로프 포함)을 재생 가능한 Sound로 렌더링"
 
   - name: ChipSoundBundle
     related:
