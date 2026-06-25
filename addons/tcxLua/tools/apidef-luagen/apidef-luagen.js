@@ -31,7 +31,16 @@ const warnings = [];
 // Functions that are documented but NOT Lua-bindable as a plain lambda:
 //  - template entry points (runApp<App>), etc.
 // (Long-term this should be a `bindable: false` / lua-exclude flag in the YAML.)
-const DENYLIST = new Set(['runApp', 'runHeadlessApp']);
+const DENYLIST = new Set([
+    'runApp', 'runHeadlessApp',            // template entry points
+    // Sound is being restructured into types (ChipSoundNote props / AudioEngine
+    // events) upstream; these stale free-function entries move to Phase 2 then.
+    'audioOut', 'wave', 'hz', 'duration', 'volume', 'attack', 'decay', 'sustain', 'release', 'adsr',
+]);
+
+// Names that exist in BOTH trussc:: and std:: — `using`-directives make them
+// ambiguous, so force the trussc:: qualifier. (Long-term: a namespace hint in YAML.)
+const FORCE_NS = new Set(['random']);
 
 // Split a C++ parameter list on top-level commas (ignore commas inside <> or ()).
 function splitParams(s) {
@@ -84,17 +93,22 @@ function buildLambdaVariants(paramsTyped, paramsSimple) {
 }
 
 function emitFn(name, fn) {
-    const ret = (fn.return && fn.return !== 'void') ? 'return ' : '';
+    // Call unqualified (resolves via `using namespace trussc; using namespace std;`),
+    // except names that clash between the two namespaces (FORCE_NS -> trussc::).
+    const callName = FORCE_NS.has(name) ? `${NS}::${name}` : name;
+    // Preserve the return only for reference-returning funcs (e.g. CoreEvents&,
+    // Logger& — non-copyable). Value returns must NOT use decltype(auto), or
+    // std-style funcs that return a ref to an arg (min/max) would dangle.
+    const refReturn = (fn.return || '').includes('&');
     const lambdas = [];
     const seen = new Set();
     for (const sig of (fn.signatures || [])) {
         const r = buildLambdaVariants(sig.params || '', sig.params_simple || '');
         if (r.error) { warnings.push(`skip ${name}(${sig.params}): ${r.error}`); continue; }
         for (const v of r.variants) {
-            // Unqualified call: resolves via `using namespace trussc; using namespace std;`
-            // so both TrussC funcs (drawRect) and std math (sin) work. Genuine
-            // trussc/std name clashes surface as compile ambiguities (witness catches).
-            const lam = `[](${v.decl}){ ${ret}${name}(${v.call}); }`;
+            const lam = refReturn
+                ? `[](${v.decl}) -> decltype(auto) { return ${callName}(${v.call}); }`
+                : `[](${v.decl}) { return ${callName}(${v.call}); }`;
             if (seen.has(lam)) continue;            // dedup identical arities across sigs
             seen.add(lam);
             lambdas.push(lam);
