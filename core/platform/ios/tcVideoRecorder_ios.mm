@@ -21,6 +21,7 @@
 
 namespace trussc {
 
+namespace internal {
 struct VideoWriterPlatformData {
     AVAssetWriter* writer = nil;
     AVAssetWriterInput* input = nil;
@@ -31,6 +32,8 @@ struct VideoWriterPlatformData {
     int64_t frameIndex = 0;
     bool failed = false;
 };
+}  // namespace internal
+using internal::VideoWriterPlatformData;
 
 bool VideoWriter::openPlatform(const std::string& fullPath, int w, int h,
                                float fps, const VideoRecordSettings& settings) {

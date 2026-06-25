@@ -55,7 +55,7 @@ class Fbo;
 class Pixels;
 
 // Opaque per-platform encoder state (AVAssetWriter / IMFSinkWriter / GstPipeline)
-struct VideoWriterPlatformData;
+namespace internal { struct VideoWriterPlatformData; }
 
 // ---------------------------------------------------------------------------
 // Codec / settings
@@ -256,7 +256,7 @@ private:
     bool submitFramePlatform(double timeSec);            // append the locked buffer
 #endif
 
-    VideoWriterPlatformData* platform_ = nullptr;
+    internal::VideoWriterPlatformData* platform_ = nullptr;
     std::string path_;
     std::vector<unsigned char> scratch_;
     int   width_  = 0;

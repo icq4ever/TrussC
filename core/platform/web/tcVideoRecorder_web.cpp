@@ -20,7 +20,10 @@
 
 namespace trussc {
 
+namespace internal {
 struct VideoWriterPlatformData {};
+}  // namespace internal
+using internal::VideoWriterPlatformData;
 
 bool VideoWriter::openPlatform(const std::string&, int, int, float,
                                const VideoRecordSettings&) {
