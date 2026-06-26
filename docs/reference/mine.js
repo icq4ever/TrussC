@@ -64,6 +64,7 @@ function prose(e) {
     if (e.of_notes_ko) n.ko = e.of_notes_ko;
     if (Object.keys(n).length) p.of_notes = n;
     if (e.of_type_category) p.of_category = e.of_type_category;   // oF mapping type group
+    if (e.snippet) p.snippet = e.snippet;           // example code (authorable; web player / sketch)
     return Object.keys(p).length ? p : null;
 }
 
@@ -120,6 +121,7 @@ for (const id of [...out.keys()].sort()) {
     if (p.details) toml += `details = ${tstr(p.details)}\n`;
     if (p.of_category) toml += `of_category = ${tstr(p.of_category)}\n`;
     if (p.of_notes) for (const lang of ['en', 'ja', 'ko']) if (p.of_notes[lang]) toml += `of_notes.${lang} = ${tstr(p.of_notes[lang])}\n`;
+    if (p.snippet) toml += `snippet = ${tstr(p.snippet)}\n`;
 }
 
 // --- verify it round-trips through a strict TOML parser (dup-key guard) ---

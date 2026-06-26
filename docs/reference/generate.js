@@ -47,7 +47,7 @@ for (const id in structure) {
         category: p.category, keywords: p.keywords, of: p.of,
         of_category: p.of_category, of_notes: p.of_notes,   // oF mapping prose
         description: p.description,                          // {en,ja,ko}
-        details: p.details,
+        details: p.details, snippet: p.snippet,             // snippet = authorable example code
         documented: !!(p.description && p.description.en),
     };
 }

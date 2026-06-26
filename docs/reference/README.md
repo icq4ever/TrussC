@@ -77,8 +77,11 @@ else. Schema of one entry:
   "category":    "color",
   "keywords":    ["hsv","hue","saturation"],
   "of":          ["ofColor::fromHsb"],    // openFrameworks equivalents
+  "of_category": "color-types",           // oF-mapping display group (types)
+  "of_notes":    { "en": "…" },           // oF migration note (per oF mapping)
   "description": { "en": "…", "ja": "…", "ko": "…" },
   "details":     "longer prose…",
+  "snippet":     "setColor(Color::fromHSB(0.5,1,1));",  // example code (authorable)
   "documented":  true                     // has description.en
 }
 ```
