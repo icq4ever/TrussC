@@ -176,6 +176,14 @@ function enumerate(objs) {
 // ---------------------------------------------------------------------------
 const api = yaml.load(fs.readFileSync(API_YAML, 'utf8'));
 const EXCLUDED = (api.coverage && api.coverage.excluded_namespaces) || [];
+// Public TYPES intentionally kept out of the curated reference (each with a
+// reason in the yaml). A map {TypeName: reason} or a plain list; excludes the
+// type itself plus its methods/fields/nested enums.
+const EXCLUDED_TYPES_CFG = (api.coverage && api.coverage.excluded_types) || {};
+const excludedTypeNames = new Set(Array.isArray(EXCLUDED_TYPES_CFG) ? EXCLUDED_TYPES_CFG : Object.keys(EXCLUDED_TYPES_CFG));
+const inExcludedType = (s) =>
+    excludedTypeNames.has(s.owner) ||
+    ((s.kind === 'type' || s.kind === 'typedef') && excludedTypeNames.has(s.name));
 
 const docFree = new Set();          // free function names
 const docMethod = new Set();        // "Owner::name"
@@ -248,7 +256,7 @@ function documented(s) {
 const objs = splitTopLevel(astText);
 const all = enumerate(objs);
 const tc = all.filter((s) => isTc(s.file));
-const afterNs = tc.filter((s) => !inExcludedNs(s.ns));
+const afterNs = tc.filter((s) => !inExcludedNs(s.ns) && !inExcludedType(s));
 const removedByNs = tc.length - afterNs.length;
 const candidates = afterNs.filter((s) => !isNoise(s));
 const residual = candidates.filter((s) => !documented(s));
