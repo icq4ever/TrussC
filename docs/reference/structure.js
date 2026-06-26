@@ -175,6 +175,13 @@ for (const s of pub) {
     }
 }
 
+// --- 4b. merge curated std::-provided symbols (AST-invisible: sin/cos/lerp …) --
+for (const s of require('./std-symbols.js')) {
+    if (structure[s.id]) continue;                              // a real trussc:: symbol wins
+    structure[s.id] = { id: s.id, kind: s.kind, owner: undefined, name: s.name, ns: undefined,
+        signatures: s.signatures || [], static: false, provider: s.provider };
+}
+
 // --- 5. output --------------------------------------------------------------
 const jsonOut = argVal('--json');
 if (argv.includes('--ids')) { console.log(Object.keys(structure).sort().join('\n')); process.exit(0); }

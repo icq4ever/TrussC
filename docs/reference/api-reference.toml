@@ -3146,11 +3146,9 @@ description.ja = "ログファイルが現在開いているか確認"
 description.ko = "로그 파일이 현재 열려 있는지 확인"
 
 ["Logger::log"]
-category = "math_general"
-keywords = ["logarithm", "ln", "natural log"]
-description.en = "Natural logarithm"
-description.ja = "自然対数"
-description.ko = "자연로그"
+description.en = "Emit a log message at the given level"
+description.ja = "指定レベルでログメッセージを出力"
+description.ko = "지정한 레벨로 로그 메시지를 출력"
 
 ["Logger::onLog"]
 description.en = "Event fired for every log message; listen to it to route logs (console/file/custom sink)"
@@ -9365,6 +9363,20 @@ description.en = "Alias for pugi::xml_parse_result. Result of an XML parse opera
 description.ja = "pugi::xml_parse_result のエイリアス。XMLパース操作の結果で、成功ステータス・エラー説明・オフセットを保持する"
 description.ko = "pugi::xml_parse_result의 별칭. XML 파싱 작업의 결과로, 성공 상태, 오류 설명, 오프셋을 담음"
 
+["abs"]
+category = "math_general"
+keywords = ["absolute", "magnitude", "positive", "fabs"]
+description.en = "Absolute value"
+description.ja = "絶対値"
+description.ko = "절댓값"
+
+["acos"]
+category = "math_trig"
+keywords = ["arccosine", "inverse cosine", "trig"]
+description.en = "Arc cosine"
+description.ja = "逆余弦"
+description.ko = "역-코사인"
+
 ["addLight"]
 category = "graphics_lighting"
 keywords = ["light", "lamp", "illuminate", "directional", "point light", "ofLight"]
@@ -9430,6 +9442,27 @@ keywords = ["windowing", "hann", "hamming", "fft", "taper", "leakage"]
 description.en = "Apply a window function (in place) to a signal to reduce spectral leakage before FFT"
 description.ja = "FFT 前のスペクトル漏れを抑えるため信号に窓関数を適用（インプレース）"
 description.ko = "FFT 전 스펙트럼 누설을 줄이기 위해 신호에 윈도우 함수를 적용 (in-place)"
+
+["asin"]
+category = "math_trig"
+keywords = ["arcsine", "inverse sine", "trig"]
+description.en = "Arc sine"
+description.ja = "逆正弦"
+description.ko = "역-사인"
+
+["atan"]
+category = "math_trig"
+keywords = ["arctangent", "inverse tangent", "trig"]
+description.en = "Arc tangent"
+description.ja = "逆正接"
+description.ko = "역-탄젠트"
+
+["atan2"]
+category = "math_trig"
+keywords = ["arctangent", "angle", "heading", "direction", "trig"]
+description.en = "Arc tangent of y/x"
+description.ja = "y/xの逆正接"
+description.ko = "y/x의 역-탄젠트"
 
 ["audio::priority::Effect"]
 keywords = ["audio", "priority", "effect", "reverb", "filter", "audioOut"]
@@ -9568,6 +9601,13 @@ description.en = "Capture the current window contents into a Pixels object. Retu
 description.ja = "現在のウィンドウ内容を Pixels オブジェクトにキャプチャ。成功時 true を返す"
 description.ko = "현재 윈도우 내용을 Pixels 객체로 캡처. 성공 시 true 반환"
 
+["ceil"]
+category = "math_general"
+keywords = ["ceiling", "round up", "integer"]
+description.en = "Round up"
+description.ja = "切り上げ"
+description.ko = "올림"
+
 ["channelCount"]
 category = "graphics_texture"
 keywords = ["channels", "components", "rgba", "format", "count"]
@@ -9658,13 +9698,6 @@ description.ja = "Color::fromOKLab() の非推奨エイリアス"
 description.ko = "Color::fromOKLab()의 deprecated 별칭"
 details = "Kept as a backward-compatible alias; new code should call `Color::fromOKLab()` (same behavior). Scheduled for removal in v1.0.0."
 
-["colors::tan"]
-category = "math_trig"
-keywords = ["tangent", "slope", "trig"]
-description.en = "Tangent"
-description.ja = "正接"
-description.ko = "탄젠트"
-
 ["compress"]
 category = "utility"
 keywords = ["zip", "lz4", "deflate", "pack", "shrink"]
@@ -9692,6 +9725,13 @@ keywords = ["confirm", "yesno", "prompt", "async", "callback", "ask"]
 description.en = "Show Yes/No dialog asynchronously. Callback receives true if Yes clicked"
 description.ja = "Yes/No確認ダイアログを非同期で表示。Yesが押されたらコールバックにtrueが渡される"
 description.ko = "Yes/No 대화상자를 비동기로 표시. Yes를 누르면 콜백에 true 전달"
+
+["cos"]
+category = "math_trig"
+keywords = ["cosine", "wave", "oscillate", "trig", "circular"]
+description.en = "Cosine"
+description.ja = "余弦"
+description.ko = "코사인"
 
 ["createBox"]
 category = "graphics_advanced"
@@ -10028,6 +10068,13 @@ description.en = "Immediately exit the application (cannot be cancelled)"
 description.ja = "アプリケーションを即座に終了（キャンセル不可）"
 description.ko = "어플리케이션을 즉시 종료 (취소 불가)"
 
+["exp"]
+category = "math_general"
+keywords = ["exponential", "euler", "e power"]
+description.en = "Exponential (e^x)"
+description.ja = "指数関数 (e^x)"
+description.ko = "지수함수 (e^x)"
+
 ["fbm"]
 category = "math_random"
 keywords = ["fractal", "perlin", "brownian", "octaves", "turbulence", "terrain"]
@@ -10092,6 +10139,20 @@ of = ["ofFill"]
 description.en = "Enable fill mode (shapes are solid, no outline)"
 description.ja = "塗りつぶしモードを有効化（シェイプは塗りつぶし、輪郭なし）"
 description.ko = "채우기 모드 활성화 (도형이 채워지고 외곽선 없음)"
+
+["floor"]
+category = "math_general"
+keywords = ["round down", "truncate", "integer"]
+description.en = "Round down"
+description.ja = "切り捨て"
+description.ko = "내림"
+
+["fmod"]
+category = "math_general"
+keywords = ["modulo", "remainder", "modulus", "mod"]
+description.en = "Floating-point modulo"
+description.ja = "浮動小数点剰余"
+description.ko = "부동소수점 나머지"
 
 ["fract"]
 category = "math_general"
@@ -11147,6 +11208,16 @@ description.en = "Join strings with delimiter"
 description.ja = "文字列配列をデリミタで結合"
 description.ko = "문자열 배열을 구분자로 결합"
 
+["lerp"]
+category = "math_interpolation"
+keywords = ["interpolate", "mix", "blend", "tween", "linear", "between"]
+of = ["ofLerp"]
+description.en = "Linear interpolation"
+description.ja = "線形補間"
+description.ko = "선형 보간"
+of_notes.en = "std::lerp (C++20)"
+of_notes.ja = "std::lerp (C++20)"
+
 ["linearToSrgb"]
 category = "graphics_color"
 keywords = ["gamma", "linear", "color space", "convert"]
@@ -11221,6 +11292,13 @@ description.en = "Load an XML file and return it as an Xml object. Relative path
 description.ja = "XMLファイルを読み込みXmlオブジェクトとして返す。相対パスはgetDataPathで解決される"
 description.ko = "XML 파일을 읽어 Xml 객체로 반환. 상대 경로는 getDataPath로 해석됨"
 
+["log"]
+category = "math_general"
+keywords = ["logarithm", "ln", "natural log"]
+description.en = "Natural logarithm"
+description.ja = "自然対数"
+description.ko = "자연로그"
+
 ["logAt"]
 category = "utility"
 keywords = ["log", "level", "print", "severity"]
@@ -11276,6 +11354,20 @@ keywords = ["log", "warn", "warning", "print"]
 description.en = "Stream-based warning-level log output"
 description.ja = "ストリームベースの warning レベルログ出力"
 description.ko = "스트림 기반 warning 레벨 로그 출력"
+
+["max"]
+category = "math_general"
+keywords = ["maximum", "largest", "upper", "greatest"]
+description.en = "Maximum"
+description.ja = "最大値"
+description.ko = "최댓값"
+
+["min"]
+category = "math_general"
+keywords = ["minimum", "smallest", "lower", "least"]
+description.en = "Minimum"
+description.ja = "最小値"
+description.ko = "최솟값"
 
 ["multMatrix"]
 category = "transform"
@@ -11357,6 +11449,13 @@ of = ["ofPopStyle"]
 description.en = "Pop style from stack, restoring previous state"
 description.ja = "スタイルをスタックからポップし、前の状態を復元"
 description.ko = "스택에서 스타일을 꺼내서 이전 상태로 복원"
+
+["pow"]
+category = "math_general"
+keywords = ["power", "exponent", "raise"]
+description.en = "Power (x^y)"
+description.ja = "累乗 (x^y)"
+description.ko = "거듭제곱 (x^y)"
 
 ["printNetworkInterfaces"]
 category = "network"
@@ -11593,6 +11692,13 @@ keywords = ["spin", "roll", "z axis", "degrees"]
 description.en = "Rotate around Z axis (degrees)"
 description.ja = "Z軸周りに回転（度）"
 description.ko = "Z축을 중심으로 회전 (도)"
+
+["round"]
+category = "math_general"
+keywords = ["nearest", "rounding", "integer"]
+description.en = "Round to nearest"
+description.ja = "四捨五入"
+description.ko = "반올림"
 
 ["runApp"]
 category = "lifecycle"
@@ -12064,6 +12170,13 @@ description.en = "Perlin noise (-1.0 to 1.0)"
 description.ja = "パーリンノイズ (-1.0〜1.0)"
 description.ko = "Perlin 노이즈 (-1.0~1.0)"
 
+["sin"]
+category = "math_trig"
+keywords = ["sine", "wave", "oscillate", "trig", "circular"]
+description.en = "Sine"
+description.ja = "正弦"
+description.ko = "사인"
+
 ["sleepMicros"]
 category = "time_frame"
 keywords = ["sleep", "wait", "delay", "pause", "block", "microseconds"]
@@ -12092,6 +12205,13 @@ keywords = ["square", "squared", "power"]
 description.en = "Square (x*x)"
 description.ja = "二乗 (x*x)"
 description.ko = "제곱 (x*x)"
+
+["sqrt"]
+category = "math_general"
+keywords = ["square root", "radical", "root"]
+description.en = "Square root"
+description.ja = "平方根"
+description.ko = "제곱근"
 
 ["srgbToLinear"]
 category = "graphics_color"
@@ -12135,6 +12255,13 @@ keywords = ["resolve", "lookup", "find", "os font", "path"]
 description.en = "Resolve a system font name (PostScript / family) to a file path. Returns empty string if not found. macOS uses CoreText; Linux/Windows currently stub."
 description.ja = "システムフォント名（PostScript 名や family 名）をファイルパスに解決。見つからなければ空文字を返す。macOS は CoreText、Linux/Win は現状スタブ"
 description.ko = "시스템 폰트 이름을 파일 경로로 변환"
+
+["tan"]
+category = "math_trig"
+keywords = ["tangent", "slope", "trig"]
+description.en = "Tangent"
+description.ja = "正接"
+description.ko = "탄젠트"
 
 ["tcCloseLogFile"]
 category = "utility"

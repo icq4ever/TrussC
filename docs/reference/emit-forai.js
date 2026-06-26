@@ -36,6 +36,7 @@ function line(e) {
     const s = (e.signatures && e.signatures[0]) || null;
     const extra = e.signatures && e.signatures.length > 1 ? ` [+${e.signatures.length - 1}]` : '';
     const dep = e.deprecated ? ' ⚠️deprecated' : '';
+    const prov = e.provider === 'std' ? ' [std]' : '';
     const desc = (e.description && e.description.en) ? '  // ' + e.description.en.replace(/\s*\n\s*/g, ' ') : '';
     let sig;
     if (s && (e.kind === 'method' || e.kind === 'func')) {
@@ -47,7 +48,7 @@ function line(e) {
     } else {                                   // var / const-like
         sig = (s && s.ret ? s.ret + ' ' : '') + e.id;
     }
-    return `${sig}${extra}${dep}${desc}`;
+    return `${sig}${extra}${dep}${prov}${desc}`;
 }
 
 let out = '';
@@ -105,7 +106,7 @@ if (typedefs.length) {
 }
 
 const counts = { fns: freeFns.length, owners: owners.size, enums: enums.length };
-const header = `\n_Auto-generated C++ API index from \`reference-data.json\` (structure from the C++ AST, prose from \`api-reference.toml\`). Documented symbols only — undocumented APIs are findable via the interactive reference: https://trussc.org/reference/. Overloads collapsed; \`[+N]\` = N more overloads._\n`;
+const header = `\n_Auto-generated C++ API index from \`reference-data.json\` (structure from the C++ AST, prose from \`api-reference.toml\`). Documented symbols only — undocumented APIs are findable via the interactive reference: https://trussc.org/reference/. Overloads collapsed; \`[+N]\` = N more overloads; \`[std]\` = provided by std:: (available via \`using namespace std\`)._\n`;
 const block = header + out + '\n';
 
 if (argv.includes('--dry')) { process.stdout.write(block); process.exit(0); }

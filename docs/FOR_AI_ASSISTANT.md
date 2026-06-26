@@ -748,7 +748,7 @@ whether a function / class exists before answering "does TrussC have X".
 
 <!-- API-INDEX-START -->
 
-_Auto-generated C++ API index from `reference-data.json` (structure from the C++ AST, prose from `api-reference.toml`). Documented symbols only — undocumented APIs are findable via the interactive reference: https://trussc.org/reference/. Overloads collapsed; `[+N]` = N more overloads._
+_Auto-generated C++ API index from `reference-data.json` (structure from the C++ AST, prose from `api-reference.toml`). Documented symbols only — undocumented APIs are findable via the interactive reference: https://trussc.org/reference/. Overloads collapsed; `[+N]` = N more overloads; `[std]` = provided by std:: (available via `using namespace std`)._
 
 ### Lifecycle
 
@@ -1018,36 +1018,55 @@ float signedNoise(float x) [+6]  // Perlin noise (-1.0 to 1.0)
 
 ```cpp
 float clamp(float value, float min, float max)  // Clamp value to range
+float lerp(float a, float b, float t) [std]  // Linear interpolation
 float remap(float value, float inMin, float inMax, float outMin, float outMax)  // Remap value from one range to another
 ```
 
 ### Math - Trigonometry
 
 ```cpp
+float acos(float x) [std]  // Arc cosine
+float asin(float x) [std]  // Arc sine
+float atan(float x) [std]  // Arc tangent
+float atan2(float y, float x) [std]  // Arc tangent of y/x
+float cos(float x) [std]  // Cosine
 float deg2rad(float deg)  // Degrees to radians
 float rad2deg(float rad)  // Radians to degrees
+float sin(float x) [std]  // Sine
+float tan(float x) [std]  // Tangent
 ```
 
 ### Math - General
 
 ```cpp
+float abs(float x) [std]  // Absolute value
 float angleDifference(float angle1, float angle2)  // Shortest angle difference in radians [-TAU/2, TAU/2]
 float angleDifferenceDeg(float deg1, float deg2)  // Shortest angle difference in degrees [-180, 180]
 void applyWindow(std::vector<float> & signal, WindowType type) [+1]  // Apply a window function (in place) to a signal to reduce spectral leakage before FFT
 float binToFrequency(int bin, int fftSize, int sampleRate)  // Convert an FFT bin index to its frequency in Hz
+float ceil(float x) [std]  // Round up
+float exp(float x) [std]  // Exponential (e^x)
 void fft(std::vector<std::complex<float>> & data)  // In-place forward FFT (Cooley-Tukey radix-2); the data size must be a power of two
 std::vector<float> fftMagnitude(const std::vector<std::complex<float>> & spectrum)  // Return the magnitude (amplitude) of each bin in a spectrum
 std::vector<float> fftMagnitudeDb(const std::vector<std::complex<float>> & spectrum, float minDb)  // Return the magnitude of each bin in decibels, clamped to minDb
 std::vector<float> fftPhase(const std::vector<std::complex<float>> & spectrum)  // Return the phase angle (radians) of each bin in a spectrum
 std::vector<float> fftPower(const std::vector<std::complex<float>> & spectrum)  // Return the power spectrum (magnitude squared) of each bin
 std::vector<std::complex<float>> fftReal(const std::vector<float> & signal) [+1]  // Compute the FFT of a real-valued signal, optionally applying a window function first
+float floor(float x) [std]  // Round down
+float fmod(float x, float y) [std]  // Floating-point modulo
 float fract(float value)  // Fractional part
 int frequencyToBin(float freq, int fftSize, int sampleRate)  // Convert a frequency in Hz to the nearest FFT bin index
 void ifft(std::vector<std::complex<float>> & data)  // In-place inverse FFT; the data size must be a power of two
 bool isPowerOfTwo(int n)  // Return true if n is a positive power of two
+float log(float x) [std]  // Natural logarithm
+float max(float a, float b) [std]  // Maximum
+float min(float a, float b) [std]  // Minimum
 int nextPowerOfTwo(int n)  // Return the smallest power of two greater than or equal to n
+float pow(float x, float y) [std]  // Power (x^y)
+float round(float x) [std]  // Round to nearest
 float sign(float value)  // Sign (-1, 0, 1)
 float sq(float value)  // Square (x*x)
+float sqrt(float x) [std]  // Square root
 std::vector<std::complex<float>> toComplex(const std::vector<float> & real)  // Convert a real-valued signal into a complex array with zero imaginary parts
 float windowFunction(WindowType type, int i, int n)  // Return the window coefficient for sample i of n for the given window type
 float wrap(float value, float min, float max)  // Wrap value within range [min, max)
@@ -1954,7 +1973,7 @@ LogLevel Logger::getConsoleLogLevel() const  // Get the current console log leve
 LogLevel Logger::getFileLogLevel() const  // Get the current file log level
 const std::string & Logger::getLogFilePath() const  // Get the path of the current log file
 bool Logger::isFileOpen() const  // Check whether a log file is currently open
-void Logger::log(LogLevel level, const std::string & message)  // Natural logarithm
+void Logger::log(LogLevel level, const std::string & message)  // Emit a log message at the given level
 void Logger::setConsoleLogLevel(LogLevel level)  // Set the minimum console log level
 void Logger::setFileLogLevel(LogLevel level)  // Set the minimum file log level
 bool Logger::setLogFile(const std::string & path)  // Open a file to receive log output

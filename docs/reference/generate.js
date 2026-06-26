@@ -43,6 +43,7 @@ for (const id in structure) {
         id, kind: s.kind, owner: s.owner, name: s.name, ns: s.ns,
         signatures: s.signatures, static: s.static || undefined, tparams: s.tparams,
         members: s.members,                                // enum values (enums only)
+        provider: s.provider,                              // 'std' for curated std:: symbols
         deprecated: s.deprecated,                          // from C++ [[deprecated]]
         category: p.category, keywords: p.keywords, of: p.of,
         of_category: p.of_category, of_notes: p.of_notes,   // oF mapping prose
