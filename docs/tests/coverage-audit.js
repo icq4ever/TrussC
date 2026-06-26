@@ -254,7 +254,7 @@ const candidates = afterNs.filter((s) => !isNoise(s));
 const residual = candidates.filter((s) => !documented(s));
 
 if (argv.includes('--json')) {
-    console.log(JSON.stringify(residual.map((s) => ({ kind: s.kind, owner: s.owner, name: s.name, ns: s.ns, file: (s.file || '').replace(INCLUDE + '/', '') })), null, 2));
+    console.log(JSON.stringify(residual.map((s) => ({ kind: s.kind, owner: s.owner, name: s.name, ns: s.ns, sig: s.sig || null, flags: s.flags || [], file: (s.file || '').replace(INCLUDE + '/', '') })), null, 2));
     process.exit(0);
 }
 
