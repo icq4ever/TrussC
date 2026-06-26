@@ -30,7 +30,6 @@ coverage:
   # listing its members would be noise. Reason is required (visible curation,
   # not a silent mute). Excludes the type + its methods/fields/nested enums.
   excluded_types:
-    RenderContext: "backing class for the free drawing functions (setColor/drawRect/...); users call those globals, not RenderContext directly"
     HasTexture: "polymorphic base of Texture/Image/Fbo; document the concrete types, not the base interface"
     VideoPlayerBase: "abstract base of VideoPlayer; document VideoPlayer"
     ShaderVertex: "internal vertex layout struct for the shader pipeline"

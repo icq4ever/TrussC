@@ -64,6 +64,11 @@ namespace internal {
 // ---------------------------------------------------------------------------
 // RenderContext class
 // ---------------------------------------------------------------------------
+// RenderContext (and getDefaultContext) live in internal:: — the public drawing
+// API is the free functions that wrap them. A compat `using` below keeps the
+// names reachable from trussc:: for those wrappers and advanced users.
+namespace internal {
+
 class RenderContext {
 public:
     // -----------------------------------------------------------------------
@@ -977,5 +982,15 @@ private:
 // static instance — inline would give each module its own copy on Windows.
 // ---------------------------------------------------------------------------
 RenderContext& getDefaultContext();
+
+} // namespace internal
+
+// Compat: keep RenderContext / getDefaultContext reachable from trussc:: so the
+// free drawing wrappers (and any advanced user reaching for the context) keep
+// working; the canonical home is internal::. The RenderContext alias is
+// [[deprecated]] — the public drawing API is the free functions; reach the
+// context via internal::getDefaultContext() only if you truly need it.
+using RenderContext [[deprecated("RenderContext is internal; use the free drawing functions (setColor/drawRect/...). Reach the context via internal::getDefaultContext() if you really need it. Will be removed in v1.0.0")]] = internal::RenderContext;
+using internal::getDefaultContext;
 
 } // namespace trussc
