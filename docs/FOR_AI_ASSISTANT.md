@@ -851,7 +851,6 @@ void drawBitmapString(const string& text, float x, float y, bool screenFixed = t
 void drawBitmapStringHighlight(const string& text, float x, float y, const Color& background = Color(0,0,0), const Color& foreground = Color(1,1,1))  // Draw text with background highlight
 void getBitmapStringBounds(const string& text, float& width, float& height)  // Get bitmap string bounding box size
 void setTextAlign(Direction h, Direction v)  // Set text alignment
-void setTextAlign(Direction h, Direction v)  // Set text alignment
 Direction getTextAlignH()  // Get horizontal text alignment
 Direction getTextAlignV()  // Get vertical text alignment
 float getBitmapFontHeight()  // Get bitmap font height
@@ -859,10 +858,10 @@ float getBitmapStringWidth(const string& text)  // Get text width
 float getBitmapStringHeight(const string& text)  // Get text height
 Rect getBitmapStringBBox(const std::string & text)  // Get text bounding box
 void bitmapfont::registerGlyph(const bitmapfont::Glyph& g)  // Register a bitmap glyph for a Unicode codepoint (extends drawBitmapString)
-void bitmapfont::registerGlyphs(const bitmapfont::Glyph (&glyphs)[N])  // Register a batch of bitmap glyphs at once
+void bitmapfont::registerGlyphs(const bitmapfont::Glyph (&glyphs)[N] glyphs[])  // Register a batch of bitmap glyphs at once
 void bitmapfont::updateGlyph(uint32_t cp, const uint8_t* newData)  // Swap an already-registered glyph's pixel data (atlas cell unchanged). Useful for per-frame animation.
-std::array<uint8_t, 13> bitmapfont::compile8x13(const char* const (&rows)[13])  // Compile-time ASCII art -> packed halfwidth (8x13) glyph bytes. '#' = lit, '.' = empty.
-std::array<uint8_t, 26> bitmapfont::compile16x13(const char* const (&rows)[13])  // Compile-time ASCII art -> packed fullwidth (16x13) glyph bytes. '#' = lit, '.' = empty.
+std::array<uint8_t, 13> bitmapfont::compile8x13(const char* const (&rows)[13] rows)  // Compile-time ASCII art -> packed halfwidth (8x13) glyph bytes. '#' = lit, '.' = empty.
+std::array<uint8_t, 26> bitmapfont::compile16x13(const char* const (&rows)[13] rows)  // Compile-time ASCII art -> packed fullwidth (16x13) glyph bytes. '#' = lit, '.' = empty.
 void setBitmapLineHeight(float height)  // Set line height for bitmap string newlines (default: 16)
 float getBitmapLineHeight()  // Get line height for bitmap string newlines
 void setFps(float fps)  // Set target frame rate (VSYNC = -1.0)
@@ -885,8 +884,6 @@ void setCurveTolerance(float pixels)  // Set adaptive curve tessellation toleran
 float getCurveTolerance()  // Get current curve tessellation tolerance (in pixels)
 void setCurveResolution(int n)  // Set fixed curve segment count (switches off adaptive tolerance mode)
 int getCurveResolution()  // Get current curve resolution
-void pushStyle()  // Save current style state (color, stroke, fill)
-void popStyle()  // Restore previous style state
 void resetStyle()  // Reset style to default values (white color, fill enabled, stroke disabled)
 Color getColor()  // Get current fill color
 void setScissor(float x, float y, float w, float h)  // Set scissor clipping rectangle. Also available via RectNode::setClipping(true)
@@ -898,7 +895,6 @@ BlendMode getBlendMode()  // Get current blend mode
 void resetBlendMode()  // Reset blend mode to Alpha (default)
 void pushStyle()  // Push current style (color, fill, stroke, blend) onto stack
 void popStyle()  // Pop style from stack, restoring previous state
-void resetStyle()  // Reset all style settings to defaults
 CurveStyle::Mode getCurveMode()  // Current curve tessellation mode (fixed segment count vs. adaptive tolerance)
 ```
 
@@ -1225,7 +1221,7 @@ int runHeadlessApp(const HeadlessSettings& settings = HeadlessSettings())  // Ru
 LogStream logNotice(const std::string & module = "")  // Print to console
 bool compress(const void* src, size_t nbytes, vector<uint8_t>& out, Codec codec)  // Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). Resizes out and returns true on success.
 bool decompress(const void* src, size_t nbytes, vector<uint8_t>& out, size_t decompressedSize, Codec codec)  // Decompress a byte buffer; decompressedSize is the known original byte count. Resizes out and returns true on success (false / cleared out on size mismatch or failure).
-string toString(value)  // Convert to string
+string toString(value value)  // Convert to string
 void beep()  // Play a beep sound
 void beep(float frequency)  // Play a beep sound
 int toInt(const string& str)  // Convert string to int
@@ -1279,7 +1275,6 @@ string getBaseName(const string& path)  // Get filename without extension
 string getFileExtension(const string& path)  // Get file extension without dot
 string getParentDirectory(const string& path)  // Get parent directory
 string joinPath(const string& dir, const string& file)  // Join directory and filename
-string getAbsolutePath(const string& path)  // Get absolute path
 bool fileExists(const string& path)  // Check if file exists
 bool directoryExists(const string& path)  // Check if directory exists
 bool createDirectory(const string& path)  // Create directory (and parents)
@@ -1377,8 +1372,8 @@ float getLineHeight()  // Get line height
 int getSize()  // Get font size
 string systemFontPath(const string& name)  // Resolve a system font name (PostScript / family) to a file path. Returns empty string if not found. macOS uses CoreText; Linux/Windows currently stub.
 vector<string> listSystemFonts()  // Enumerate names of all fonts known to the OS
-void registerGlyph(const bitmapfont::Glyph &)  // Register one bitmap glyph so drawBitmapString can render its codepoint. Replaces any glyph already registered at the same codepoint and marks the atlas dirty for re-upload
-void registerGlyphs(const Glyph (&glyphs)[N])  // Register a fixed-size array of bitmap glyphs in one call (template over the array size)
+void registerGlyph(const bitmapfont::Glyph & g)  // Register one bitmap glyph so drawBitmapString can render its codepoint. Replaces any glyph already registered at the same codepoint and marks the atlas dirty for re-upload
+void registerGlyphs(const Glyph (&glyphs)[N] glyphs)  // Register a fixed-size array of bitmap glyphs in one call (template over the array size)
 void updateGlyph(uint32_t cp, const uint8_t *newData)  // Swap the pixel data of an already-registered glyph without changing its atlas position. Useful for animating a glyph by updating its data each frame
 ```
 
@@ -1408,7 +1403,7 @@ int getLoopCount()  // Get number of completed loop iterations
  Vec2(float v)  // Create 2D vector (type constructor)
 Vec2& set(float x, float y)  // Set vector components (type method)
 Vec2& set(float x_, float y_)  // Set vector components (type method)
-Vec2 Vec2_fromAngle(float, float)  // Create Vec2 from angle
+Vec2 Vec2_fromAngle(float radians, float length = 1.0f)  // Create Vec2 from angle
 Vec2 Vec2_fromAngle(float radians, float length)  // Create Vec2 from angle
 ```
 
@@ -1435,13 +1430,13 @@ Color& set(const Color& c)  // Set color components (type method)
 ColorHSB toHSB()  // Convert to HSB color space (H: 0-1, S: 0-1, B: 0-1)
 ColorOKLab toOKLab()  // Convert to OKLab color space (perceptually uniform)
 ColorOKLCH toOKLCH()  // Convert to OKLCH color space (L: 0-1, C: 0-0.4, H: 0-1)
-Color Color_fromHSB(float, float, float, float)  // Create Color from HSB (H: 0-1, S: 0-1, B: 0-1)
+Color Color_fromHSB(float h, float s, float b, float a = 1.0f)  // Create Color from HSB (H: 0-1, S: 0-1, B: 0-1)
 Color Color_fromHSB(float h, float s, float b, float a)  // Create Color from HSB (H: 0-1, S: 0-1, B: 0-1)
 Color colorFromHSB(float h, float s, float b, float a = 1.0f)  // Create Color from HSB (alias for Color_fromHSB)
 Color colorFromHSB(float h, float s, float b, float a)  // Create Color from HSB (alias for Color_fromHSB)
-Color Color_fromOKLCH(float, float, float, float)  // Create Color from OKLCH
+Color Color_fromOKLCH(float L, float C, float H, float a = 1.0f)  // Create Color from OKLCH
 Color Color_fromOKLCH(float L, float C, float H, float a)  // Create Color from OKLCH
-Color Color_fromOKLab(float, float, float, float)  // Create Color from OKLab
+Color Color_fromOKLab(float L, float a_lab, float b_lab, float alpha = 1.0f)  // Create Color from OKLab
 Color Color_fromOKLab(float L, float a, float b, float alpha)  // Create Color from OKLab
 ```
 
@@ -1471,14 +1466,14 @@ ColorOKLCH lerp(const ColorOKLCH & target, float t, bool shortestPath = true)  /
 Rect& set(float x, float y, float w, float h)  // Set rectangle properties (type method)
 Rect& set(float x_, float y_, float w_, float h_)  // Set rectangle properties (type method)
 bool contains(float x, float y)  // Check if point is inside (type method)
-bool intersects(const Rect &)  // Check intersection (type method)
+bool intersects(const Rect & other)  // Check intersection (type method)
 ```
 
 ### Scene Graph
 
 ```cpp
  Node()  // Create a base scene node (C++ only - uses shared_ptr)
-void addChild(Node::Ptr, bool)  // Add a child node (C++ only)
+void addChild(Node::Ptr child, bool keepGlobalPosition = false)  // Add a child node (C++ only)
 void moveToFront()  // Move this node to the end of its parent's child list — drawn last, on top of siblings. No-op if no parent or already last (C++ only)
 void moveToBack()  // Move this node to the beginning of its parent's child list — drawn first, beneath siblings. No-op if no parent or already first (C++ only)
 void destroy()  // Mark node for deferred removal from scene graph (C++ only)
@@ -1594,14 +1589,14 @@ Mat4 Mat4_rotateY(float radians)  // Create Y-axis rotation matrix
 Mat4 Mat4_rotateZ(float radians)  // Create Z-axis rotation matrix
 Mat4 Mat4_scale(float s)  // Create a scaling matrix
 Mat4 Mat4_scale(float sx, float sy, float sz)  // Create a scaling matrix
-Mat4 Mat4_lookAt(const Vec3 &, const Vec3 &, const Vec3 &)  // Create a view matrix
+Mat4 Mat4_lookAt(const Vec3 & eye, const Vec3 & target, const Vec3 & up)  // Create a view matrix
 Mat4 Mat4_ortho(float left, float right, float bottom, float top, float nearPlane, float farPlane)  // Create an orthographic projection matrix
 Mat4 Mat4_perspective(float fovY, float aspect, float nearPlane, float farPlane)  // Create a perspective projection matrix
 Quaternion Quaternion_identity()  // Create an identity quaternion
-Quaternion Quaternion_fromAxisAngle(const Vec3 &, float)  // Create quaternion from axis-angle
+Quaternion Quaternion_fromAxisAngle(const Vec3 & axis, float radians)  // Create quaternion from axis-angle
 Quaternion Quaternion_fromEuler(float pitch, float yaw, float roll)  // Create quaternion from Euler angles
 Quaternion Quaternion_fromEuler(const Vec3& euler)  // Create quaternion from Euler angles
-Quaternion Quaternion_slerp(const Quaternion &, const Quaternion &, float)  // Spherical linear interpolation
+Quaternion Quaternion_slerp(const Quaternion & a, const Quaternion & b, float t)  // Spherical linear interpolation
 ```
 
 ### Graphics - Advanced
@@ -1623,7 +1618,7 @@ Mesh createCapsule(float radius, float cylinderHeight, int res = 16)  // Create 
 
 ```cpp
  Texture()  // Create a texture
-bool load(const std::filesystem::path &, bool)  // Load image from file
+bool load(const std::filesystem::path & path, bool mipmaps = false)  // Load image from file
 void bind()  // Bind texture
 void unbind()  // Unbind texture
 int getWidth()  // Get width
@@ -1637,7 +1632,7 @@ bool isFloatFormat(TextureFormat fmt)  // Whether a TextureFormat uses floating-
 
 ```cpp
  Fbo()  // Create an FBO
-void allocate(int, int, int, TextureFormat, bool)  // Allocate buffer
+void allocate(int w, int h, int sampleCount = 1, TextureFormat format = TextureFormat::RGBA8, bool mipmaps = false)  // Allocate buffer
 void begin()  // Begin drawing to FBO. No args = preserve previous content. With args = clear with specified color
 void begin(float r, float g, float b, float a = 1.0)  // Begin drawing to FBO. No args = preserve previous content. With args = clear with specified color
 void end()  // End drawing to FBO
@@ -1648,7 +1643,7 @@ Texture& getTexture()  // Get internal texture
 
 ```cpp
  Shader()  // Create a shader (base class, inheritable)
-bool load(const sg_shader_desc* (*descFn)(sg_backend))  // Load from sokol-shdc generated function
+bool load(const sg_shader_desc* (*descFn)(sg_backend) descFn)  // Load from sokol-shdc generated function
 bool isLoaded()  // Check if shader is loaded
 void begin()  // Begin shader (pushes to stack)
 void end()  // End shader (pops from stack)
@@ -1670,18 +1665,18 @@ void setTexture(int slot, sg_view view, sg_sampler sampler)  // Bind texture to 
 
 ```cpp
  Pixels()  // Create pixel buffer
-void allocate(int, int, int, PixelFormat)  // Allocate memory
+void allocate(int width, int height, int channels = 4, PixelFormat format = PixelFormat::U8)  // Allocate memory
 uint8_t* getData()  // Get raw data pointer
 Color getColor(int x, int y)  // Get color at pixel
 void setColor(int x, int y, const Color& c)  // Set color at pixel
-bool save(const std::filesystem::path &)  // Save to file
+bool save(const std::filesystem::path & path)  // Save to file
 ```
 
 ### Types - Mesh
 
 ```cpp
  Mesh()  // Create a new Mesh (constructor)
-Mesh& setMode(PrimitiveMode)  // Set primitive mode (MESH_TRIANGLES, etc.)
+Mesh& setMode(PrimitiveMode mode)  // Set primitive mode (MESH_TRIANGLES, etc.)
 Mesh& addVertex(float x, float y, float z)  // Add a vertex
 Mesh& addVertex(const Vec3& v)  // Add a vertex
 Mesh& addColor(float r, float g, float b, float a)  // Add a color for the vertex
@@ -1712,15 +1707,15 @@ void close()  // Close the shape
 ```cpp
 StrokeMesh& setWidth(float width)  // Set stroke width (method chaining)
 StrokeMesh& setColor(const Color &color)  // Set stroke color (method chaining)
-StrokeMesh& setCapType(StrokeMesh::CapType)  // Set cap type: Butt, Round, Square (method chaining)
-StrokeMesh& setJoinType(StrokeMesh::JoinType)  // Set join type: Miter, Round, Bevel (method chaining)
+StrokeMesh& setCapType(StrokeMesh::CapType type)  // Set cap type: Butt, Round, Square (method chaining)
+StrokeMesh& setJoinType(StrokeMesh::JoinType type)  // Set join type: Miter, Round, Bevel (method chaining)
 StrokeMesh& setMiterLimit(float limit)  // Set miter limit for sharp corners (method chaining)
 StrokeMesh& addVertex(float x, float y, float z = 0)  // Add a vertex (method chaining)
 StrokeMesh& addVertex(const Vec3& p)  // Add a vertex (method chaining)
 StrokeMesh& addVertex(float x, float y, float z = 0)  // Add a vertex (method chaining)
 StrokeMesh& addVertex(const Vec3& p)  // Add a vertex (method chaining)
 StrokeMesh& addVertexWithWidth(float x, float y, float width)  // Add a vertex with variable width (method chaining)
-StrokeMesh& setShape(const Path &)  // Set shape from Path (method chaining)
+StrokeMesh& setShape(const Path & path)  // Set shape from Path (method chaining)
 StrokeMesh& setClosed(bool closed)  // Set whether the stroke is closed (method chaining)
 StrokeMesh& clear()  // Clear all vertices (method chaining)
 void update()  // Update the internal mesh (required before draw)
@@ -1976,31 +1971,6 @@ bool operator!=(const IVec3&) const  // Inequality comparison
 friend IVec3 operator*(int, const IVec3&)  // Component-wise multiplication
 ```
 
-#### IVec2 — 2D integer vector (x, y)
-
-```cpp
-IVec2()
-IVec2(int x, int y)
-IVec2(int v)
-int x  // X component
-int y  // Y component
-Vec2 toVec2()  // Convert to Vec2 (float)
-```
-
-#### IVec3 — 3D integer vector (x, y, z)
-
-```cpp
-IVec3()
-IVec3(int x, int y, int z)
-IVec3(int v)
-IVec3(IVec2 v, int z)
-int x  // X component
-int y  // Y component
-int z  // Z component
-Vec3 toVec3()  // Convert to Vec3 (float)
-IVec2 xy()  // Get XY components as IVec2
-```
-
 #### Color — RGBA color (0.0-1.0 range)
 
 ```cpp
@@ -2112,8 +2082,8 @@ void crop(int x, int y, int w, int h)  // Crop to (w x h) region starting at (x,
 void mirror(bool horizontal, bool vertical)  // Flip in place. Both true is 180°.
 void mirrorH()  // Mirror horizontally (alias for mirror(true, false))
 void mirrorV()  // Mirror vertically (alias for mirror(false, true))
-bool load(const std::filesystem::path &)  // Load image from file
-bool save(const std::filesystem::path &)  // Save image to file
+bool load(const std::filesystem::path & path)  // Load image from file
+bool save(const std::filesystem::path & path)  // Save image to file
 int getWidth()  // Get width
 int getHeight()  // Get height
 bool isAllocated()  // Check if allocated
@@ -2129,11 +2099,11 @@ void copyTo(uint8_t* dst)  // Copy to external buffer
 #### Image — Image with CPU pixels and GPU texture
 
 ```cpp
-bool load(const std::filesystem::path &, bool)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
-bool load(const std::filesystem::path &, bool)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
+bool load(const std::filesystem::path & path, bool mipmaps = false)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
+bool load(const std::filesystem::path & path, bool mipmaps = false)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
 bool loadFromMemory(const unsigned char * buffer, int len, bool mipmaps = false)  // Load image from memory. `mipmaps=true` builds a mip chain.
 bool loadFromMemory(const uint8_t* buffer, int len, bool mipmaps)  // Load image from memory. `mipmaps=true` builds a mip chain.
-bool save(const std::filesystem::path &)  // Save image to file
+bool save(const std::filesystem::path & path)  // Save image to file
 void allocate(int width, int height, int channels = 4, bool mipmaps = false)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
 void allocate(int width, int height, int channels = 4, bool mipmaps = false)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
 void allocate(int width, int height, int channels, bool mipmaps)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
@@ -2210,7 +2180,7 @@ void draw(float x, float y, float w, float h)  // Draw FBO contents
 int getSampleCount()  // Get MSAA sample count
 bool isActive()  // Check if currently rendering to FBO
 void clear()  // Release FBO resources
-bool save(const std::filesystem::path &)  // Save FBO contents to file
+bool save(const std::filesystem::path & path)  // Save FBO contents to file
 bool copyTo(Image & image)  // Copy FBO contents to Image
 ```
 
@@ -2846,6 +2816,7 @@ int getMaxPolyphony()  // Number of concurrent decoder slots reserved at loadStr
 
 ```cpp
 Event<AudioOutBuffer> audioOut  // Real-time playback callback event. listen() to add a synthesis / processing listener. Fires per audio buffer on the audio thread; keep RT-safe.
+Event<AudioInBuffer> audioIn  // Real-time capture callback event (microphone input). listen() to add an input-processing listener. Fires per audio buffer on the audio thread; keep RT-safe.
 Event<AudioDeviceChangedArgs> audioDeviceChanged  // Fires after every successful init() (initial AND re-init). Args carry the resolved device's real name, isDefaultDevice flag, sampleRate, channels, bufferSize, maxPolyphony. Listener runs on the thread that called init() (main), not the audio thread.
 bool init()  // Initialize the engine with defaults, or with an AudioSettings override. Re-init on a running engine migrates active voices to the new settings. Returns true on success.
 bool init(const AudioSettings& settings)  // Initialize the engine with defaults, or with an AudioSettings override. Re-init on a running engine migrates active voices to the new settings. Returns true on success.
