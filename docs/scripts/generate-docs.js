@@ -1,54 +1,42 @@
 #!/usr/bin/env node
 /**
- * Generate documentation from api-definition.yaml
+ * Generate the WEB reference data from api-definition.yaml.
+ *
+ * NOTE: this generator is being superseded by the reference redesign in
+ * docs/reference/ (structure from the C++ AST + prose from api-reference.toml,
+ * joined into reference-data.json). The FOR_AI index, of-mapping.json and the
+ * oF comparison markdown are now produced by docs/reference/emit-forai.js and
+ * emit-of.js from reference-data.json — they were REMOVED from here so the two
+ * can't fight over the same files. What remains are the two web-player JS files,
+ * pending the website's migration to consume reference-data.json directly.
  *
  * Usage:
- *   node generate-docs.js                  # Generate all outputs
- *   node generate-docs.js --sketch         # Generate TrussSketch-related files only
- *   node generate-docs.js --trussc-api     # Generate TrussC API JS (all APIs + version)
- *   node generate-docs.js --reference      # Inject API index + addon list into FOR_AI_ASSISTANT.md
- *   node generate-docs.js --of-mapping     # Generate oF mapping JSON for website
- *   node generate-docs.js --of-markdown    # Generate oF comparison markdown
+ *   node generate-docs.js                  # both web outputs
+ *   node generate-docs.js --sketch         # trusssketch-api.js only
+ *   node generate-docs.js --trussc-api     # trussc-api.js only
  *
  * Outputs:
- *   --sketch:
- *     - ../trussc.org/generated/trusssketch-api.js
- *   --trussc-api:
- *     - ../trussc.org/generated/trussc-api.js (combined, all languages inline)
- *   --reference:
- *     - ../FOR_AI_ASSISTANT.md (API-INDEX + ADDON-LIST marker sections injected)
- *   --of-mapping:
- *     - ../trussc.org/generated/of-mapping.json
- *   --of-markdown:
- *     - ../TrussC_vs_openFrameworks.md (Section 5)
+ *   --sketch:     ../trussc.org/generated/trusssketch-api.js
+ *   --trussc-api: ../trussc.org/generated/trussc-api.js (all languages inline)
  */
 
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 const { execSync } = require('child_process');
-const { categoryMapping, typeCategoryMapping, ofOnlyEntries } = require('./of-category-mapping.js');
 const { buildReverseIndex } = require('./scan-examples.js');
 
 // Paths
 const API_YAML = path.join(__dirname, '../api-definition.yaml');
 const SKETCH_API_JS = path.join(__dirname, '../../../trussc.org/generated/trusssketch-api.js');
 const TRUSSC_API_JS = path.join(__dirname, '../../../trussc.org/generated/trussc-api.js');
-const GENERATED_DIR = path.join(__dirname, '../../../trussc.org/generated');
-const FOR_AI_MD = path.join(__dirname, '../FOR_AI_ASSISTANT.md');
-const ADDONS_REPO = path.join(__dirname, '../../../trussc-addons');
 const EXAMPLES_JSON = path.join(__dirname, '../../../trussc.org/examples/examples.json');
-const OF_MAPPING_JSON = path.join(__dirname, '../../../trussc.org/generated/of-mapping.json');
-const OF_COMPARISON_MD = path.join(__dirname, '../TrussC_vs_openFrameworks.md');
 
 // Parse command line args
 const args = process.argv.slice(2);
 const generateAll = args.length === 0;
 const generateSketch = generateAll || args.includes('--sketch');
 const generateTrussCApi = generateAll || args.includes('--trussc-api');
-const generateReference = generateAll || args.includes('--reference');
-const generateOfMapping = generateAll || args.includes('--of-mapping');
-const generateOfMarkdown = generateAll || args.includes('--of-markdown');
 
 // Load YAML
 function loadAPI() {
@@ -516,354 +504,6 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // Generate oF mapping JSON for website
-function generateOfMappingJson(api) {
-    // Group functions by display category
-    const categoryGroups = {};
-
-    for (const cat of api.categories) {
-        const mapping = categoryMapping[cat.id];
-        if (!mapping) continue;
-
-        const displayId = mapping.id;
-        if (!categoryGroups[displayId]) {
-            categoryGroups[displayId] = {
-                id: displayId,
-                name: mapping.name,
-                name_ja: mapping.name_ja,
-                name_ko: mapping.name_ko || '',
-                order: mapping.order,
-                mappings: []
-            };
-        }
-
-        // Add functions that have of_equivalent
-        for (const fn of cat.functions) {
-            if (fn.of_equivalent) {
-                // Use of_signature_index to pick which overload to display (default: 0)
-                const sigIdx = fn.of_signature_index || 0;
-                const sig = fn.signatures[sigIdx] || fn.signatures[0];
-                const params = simpleParams(sig.params);
-                categoryGroups[displayId].mappings.push({
-                    of: fn.of_equivalent,
-                    tc: fn.name + (params ? `(${params})` : '()'),
-                    notes: fn.of_notes || '',
-                    notes_ja: fn.of_notes_ja || fn.of_notes || '',
-                    notes_ko: fn.of_notes_ko || ''
-                });
-            }
-        }
-    }
-
-    // Add ofOnlyEntries (categories/functions not yet in YAML)
-    for (const entry of ofOnlyEntries) {
-        if (!categoryGroups[entry.category]) {
-            categoryGroups[entry.category] = {
-                id: entry.category,
-                name: entry.name,
-                name_ja: entry.name_ja,
-                name_ko: entry.name_ko || '',
-                order: entry.order,
-                mappings: []
-            };
-        }
-        for (const e of entry.entries) {
-            categoryGroups[entry.category].mappings.push({
-                of: e.of,
-                tc: e.tc,
-                notes: e.notes || '',
-                notes_ja: e.notes_ja || e.notes || '',
-                notes_ko: e.notes_ko || ''
-            });
-        }
-    }
-
-    // Convert to sorted array
-    const functions = Object.values(categoryGroups)
-        .filter(cat => cat.mappings.length > 0)
-        .sort((a, b) => a.order - b.order);
-
-    // Group types by of_type_category
-    const typeGroups = {};
-
-    if (api.types) {
-        for (const type of api.types) {
-            if (!type.of_type_category) continue;
-
-            const catDef = typeCategoryMapping[type.of_type_category];
-            if (!catDef) continue;
-
-            const catId = catDef.id;
-            if (!typeGroups[catId]) {
-                typeGroups[catId] = {
-                    id: catDef.id,
-                    name: catDef.name,
-                    name_ja: catDef.name_ja,
-                    name_ko: catDef.name_ko || '',
-                    order: catDef.order,
-                    mappings: []
-                };
-            }
-
-            typeGroups[catId].mappings.push({
-                of: type.of_equivalent || '-',
-                tc: type.name,
-                notes: type.description || '',
-                notes_ja: type.description_ja || type.description || '',
-                notes_ko: type.description_ko || ''
-            });
-        }
-    }
-
-    const types = Object.values(typeGroups)
-        .sort((a, b) => a.order - b.order);
-
-    return JSON.stringify({ functions, types }, null, 2);
-}
-
-// Generate oF comparison markdown (Section 5)
-function generateOfMarkdownSection(api) {
-    // Same grouping logic as JSON
-    const categoryGroups = {};
-
-    for (const cat of api.categories) {
-        const mapping = categoryMapping[cat.id];
-        if (!mapping) continue;
-
-        const displayId = mapping.id;
-        if (!categoryGroups[displayId]) {
-            categoryGroups[displayId] = {
-                id: displayId,
-                name: mapping.name,
-                order: mapping.order,
-                mappings: []
-            };
-        }
-
-        for (const fn of cat.functions) {
-            if (fn.of_equivalent) {
-                const params = simpleParams(fn.signatures[0] && fn.signatures[0].params);
-                categoryGroups[displayId].mappings.push({
-                    of: fn.of_equivalent,
-                    tc: fn.name + (params ? `(${params})` : '()'),
-                    notes: fn.of_notes || ''
-                });
-            }
-        }
-    }
-
-    // Add ofOnlyEntries
-    for (const entry of ofOnlyEntries) {
-        if (!categoryGroups[entry.category]) {
-            categoryGroups[entry.category] = {
-                id: entry.category,
-                name: entry.name,
-                order: entry.order,
-                mappings: []
-            };
-        }
-        for (const e of entry.entries) {
-            categoryGroups[entry.category].mappings.push({
-                of: e.of,
-                tc: e.tc,
-                notes: e.notes || ''
-            });
-        }
-    }
-
-    // Convert to sorted array
-    const categories = Object.values(categoryGroups)
-        .filter(cat => cat.mappings.length > 0)
-        .sort((a, b) => a.order - b.order);
-
-    // Generate markdown
-    let md = '';
-    for (const cat of categories) {
-        md += `### **${cat.name}**\n\n`;
-        md += '| openFrameworks | TrussC | Notes |\n';
-        md += '|:---|:---|:---|\n';
-        for (const m of cat.mappings) {
-            md += `| \`${m.of}\` | \`${m.tc}\` | ${m.notes} |\n`;
-        }
-        md += '\n';
-    }
-
-    return md;
-}
-
-// Update TrussC_vs_openFrameworks.md with auto-generated section
-function updateOfComparisonMarkdown(api) {
-    const START_MARKER = '<!-- AUTO-GENERATED-START -->';
-    const END_MARKER = '<!-- AUTO-GENERATED-END -->';
-
-    let content = fs.readFileSync(OF_COMPARISON_MD, 'utf8');
-    const generatedSection = generateOfMarkdownSection(api);
-
-    const startIdx = content.indexOf(START_MARKER);
-    const endIdx = content.indexOf(END_MARKER);
-
-    if (startIdx === -1 || endIdx === -1) {
-        console.log('  Warning: Markers not found in TrussC_vs_openFrameworks.md');
-        console.log('  Add <!-- AUTO-GENERATED-START --> and <!-- AUTO-GENERATED-END --> markers');
-        return null;
-    }
-
-    const newContent = content.substring(0, startIdx + START_MARKER.length) +
-        '\n\n' + generatedSection +
-        content.substring(endIdx);
-
-    return newContent;
-}
-
-// --- FOR_AI_ASSISTANT.md injection -----------------------------------------
-
-// True if a signature/return string uses AngelScript-only syntax (script factories, not C++).
-function isScriptOnly(s) {
-    return /@|&in\b|&out\b/.test(s || '');
-}
-
-// Build the curated C++ API index (one line per signature) for FOR_AI_ASSISTANT.md.
-function buildApiIndexSection(api) {
-    let md = '_Auto-generated C++ API index from `api-definition.yaml`. Core symbols only — addons are listed in the next section._\n';
-    md += '_Curated subset: some low-level / internal APIs may be omitted. For the interactive reference see https://trussc.org/reference/._\n\n';
-
-    for (const cat of api.categories) {
-        if (cat.index === false) continue;
-        const lines = [];
-        for (const fn of cat.functions) {
-            if (fn.index === false) continue;
-            const ret = (fn.return !== undefined && fn.return !== null) ? fn.return : 'void';
-            if (isScriptOnly(ret)) continue;
-            for (const sig of fn.signatures) {
-                const params = sig.params || '';
-                if (isScriptOnly(params)) continue;
-                const desc = fn.description ? `  // ${fn.description}` : '';
-                lines.push(`${ret} ${fn.name}(${params})${desc}`);
-            }
-        }
-        if (!lines.length) continue;
-        md += `### ${cat.name}\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\`\n\n`;
-    }
-
-    if (api.types) {
-        const typeBlocks = [];
-        for (const type of api.types) {
-            if (type.index === false) continue;
-            const lines = [];
-            const addMethod = (m) => {
-                const ret = m.return || 'void';
-                if (isScriptOnly(ret)) return;
-                for (const s of m.signatures || []) {
-                    const p = s.params || '';
-                    if (isScriptOnly(p)) continue;
-                    lines.push(`${ret} ${m.name}(${p})${m.description ? `  // ${m.description}` : ''}`);
-                }
-            };
-            if (type.constructor && type.constructor.signatures) {
-                for (const s of type.constructor.signatures) {
-                    const p = s.params || '';
-                    if (isScriptOnly(p)) continue;
-                    lines.push(`${type.name}(${p})`);
-                }
-            }
-            if (type.properties) {
-                for (const p of type.properties) {
-                    if (isScriptOnly(p.type)) continue;
-                    lines.push(`${p.type || ''} ${p.name}${p.description ? `  // ${p.description}` : ''}`.trim());
-                }
-            }
-            if (type.methods) type.methods.forEach(addMethod);
-            if (type.static_methods) type.static_methods.forEach(addMethod);
-            for (const o of (type.operators || [])) lines.push(`${opCpp(o, type.name)}${o.description ? `  // ${o.description}` : ''}`);
-            for (const o of (type.free_operators || [])) lines.push(`friend ${opCpp(o, type.name)}${o.description ? `  // ${o.description}` : ''}`);
-            if (!lines.length) continue;
-            typeBlocks.push(`#### ${type.name}${type.description ? ` — ${type.description}` : ''}\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\``);
-        }
-        if (typeBlocks.length) md += `### Types\n\n${typeBlocks.join('\n\n')}\n\n`;
-    }
-
-    if (api.enums && api.enums.length) {
-        const blocks = api.enums.filter(e => e.index !== false).map(e => {
-            const vals = (e.values || []).map(v => {
-                const val = (v.value !== undefined && v.value !== null) ? ` = ${v.value}` : '';
-                return `  ${v.name}${val},${v.description ? `  // ${v.description}` : ''}`;
-            }).join('\n');
-            const ops = [...(e.operators || []), ...(e.free_operators || [])]
-                .map(o => `\nfriend ${opCpp(o, e.name)};${o.description ? `  // ${o.description}` : ''}`).join('');
-            return `enum class ${e.name} {${e.description ? `  // ${e.description}` : ''}\n${vals}\n}${ops}`;
-        });
-        if (blocks.length) md += `### Enums\n\n\`\`\`cpp\n${blocks.join('\n\n')}\n\`\`\`\n\n`;
-    }
-
-    if (api.macros && api.macros.length) {
-        const lines = api.macros.filter(m => m.index !== false)
-            .map(m => `${m.signature || m.name}${m.description ? `  // ${m.description}` : ''}`);
-        if (lines.length) md += `### Macros\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\`\n\n`;
-    }
-
-    if (api.constants) {
-        const lines = api.constants
-            .filter(c => c.index !== false)
-            .map(c => `${c.name} = ${c.value}${c.description ? `  // ${c.description}` : ''}`);
-        if (lines.length) md += `### Constants\n\n\`\`\`cpp\n${lines.join('\n')}\n\`\`\`\n`;
-    }
-
-    return md.trimEnd();
-}
-
-// Build the addon list from the TrussC-org/trussc-addons gh-pages registry.
-function buildAddonListSection() {
-    let raw;
-    try {
-        raw = execSync(`git -C "${ADDONS_REPO}" show origin/gh-pages:registry.json`, { encoding: 'utf8' });
-    } catch (e) {
-        console.log('  Warning: could not read addon registry (origin/gh-pages:registry.json): ' + e.message);
-        return null;
-    }
-    let reg;
-    try { reg = JSON.parse(raw); } catch (e) {
-        console.log('  Warning: addon registry.json parse failed: ' + e.message);
-        return null;
-    }
-    const addons = (reg.addons || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-    const fmt = a => `- **${a.name}** — ${a.description || ''}${a.category ? ` [${a.category}]` : ''}`;
-    const bundled = addons.filter(a => a.bundled);
-    const community = addons.filter(a => !a.bundled);
-
-    let md = '_Auto-generated from the TrussC-org/trussc-addons registry. Add one with `trusscli addon add <name>`._\n\n';
-    if (bundled.length) md += `**Bundled (ship with TrussC):**\n\n${bundled.map(fmt).join('\n')}\n\n`;
-    if (community.length) md += `**Community:**\n\n${community.map(fmt).join('\n')}\n`;
-    return md.trimEnd();
-}
-
-// Splice content between a marker pair; returns updated string or null if markers missing.
-function spliceMarkers(content, startMarker, endMarker, section) {
-    const s = content.indexOf(startMarker);
-    const e = content.indexOf(endMarker);
-    if (s === -1 || e === -1) {
-        console.log(`  Warning: markers ${startMarker} / ${endMarker} not found in FOR_AI_ASSISTANT.md`);
-        return null;
-    }
-    return content.substring(0, s + startMarker.length) + '\n\n' + section + '\n\n' + content.substring(e);
-}
-
-// Inject the API index + addon list into FOR_AI_ASSISTANT.md marker sections.
-function updateForAiAssistant(api) {
-    let content = fs.readFileSync(FOR_AI_MD, 'utf8');
-    let changed = false;
-
-    const apiSection = buildApiIndexSection(api);
-    const afterApi = spliceMarkers(content, '<!-- API-INDEX-START -->', '<!-- API-INDEX-END -->', apiSection);
-    if (afterApi) { content = afterApi; changed = true; }
-
-    const addonSection = buildAddonListSection();
-    if (addonSection) {
-        const afterAddons = spliceMarkers(content, '<!-- ADDON-LIST-START -->', '<!-- ADDON-LIST-END -->', addonSection);
-        if (afterAddons) { content = afterAddons; changed = true; }
-    }
-
-    return changed ? content : null;
-}
-
 // Main
 function main() {
     console.log('Loading api-definition.yaml...');
@@ -877,18 +517,6 @@ function main() {
         console.log(`  Written: ${SKETCH_API_JS}`);
     }
 
-    // Inject the curated C++ API index + addon list into FOR_AI_ASSISTANT.md
-    if (generateReference) {
-        console.log('\nInjecting API index + addon list into FOR_AI_ASSISTANT.md...');
-        const updated = updateForAiAssistant(api);
-        if (updated) {
-            fs.writeFileSync(FOR_AI_MD, updated);
-            console.log(`  Updated: ${FOR_AI_MD}`);
-        } else {
-            console.log('  Skipped FOR_AI_ASSISTANT.md (no markers present yet).');
-        }
-    }
-
     // Generate TrussC API JS (single combined file, all languages inline).
     // The reference page selects desc/desc_ja/desc_ko by REF_LANG at render time,
     // so one cached file serves en/ja/ko (no per-locale re-download on switch).
@@ -900,23 +528,6 @@ function main() {
         console.log(`  Written: ${TRUSSC_API_JS}`);
     }
 
-    // Generate oF mapping JSON
-    if (generateOfMapping) {
-        console.log('\nGenerating of-mapping.json...');
-        const json = generateOfMappingJson(api);
-        fs.writeFileSync(OF_MAPPING_JSON, json);
-        console.log(`  Written: ${OF_MAPPING_JSON}`);
-    }
-
-    // Update oF comparison markdown
-    if (generateOfMarkdown) {
-        console.log('\nUpdating TrussC_vs_openFrameworks.md...');
-        const updatedMd = updateOfComparisonMarkdown(api);
-        if (updatedMd) {
-            fs.writeFileSync(OF_COMPARISON_MD, updatedMd);
-            console.log(`  Updated: ${OF_COMPARISON_MD}`);
-        }
-    }
 
     console.log('\nDone!');
 }

@@ -45,6 +45,7 @@ for (const id in structure) {
         members: s.members,                                // enum values (enums only)
         deprecated: s.deprecated,                          // from C++ [[deprecated]]
         category: p.category, keywords: p.keywords, of: p.of,
+        of_category: p.of_category, of_notes: p.of_notes,   // oF mapping prose
         description: p.description,                          // {en,ja,ko}
         details: p.details,
         documented: !!(p.description && p.description.en),

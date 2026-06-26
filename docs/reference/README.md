@@ -34,6 +34,18 @@ api-reference.toml  ──────────►  prose      (symbol-id →
 | `check.js`     | CI gate: `dup` (TOML parse), `orphan` (toml key ∉ AST), `undocumented` (AST ∉ toml; soft until `--strict`). |
 | `generate.js`  | JOIN structure + prose by id → `reference-data.json` + `API_INDEX.md`. |
 
+### Emitters (downstream — consume `reference-data.json`)
+
+| script          | output |
+|-----------------|--------|
+| `emit-forai.js` | injects the C++ API index into `../FOR_AI_ASSISTANT.md` (documented-only, overloads collapsed, enum values, category-grouped). |
+| `emit-of.js`    | the openFrameworks↔TrussC migration guide → `trussc.org/generated/of-mapping.json` + `../TrussC_vs_openFrameworks.md` §5. Grouping/notes from `of-mapping-config.js`. |
+
+The legacy `scripts/generate-docs.js` is being retired: FOR_AI + oF generation
+moved to the emitters above; it now only produces the two web-player JS files
+(`trussc-api.js`, `trusssketch-api.js`), pending the website consuming
+`reference-data.json` directly.
+
 `api-reference.toml` is the **only** file humans edit. `reference-data.json` is
 **auto-generated — never edit it by hand** (gitignored). Regenerate:
 

@@ -58,6 +58,12 @@ function prose(e) {
     if (Object.keys(d).length) p.description = d;
     if (e.details) p.details = e.details;
     if (e.__category) p.category = e.__category;    // legacy yaml category id (free fns)
+    const n = {};                                   // oF migration notes (per oF mapping)
+    if (e.of_notes) n.en = e.of_notes;
+    if (e.of_notes_ja) n.ja = e.of_notes_ja;
+    if (e.of_notes_ko) n.ko = e.of_notes_ko;
+    if (Object.keys(n).length) p.of_notes = n;
+    if (e.of_type_category) p.of_category = e.of_type_category;   // oF mapping type group
     return Object.keys(p).length ? p : null;
 }
 
@@ -67,7 +73,12 @@ const reconciled = [];
 const dupKeys = [];
 function place(id, p, srcLabel) {
     if (!p) return;
-    if (out.has(id)) { dupKeys.push(`${id}  (also from ${srcLabel})`); return; }
+    if (out.has(id)) {                              // dual representation (cat fn + types[] entry)
+        const ex = out.get(id);                     // keep first on conflict, fill gaps from the other
+        for (const k of Object.keys(p)) if (ex[k] === undefined) ex[k] = p[k];
+        dupKeys.push(`${id}  (merged from ${srcLabel})`);
+        return;
+    }
     out.set(id, p);
 }
 function consider(cand, bareName, e, srcLabel) {
@@ -107,6 +118,8 @@ for (const id of [...out.keys()].sort()) {
     if (p.of) toml += `of = ${tarr(p.of)}\n`;
     if (p.description) for (const lang of ['en', 'ja', 'ko']) if (p.description[lang]) toml += `description.${lang} = ${tstr(p.description[lang])}\n`;
     if (p.details) toml += `details = ${tstr(p.details)}\n`;
+    if (p.of_category) toml += `of_category = ${tstr(p.of_category)}\n`;
+    if (p.of_notes) for (const lang of ['en', 'ja', 'ko']) if (p.of_notes[lang]) toml += `of_notes.${lang} = ${tstr(p.of_notes[lang])}\n`;
 }
 
 // --- verify it round-trips through a strict TOML parser (dup-key guard) ---
