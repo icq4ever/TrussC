@@ -223,14 +223,14 @@ jobs:
              ./examples/build_all.py --web-only --test-only --verbose
           fi
 
-  # Verify docs/api-definition.yaml (the documented-API source of truth) against
-  # the real C++ headers. signature-probe (yaml -> C++) pointer-casts every
-  # documented symbol to its documented signature and -fsyntax-only compiles it,
-  # so the compiler checks exact params / return / const-ness; --strict fails the
-  # job on any mismatch. macOS runner: clang + Metal SDK match the probe's default
-  # compile flags. Fast (one syntax-only TU; no full build). coverage-audit
-  # (C++ -> yaml) runs report-only — its residual is a triage list, not a gate.
-  api-contract:
+  # Verify the API reference (docs/reference/) against the real C++ headers.
+  # The structure is DERIVED from the clang AST, so signatures can't drift — the
+  # old signature-probe is obsolete. check.js instead guards the prose sidecar:
+  #   dup    a symbol documented twice            (TOML parse; hard)
+  #   orphan a sidecar key with no such symbol    (renamed/removed; hard)
+  #   undocumented a public symbol with no prose  (soft report, not a gate yet)
+  # structure.js runs the same clang AST dump the probe used (macOS: clang + SDK).
+  reference-check:
     timeout-minutes: 20
     runs-on: macos-latest
     steps:
@@ -243,8 +243,5 @@ jobs:
       - name: Install doc tooling deps
         run: cd docs && npm ci
 
-      - name: signature-probe (yaml -> C++, strict)
-        run: node docs/tests/signature-probe.js --strict
-
-      - name: coverage-audit (C++ -> yaml, report-only)
-        run: node docs/tests/coverage-audit.js || true
+      - name: reference check (dup / orphan gate; undocumented soft)
+        run: node docs/reference/check.js

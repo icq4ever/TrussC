@@ -1,11 +1,11 @@
-# Coverage wishlist — interop accessors that deserve a wrapped public API
+# Reference wishlist — interop accessors that deserve a wrapped public API
 
-These symbols are currently **excluded** from the curated reference because they
-return raw interop handles (sokol `sg_*`) — see `coverage.excluded_return_prefixes`
-in `api-definition.yaml`. The exclusion keeps `sg_*` types out of the user-facing
-docs, but some of these are genuinely useful and *should* be public once given a
-properly-wrapped (non-sokol) form. Track candidates here; add the wrapped method
-to core, then document it normally (the raw `sg_*` accessor stays excluded).
+These public methods return raw interop handles (sokol `sg_*`). They are real
+symbols, so the reference now lists them — but a raw `sg_*` return is not a
+user-facing API. Some are genuinely useful and *should* gain a properly-wrapped
+(non-sokol) form. Track candidates here; add the wrapped method to core and
+document it normally. The raw `sg_*` accessor can then be marked `TC_INTERNAL`
+(see `tc/utils/tcAnnotations.h`) to drop it from the reference.
 
 ## Candidates for a wrapped public API
 
