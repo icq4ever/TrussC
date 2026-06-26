@@ -11,9 +11,10 @@
 #   trussc.org/generated/of-mapping.json     oF -> TrussC mapping
 #   docs/FOR_AI_ASSISTANT.md                 C++ API index (injected section)
 #   docs/TrussC_vs_openFrameworks.md         oF comparison (injected section)
-#   docs/scripts/trusssketch-knowledge.md    Gemini RAG knowledge
-# Also consumed by: docs/tests/signature-probe.js + coverage-audit.js (CI), and
-# the tcxLua binding generator.
+# Also consumed by: docs/tests/signature-probe.js + coverage-audit.js (CI).
+# NOTE: being superseded by the reference redesign (docs/reference/). The
+# canonical artifact is now docs/reference/reference-data.json (structure from
+# the C++ AST + prose from api-reference.toml). See docs/reference/README.md.
 #
 # -----------------------------------------------------------------------------
 # TOP-LEVEL STRUCTURE

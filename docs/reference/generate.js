@@ -42,6 +42,7 @@ for (const id in structure) {
     joined[id] = {
         id, kind: s.kind, owner: s.owner, name: s.name, ns: s.ns,
         signatures: s.signatures, static: s.static || undefined, tparams: s.tparams,
+        members: s.members,                                // enum values (enums only)
         deprecated: s.deprecated,                          // from C++ [[deprecated]]
         category: p.category, keywords: p.keywords, of: p.of,
         description: p.description,                          // {en,ja,ko}

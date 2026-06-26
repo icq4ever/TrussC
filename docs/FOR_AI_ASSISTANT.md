@@ -748,627 +748,470 @@ whether a function / class exists before answering "does TrussC have X".
 
 <!-- API-INDEX-START -->
 
-_Auto-generated C++ API index from `api-definition.yaml`. Core symbols only — addons are listed in the next section._
-_Curated subset: some low-level / internal APIs may be omitted. For the interactive reference see https://trussc.org/reference/._
+_Auto-generated C++ API index from `reference-data.json` (structure from the C++ AST, prose from `api-reference.toml`). Documented symbols only — undocumented APIs are findable via the interactive reference: https://trussc.org/reference/. Overloads collapsed; `[+N]` = N more overloads._
 
 ### Lifecycle
 
 ```cpp
-void setup()  // Called once at start
-void update()  // Called every frame before draw
-void draw()  // Called every frame after update
-void cleanup()  // Called once before exit (optional user callback for cleanup)
-int runApp(const WindowSettings& settings = WindowSettings())  // Start the application main loop. Called from main()
-```
-
-### Events
-
-```cpp
-void mousePressed(const MouseEventArgs& e)  // Mouse button pressed
-void mousePressed(Vec2 pos, int button)  // Mouse button pressed
-void mouseReleased(Vec2 pos, int button)  // Mouse button released
-void mouseMoved(Vec2 pos)  // Mouse moved
-void mouseDragged(Vec2 pos, int button)  // Mouse dragged
-void keyPressed(int key)  // Key pressed. Use KEY_* constants for special keys, or uppercase char literals for printable keys (e.g. key == 'A', key == '1')
-void keyReleased(int key)  // Key released
-void windowResized(int width, int height)  // Window resized
-void mouseScrolled(const ScrollEventArgs& e)  // Mouse wheel / trackpad scrolled
-void mouseScrolled(Vec2 delta)  // Mouse wheel / trackpad scrolled
-void touchPressed(const TouchEventArgs& touch)  // Touch began (Android/iOS, multi-touch)
-void touchMoved(const TouchEventArgs& touch)  // Touch moved (Android/iOS, multi-touch)
-void touchReleased(const TouchEventArgs& touch)  // Touch ended or was cancelled (check touch.cancelled)
-void filesDropped(const std::vector<std::string>& files)  // Files were dropped onto the window
-void audioOut(AudioOutBuffer& buf)  // Fill the audio output buffer (override to synthesize audio)
-void setSize(float w, float h)  // Set the app's size
-void requestExit()  // Request the app to exit
-bool isExitRequested()  // Whether an exit has been requested
-void exit()  // App exit callback (override for cleanup before shutdown)
+int runApp(const WindowSettings & settings = …)  // Start the application main loop. Called from main()
 ```
 
 ### Graphics - Color
 
 ```cpp
-void clear()  // Clear screen. No args = transparent black (0,0,0,0)
-void clear(float gray, float a = 1.0f)  // Clear screen. No args = transparent black (0,0,0,0)
-void clear(float r, float g, float b, float a = 1.0f)  // Clear screen. No args = transparent black (0,0,0,0)
-void setColor(float gray, float a = 1.0f)  // Set drawing color (0.0-1.0)
-void setColor(float r, float g, float b, float a = 1.0f)  // Set drawing color (0.0-1.0)
-void setColor(float r, float g, float b, float a)  // Set drawing color (0.0-1.0)
-void setColorHSB(float h, float s, float b, float a = 1.0f)  // Set color from HSB (H: 0-1)
-void setColorOKLCH(float L, float C, float H, float alpha = 1.0f)  // Set color from OKLCH
-void setColorOKLab(float L, float a_lab, float b_lab, float alpha = 1.0f)  // Set color from OKLab
-float srgbToLinear(float x)  // Convert a single sRGB channel value to linear RGB
+void clear(float r, float g, float b, float a = …) [+3]  // Clear screen. No args = transparent black (0,0,0,0)
 float linearToSrgb(float x)  // Convert a single linear RGB channel value to sRGB
+void setColor(float r, float g, float b, float a = …) [+2]  // Set drawing color (0.0-1.0)
+void setColorHSB(float h, float s, float b, float a = …)  // Set color from HSB (H: 0-1)
+void setColorOKLab(float L, float a_lab, float b_lab, float alpha = …)  // Set color from OKLab
+void setColorOKLCH(float L, float C, float H, float alpha = …)  // Set color from OKLCH
+float srgbToLinear(float x)  // Convert a single sRGB channel value to linear RGB
 ```
 
 ### Graphics - Shapes
 
 ```cpp
-void drawRect(float x, float y, float w, float h)  // Draw rectangle
-void drawRect(Vec3 pos, float w, float h)  // Draw rectangle
-void drawRect(Vec3 pos, Vec2 size)  // Draw rectangle
-void drawRectRounded(float x, float y, float w, float h, float radius)  // Draw rounded rectangle (circular arc corners)
-void drawRectRounded(Vec3 pos, Vec2 size, float radius)  // Draw rounded rectangle (circular arc corners)
-void drawRectSquircle(float x, float y, float w, float h, float radius)  // Draw squircle rectangle (curvature-continuous corners, iOS-style)
-void drawRectSquircle(Vec3 pos, Vec2 size, float radius)  // Draw squircle rectangle (curvature-continuous corners, iOS-style)
-void drawCircle(float x, float y, float radius)  // Draw circle
-void drawCircle(Vec3 center, float radius)  // Draw circle
-void drawArc(float x, float y, float radius, float angleBegin, float angleEnd)  // Draw arc (partial circle, angles in radians)
-void drawArc(Vec3 center, float radius, float angleBegin, float angleEnd)  // Draw arc (partial circle, angles in radians)
-void drawEllipse(float x, float y, float w, float h)  // Draw ellipse
-void drawEllipse(Vec3 center, float rx, float ry)  // Draw ellipse
-void drawEllipse(Vec3 center, Vec2 radii)  // Draw ellipse
-void drawPoint(float x, float y)  // Draw a single point
-void drawPoint(Vec3 pos)  // Draw a single point
-void drawLine(float x1, float y1, float x2, float y2)  // Draw line (2D or 3D)
-void drawLine(float x1, float y1, float z1, float x2, float y2, float z2)  // Draw line (2D or 3D)
-void drawLine(Vec3 p1, Vec3 p2)  // Draw line (2D or 3D)
-void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3)  // Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)
-void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2)  // Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)
-void drawBezier(const vector<Vec3>& controlPoints)  // Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)
-void drawCurve(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3)  // Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)
-void drawCurve(const vector<Vec3>& points)  // Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)
-void drawCurve(const vector<Vec3>& points, bool closed)  // Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)
-void drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3)  // Draw triangle
-void drawTriangle(Vec3 p1, Vec3 p2, Vec3 p3)  // Draw triangle
-void drawBox(float size)  // Draw 3D box (respects fill/noFill)
-void drawBox(float w, float h, float d)  // Draw 3D box (respects fill/noFill)
-void drawBox(float x, float y, float z, float size)  // Draw 3D box (respects fill/noFill)
-void drawBox(float x, float y, float z, float w, float h, float d)  // Draw 3D box (respects fill/noFill)
-void drawBox(Vec3 pos, float size)  // Draw 3D box (respects fill/noFill)
-void drawBox(Vec3 pos, float w, float h, float d)  // Draw 3D box (respects fill/noFill)
-void drawSphere(float radius, int resolution = 16)  // Draw 3D sphere (respects fill/noFill)
-void drawSphere(float x, float y, float z, float radius, int resolution = 16)  // Draw 3D sphere (respects fill/noFill)
-void drawSphere(Vec3 pos, float radius, int resolution = 16)  // Draw 3D sphere (respects fill/noFill)
-void drawCone(float radius, float height, int resolution = 16)  // Draw 3D cone (respects fill/noFill)
-void drawCone(float x, float y, float z, float radius, float height, int resolution = 16)  // Draw 3D cone (respects fill/noFill)
-void drawCone(Vec3 pos, float radius, float height, int resolution = 16)  // Draw 3D cone (respects fill/noFill)
-void beginShape()  // Begin drawing a shape
-void vertex(float x, float y)  // Add a vertex
-void vertex(float x, float y, float z)  // Add a vertex
-void vertex(const Vec2& v)  // Add a vertex
-void vertex(const Vec3& v)  // Add a vertex
-void endShape(bool close = false)  // End drawing a shape
-void appendArc(float cx, float cy, float radius, float angleBegin, float angleEnd)  // Append arc vertices to the current shape (use between beginShape/endShape)
-void appendArc(const Vec2& center, float radius, float angleBegin, float angleEnd)  // Append arc vertices to the current shape (use between beginShape/endShape)
-void appendCurve(const vector<Vec3>& points)  // Append Catmull-Rom curve vertices to the current shape (use between beginShape/endShape; needs >=4 points, closed=true wraps around)
-void appendCurve(const vector<Vec3>& points, bool closed)  // Append Catmull-Rom curve vertices to the current shape (use between beginShape/endShape; needs >=4 points, closed=true wraps around)
-void beginStroke()  // Begin drawing a stroke (uses StrokeMesh internally)
-void endStroke(bool close = false)  // End drawing a stroke
+void appendArc(float cx, float cy, float radius, float angleBegin, float angleEnd) [+1]  // Append arc vertices to the current shape (use between beginShape/endShape)
+void appendCurve(const std::vector<Vec3> & points) [+1]  // Append Catmull-Rom curve vertices to the current shape (use between beginShape/endShape; needs >=4 points, closed=true wraps around)
 void beginLines()  // Begin batch line drawing. Add vertex pairs with vertex(), then call endLines(). Each pair of vertices draws one independent line segment. Use setColor() between vertices for per-line colors.
+void beginShape()  // Begin drawing a shape
+void beginStroke()  // Begin drawing a stroke (uses StrokeMesh internally)
+std::array<uint8_t, 26> bitmapfont::compile16x13(const char *const (&)[13] rows)  // Compile-time ASCII art -> packed fullwidth (16x13) glyph bytes. '#' = lit, '.' = empty.
+std::array<uint8_t, 13> bitmapfont::compile8x13(const char *const (&)[13] rows)  // Compile-time ASCII art -> packed halfwidth (8x13) glyph bytes. '#' = lit, '.' = empty.
+void bitmapfont::registerGlyph(const Glyph & g)  // Register a bitmap glyph for a Unicode codepoint (extends drawBitmapString)
+void bitmapfont::registerGlyphs(const Glyph (&)[N] glyphs)  // Register a batch of bitmap glyphs at once
+void bitmapfont::updateGlyph(uint32_t cp, const uint8_t * newData)  // Swap an already-registered glyph's pixel data (atlas cell unchanged). Useful for per-frame animation.
+void drawArc(Vec3 center, float radius, float angleBegin, float angleEnd) [+1]  // Draw arc (partial circle, angles in radians)
+void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) [+2]  // Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)
+void drawBitmapString(const std::string & text, Vec3 pos, bool screenFixed = …) [+5]  // Draw text
+void drawBitmapStringHighlight(const std::string & text, float x, float y, const Color & background = …, const Color & foreground = …)  // Draw text with background highlight
+void drawBox(float w, float h, float d) [+5]  // Draw 3D box (respects fill/noFill)
+void drawCircle(Vec3 center, float radius) [+1]  // Draw circle
+void drawCone(float radius, float height, int resolution = …) [+2]  // Draw 3D cone (respects fill/noFill)
+void drawCurve(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) [+2]  // Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)
+void drawEllipse(Vec3 center, Vec2 radii) [+2]  // Draw ellipse
+void drawLine(Vec3 p1, Vec3 p2) [+2]  // Draw line (2D or 3D)
+void drawPoint(Vec3 pos) [+1]  // Draw a single point
+void drawRect(Vec3 pos, Vec2 size) [+2]  // Draw rectangle
+void drawRectRounded(Vec3 pos, Vec2 size, float radius) [+1]  // Draw rounded rectangle (circular arc corners)
+void drawRectSquircle(Vec3 pos, Vec2 size, float radius) [+1]  // Draw squircle rectangle (curvature-continuous corners, iOS-style)
+void drawSphere(float radius, int resolution = …) [+2]  // Draw 3D sphere (respects fill/noFill)
+void drawStroke(float x1, float y1, float x2, float y2) [+1]  // Draw a single stroke segment (thick line with cap/join)
+void drawTriangle(Vec3 p1, Vec3 p2, Vec3 p3) [+1]  // Draw triangle
 void endLines()  // End batch line drawing and render all accumulated line segments
-void drawStroke(float x1, float y1, float x2, float y2)  // Draw a single stroke segment (thick line with cap/join)
-void drawStroke(const Vec2& p1, const Vec2& p2)  // Draw a single stroke segment (thick line with cap/join)
-void drawBitmapString(const string& text, float x, float y, bool screenFixed = true)  // Draw text
-void drawBitmapStringHighlight(const string& text, float x, float y, const Color& background = Color(0,0,0), const Color& foreground = Color(1,1,1))  // Draw text with background highlight
-void getBitmapStringBounds(const string& text, float& width, float& height)  // Get bitmap string bounding box size
-void setTextAlign(Direction h, Direction v)  // Set text alignment
+void endShape(bool close = …)  // End drawing a shape
+void endStroke(bool close = …)  // End drawing a stroke
+float getBitmapFontHeight()  // Get bitmap font height
+float getBitmapLineHeight()  // Get line height for bitmap string newlines
+Rect getBitmapStringBBox(const std::string & text)  // Get text bounding box
+void getBitmapStringBounds(const std::string & text, float & width, float & height)  // Get bitmap string bounding box size
+float getBitmapStringHeight(const std::string & text)  // Get text height
+float getBitmapStringWidth(const std::string & text)  // Get text width
 Direction getTextAlignH()  // Get horizontal text alignment
 Direction getTextAlignV()  // Get vertical text alignment
-float getBitmapFontHeight()  // Get bitmap font height
-float getBitmapStringWidth(const string& text)  // Get text width
-float getBitmapStringHeight(const string& text)  // Get text height
-Rect getBitmapStringBBox(const std::string & text)  // Get text bounding box
-void bitmapfont::registerGlyph(const bitmapfont::Glyph& g)  // Register a bitmap glyph for a Unicode codepoint (extends drawBitmapString)
-void bitmapfont::registerGlyphs(const bitmapfont::Glyph (&glyphs)[N] glyphs[])  // Register a batch of bitmap glyphs at once
-void bitmapfont::updateGlyph(uint32_t cp, const uint8_t* newData)  // Swap an already-registered glyph's pixel data (atlas cell unchanged). Useful for per-frame animation.
-std::array<uint8_t, 13> bitmapfont::compile8x13(const char* const (&rows)[13] rows)  // Compile-time ASCII art -> packed halfwidth (8x13) glyph bytes. '#' = lit, '.' = empty.
-std::array<uint8_t, 26> bitmapfont::compile16x13(const char* const (&rows)[13] rows)  // Compile-time ASCII art -> packed fullwidth (16x13) glyph bytes. '#' = lit, '.' = empty.
-void setBitmapLineHeight(float height)  // Set line height for bitmap string newlines (default: 16)
-float getBitmapLineHeight()  // Get line height for bitmap string newlines
+void setBitmapLineHeight(float h)  // Set line height for bitmap string newlines (default: 16)
 void setFps(float fps)  // Set target frame rate (VSYNC = -1.0)
+void setTextAlign(Direction h, Direction v)  // Set text alignment
+void vertex(float x, float y, float z) [+3]  // Add a vertex
 ```
 
 ### Graphics - Style
 
 ```cpp
 void fill()  // Enable fill mode (shapes are solid, no outline)
-void noFill()  // Enable stroke mode (shapes show outline only)
-void setStrokeWeight(float weight)  // Set stroke width
-float getStrokeWeight()  // Get current stroke width
-void setStrokeCap(StrokeCap cap)  // Set stroke cap style (Butt, Round, Square)
+BlendMode getBlendMode()  // Get current blend mode
+int getCircleResolution() ⚠️deprecated  // Deprecated alias for getCurveResolution()
+Color getColor()  // Get current fill color
+CurveStyle::Mode getCurveMode()  // Current curve tessellation mode (fixed segment count vs. adaptive tolerance)
+int getCurveResolution()  // Get current curve resolution
+float getCurveTolerance()  // Get current curve tessellation tolerance (in pixels)
 StrokeCap getStrokeCap()  // Get current stroke cap style
-void setStrokeJoin(StrokeJoin join)  // Set stroke join style (Miter, Round, Bevel)
 StrokeJoin getStrokeJoin()  // Get current stroke join style
+float getStrokeWeight()  // Get current stroke width
 bool isFillEnabled()  // Check if fill mode is enabled
 bool isStrokeEnabled()  // Check if stroke mode is enabled
-void setCurveTolerance(float pixels)  // Set adaptive curve tessellation tolerance in pixels (smaller = smoother, scale-aware)
-float getCurveTolerance()  // Get current curve tessellation tolerance (in pixels)
-void setCurveResolution(int n)  // Set fixed curve segment count (switches off adaptive tolerance mode)
-int getCurveResolution()  // Get current curve resolution
-void setCircleResolution(int res)  // Deprecated alias for setCurveResolution()
-int getCircleResolution()  // Deprecated alias for getCurveResolution()
-void resetStyle()  // Reset style to default values (white color, fill enabled, stroke disabled)
-Color getColor()  // Get current fill color
-void setScissor(float x, float y, float w, float h)  // Set scissor clipping rectangle. Also available via RectNode::setClipping(true)
-void resetScissor()  // Reset (disable) scissor clipping
-void pushScissor(float x, float y, float w, float h)  // Push scissor clipping rectangle onto stack
+void noFill()  // Enable stroke mode (shapes show outline only)
 void popScissor()  // Pop scissor clipping rectangle from stack
-void setBlendMode(BlendMode mode)  // Set blend mode. BlendMode::Alpha (default), Add, Multiply, Screen, Subtract, Disabled
-BlendMode getBlendMode()  // Get current blend mode
-void resetBlendMode()  // Reset blend mode to Alpha (default)
-void pushStyle()  // Push current style (color, fill, stroke, blend) onto stack
 void popStyle()  // Pop style from stack, restoring previous state
-CurveStyle::Mode getCurveMode()  // Current curve tessellation mode (fixed segment count vs. adaptive tolerance)
+void pushScissor(float x, float y, float w, float h)  // Push scissor clipping rectangle onto stack
+void pushStyle()  // Push current style (color, fill, stroke, blend) onto stack
+void resetBlendMode()  // Reset blend mode to Alpha (default)
+void resetScissor()  // Reset (disable) scissor clipping
+void resetStyle()  // Reset style to default values (white color, fill enabled, stroke disabled)
+void setBlendMode(BlendMode mode)  // Set blend mode. BlendMode::Alpha (default), Add, Multiply, Screen, Subtract, Disabled
+void setCircleResolution(int res) ⚠️deprecated  // Deprecated alias for setCurveResolution()
+void setCurveResolution(int n)  // Set fixed curve segment count (switches off adaptive tolerance mode)
+void setCurveTolerance(float pixels)  // Set adaptive curve tessellation tolerance in pixels (smaller = smoother, scale-aware)
+void setScissor(float x, float y, float w, float h) [+1]  // Set scissor clipping rectangle. Also available via RectNode::setClipping(true)
+void setStrokeCap(StrokeCap cap)  // Set stroke cap style (Butt, Round, Square)
+void setStrokeJoin(StrokeJoin join)  // Set stroke join style (Miter, Round, Bevel)
+void setStrokeWeight(float weight)  // Set stroke width
 ```
 
 ### Transform
 
 ```cpp
-void translate(float x, float y)  // Move origin
-void translate(float x, float y, float z)  // Move origin
-void rotate(float radians)  // Rotate by radians (single axis, euler angles, or quaternion)
-void rotate(float x, float y, float z)  // Rotate by radians (single axis, euler angles, or quaternion)
-void rotate(float x, float y, float z)  // Rotate by radians (single axis, euler angles, or quaternion)
-void rotate(const Quaternion& quat)  // Rotate by radians (single axis, euler angles, or quaternion)
-void rotateDeg(float degrees)  // Rotate by degrees
-void rotateDeg(float x, float y, float z)  // Rotate by degrees
-void rotateDeg(float x, float y, float z)  // Rotate by degrees
-void rotateX(float radians)  // Rotate around X axis
-void rotateY(float radians)  // Rotate around Y axis
-void rotateZ(float radians)  // Rotate around Z axis
-void rotateXDeg(float degrees)  // Rotate around X axis (degrees)
-void rotateYDeg(float degrees)  // Rotate around Y axis (degrees)
-void rotateZDeg(float degrees)  // Rotate around Z axis (degrees)
-void scale(float s)  // Scale
-void scale(float sx, float sy)  // Scale
-void pushMatrix()  // Save transform state
-void popMatrix()  // Restore transform state
+Mat4 getCurrentMatrix() ⚠️deprecated  // Deprecated alias for getMatrix()
+float getCurrentScale() ⚠️deprecated  // Deprecated alias for getScale()
 Mat4 getMatrix()  // Get the current transformation matrix
 float getScale()  // Effective uniform scale of the current matrix (max of x/y basis lengths)
+void loadMatrix(const Mat4 & mat) ⚠️deprecated  // Deprecated alias for setMatrix()
+void multMatrix(const Mat4 & mat)  // Multiply the current matrix by mat (relative transform, like translate/rotate)
+void popMatrix()  // Restore transform state
+void pushMatrix()  // Save transform state
 void resetMatrix()  // Reset transformation matrix to identity
-void multMatrix(const Mat4& mat)  // Multiply the current matrix by mat (relative transform, like translate/rotate)
-void setMatrix(const Mat4& mat)  // Replace the current matrix with mat (absolute - use with caution, may break camera setup)
-Mat4 getCurrentMatrix()  // Deprecated alias for getMatrix()
-void loadMatrix(const Mat4& mat)  // Deprecated alias for setMatrix()
-float getCurrentScale()  // Deprecated alias for getScale()
+void rotate(float radians) [+3]  // Rotate by radians (single axis, euler angles, or quaternion)
+void rotateDeg(float degrees) [+2]  // Rotate by degrees
+void rotateX(float radians)  // Rotate around X axis
+void rotateXDeg(float degrees)  // Rotate around X axis (degrees)
+void rotateY(float radians)  // Rotate around Y axis
+void rotateYDeg(float degrees)  // Rotate around Y axis (degrees)
+void rotateZ(float radians)  // Rotate around Z axis
+void rotateZDeg(float degrees)  // Rotate around Z axis (degrees)
+void scale(float s) [+2]  // Scale
+void setMatrix(const Mat4 & mat)  // Replace the current matrix with mat (absolute - use with caution, may break camera setup)
+void translate(Vec3 pos) [+2]  // Move origin
 ```
 
 ### Window & Input
 
 ```cpp
-int getWindowWidth()  // Get canvas width
-int getWindowHeight()  // Get canvas height
-Vec2 getWindowSize()  // Get canvas size as Vec2
-void requestExitApp()  // Request application exit. Can be cancelled by listening to events().exitRequested and setting args.cancel = true
+void alertDialog(const std::string & title, const std::string & message)  // Show alert dialog with OK button
+void alertDialogAsync(const std::string & title, const std::string & message, std::function<void ()> callback = …)  // Show alert dialog asynchronously. Callback is called when dismissed
+void bindCursorImage(Cursor cursor, int width, int height, const unsigned char * pixels, int hotspotX = …, int hotspotY = …) [+1]  // Bind a custom image to a cursor slot (RGBA pixels or Image)
+bool confirmDialog(const std::string & title, const std::string & message)  // Show Yes/No confirmation dialog. Returns true if Yes clicked
+void confirmDialogAsync(const std::string & title, const std::string & message, std::function<void (bool)> callback)  // Show Yes/No dialog asynchronously. Callback receives true if Yes clicked
+CoreEvents & events()  // Get the global CoreEvents hub holding all framework events (setup, update, draw, keyPressed, mousePressed, etc.); use events().eventName.listen(callback) to subscribe
 void exitApp()  // Immediately exit the application (cannot be cancelled)
-FileDialogResult loadDialog(const string& title = "", const string& message = "", const string& defaultPath = "", bool folderSelection = false)  // Show file open dialog. Returns FileDialogResult with filePath, fileName, success
-FileDialogResult saveDialog(const string& title = "", const string& message = "", const string& defaultPath = "", const string& defaultName = "")  // Show file save dialog. Returns FileDialogResult with filePath, fileName, success
-void alertDialog(const string& title, const string& message)  // Show alert dialog with OK button
-bool confirmDialog(const string& title, const string& message)  // Show Yes/No confirmation dialog. Returns true if Yes clicked
-void loadDialogAsync(const string& title, const string& message, const string& defaultPath, bool folderSelection, function<void(const FileDialogResult&)> callback)  // Show file open dialog asynchronously. Callback receives FileDialogResult
-void saveDialogAsync(const string& title, const string& message, const string& defaultPath, const string& defaultName, function<void(const FileDialogResult&)> callback)  // Show file save dialog asynchronously. Callback receives FileDialogResult
-void alertDialogAsync(const string& title, const string& message, function<void()> callback = nullptr)  // Show alert dialog asynchronously. Callback is called when dismissed
-void confirmDialogAsync(const string& title, const string& message, function<void(bool)> callback)  // Show Yes/No dialog asynchronously. Callback receives true if Yes clicked
-float getMouseX()  // Get mouse X position
-float getMouseY()  // Get mouse Y position
-Vec2 getMousePos()  // Get mouse position as Vec2
+Cursor getCursor()  // Get the current mouse cursor shape
 Vec2 getGlobalMousePos()  // Get global mouse position as Vec2
 float getGlobalMouseX()  // Get global mouse X (screen coordinates, not window-relative)
 float getGlobalMouseY()  // Get global mouse Y (screen coordinates, not window-relative)
 float getGlobalPMouseX()  // Get previous frame global mouse X
 float getGlobalPMouseY()  // Get previous frame global mouse Y
 int getMouseButton()  // Get currently pressed mouse button
-void setTouchAsMouse(bool enabled)  // Enable/disable touch events firing as mouse events (for Android/iOS)
+Vec2 getMousePos()  // Get mouse position as Vec2
+float getMouseX()  // Get mouse X position
+float getMouseY()  // Get mouse Y position
 bool getTouchAsMouse()  // Get touchAsMouse state
-bool isMousePressed()  // Is mouse button pressed
-bool isKeyPressed(int key)  // Is specific key currently pressed
-bool isShiftPressed()  // True while either Shift key (left or right) is held
-bool isControlPressed()  // True while either Control key (left or right) is held
-bool isAltPressed()  // True while either Alt / Option key (left or right) is held
-bool isSuperPressed()  // True while either Super / Cmd / Win key (left or right) is held
-void showCursor()  // Show the mouse cursor (default)
+int getWindowHeight()  // Get canvas height
+Vec2 getWindowSize()  // Get canvas size as Vec2
+int getWindowWidth()  // Get canvas width
 void hideCursor()  // Hide the mouse cursor
-void setCursor(Cursor cursor)  // Set the mouse cursor shape
-Cursor getCursor()  // Get the current mouse cursor shape
-void bindCursorImage(Cursor cursor, int width, int height, const unsigned char* pixels, int hotspotX = 0, int hotspotY = 0)  // Bind a custom image to a cursor slot (RGBA pixels or Image)
-void bindCursorImage(Cursor cursor, const Image& image, int hotspotX = 0, int hotspotY = 0)  // Bind a custom image to a cursor slot (RGBA pixels or Image)
-void unbindCursorImage(Cursor cursor)  // Unbind a custom cursor image, restoring the system default
-CoreEvents& events()  // Get the global CoreEvents hub holding all framework events (setup, update, draw, keyPressed, mousePressed, etc.); use events().eventName.listen(callback) to subscribe
-bool isOverlayHovered()  // True when an overlay currently has the pointer over it (e.g. cursor over a tcxImGui panel); guard raw mouse input so clicks on UI panels are not also handled by the app
+bool isAltPressed()  // True while either Alt / Option key (left or right) is held
+bool isControlPressed()  // True while either Control key (left or right) is held
+bool isKeyPressed(int key)  // Is specific key currently pressed
+bool isMousePressed()  // Is mouse button pressed
 bool isOverlayFocused()  // True when an overlay currently owns keyboard focus (e.g. a text input is active); guard raw key input so typing into a UI field is not also handled by the app
+bool isOverlayHovered()  // True when an overlay currently has the pointer over it (e.g. cursor over a tcxImGui panel); guard raw mouse input so clicks on UI panels are not also handled by the app
+bool isShiftPressed()  // True while either Shift key (left or right) is held
+bool isSuperPressed()  // True while either Super / Cmd / Win key (left or right) is held
+FileDialogResult loadDialog(const std::string & title = …, const std::string & message = …, const std::string & defaultPath = …, bool folderSelection = …)  // Show file open dialog. Returns FileDialogResult with filePath, fileName, success
+void loadDialogAsync(const std::string & title, const std::string & message, const std::string & defaultPath, bool folderSelection, std::function<void (const FileDialogResult &)> callback)  // Show file open dialog asynchronously. Callback receives FileDialogResult
+void requestExitApp()  // Request application exit. Can be cancelled by listening to events().exitRequested and setting args.cancel = true
+FileDialogResult saveDialog(const std::string & title = …, const std::string & message = …, const std::string & defaultPath = …, const std::string & defaultName = …)  // Show file save dialog. Returns FileDialogResult with filePath, fileName, success
+void saveDialogAsync(const std::string & title, const std::string & message, const std::string & defaultPath, const std::string & defaultName, std::function<void (const FileDialogResult &)> callback)  // Show file save dialog asynchronously. Callback receives FileDialogResult
+void setCursor(Cursor cursor)  // Set the mouse cursor shape
+void setTouchAsMouse(bool enabled)  // Enable/disable touch events firing as mouse events (for Android/iOS)
+void showCursor()  // Show the mouse cursor (default)
+void unbindCursorImage(Cursor cursor)  // Unbind a custom cursor image, restoring the system default
 ```
 
 ### Time - Frame
 
 ```cpp
 double getDeltaTime()  // Seconds since last frame
-double getFrameRate()  // Current FPS
-float getFps()  // Get current FPS (alias for getFrameRate)
-uint64_t getFrameCount()  // Total frames rendered
-void sleepMillis(int millis)  // Block the current thread for the given number of milliseconds
-void sleepMicros(int micros)  // Block the current thread for the given number of microseconds
-uint64_t getUpdateCount()  // Get the number of update() calls since the app started
 uint64_t getDrawCount()  // Get the number of draw() calls since the app started
+float getFps()  // Get current FPS (alias for getFrameRate)
 FpsSettings getFpsSettings()  // Get the current FPS configuration (update/draw target rates, actual VSync rate, sync flag)
+uint64_t getFrameCount()  // Total frames rendered
+double getFrameRate()  // Current FPS
+uint64_t getUpdateCount()  // Get the number of update() calls since the app started
+void sleepMicros(int micros)  // Block the current thread for the given number of microseconds
+void sleepMillis(int millis)  // Block the current thread for the given number of milliseconds
 ```
 
 ### Memory
 
 ```cpp
-int getSokolMemoryBytes()  // Total bytes allocated by sokol libraries
-int getSokolMemoryAllocs()  // Number of active allocations in sokol libraries
-void releaseSglBuffers()  // Release sokol_gl vertex/command buffers (auto re-allocated on next draw)
-size_t getMemoryUsage()  // Get process memory usage in bytes (platform-specific)
 size_t getFboCount()  // Get number of active FBO objects
-size_t getTextureCount()  // Get number of active Texture objects
+size_t getMemoryUsage()  // Get process memory usage in bytes (platform-specific)
 size_t getNodeCount()  // Get number of active Node objects in scene graph
+int getSokolMemoryAllocs()  // Number of active allocations in sokol libraries
+int getSokolMemoryBytes()  // Total bytes allocated by sokol libraries
+size_t getTextureCount()  // Get number of active Texture objects
+void releaseSglBuffers()  // Release sokol_gl vertex/command buffers (auto re-allocated on next draw)
 ```
 
 ### Platform
 
 ```cpp
-void setImmersiveMode(bool enabled)  // Hide system UI for immersive fullscreen. Android: sticky immersive (status + navigation bars). iOS: hides status bar + home indicator. Desktop: no-op
+bool captureWindow(Pixels & outPixels)  // Capture the current window contents into a Pixels object. Returns true on success
+Vec3 getAccelerometer()  // Get accelerometer reading in g-force (1.0 = Earth gravity). Mobile only; desktop returns zero
+float getBatteryLevel()  // Get battery charge level (0.0-1.0), or -1 if unavailable (e.g. desktop without a battery)
+float getCompassHeading()  // Get compass heading in radians (0 = north, clockwise). Mobile only
+Quaternion getDeviceOrientation()  // Get the fused device attitude (accelerometer + gyroscope + magnetometer) as a quaternion. Mobile only
+Vec3 getGyroscope()  // Get gyroscope angular velocity in rad/s. Mobile only; desktop returns zero
 bool getImmersiveMode()  // Return whether immersive mode is currently enabled
-bool captureWindow(Pixels& outPixels)  // Capture the current window contents into a Pixels object. Returns true on success
-float getSystemVolume()  // Get system output volume (0.0-1.0)
-void setSystemVolume(float volume)  // Set system output volume (0.0-1.0). iOS: not supported by the OS (logs a warning)
+Location getLocation()  // Get the most recent GPS / WiFi location fix. Starts location updates on the first call
 float getSystemBrightness()  // Get screen brightness (0.0-1.0). iOS: linear. Android: gamma-corrected (perceptual). Desktop: returns -1 (not supported)
-void setSystemBrightness(float brightness)  // Set screen brightness (0.0-1.0). Meaning of the value differs by platform (iOS linear, Android perceptual). Desktop: not supported
+float getSystemVolume()  // Get system output volume (0.0-1.0)
 ThermalState getThermalState()  // Get the coarse-grained device thermal state (Nominal / Fair / Serious / Critical)
 float getThermalTemperature()  // Get device temperature in Celsius, or -1 if unavailable
-float getBatteryLevel()  // Get battery charge level (0.0-1.0), or -1 if unavailable (e.g. desktop without a battery)
 bool isBatteryCharging()  // Return true if the battery is currently charging
-Vec3 getAccelerometer()  // Get accelerometer reading in g-force (1.0 = Earth gravity). Mobile only; desktop returns zero
-Vec3 getGyroscope()  // Get gyroscope angular velocity in rad/s. Mobile only; desktop returns zero
-Quaternion getDeviceOrientation()  // Get the fused device attitude (accelerometer + gyroscope + magnetometer) as a quaternion. Mobile only
-float getCompassHeading()  // Get compass heading in radians (0 = north, clockwise). Mobile only
 bool isProximityClose()  // Return true when the proximity sensor detects a nearby object (e.g. phone held to the ear)
-Location getLocation()  // Get the most recent GPS / WiFi location fix. Starts location updates on the first call
+void setImmersiveMode(bool enabled)  // Hide system UI for immersive fullscreen. Android: sticky immersive (status + navigation bars). iOS: hides status bar + home indicator. Desktop: no-op
+void setSystemBrightness(float brightness)  // Set screen brightness (0.0-1.0). Meaning of the value differs by platform (iOS linear, Android perceptual). Desktop: not supported
+void setSystemVolume(float volume)  // Set system output volume (0.0-1.0). iOS: not supported by the OS (logs a warning)
+```
+
+### Graphics Backend
+
+```cpp
+void cleanup()  // Shut down sokol_gfx + sokol_gl (called for you by the app loop)
+void setup()  // Initialize sokol_gfx + sokol_gl (called for you by the app loop)
 ```
 
 ### Time - Elapsed
 
 ```cpp
-float getElapsedTimef()  // Elapsed seconds (float)
 double getElapsedTime()  // Elapsed seconds (alias for getElapsedTimef)
-uint64_t getElapsedTimeMillis()  // Elapsed milliseconds (int64)
+float getElapsedTimef()  // Elapsed seconds (float)
 uint64_t getElapsedTimeMicros()  // Elapsed microseconds (int64)
+uint64_t getElapsedTimeMillis()  // Elapsed milliseconds (int64)
 void resetElapsedTimeCounter()  // Reset elapsed time
 ```
 
 ### Time - System
 
 ```cpp
-uint64_t getSystemTimeMillis()  // Unix time in milliseconds
 uint64_t getSystemTimeMicros()  // Unix time in microseconds
+uint64_t getSystemTimeMillis()  // Unix time in milliseconds
+std::string getTimestampString(const std::string & timestampFormat) [+1]  // Formatted timestamp
 uint64_t getUnixTime()  // Current Unix timestamp in seconds
-string getTimestampString()  // Formatted timestamp
-string getTimestampString(const string& format)  // Formatted timestamp
 ```
 
 ### Time - Current
 
 ```cpp
-int getSeconds()  // Current seconds (0-59)
-int getMinutes()  // Current minutes (0-59)
-int getHours()  // Current hours (0-23)
-int getYear()  // Current year
-int getMonth()  // Current month (1-12)
 int getDay()  // Current day (1-31)
+int getHours()  // Current hours (0-23)
+int getMinutes()  // Current minutes (0-59)
+int getMonth()  // Current month (1-12)
+int getSeconds()  // Current seconds (0-59)
 int getWeekday()  // Weekday (0=Sun, 6=Sat)
+int getYear()  // Current year
 ```
 
 ### Math - Random & Noise
 
 ```cpp
-float random()  // Random number
-float random(float max)  // Random number
-float random(float min, float max)  // Random number
-int randomInt(int max)  // Random integer
-int randomInt(int min, int max)  // Random integer
+float fbm(float x, float y, int octaves = …, float lacunarity = …, float gain = …) [+1]  // Fractal Brownian Motion noise
+float noise(float x) [+6]  // Perlin noise
+float random() [+2]  // Random number
+int randomInt(int max) [+1]  // Random integer
 void randomSeed(unsigned int seed)  // Set random seed
-float noise(float x)  // Perlin noise
-float noise(float x, float y)  // Perlin noise
-float noise(float x, float y, float z)  // Perlin noise
-float signedNoise(float x)  // Perlin noise (-1.0 to 1.0)
-float signedNoise(float x, float y)  // Perlin noise (-1.0 to 1.0)
-float signedNoise(float x, float y, float z)  // Perlin noise (-1.0 to 1.0)
-float signedNoise(float x, float y, float z, float w)  // Perlin noise (-1.0 to 1.0)
-float fbm(float x, float y, int octaves = 4, float lacunarity = 2.0, float gain = 0.5)  // Fractal Brownian Motion noise
-float fbm(float x, float y, float z, int octaves = 4, float lacunarity = 2.0, float gain = 0.5)  // Fractal Brownian Motion noise
+float signedNoise(float x) [+6]  // Perlin noise (-1.0 to 1.0)
 ```
 
 ### Math - Interpolation
 
 ```cpp
-float lerp(float a, float b, float t)  // Linear interpolation
-float clamp(float v, float min, float max)  // Clamp value to range
-float remap(float v, float inMin, float inMax, float outMin, float outMax)  // Remap value from one range to another
+float clamp(float value, float min, float max)  // Clamp value to range
+float remap(float value, float inMin, float inMax, float outMin, float outMax)  // Remap value from one range to another
 ```
 
 ### Math - Trigonometry
 
 ```cpp
-float sin(float x)  // Sine
-float cos(float x)  // Cosine
-float tan(float x)  // Tangent
-float asin(float x)  // Arc sine
-float acos(float x)  // Arc cosine
-float atan(float x)  // Arc tangent
-float atan2(float y, float x)  // Arc tangent of y/x
-float deg2rad(float degrees)  // Degrees to radians
-float rad2deg(float radians)  // Radians to degrees
+float deg2rad(float deg)  // Degrees to radians
+float rad2deg(float rad)  // Radians to degrees
 ```
 
 ### Math - General
 
 ```cpp
-float abs(float x)  // Absolute value
-float sqrt(float x)  // Square root
-float sq(float x)  // Square (x*x)
-float pow(float x, float y)  // Power (x^y)
-float log(float x)  // Natural logarithm
-float exp(float x)  // Exponential (e^x)
-float min(float a, float b)  // Minimum
-float max(float a, float b)  // Maximum
-float floor(float x)  // Round down
-float ceil(float x)  // Round up
-float round(float x)  // Round to nearest
-float fmod(float x, float y)  // Floating-point modulo
-float sign(float x)  // Sign (-1, 0, 1)
-float fract(float x)  // Fractional part
-float wrap(float value, float min, float max)  // Wrap value within range [min, max)
 float angleDifference(float angle1, float angle2)  // Shortest angle difference in radians [-TAU/2, TAU/2]
 float angleDifferenceDeg(float deg1, float deg2)  // Shortest angle difference in degrees [-180, 180]
-void applyWindow(vector<float>& signal, WindowType type)  // Apply a window function (in place) to a signal to reduce spectral leakage before FFT
-void applyWindow(vector<complex<float>>& signal, WindowType type)  // Apply a window function (in place) to a signal to reduce spectral leakage before FFT
+void applyWindow(std::vector<float> & signal, WindowType type) [+1]  // Apply a window function (in place) to a signal to reduce spectral leakage before FFT
+float binToFrequency(int bin, int fftSize, int sampleRate)  // Convert an FFT bin index to its frequency in Hz
+void fft(std::vector<std::complex<float>> & data)  // In-place forward FFT (Cooley-Tukey radix-2); the data size must be a power of two
+std::vector<float> fftMagnitude(const std::vector<std::complex<float>> & spectrum)  // Return the magnitude (amplitude) of each bin in a spectrum
+std::vector<float> fftMagnitudeDb(const std::vector<std::complex<float>> & spectrum, float minDb)  // Return the magnitude of each bin in decibels, clamped to minDb
+std::vector<float> fftPhase(const std::vector<std::complex<float>> & spectrum)  // Return the phase angle (radians) of each bin in a spectrum
+std::vector<float> fftPower(const std::vector<std::complex<float>> & spectrum)  // Return the power spectrum (magnitude squared) of each bin
+std::vector<std::complex<float>> fftReal(const std::vector<float> & signal) [+1]  // Compute the FFT of a real-valued signal, optionally applying a window function first
+float fract(float value)  // Fractional part
+int frequencyToBin(float freq, int fftSize, int sampleRate)  // Convert a frequency in Hz to the nearest FFT bin index
+void ifft(std::vector<std::complex<float>> & data)  // In-place inverse FFT; the data size must be a power of two
 bool isPowerOfTwo(int n)  // Return true if n is a positive power of two
 int nextPowerOfTwo(int n)  // Return the smallest power of two greater than or equal to n
-void fft(vector<complex<float>>& data)  // In-place forward FFT (Cooley-Tukey radix-2); the data size must be a power of two
-void ifft(vector<complex<float>>& data)  // In-place inverse FFT; the data size must be a power of two
-vector<complex<float>> toComplex(const vector<float>& real)  // Convert a real-valued signal into a complex array with zero imaginary parts
-vector<complex<float>> fftReal(const vector<float>& signal)  // Compute the FFT of a real-valued signal, optionally applying a window function first
-vector<complex<float>> fftReal(const vector<float>& signal, WindowType window)  // Compute the FFT of a real-valued signal, optionally applying a window function first
-vector<float> fftMagnitude(const vector<complex<float>>& spectrum)  // Return the magnitude (amplitude) of each bin in a spectrum
-vector<float> fftMagnitudeDb(const vector<complex<float>>& spectrum, float minDb = -100.0f)  // Return the magnitude of each bin in decibels, clamped to minDb
-vector<float> fftPhase(const vector<complex<float>>& spectrum)  // Return the phase angle (radians) of each bin in a spectrum
-vector<float> fftPower(const vector<complex<float>>& spectrum)  // Return the power spectrum (magnitude squared) of each bin
-float binToFrequency(int bin, int fftSize, int sampleRate)  // Convert an FFT bin index to its frequency in Hz
-int frequencyToBin(float freq, int fftSize, int sampleRate)  // Convert a frequency in Hz to the nearest FFT bin index
+float sign(float value)  // Sign (-1, 0, 1)
+float sq(float value)  // Square (x*x)
+std::vector<std::complex<float>> toComplex(const std::vector<float> & real)  // Convert a real-valued signal into a complex array with zero imaginary parts
 float windowFunction(WindowType type, int i, int n)  // Return the window coefficient for sample i of n for the given window type
+float wrap(float value, float min, float max)  // Wrap value within range [min, max)
 ```
 
 ### Math - Geometry
 
 ```cpp
-float dist(float x1, float y1, float x2, float y2)  // Distance between points
-float distSquared(float x1, float y1, float x2, float y2)  // Squared distance
+float dist(float x1, float y1, float x2, float y2) [+2]  // Distance between points
+float distSquared(float x1, float y1, float x2, float y2) [+2]  // Squared distance
 ```
 
 ### Window & System
 
 ```cpp
-void setWindowTitle(const string& title)  // Set window title
-void setWindowSize(int width, int height)  // Set window size
-IVec2 getWindowPosition()  // Get window position in screen coordinates (top-left origin). macOS/Windows only; other platforms return (-1, -1)
-void setWindowPosition(int x, int y)  // Set window position in screen coordinates (top-left origin). macOS/Windows only; no-op on other platforms
-void toggleFullscreen()  // Toggle fullscreen mode
-void setClipboardString(const string& text)  // Copy text to clipboard
-string getClipboardString()  // Get text from clipboard
-float getDpiScale()  // Get display DPI scale factor (e.g. 2.0 for Retina)
-int getFramebufferWidth()  // Get framebuffer width in pixels (window width * DPI scale)
-int getFramebufferHeight()  // Get framebuffer height in pixels (window height * DPI scale)
+void bringWindowToFront()  // Activate and raise the application window, giving it focus. Desktop only; no-op on mobile/web
 float getAspectRatio()  // Get window aspect ratio (width / height)
-void setOrientation(Orientation mask)  // Set allowed screen orientations (mobile). Values: Orientation::Portrait, Landscape, All
-void setKeepScreenOn(bool enabled)  // Prevent display sleep / auto-lock while the app is running. Supported: Android, iOS, macOS, Windows. Linux / Web: no-op
+std::string getBackendName()  // Get the active graphics backend name (e.g. "Metal (macOS)", "D3D11", "OpenGL", "WebGPU") 
+std::string getClipboardString()  // Get text from clipboard
+float getDisplayScaleFactor()  // Get the DPI scale of the main display (available before window creation). macOS: 1.0 or 2.0 (Retina); other platforms: 1.0
+float getDpiScale()  // Get display DPI scale factor (e.g. 2.0 for Retina)
+int getFramebufferHeight()  // Get framebuffer height in pixels (window height * DPI scale)
+int getFramebufferWidth()  // Get framebuffer width in pixels (window width * DPI scale)
 bool getKeepScreenOn()  // Check whether keep-screen-on is currently enabled
-void setIndependentFps(float updateFps, float drawFps)  // Set independent update and draw frame rates
-bool grabScreen(Pixels& outPixels)  // Capture current screen to Pixels
-bool saveScreenshot(const std::filesystem::path& path)  // Save a screenshot of the rendered frame (png/jpg/bmp). Safe to call from anywhere; capture is deferred to after present(). Returns true when the destination was prepared and the capture queued (parent dir created/writable), not that the file is already written.
-bool startRecording(const string& path, const VideoRecordSettings& settings = {})  // Start recording the window to a video file (native encoder, no ffmpeg)
-void stopRecording()  // Stop the current recording and finalize the file
+IVec2 getWindowPosition()  // Get window position in screen coordinates (top-left origin). macOS/Windows only; other platforms return (-1, -1)
+bool grabScreen(Pixels & outPixels)  // Capture current screen to Pixels
+bool isFullscreen()  // Check if window is fullscreen
 bool isRecording()  // Check whether a recording is in progress
 int recordingFrameCount()  // Number of frames captured so far in the current recording
-const string& recordingPath()  // Output file path of the current recording
-bool isFullscreen()  // Check if window is fullscreen
-void setFullscreen(bool fullscreen)  // Set fullscreen mode
-void redraw(int count = 1)  // Request extra redraws (useful for event-driven rendering)
-string getBackendName()  // Get the active graphics backend name (e.g. "Metal (macOS)", "D3D11", "OpenGL", "WebGPU")
-void bringWindowToFront()  // Activate and raise the application window, giving it focus. Desktop only; no-op on mobile/web
-float getDisplayScaleFactor()  // Get the DPI scale of the main display (available before window creation). macOS: 1.0 or 2.0 (Retina); other platforms: 1.0
+const std::string & recordingPath()  // Output file path of the current recording
+void redraw(int count = …)  // Request extra redraws (useful for event-driven rendering)
+int runHeadlessApp(const HeadlessSettings & settings = …)  // Run an app class without a window or graphics context (update loop only). Template on the app type; returns the process exit code
+bool saveScreenshot(const std::filesystem::path & path)  // Save a screenshot of the rendered frame (png/jpg/bmp). Safe to call from anywhere; capture is deferred to after present(). Returns true when the destination was prepared and the capture queued (parent dir created/writable), not that the file is already written.
+void setClipboardString(const std::string & text)  // Copy text to clipboard
+void setFullscreen(bool full)  // Set fullscreen mode
+void setIndependentFps(float updateFps, float drawFps)  // Set independent update and draw frame rates
+void setKeepScreenOn(bool enabled)  // Prevent display sleep / auto-lock while the app is running. Supported: Android, iOS, macOS, Windows. Linux / Web: no-op
+void setOrientation(Orientation mask)  // Set allowed screen orientations (mobile). Values: Orientation::Portrait, Landscape, All
 void setWindowDecorated(bool decorated)  // Toggle the window's standard decorations (title bar, borders, buttons). false = borderless but still focusable and closable. Desktop only
+void setWindowPosition(int x, int y)  // Set window position in screen coordinates (top-left origin). macOS/Windows only; no-op on other platforms
+void setWindowSize(int width, int height)  // Set window size
 void setWindowSizeLogical(int width, int height)  // Resize the window to the given logical size (logical pixels)
-int runHeadlessApp(const HeadlessSettings& settings = HeadlessSettings())  // Run an app class without a window or graphics context (update loop only). Template on the app type; returns the process exit code
+void setWindowTitle(const std::string & title)  // Set window title
+bool startRecording(const std::string & path, const VideoRecordSettings & settings = …)  // Start recording the window to a video file (native encoder, no ffmpeg)
+void stopRecording()  // Stop the current recording and finalize the file
+void toggleFullscreen()  // Toggle fullscreen mode
 ```
 
 ### Utility
 
 ```cpp
-LogStream logNotice(const std::string & module = "")  // Print to console
-bool compress(const void* src, size_t nbytes, vector<uint8_t>& out, Codec codec)  // Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). Resizes out and returns true on success.
-bool decompress(const void* src, size_t nbytes, vector<uint8_t>& out, size_t decompressedSize, Codec codec)  // Decompress a byte buffer; decompressedSize is the known original byte count. Resizes out and returns true on success (false / cleared out on size mismatch or failure).
-string toString(value value)  // Convert to string
-void beep()  // Play a beep sound
-void beep(float frequency)  // Play a beep sound
-int toInt(const string& str)  // Convert string to int
-float toFloat(const string& str)  // Convert string to float
-std::vector<std::string> splitString(const std::string & source, const std::string & delimiter, bool ignoreEmpty = false, bool trim = false)  // Split string by delimiter
-string joinString(const vector<string>& elements, const string& delimiter)  // Join strings with delimiter
-void stringReplace(string& input, const string& searchStr, const string& replaceStr)  // Replace substring in place
-string toLower(const string& src)  // Convert to lower case
-string toUpper(const string& src)  // Convert to upper case
-void intersectRect(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2, float& ox, float& oy, float& ow, float& oh)  // Compute intersection of two rectangles
-void mcp::registerDebuggerTools()  // Opt in to the MCP debugger tools, letting an AI agent drive the app: input injection (mouse_click, key_press, mouse_move, scroll) plus node selection and scene mutation (select_node, set_node_members). Call once in setup(); calling it IS the opt-in (there is no separate enable step). The tools do nothing unless the MCP server is running (TRUSSC_MCP=1), so it is safe to leave in. Read-only inspection — screenshots and the node tree — needs no opt-in and is always available when MCP is on.
-void mcp::enableDebugger()  // Deprecated no-op (registerDebuggerTools() is now the opt-in by itself)
-LogStream logVerbose(const string& module = "")  // Stream-based verbose-level log output
-LogStream logWarning(const string& module = "")  // Stream-based warning-level log output
-LogStream logError(const string& module = "")  // Stream-based error-level log output
-LogStream logFatal(const string& module = "")  // Stream-based fatal-level log output
-LogStream logAt(LogLevel level = LogLevel::Notice)  // Stream-based log output at a runtime-selected level
-Logger& getLogger()  // Access the global logger instance
+void beep() [+3]  // Play a beep sound
+void closeLogFile()  // Close the current log file
+bool compress(const void * src, std::size_t nbytes, std::vector<std::uint8_t> & out, Codec codec) [+1]  // Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). Resizes out and returns true on success.
+std::size_t compressBound(std::size_t nbytes, Codec codec)  // Worst-case compressed size, for sizing a destination buffer
+bool decompress(const void * src, std::size_t nbytes, std::vector<std::uint8_t> & out, std::size_t decompressedSize, Codec codec) [+1]  // Decompress a byte buffer; decompressedSize is the known original byte count. Resizes out and returns true on success (false / cleared out on size mismatch or failure).
+Logger & getLogger()  // Access the global logger instance
+std::thread::id getMainThreadId()  // Get the main thread ID. Records the current thread's ID on the first call, so it must first be called from the main thread.
+int hexToInt(const std::string & hexStr)  // Parse a hex string into a signed int
+unsigned int hexToUInt(const std::string & hexStr)  // Parse a hex string into an unsigned int
+void intersectRect(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2, float & ox, float & oy, float & ow, float & oh)  // Compute intersection of two rectangles
+bool isMainThread()  // Whether the calling thread is the main (scene) thread. The main thread ID is recorded on the first call to getMainThreadId().
+bool isStringInString(const std::string & haystack, const std::string & needle)  // Check whether one string contains another
+std::string joinString(const std::vector<std::string> & stringElements, const std::string & delimiter)  // Join strings with delimiter
+LogStream logAt(LogLevel level = …)  // Stream-based log output at a runtime-selected level
+LogStream logError(const std::string & module = …)  // Stream-based error-level log output
+LogStream logFatal(const std::string & module = …)  // Stream-based fatal-level log output
+const char * logLevelToString(LogLevel level)  // Return the uppercase name of a log level (e.g. "NOTICE", "WARNING") 
+LogStream logNotice(const std::string & module = …)  // Print to console
+LogStream logVerbose(const std::string & module = …)  // Stream-based verbose-level log output
+LogStream logWarning(const std::string & module = …)  // Stream-based warning-level log output
+Json nodeToJson(Node & node, int maxDepth)  // Serialize a node (and its subtree up to maxDepth; -1 = unlimited) to JSON via reflection
+Json parseJson(const std::string & str)  // Parse a JSON string into a Json object; returns an empty Json on parse error.
+Xml parseXml(const std::string & str)  // Parse an XML string into an Xml object.
+JsonReadReflector reflectFromJson(T & obj, const Json & j)  // Apply the keys of a Json object onto obj's reflected (TC_REFLECT) members. Returns the reflector so callers can inspect which members were applied, skipped, read-only, or unknown.
+Json reflectToJson(T & obj)  // Return all reflected (TC_REFLECT) members of obj as a Json object. Works on any reflected type such as a Node or Mod.
+void runOnMainThread(std::function<void ()> fn)  // Run a callback on the main (scene) thread; immediately if already on it, otherwise queued to the next frame
 void setConsoleLogLevel(LogLevel level)  // Set the minimum log level printed to the console
 void setFileLogLevel(LogLevel level)  // Set the minimum log level written to the log file
-bool setLogFile(const string& path)  // Open a file to receive log output
-void closeLogFile()  // Close the current log file
-const char* logLevelToString(LogLevel level)  // Return the uppercase name of a log level (e.g. "NOTICE", "WARNING")
-std::string toHex(int value, int width = 0)  // Convert an integer (zero-padded to width) or string bytes to a hexadecimal string
-std::string toHex(const std::string& value)  // Convert an integer (zero-padded to width) or string bytes to a hexadecimal string
-void runOnMainThread(std::function<void()> fn)  // Run a callback on the main (scene) thread; immediately if already on it, otherwise queued to the next frame
-const std::string& typeName(const std::type_info& ti)  // Readable (demangled) fully-qualified name for a type, cached per type
-const std::string& shortTypeName(const std::type_info& ti)  // Short (unqualified) readable name for a type, cached per type
-Json nodeToJson(Node& node, int maxDepth = -1)  // Serialize a node (and its subtree up to maxDepth; -1 = unlimited) to JSON via reflection
-LogStream tcLog(LogLevel level = LogLevel::Notice)  // Deprecated alias for logAt()
-LogStream tcLogVerbose(const std::string& module = "")  // Deprecated alias for logVerbose()
-LogStream tcLogNotice(const std::string& module = "")  // Deprecated alias for logNotice()
-LogStream tcLogWarning(const std::string& module = "")  // Deprecated alias for logWarning()
-LogStream tcLogError(const std::string& module = "")  // Deprecated alias for logError()
-LogStream tcLogFatal(const std::string& module = "")  // Deprecated alias for logFatal()
-Logger& tcGetLogger()  // Deprecated alias for getLogger()
-void tcSetConsoleLogLevel(LogLevel level)  // Deprecated alias for setConsoleLogLevel()
-void tcSetFileLogLevel(LogLevel level)  // Deprecated alias for setFileLogLevel()
-bool tcSetLogFile(const std::string& path)  // Deprecated alias for setLogFile()
-void tcCloseLogFile()  // Deprecated alias for closeLogFile()
-size_t compressBound(size_t nbytes, Codec codec)  // Worst-case compressed size, for sizing a destination buffer
-int64_t toInt64(const string& str)  // Parse a string into a 64-bit integer
-double toDouble(const string& str)  // Parse a string into a double
-bool toBool(const string& str)  // Parse a string into a bool
-string toBinary(int value)  // Convert an integer to a binary string
-int hexToInt(const string& hexStr)  // Parse a hex string into a signed int
-unsigned int hexToUInt(const string& hexStr)  // Parse a hex string into an unsigned int
-string toBase64(const unsigned char* bytes, size_t len)  // Encode raw bytes as a Base64 string
-bool isStringInString(const string& haystack, const string& needle)  // Check whether one string contains another
-size_t stringTimesInString(const string& haystack, const string& needle)  // Count occurrences of a substring in a string
-string trim(const string& src)  // Trim whitespace from both ends of a string
-string trimFront(const string& src)  // Trim leading whitespace from a string
-string trimBack(const string& src)  // Trim trailing whitespace from a string
-Json parseJson(const string& str)  // Parse a JSON string into a Json object; returns an empty Json on parse error.
-string toJsonString(const Json& j, int indent = 2)  // Serialize a Json object to a string. indent sets the pretty-print width (negative for compact).
-Xml parseXml(const string& str)  // Parse an XML string into an Xml object.
-Json reflectToJson(T& obj)  // Return all reflected (TC_REFLECT) members of obj as a Json object. Works on any reflected type such as a Node or Mod.
-JsonReadReflector reflectFromJson(T& obj, const Json& j)  // Apply the keys of a Json object onto obj's reflected (TC_REFLECT) members. Returns the reflector so callers can inspect which members were applied, skipped, read-only, or unknown.
-bool isMainThread()  // Whether the calling thread is the main (scene) thread. The main thread ID is recorded on the first call to getMainThreadId().
-thread::id getMainThreadId()  // Get the main thread ID. Records the current thread's ID on the first call, so it must first be called from the main thread.
+bool setLogFile(const std::string & path)  // Open a file to receive log output
+const std::string & shortTypeName(const std::type_info & ti)  // Short (unqualified) readable name for a type, cached per type
+std::vector<std::string> splitString(const std::string & source, const std::string & delimiter, bool ignoreEmpty = …, bool trim = …)  // Split string by delimiter
+void stringReplace(std::string & input, const std::string & searchStr, const std::string & replaceStr)  // Replace substring in place
+std::size_t stringTimesInString(const std::string & haystack, const std::string & needle)  // Count occurrences of a substring in a string
+void tcCloseLogFile() ⚠️deprecated  // Deprecated alias for closeLogFile()
+Logger & tcGetLogger() ⚠️deprecated  // Deprecated alias for getLogger()
+LogStream tcLog(LogLevel level = …) ⚠️deprecated  // Deprecated alias for logAt()
+LogStream tcLogError(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logError()
+LogStream tcLogFatal(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logFatal()
+LogStream tcLogNotice(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logNotice()
+LogStream tcLogVerbose(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logVerbose()
+LogStream tcLogWarning(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logWarning()
+void tcSetConsoleLogLevel(LogLevel level) ⚠️deprecated  // Deprecated alias for setConsoleLogLevel()
+void tcSetFileLogLevel(LogLevel level) ⚠️deprecated  // Deprecated alias for setFileLogLevel()
+bool tcSetLogFile(const std::string & path) ⚠️deprecated  // Deprecated alias for setLogFile()
+std::string toBase64(const unsigned char * bytes, size_t len) [+2]  // Encode raw bytes as a Base64 string
+std::string toBinary(int value) [+4]  // Convert an integer to a binary string
+bool toBool(const std::string & str)  // Parse a string into a bool
+double toDouble(const std::string & str)  // Parse a string into a double
+float toFloat(const std::string & str)  // Convert string to float
+std::string toHex(const T & value) [+2]  // Convert an integer (zero-padded to width) or string bytes to a hexadecimal string
+int toInt(const std::string & str)  // Convert string to int
+int64_t toInt64(const std::string & str)  // Parse a string into a 64-bit integer
+std::string toJsonString(const Json & j, int indent = …)  // Serialize a Json object to a string. indent sets the pretty-print width (negative for compact).
+std::string toLower(const std::string & src)  // Convert to lower case
+std::string toString(const T & value) [+4]  // Convert to string
+std::string toUpper(const std::string & src)  // Convert to upper case
+std::string trim(const std::string & src)  // Trim whitespace from both ends of a string
+std::string trimBack(const std::string & src)  // Trim trailing whitespace from a string
+std::string trimFront(const std::string & src)  // Trim leading whitespace from a string
+const std::string & typeName(const std::type_info & ti) [+1]  // Readable (demangled) fully-qualified name for a type, cached per type
 ```
 
 ### File
 
 ```cpp
-string getDataPath(const string& path)  // Get full path relative to data directory
-string getAbsolutePath(const string& path)  // Get absolute path
-string getFileName(const string& path)  // Get filename from path
-string getBaseName(const string& path)  // Get filename without extension
-string getFileExtension(const string& path)  // Get file extension without dot
-string getParentDirectory(const string& path)  // Get parent directory
-string joinPath(const string& dir, const string& file)  // Join directory and filename
-bool fileExists(const string& path)  // Check if file exists
-bool directoryExists(const string& path)  // Check if directory exists
-bool createDirectory(const string& path)  // Create directory (and parents)
-vector<string> listDirectory(const string& path)  // List files in directory
-bool removeFile(const string& path)  // Remove file
-int64_t getFileSize(const string& path)  // Get file size in bytes
-string loadTextFile(const string& path)  // Load entire text file
-bool saveTextFile(const string& path, const string& content)  // Save string to text file
-bool appendToFile(const string& path, const string& content)  // Append string to file
-Json loadJson(const string& path)  // Load a JSON file and return it as a Json object. Relative paths are resolved via getDataPath; returns an empty Json on error.
-bool saveJson(const Json& j, const string& path, int indent = 2)  // Write a Json object to a file. Relative paths are resolved via getDataPath. indent sets the pretty-print width (negative for compact). Returns true on success.
-Xml loadXml(const string& path)  // Load an XML file and return it as an Xml object. Relative paths are resolved via getDataPath.
-void setDataPathRoot(const string& path)  // Set the root directory used to resolve relative data paths. A relative path is resolved against the executable directory; an absolute path (starting with /) is used as-is. A trailing slash is added automatically.
-string getDataPathRoot()  // Get the current data path root (with trailing slash).
+bool appendToFile(const std::string & path, const std::string & content)  // Append string to file
+bool createDirectory(const std::string & path)  // Create directory (and parents)
+bool directoryExists(const std::string & path)  // Check if directory exists
+bool fileExists(const std::string & path)  // Check if file exists
+std::string getAbsolutePath(const std::string & path)  // Get absolute path
+std::string getBaseName(const std::string & path)  // Get filename without extension
+std::string getDataPath(const std::string & filename)  // Get full path relative to data directory
+std::string getDataPathRoot()  // Get the current data path root (with trailing slash).
+std::string getExecutableDir()  // Get the directory containing the running executable (with trailing slash).
+std::string getExecutablePath()  // Get the absolute path of the running executable.
+std::string getFileExtension(const std::string & path)  // Get file extension without dot
+std::string getFileName(const std::string & path)  // Get filename from path
+int64_t getFileSize(const std::string & path)  // Get file size in bytes
+std::string getParentDirectory(const std::string & path)  // Get parent directory
+std::string joinPath(const std::string & dir, const std::string & file)  // Join directory and filename
+std::vector<std::string> listDirectory(const std::string & path)  // List files in directory
+Json loadJson(const std::string & path)  // Load a JSON file and return it as a Json object. Relative paths are resolved via getDataPath; returns an empty Json on error.
+std::string loadTextFile(const std::string & path)  // Load entire text file
+Xml loadXml(const std::string & path)  // Load an XML file and return it as an Xml object. Relative paths are resolved via getDataPath.
+bool removeFile(const std::string & path)  // Remove file
+bool saveJson(const Json & j, const std::string & path, int indent = …)  // Write a Json object to a file. Relative paths are resolved via getDataPath. indent sets the pretty-print width (negative for compact). Returns true on success.
+bool saveTextFile(const std::string & path, const std::string & content)  // Save string to text file
+void setDataPathRoot(const std::string & path)  // Set the root directory used to resolve relative data paths. A relative path is resolved against the executable directory; an absolute path (starting with /) is used as-is. A trailing slash is added automatically.
 void setDataPathToResources()  // Point the data path root at the macOS app bundle's Contents/Resources/data folder for distribution. No-op on non-macOS platforms.
-string getExecutablePath()  // Get the absolute path of the running executable.
-string getExecutableDir()  // Get the directory containing the running executable (with trailing slash).
 ```
 
 ### Sound
 
 ```cpp
- Sound()  // Create a sound player
-bool load(const string& path)  // Load sound file. Format auto-detected by extension: .wav .mp3 .ogg .flac .aac .m4a
-bool loadStream(const string& path, int maxPolyphony = 1)  // Stream sound from disk (WAV/MP3/FLAC). Best for long files; cuts memory. maxPolyphony = simultaneous play() count.
-bool isStreaming()  // True if this Sound was loaded via loadStream() (vs eager load())
-void play()  // Play sound
-void stop()  // Stop sound
-void pause()  // Pause playback (resume() to continue)
-void resume()  // Resume paused playback
-bool isPlaying()  // True while playing (false if stopped, paused, or never played)
-bool isPaused()  // True while paused
-bool isLoaded()  // True after a successful load() / loadStream() / loadTestTone()
-float getPosition()  // Get current playback position in seconds
-void setPosition(float seconds)  // Seek to a specific time in seconds. On streams, costs ~10 ms blackout while the ring refills.
-float getDuration()  // Get total duration of the loaded sound in seconds
-void setVolume(float vol)  // Set volume (0.0-1.0)
-float getVolume()  // Get current volume
-void setPan(float pan)  // Set stereo balance (-1.0 left ~ 0 center ~ +1.0 right). On multi-ch devices only affects ch0/ch1.
-float getPan()  // Get current pan value
-void setSpeed(float speed)  // Playback speed [-10, 10]. Negative = reverse (eager only). Streams clamp to [0, 10]. 0 = freeze.
-float getSpeed()  // Get current playback speed
-void setLoop(bool loop)  // Enable/disable looping
-bool isLoop()  // True if looping is enabled
-void setMixMode(MixMode m)  // Channel routing preset. Auto (default) = mono broadcasts / multi 1:1. DownmixMono = average src to all out ch.
-void setChannelMap(const vector<int>& map)  // Per-output-channel routing. 1D: each entry is a src ch index (-1 = silent). 2D: each entry lists src ch indices that sum into that output.
-void setChannelMap(vector<vector<int>> map)  // Per-output-channel routing. 1D: each entry is a src ch index (-1 = silent). 2D: each entry lists src ch indices that sum into that output.
-void setChannelGains(const vector<float>& gains)  // Per-output-channel gain multiplier. Entries beyond .size() default to 1.0. No internal normalization (setVolume is the overall gain).
-void clearChannelMap()  // Clear the explicit channel map; routing falls back to setMixMode rules.
-void clearChannelGains()  // Clear per-channel gains (back to uniform 1.0).
-void setBeepVolume(float vol)  // Set the output volume for beep() (0.0-1.0).
 float getBeepVolume()  // Get the current beep() output volume (0.0-1.0).
+void setBeepVolume(float vol)  // Set the output volume for beep() (0.0-1.0).
 ```
 
 ### AudioEngine
 
 ```cpp
-bool init()  // Initialize / re-initialize audio engine. Re-entrant: calling on a running engine stops the device, migrates active voices to new settings, restarts. ~30-100 ms gap; voices keep playback position.
-bool init(const AudioSettings& settings)  // Initialize / re-initialize audio engine. Re-entrant: calling on a running engine stops the device, migrates active voices to new settings, restarts. ~30-100 ms gap; voices keep playback position.
-void shutdown()  // Shut down the audio device. Usually called automatically at program exit.
-int getSampleRate()  // Current engine sample rate (Hz). Returns default (48000) if not yet initialized.
-int getChannels()  // Current engine output channel count
-int getMaxPolyphony()  // Max simultaneously-playing Sound voices
-int getBufferSize()  // Current device buffer size in frames (0 = miniaudio default)
-bool isInitialized()  // True after a successful init()
-void audioIn(const AudioInBuffer & buf)  // Real-time capture callback event (microphone input). RT-safe same as audioOut.
+size_t getAudioAnalysisBuffer(float * outBuffer, size_t numSamples)  // Copy the latest mixed output samples (mono, L+R average) into outBuffer for FFT / visualization. numSamples is capped at the analysis buffer size (4096). Returns the number of samples written.
+size_t getMicAnalysisBuffer(float * outBuffer, size_t numSamples)  // Copy the latest microphone input samples into outBuffer. Convenience wrapper over getMicInput().getBuffer(). numSamples is capped at the mic buffer size (4096). Returns the number of samples written.
+MicInput & getMicInput()  // Get the global MicInput singleton (microphone capture). Call start() on it to open the device.
 void initAudio()  // Initialize the global AudioEngine. Called automatically by Sound::load() / play(), so manual use is only needed to start audio early (e.g. before an audioOut synthesis listener).
 void shutdownAudio()  // Shut down the global AudioEngine and close the audio device. Usually unnecessary (runs at program exit).
-size_t getAudioAnalysisBuffer(float* outBuffer, size_t numSamples)  // Copy the latest mixed output samples (mono, L+R average) into outBuffer for FFT / visualization. numSamples is capped at the analysis buffer size (4096). Returns the number of samples written.
-MicInput& getMicInput()  // Get the global MicInput singleton (microphone capture). Call start() on it to open the device.
-size_t getMicAnalysisBuffer(float* outBuffer, size_t numSamples)  // Copy the latest microphone input samples into outBuffer. Convenience wrapper over getMicInput().getBuffer(). numSamples is capped at the mic buffer size (4096). Returns the number of samples written.
-```
-
-### ChipSound
-
-```cpp
- ChipSoundNote()  // Create a chip sound note (8-bit style sound)
-ChipSoundBundle& add(const ChipSoundNote& note, float time)  // Add a note at specified time (seconds)
-ChipSoundBundle& clear()  // Clear all notes from bundle
-float getDuration()  // Get the total duration of the bundle
 ```
 
 ### Font
 
 ```cpp
-bool load(const string& path, int size)  // Load TTF font file
-bool isLoaded()  // Check if font is loaded
-void drawString(const string& text, float x, float y)  // Draw text at position
-Path getStringPath(const string& text, float x, float y)  // Get text outline as a Path (one subpath per contour). Stays crisp under scale / rotation; use drawStroke / drawFill (holes auto-detected for e, a, O, 日, etc.).
-float getWidth(const string& text)  // Get text width in pixels
-float getHeight(const string& text)  // Get text height in pixels
-float getLineHeight()  // Get line height
-int getSize()  // Get font size
-string systemFontPath(const string& name)  // Resolve a system font name (PostScript / family) to a file path. Returns empty string if not found. macOS uses CoreText; Linux/Windows currently stub.
-vector<string> listSystemFonts()  // Enumerate names of all fonts known to the OS
-void registerGlyph(const bitmapfont::Glyph & g)  // Register one bitmap glyph so drawBitmapString can render its codepoint. Replaces any glyph already registered at the same codepoint and marks the atlas dirty for re-upload
-void registerGlyphs(const Glyph (&glyphs)[N] glyphs)  // Register a fixed-size array of bitmap glyphs in one call (template over the array size)
-void updateGlyph(uint32_t cp, const uint8_t *newData)  // Swap the pixel data of an already-registered glyph without changing its atlas position. Useful for animating a glyph by updating its data each frame
+std::vector<std::string> listSystemFonts()  // Enumerate names of all fonts known to the OS
+std::string systemFontPath(const std::string & name)  // Resolve a system font name (PostScript / family) to a file path. Returns empty string if not found. macOS uses CoreText; Linux/Windows currently stub.
 ```
 
 ### Animation
@@ -1376,2866 +1219,1911 @@ void updateGlyph(uint32_t cp, const uint8_t *newData)  // Swap the pixel data of
 ```cpp
 float ease(float t, EaseType type, EaseMode mode)  // Apply easing to value (0-1)
 float easeIn(float t, EaseType type)  // Apply ease-in to value (0-1)
+float easeInOut(float t, EaseType type) [+1]  // Apply ease-in-out to value (0-1)
 float easeOut(float t, EaseType type)  // Apply ease-out to value (0-1)
-float easeInOut(float t, EaseType type)  // Apply ease-in-out to value (0-1)
-float getValue()  // Get current tween value
-float getProgress()  // Get progress (0-1)
-float getElapsed()  // Get elapsed time
-float getDuration()  // Get duration
-bool isPlaying()  // Check if playing
-bool isComplete()  // Check if complete
-float getStart()  // Get start value
-float getEnd()  // Get end value
-int getLoopCount()  // Get number of completed loop iterations
-```
-
-### Types - Vec2
-
-```cpp
- Vec2()  // Create 2D vector (type constructor)
- Vec2(float x, float y)  // Create 2D vector (type constructor)
- Vec2(float v)  // Create 2D vector (type constructor)
-Vec2& set(float x, float y)  // Set vector components (type method)
-Vec2& set(float x_, float y_)  // Set vector components (type method)
-```
-
-### Types - Vec3
-
-```cpp
- Vec3()  // Create 3D vector (type constructor)
- Vec3(float x, float y, float z)  // Create 3D vector (type constructor)
- Vec3(float v)  // Create 3D vector (type constructor)
-Vec3& set(float x, float y, float z)  // Set vector components (type method)
-Vec3& set(float x_, float y_, float z_)  // Set vector components (type method)
 ```
 
 ### Types - Color
 
 ```cpp
- Color()  // Create color (type constructor)
- Color(float r, float g, float b)  // Create color (type constructor)
- Color(float r, float g, float b, float a)  // Create color (type constructor)
-Color& set(float r_, float g_, float b_, float a_ = 1.0f)  // Set color components (type method)
-Color& set(float r, float g, float b, float a)  // Set color components (type method)
-Color& set(float gray, float a_ = 1.0f)  // Set color components (type method)
-Color& set(const Color& c)  // Set color components (type method)
-ColorHSB toHSB()  // Convert to HSB color space (H: 0-1, S: 0-1, B: 0-1)
-ColorOKLab toOKLab()  // Convert to OKLab color space (perceptually uniform)
-ColorOKLCH toOKLCH()  // Convert to OKLCH color space (L: 0-1, C: 0-0.4, H: 0-1)
-Color colorFromHSB(float h, float s, float b, float a = 1.0f)  // Create Color from HSB (alias for Color::fromHSB)
-Color colorFromHSB(float h, float s, float b, float a)  // Create Color from HSB (alias for Color::fromHSB)
-Color colorFromOKLCH(float L, float C, float H, float a = 1.0f)  // Deprecated alias for Color::fromOKLCH()
-Color colorFromOKLab(float L, float a_lab, float b_lab, float alpha = 1.0f)  // Deprecated alias for Color::fromOKLab()
-Color colorFromLinear(float r, float g, float b, float a = 1.0f)  // Deprecated alias for Color::fromLinear()
-```
-
-### Types - ColorHSB
-
-```cpp
- ColorHSB(float h, float s, float b)  // HSB color type (H: 0-1, S: 0-1, B: 0-1). Use toRGB() to convert to Color
- ColorHSB(float h, float s, float b, float a)  // HSB color type (H: 0-1, S: 0-1, B: 0-1). Use toRGB() to convert to Color
-Color toRGB()  // Convert ColorHSB to Color (RGB)
-ColorHSB lerp(const ColorHSB & target, float t, bool shortestPath = true)  // Interpolate in HSB space (shortest hue path)
-```
-
-### Types - ColorOKLCH
-
-```cpp
- ColorOKLCH(float L, float C, float H)  // OKLCH color type (L: 0-1, C: 0-0.4, H: 0-1). Perceptually uniform
- ColorOKLCH(float L, float C, float H, float a)  // OKLCH color type (L: 0-1, C: 0-0.4, H: 0-1). Perceptually uniform
-Color toRGB()  // Convert ColorOKLCH to Color (RGB)
-ColorOKLCH lerp(const ColorOKLCH & target, float t, bool shortestPath = true)  // Interpolate in OKLCH space (shortest hue path, perceptually uniform)
-```
-
-### Types - Rect
-
-```cpp
- Rect()  // Create a rectangle (type constructor)
- Rect(float x, float y, float w, float h)  // Create a rectangle (type constructor)
-Rect& set(float x, float y, float w, float h)  // Set rectangle properties (type method)
-Rect& set(float x_, float y_, float w_, float h_)  // Set rectangle properties (type method)
-bool contains(float x, float y)  // Check if point is inside (type method)
-bool intersects(const Rect & other)  // Check intersection (type method)
+Color colorFromHSB(float h, float s, float b, float a = …) ⚠️deprecated  // Create Color from HSB (alias for Color::fromHSB)
+Color colorFromLinear(float r, float g, float b, float a = …) ⚠️deprecated  // Deprecated alias for Color::fromLinear()
+Color colorFromOKLab(float L, float a_lab, float b_lab, float alpha = …) ⚠️deprecated  // Deprecated alias for Color::fromOKLab()
+Color colorFromOKLCH(float L, float C, float H, float a = …) ⚠️deprecated  // Deprecated alias for Color::fromOKLCH()
 ```
 
 ### Scene Graph
 
 ```cpp
- Node()  // Create a base scene node (C++ only - uses shared_ptr)
-void addChild(Node::Ptr child, bool keepGlobalPosition = false)  // Add a child node (C++ only)
-void moveToFront()  // Move this node to the end of its parent's child list — drawn last, on top of siblings. No-op if no parent or already last (C++ only)
-void moveToBack()  // Move this node to the beginning of its parent's child list — drawn first, beneath siblings. No-op if no parent or already first (C++ only)
-void destroy()  // Mark node for deferred removal from scene graph (C++ only)
-bool isDead()  // Check if node is marked for destruction (C++ only)
- RectNode()  // Create a 2D rectangle node (C++ only - uses shared_ptr)
-void setSize(float w, float h)  // Set size (C++ only)
-void setClipping(bool enabled)  // Enable/disable scissor clipping for RectNode (C++ only)
-void enableEvents()  // Enable mouse/key events for this node (C++ only)
-void insertChild(size_t index, Node::Ptr child, bool keepGlobalPosition = false)  // Insert a child node at a specific index (C++ only)
-void removeChild(Node::Ptr child)  // Remove a child node (C++ only)
-void removeAllChildren()  // Remove all child nodes (C++ only)
-Node::Ptr getParent()  // Get the parent node (null if none) (C++ only)
-std::vector<Node::Ptr> getChildren()  // Get a copy of the child node list (safe to iterate while modifying) (C++ only)
-size_t getChildCount()  // Get the number of child nodes (C++ only)
-int indexOfChild(const Node* child)  // Index of the given child among this node's children (-1 if not a child) (C++ only)
-int getChildIndex()  // This node's index among its parent's children (-1 if no parent) (C++ only)
-Node* findByInstanceId(uint64_t id)  // Find a node in this subtree (self included) by instance id, depth-first (null if not found) (C++ only)
-uint64_t getInstanceId()  // Per-process unique id, assigned once at construction and stable across reparenting (C++ only)
-void onChildAdded(Node::Ptr child)  // Callback fired when a child is added (overridable) (C++ only)
-void onChildRemoved(Node::Ptr child)  // Callback fired when a child is removed (overridable) (C++ only)
-bool isActive()  // Whether the node is active (inactive: update and draw are skipped) (C++ only)
-void setActive(bool active)  // Set the active state (inactive: update and draw are skipped) (C++ only)
-bool isVisible()  // Whether the node is visible (invisible: only draw is skipped) (C++ only)
-void setVisible(bool visible)  // Set the visible state (invisible: only draw is skipped) (C++ only)
-bool getActive()  // Deprecated alias for isActive()
-bool getVisible()  // Deprecated alias for isVisible()
-void setIsActive(bool active)  // Deprecated alias for setActive()
-void setIsVisible(bool visible)  // Deprecated alias for setVisible()
-void disableEvents()  // Disable mouse/key events for this node (C++ only)
-bool isEventsEnabled()  // Whether events are enabled (only such nodes are hit-test targets) (C++ only)
-bool isMouseOver()  // Whether the mouse is over this node (auto-updated each frame, O(1)) (C++ only)
-Node& setName(const std::string& name)  // Set an optional instance name (chainable) (C++ only)
-const std::string& getName()  // Get the optional instance name (empty unless setName() was called) (C++ only)
-bool hasName()  // Whether an instance name has been set (C++ only)
-const std::string& getTypeName()  // C++ class name (most-derived type) via RTTI, e.g. "trussc::RectNode" (cached) (C++ only)
-std::string getDisplayName()  // Short type-anchored label for trees / inspectors, e.g. "RectNode" or "RectNode (play)" (C++ only)
-const Vec3& getPos()  // Get local position (C++ only)
-float getX()  // Get local X position (C++ only)
-float getY()  // Get local Y position (C++ only)
-float getZ()  // Get local Z position (C++ only)
-void setPos(const Vec3& pos)  // Set local position (C++ only)
-void setPos(float x, float y, float z = 0.0f)  // Set local position (C++ only)
-void setX(float x)  // Set local X position (C++ only)
-void setY(float y)  // Set local Y position (C++ only)
-void setZ(float z)  // Set local Z position (C++ only)
-const Quaternion& getQuaternion()  // Get rotation as a quaternion (C++ only)
-void setQuaternion(const Quaternion& q)  // Set rotation from a quaternion (C++ only)
-Vec3 getEuler()  // Get rotation as Euler angles in radians (pitch=X, yaw=Y, roll=Z) (C++ only)
-void setEuler(const Vec3& euler)  // Set rotation from Euler angles in radians (pitch=X, yaw=Y, roll=Z) (C++ only)
-void setEuler(float pitch, float yaw, float roll)  // Set rotation from Euler angles in radians (pitch=X, yaw=Y, roll=Z) (C++ only)
-Vec3 getEulerDeg()  // Get rotation as Euler angles in degrees (C++ only)
-void setEulerDeg(const Vec3& deg)  // Set rotation from Euler angles in degrees (C++ only)
-float getRot()  // Get 2D Z-axis rotation in radians (C++ only)
-void setRot(float radians)  // Set 2D Z-axis rotation in radians (C++ only)
-float getRotDeg()  // Get 2D Z-axis rotation in degrees (C++ only)
-void setRotDeg(float degrees)  // Set 2D Z-axis rotation in degrees (C++ only)
-const Vec3& getScale()  // Get local scale (C++ only)
-float getScaleX()  // Get local X scale (C++ only)
-float getScaleY()  // Get local Y scale (C++ only)
-float getScaleZ()  // Get local Z scale (C++ only)
-void setScale(const Vec3& s)  // Set local scale (vector, uniform, or per-axis) (C++ only)
-void setScale(float uniform)  // Set local scale (vector, uniform, or per-axis) (C++ only)
-void setScale(float sx, float sy, float sz = 1.0f)  // Set local scale (vector, uniform, or per-axis) (C++ only)
-void setScaleX(float sx)  // Set local X scale (C++ only)
-void setScaleY(float sy)  // Set local Y scale (C++ only)
-void setScaleZ(float sz)  // Set local Z scale (C++ only)
-const Mat4& getLocalMatrix()  // Get this node's local transform matrix (cached) (C++ only)
-const Mat4& getGlobalMatrix()  // Get this node's global transform matrix, including parent transforms (cached) (C++ only)
-Mat4 getGlobalMatrixInverse()  // Get the inverse of the global transform matrix (C++ only)
-Vec3 getGlobalPos()  // Get the node's origin in global (world) space (C++ only)
-void setGlobalPos(const Vec3& global)  // Set the node's position in global (world) space (C++ only)
-void setGlobalPos(float x, float y, float z = 0.0f)  // Set the node's position in global (world) space (C++ only)
-Vec3 globalToLocal(const Vec3& global)  // Convert a global coordinate to this node's local space (C++ only)
-Vec3 localToGlobal(const Vec3& local)  // Convert a local coordinate to global space (C++ only)
-float getMouseX()  // Get mouse X in this node's local coordinate system (C++ only)
-float getMouseY()  // Get mouse Y in this node's local coordinate system (C++ only)
-float getPMouseX()  // Get previous-frame mouse X in this node's local coordinate system (C++ only)
-float getPMouseY()  // Get previous-frame mouse Y in this node's local coordinate system (C++ only)
-std::vector<Mod*> getMods()  // Get all attached mods (pointers stay owned by this node) (C++ only)
-std::vector<std::string> getModTypeNames()  // Get the short (unqualified) type names of the attached mods (C++ only)
-Mod* getModByTypeName(const std::string& name)  // Find an attached mod by its short type name, e.g. "LayoutMod" (null if not attached) (C++ only)
-Node::HitResult findHitNode(const Ray& globalRay)  // Hit test the whole tree with a global ray, returning the frontmost node (C++ only)
-Node::HitResult findHitNodeFromScreen(float screenX, float screenY)  // Hit test the whole tree from a screen point, using each node's own camera context (C++ only)
- ScrollContainer()  // Scrollable container node with clipping (C++ only)
-void setContent(Node::Ptr newContent)  // Set content node for ScrollContainer (C++ only)
-void setScrollY(float y)  // Set vertical scroll position (C++ only)
- ScrollBar(ScrollContainer* container, Direction dir = Vertical)  // Visual scroll indicator for ScrollContainer (C++ only)
- LayoutMod(LayoutDirection dir, float spacing = 0)  // Layout modifier for automatic child arrangement (C++ only)
-void updateLayout()  // Recalculate layout (call after adding/removing children) (C++ only)
- TweenMod()  // Animation modifier for Node properties (position, scale, rotation) with easing (C++ only)
-TweenMod& moveTo(float x, float y, float z = 0.0f)  // Animate position to target (TweenMod method) (C++ only)
-TweenMod& moveTo(const Vec3& pos)  // Animate position to target (TweenMod method) (C++ only)
-TweenMod& moveBy(float dx, float dy, float dz = 0.0f)  // Animate position by relative amount (TweenMod method) (C++ only)
-TweenMod& scaleTo(float uniform)  // Animate scale to target (TweenMod method) (C++ only)
-TweenMod& scaleTo(float sx, float sy, float sz = 1)  // Animate scale to target (TweenMod method) (C++ only)
-TweenMod& scaleBy(float factor)  // Animate scale by relative multiplier (TweenMod method) (C++ only)
-TweenMod& rotateTo(float radians)  // Animate rotation to target angle or quaternion (TweenMod method) (C++ only)
-TweenMod& rotateTo(const Quaternion& q)  // Animate rotation to target angle or quaternion (TweenMod method) (C++ only)
-TweenMod& rotateBy(float radians)  // Animate rotation by relative angle (TweenMod method) (C++ only)
-TweenMod& duration(float seconds)  // Set animation duration (TweenMod method) (C++ only)
-TweenMod& ease(EaseType type, EaseMode mode = InOut)  // Set easing function (TweenMod method). Types: Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce. Modes: In, Out, InOut (C++ only)
-TweenMod& delay(float seconds)  // Set delay before animation starts (TweenMod method) (C++ only)
-TweenMod& moveFrom(float x, float y, float z = 0.0f)  // Set an explicit start position for the position tween (TweenMod method) (C++ only)
-TweenMod& moveFrom(const Vec3& pos)  // Set an explicit start position for the position tween (TweenMod method) (C++ only)
-TweenMod& scaleFrom(float uniform)  // Set an explicit start scale for the scale tween (TweenMod method) (C++ only)
-TweenMod& scaleFrom(float sx, float sy, float sz = 1.0f)  // Set an explicit start scale for the scale tween (TweenMod method) (C++ only)
-TweenMod& rotateFrom(float radians)  // Set an explicit start rotation (angle or quaternion) for the rotation tween (TweenMod method) (C++ only)
-TweenMod& rotateFrom(const Quaternion& q)  // Set an explicit start rotation (angle or quaternion) for the rotation tween (TweenMod method) (C++ only)
-TweenMod& rotateXTo(float radians)  // Animate X-axis rotation to an absolute angle (TweenMod method) (C++ only)
-TweenMod& rotateXBy(float radians)  // Animate X-axis rotation by a relative angle (TweenMod method) (C++ only)
-TweenMod& rotateXFrom(float radians)  // Set an explicit start angle for the X-axis rotation tween (TweenMod method) (C++ only)
-TweenMod& rotateYTo(float radians)  // Animate Y-axis rotation to an absolute angle (TweenMod method) (C++ only)
-TweenMod& rotateYBy(float radians)  // Animate Y-axis rotation by a relative angle (TweenMod method) (C++ only)
-TweenMod& rotateYFrom(float radians)  // Set an explicit start angle for the Y-axis rotation tween (TweenMod method) (C++ only)
-TweenMod& rotateZTo(float radians)  // Animate Z-axis rotation to an absolute angle (same as rotateTo for 2D) (TweenMod method) (C++ only)
-TweenMod& rotateZBy(float radians)  // Animate Z-axis rotation by a relative angle (same as rotateBy for 2D) (TweenMod method) (C++ only)
-TweenMod& start()  // Start (or restart) the tween from its configured values (TweenMod method) (C++ only)
-TweenMod& pause()  // Pause playback, keeping the current progress (TweenMod method) (C++ only)
-TweenMod& resume()  // Resume a paused tween (TweenMod method) (C++ only)
-TweenMod& reset()  // Reset progress to the start and stop playback (TweenMod method) (C++ only)
-bool isPlaying()  // Whether the tween is currently playing (TweenMod method) (C++ only)
-bool isComplete()  // Whether the tween has finished (TweenMod method) (C++ only)
-float getProgress()  // Current progress in 0..1 (TweenMod method) (C++ only)
-float getDuration()  // Get the animation duration in seconds (TweenMod method) (C++ only)
-float getDelay()  // Get the start delay in seconds (TweenMod method) (C++ only)
-EaseType getEaseType()  // Get the current easing type (TweenMod method) (C++ only)
-EaseMode getEaseMode()  // Get the current easing mode (In/Out/InOut) (TweenMod method) (C++ only)
-LayoutDirection getDirection()  // Get the layout direction (Vertical/Horizontal) (LayoutMod method) (C++ only)
-LayoutMod& setDirection(LayoutDirection dir)  // Set the layout direction and re-layout (LayoutMod method) (C++ only)
-float getSpacing()  // Get the spacing between children (LayoutMod method) (C++ only)
-LayoutMod& setSpacing(float spacing)  // Set the spacing between children and re-layout (LayoutMod method) (C++ only)
-AxisMode getCrossAxis()  // Get the cross-axis sizing mode (LayoutMod method) (C++ only)
-LayoutMod& setCrossAxis(AxisMode mode)  // Set the cross-axis sizing mode and re-layout (LayoutMod method) (C++ only)
-AxisMode getMainAxis()  // Get the main-axis sizing mode (LayoutMod method) (C++ only)
-LayoutMod& setMainAxis(AxisMode mode)  // Set the main-axis sizing mode and re-layout (LayoutMod method) (C++ only)
-float getPaddingLeft()  // Get the left padding (LayoutMod method) (C++ only)
-float getPaddingTop()  // Get the top padding (LayoutMod method) (C++ only)
-float getPaddingRight()  // Get the right padding (LayoutMod method) (C++ only)
-float getPaddingBottom()  // Get the bottom padding (LayoutMod method) (C++ only)
-LayoutMod& setPadding(float padding)  // Set padding (uniform, vertical/horizontal, or per-side) and re-layout (LayoutMod method) (C++ only)
-LayoutMod& setPadding(float vertical, float horizontal)  // Set padding (uniform, vertical/horizontal, or per-side) and re-layout (LayoutMod method) (C++ only)
-LayoutMod& setPadding(float top, float right, float bottom, float left)  // Set padding (uniform, vertical/horizontal, or per-side) and re-layout (LayoutMod method) (C++ only)
-LayoutMod& setPaddingLeft(float v)  // Set the left padding and re-layout (LayoutMod method) (C++ only)
-LayoutMod& setPaddingTop(float v)  // Set the top padding and re-layout (LayoutMod method) (C++ only)
-LayoutMod& setPaddingRight(float v)  // Set the right padding and re-layout (LayoutMod method) (C++ only)
-LayoutMod& setPaddingBottom(float v)  // Set the bottom padding and re-layout (LayoutMod method) (C++ only)
-float getWidth()  // Get the node width (RectNode method) (C++ only)
-float getHeight()  // Get the node height (RectNode method) (C++ only)
-Vec2 getSize()  // Get the node size as a Vec2 (RectNode method) (C++ only)
-void setWidth(float w)  // Set the node width (RectNode method) (C++ only)
-void setHeight(float h)  // Set the node height (RectNode method) (C++ only)
-void setRect(float x, float y, float w, float h)  // Set position and size at once (RectNode method) (C++ only)
-bool isClipping()  // Whether scissor clipping is enabled (RectNode method) (C++ only)
-float getLeft()  // Local left edge (always 0) (RectNode method) (C++ only)
-float getRight()  // Local right edge (equals width) (RectNode method) (C++ only)
-float getTop()  // Local top edge (always 0) (RectNode method) (C++ only)
-float getBottom()  // Local bottom edge (equals height) (RectNode method) (C++ only)
-bool hitTest(const Ray& localRay, float& outDistance)  // Hit-test the rectangle against a ray (with out distance) or a 2D point (RectNode method) (C++ only)
-bool hitTest(Vec2 local)  // Hit-test the rectangle against a ray (with out distance) or a 2D point (RectNode method) (C++ only)
-Node::Ptr getContent()  // Get the scrollable content node (ScrollContainer method) (C++ only)
-RectNode* getContentRect()  // Get the content node cast to RectNode (null if not a RectNode) (ScrollContainer method) (C++ only)
-float getScrollX()  // Get the horizontal scroll position (ScrollContainer method) (C++ only)
-float getScrollY()  // Get the vertical scroll position (ScrollContainer method) (C++ only)
-Vec2 getScroll()  // Get the scroll position as a Vec2 (ScrollContainer method) (C++ only)
-void setScrollX(float x)  // Set the horizontal scroll position (clamped) (ScrollContainer method) (C++ only)
-void setScroll(float x, float y)  // Set the scroll position from x/y or a Vec2 (clamped) (ScrollContainer method) (C++ only)
-void setScroll(Vec2 pos)  // Set the scroll position from x/y or a Vec2 (clamped) (ScrollContainer method) (C++ only)
-float getMaxScrollX()  // Get the maximum horizontal scroll (ScrollContainer method) (C++ only)
-float getMaxScrollY()  // Get the maximum vertical scroll (ScrollContainer method) (C++ only)
-void updateScrollBounds()  // Recalculate scroll bounds from the content size (ScrollContainer method) (C++ only)
-bool isHorizontalScrollEnabled()  // Whether horizontal scrolling is enabled (ScrollContainer method) (C++ only)
-bool isVerticalScrollEnabled()  // Whether vertical scrolling is enabled (ScrollContainer method) (C++ only)
-void setHorizontalScrollEnabled(bool enabled)  // Enable or disable horizontal scrolling (ScrollContainer method) (C++ only)
-void setVerticalScrollEnabled(bool enabled)  // Enable or disable vertical scrolling (ScrollContainer method) (C++ only)
-float getScrollSpeed()  // Get the scroll speed (wheel/trackpad sensitivity) (ScrollContainer method) (C++ only)
-void setScrollSpeed(float speed)  // Set the scroll speed (wheel/trackpad sensitivity) (ScrollContainer method) (C++ only)
-Color getBarColor()  // Get the scroll-bar color (ScrollBar method) (C++ only)
-void setBarColor(const Color& color)  // Set the scroll-bar color (ScrollBar method) (C++ only)
-float getBarWidth()  // Get the scroll-bar thickness (ScrollBar method) (C++ only)
-void setBarWidth(float width)  // Set the scroll-bar thickness (ScrollBar method) (C++ only)
-float getMargin()  // Get the margin between the bar and the container edge (ScrollBar method) (C++ only)
-void setMargin(float margin)  // Set the margin between the bar and the container edge (ScrollBar method) (C++ only)
-float getOffset()  // Get the rounded-cap draw offset (round(barWidth/2)) (ScrollBar method) (C++ only)
-void updateFromContainer()  // Resync the bar size and position from its ScrollContainer (ScrollBar method) (C++ only)
-Node* getSelectedNode()  // Get the currently selected node (the last-clicked node, held by the Node system; null if none). A tool such as an inspector can read it and drive it via setSelectedNode().
-void setSelectedNode(Node* n)  // Set the currently selected node. Pass nullptr to clear the selection.
-Node* getRootNode()  // Get the running App as the root of the node tree (set by the framework while the app is alive, null otherwise). Lets tools walk the whole tree without the app passing itself around.
+Node * getRootNode()  // Get the running App as the root of the node tree (set by the framework while the app is alive, null otherwise). Lets tools walk the whole tree without the app passing itself around.
+Node * getSelectedNode()  // Get the currently selected node (the last-clicked node, held by the Node system; null if none). A tool such as an inspector can read it and drive it via setSelectedNode().
+void setSelectedNode(Node * n)  // Set the currently selected node. Pass nullptr to clear the selection.
 ```
 
 ### 3D Setup
 
 ```cpp
-void setupScreenPerspective(float fovDeg = 45.0f, float nearDist = 0.0f, float farDist = 0.0f)  // Set up perspective projection (oF-style default 3D)
-void setupScreenPerspective(float fovDeg = 45.0f, float nearDist = 0.0f, float farDist = 0.0f)  // Set up perspective projection (oF-style default 3D)
-void setupScreenPerspective(float fovDeg, float nearDist, float farDist)  // Set up perspective projection (oF-style default 3D)
-void setupScreenOrtho()  // Set up orthographic projection (2D mode)
-void setupScreenFov(float fovDeg, float nearDist = 0.0f, float farDist = 0.0f)  // Set up screen projection with specified FOV (0 = ortho, >0 = perspective)
-void setupScreenFov(float fovDeg, float nearDist, float farDist)  // Set up screen projection with specified FOV (0 = ortho, >0 = perspective)
-void setNearClip(float nearDist)  // Set the default-screen near clipping plane (0 = auto-calculate)
-void setFarClip(float farDist)  // Set the default-screen far clipping plane (0 = auto-calculate)
-Vec3 worldToScreen(const Vec3& worldPos)  // Convert a world coordinate to screen coordinate (x, y = screen pixels, z = depth 0-1)
-void enable3D()  // Deprecated alias for setupScreenPerspective()
-void enable3DPerspective(float fovY = 0.785f, float nearZ = 0.1f, float farZ = 1000.0f)  // Deprecated alias for setupScreenPerspective()
-void disable3D()  // Deprecated alias for setupScreenOrtho()
-void setDefaultScreenFov(float fovDeg)  // Set default screen FOV (applied at frame start)
+void disable3D() ⚠️deprecated  // Deprecated alias for setupScreenOrtho()
+void enable3D() ⚠️deprecated  // Deprecated alias for setupScreenPerspective()
+void enable3DPerspective(float fovY = …, float nearZ = …, float farZ = …) ⚠️deprecated  // Deprecated alias for setupScreenPerspective()
 float getDefaultScreenFov()  // Get current default screen FOV
-Vec3 worldToScreen(const Vec3& worldPos)  // Convert world coordinate to screen coordinate (x, y = screen pos, z = depth 0-1)
-Vec3 screenToWorld(const Vec2 & screenPos, float worldZ = 0.0f)  // Convert screen coordinate to world coordinate on Z plane
-Vec3 screenToWorld(const Vec2& screenPos, float worldZ)  // Convert screen coordinate to world coordinate on Z plane
+Vec3 screenToWorld(const Vec2 & screenPos, float worldZ = …)  // Convert screen coordinate to world coordinate on Z plane
+void setDefaultScreenFov(float fovDeg)  // Set default screen FOV (applied at frame start)
+void setFarClip(float farDist)  // Set the default-screen far clipping plane (0 = auto-calculate)
+void setNearClip(float nearDist)  // Set the default-screen near clipping plane (0 = auto-calculate)
+void setupScreenFov(float fovDeg, float nearDist = …, float farDist = …)  // Set up screen projection with specified FOV (0 = ortho, >0 = perspective)
+void setupScreenOrtho()  // Set up orthographic projection (2D mode)
+void setupScreenPerspective(float fovDeg = …, float nearDist = …, float farDist = …)  // Set up perspective projection (oF-style default 3D)
+Vec3 worldToScreen(const Vec3 & worldPos)  // Convert a world coordinate to screen coordinate (x, y = screen pixels, z = depth 0-1)
 ```
 
 ### 3D Camera
 
 ```cpp
-void begin()  // Apply camera transform (start 3D mode)
-void end()  // Restore previous transform (end 3D mode)
-void reset()  // Reset camera to default position
-void setTarget(float x, float y, float z)  // Set camera look-at target
-void setTarget(const Vec3 &target)  // Set camera look-at target
-Vec3 getTarget()  // Get camera look-at target
-void setDistance(float distance)  // Set distance from target
-float getDistance()  // Get distance from target
-void setAzimuth(float radians)  // Set orbit azimuth (horizontal angle, radians)
-float getAzimuth()  // Get orbit azimuth (horizontal angle, radians)
-void setElevation(float radians)  // Set orbit elevation (vertical angle, radians; clamped to ~±80°)
-float getElevation()  // Get orbit elevation (vertical angle, radians)
-void setFov(float radians)  // Set field of view in radians
-float getFov()  // Get field of view in radians
-void setFovDeg(float degrees)  // Set field of view in degrees
-void setNearClip(float nearClip)  // Set near clipping plane
-void setFarClip(float farClip)  // Set far clipping plane
-float getNearClip()  // Get near clipping plane distance
+const Vec3 & getCameraPosition()  // Current camera position used for specular/PBR view vector
 float getFarClip()  // Get far clipping plane distance
-void enableMouseInput()  // Enable mouse input for camera control
-void disableMouseInput()  // Disable mouse input for camera control
-bool isMouseInputEnabled()  // Check if mouse input is enabled
-void mousePressed(int x, int y, int button)  // Handle mouse press event
-void mouseReleased(int x, int y, int button)  // Handle mouse release event
-void mouseDragged(int x, int y, int button)  // Handle mouse drag event
-void mouseScrolled(float dx, float dy)  // Handle mouse scroll event (for zoom)
-Vec3 getPosition()  // Get camera position
-void setSensitivity(float sensitivity)  // Set rotation sensitivity
-void setZoomSensitivity(float sensitivity)  // Set zoom sensitivity
-void setPanSensitivity(float sensitivity)  // Set pan sensitivity
-void setUpAxis(const Vec3& up)  // Set the camera up axis (default Y-up; use (0,0,1) for Z-up)
-void setUpAxis(float x, float y, float z)  // Set the camera up axis (default Y-up; use (0,0,1) for Z-up)
-Vec3 getUpAxis()  // Get the camera up axis
-void enableOrtho()  // Enable orthographic projection
-void disableOrtho()  // Disable orthographic projection (use perspective)
-void setOrtho(bool ortho)  // Set orthographic projection on/off
-bool getOrtho()  // Get whether orthographic projection is enabled
-EasyCam& setOrbitButton(int button)  // Set the mouse button that orbits the camera (default: left)
-int getOrbitButton()  // Get the mouse button that orbits the camera
-EasyCam& setPanButton(int button)  // Set the mouse button that pans the camera (default: middle)
-int getPanButton()  // Get the mouse button that pans the camera
-EasyCam& setDragModifier(Modifier m)  // Set the modifier key required for camera mouse input (default: None)
-Modifier getDragModifier()  // Get the modifier key required for camera mouse input
-void setControlArea(const Rect& area)  // Constrain camera mouse input to a screen rectangle
-void clearControlArea()  // Clear the camera mouse-input control area constraint
-Quaternion getOrientation()  // Get the camera orientation quaternion
-void setOrientation(const Quaternion& q)  // Set the camera orientation quaternion
-const Vec3& getCameraPosition()  // Current camera position used for specular/PBR view vector
+float getNearClip()  // Get near clipping plane distance
 ```
 
 ### Lighting & PBR
 
 ```cpp
-void addLight(Light& light)  // Add a light to the scene
-void removeLight(Light& light)  // Remove a light from the scene
-void clearLights()  // Remove all lights from the scene
-void setMaterial(Material& material)  // Set material for subsequent mesh draws (activates PBR)
-void clearMaterial()  // Clear material (return to default rendering)
-void setCameraPosition(const Vec3& pos)  // Set camera position for specular calculation
-void setCameraPosition(float x, float y, float z)  // Set camera position for specular calculation
-void setEnvironment(Environment& env)  // Set IBL environment for PBR ambient lighting
+void addLight(Light & light)  // Add a light to the scene
+void beginShadowPass(Light & light)  // Begin shadow depth pass from the light's point of view
+Color calculateLighting(const Vec3 & worldPos, const Vec3 & worldNormal, const Material & material)  // CPU-side lighting result for a world position and normal, summing all active lights with the given material
 void clearEnvironment()  // Clear IBL environment
-void beginShadowPass(Light& light)  // Begin shadow depth pass from the light's point of view
+void clearLights()  // Remove all lights from the scene
+void clearMaterial()  // Clear material (return to default rendering)
 void endShadowPass()  // End shadow depth pass
-void shadowDraw(const Mesh& mesh)  // Draw a mesh into the shadow depth pass (depth only)
+Environment * getEnvironment()  // Get the current environment (IBL/skybox), or nullptr if none is set
 int getNumLights()  // Number of currently active lights
-Environment* getEnvironment()  // Get the current environment (IBL/skybox), or nullptr if none is set
-Color calculateLighting(const Vec3& worldPos, const Vec3& worldNormal, const Material& material)  // CPU-side lighting result for a world position and normal, summing all active lights with the given material
+void removeLight(Light & light)  // Remove a light from the scene
+void setCameraPosition(const Vec3 & pos) [+1]  // Set camera position for specular calculation
+void setEnvironment(Environment & env)  // Set IBL environment for PBR ambient lighting
+void setMaterial(Material & material)  // Set material for subsequent mesh draws (activates PBR)
+void shadowDraw(const Mesh & mesh)  // Draw a mesh into the shadow depth pass (depth only)
 ```
 
 ### Graphics - Advanced
 
 ```cpp
-void drawMesh(const Mesh & mesh)  // Draw a mesh
-Mesh createBox(float size)  // Create a box mesh
-Mesh createBox(float w, float h, float d)  // Create a box mesh
-Mesh createPlane(float width, float height, int cols = 2, int rows = 2)  // Create a plane mesh (subdivided quad on the XY plane)
-Mesh createCylinder(float radius, float height, int resolution = 16)  // Create a cylinder mesh
-Mesh createCone(float radius, float height, int resolution = 16)  // Create a cone mesh
-Mesh createIcoSphere(float radius, int subdivisions = 2)  // Create an icosphere mesh (geodesic sphere with uniform triangles)
-Mesh createTorus(float radius, float tubeRadius, int sides = 24, int rings = 16)  // Create a torus (donut) mesh
-Mesh createSphere(float radius, int res = 20)  // Create a sphere mesh
-Mesh createCapsule(float radius, float cylinderHeight, int res = 16)  // Create a capsule mesh (Y-up: cylinder capped by two hemispheres)
+Mesh createBox(float width, float height, float depth) [+1]  // Create a box mesh
+Mesh createCapsule(float radius, float cylinderHeight, int resolution = …)  // Create a capsule mesh (Y-up: cylinder capped by two hemispheres)
+Mesh createCone(float radius, float height, int resolution = …)  // Create a cone mesh
+Mesh createCylinder(float radius, float height, int resolution = …)  // Create a cylinder mesh
+Mesh createIcoSphere(float radius, int subdivisions = …)  // Create an icosphere mesh (geodesic sphere with uniform triangles)
+Mesh createPlane(float width, float height, int cols = …, int rows = …)  // Create a plane mesh (subdivided quad on the XY plane)
+Mesh createSphere(float radius, int resolution = …)  // Create a sphere mesh
+Mesh createTorus(float radius, float tubeRadius, int sides = …, int rings = …)  // Create a torus (donut) mesh
 ```
 
 ### Graphics - Texture & GPU
 
 ```cpp
- Texture()  // Create a texture
-bool load(const std::filesystem::path & path, bool mipmaps = false)  // Load image from file
-void bind()  // Bind texture
-void unbind()  // Unbind texture
-int getWidth()  // Get width
-int getHeight()  // Get height
-int channelCount(TextureFormat fmt)  // Number of color channels for a TextureFormat (1, 2, or 4)
 int bytesPerPixel(TextureFormat fmt)  // Bytes per pixel for a TextureFormat
+int channelCount(TextureFormat fmt)  // Number of color channels for a TextureFormat (1, 2, or 4)
 bool isFloatFormat(TextureFormat fmt)  // Whether a TextureFormat uses floating-point components
-void allocateCubemap(int sideSize, TextureFormat format, TextureUsage usage = TextureUsage::RenderTarget, int mipLevels = 1)  // Allocate a cubemap texture without initial data
-void uploadCubemapFace(int face, int mipLevel, const void* data, size_t dataSize)  // Upload pixel data for one cubemap face at one mip level
-void uploadCubemapMip(int mipLevel, const void* data, size_t dataSize)  // Upload pixel data for all six faces of one cubemap mip level
-bool isCubemap()  // Whether this texture is a cubemap
-int getNumMipLevels()  // Number of mip levels
-bool isCompressed()  // Whether this texture uses a compressed pixel format
-void updateCompressed(const void* data, size_t dataSize)  // Upload compressed pixel data to an already-allocated texture
-bool isPremultipliedAlpha()  // Whether the texture color is premultiplied by alpha
-void setPremultipliedAlpha(bool v)  // Set whether the texture color is premultiplied by alpha
-void drawFlippedY(float x, float y, float w, float h)  // Draw the texture vertically flipped
-```
-
-### Graphics - FBO
-
-```cpp
- Fbo()  // Create an FBO
-void allocate(int w, int h, int sampleCount = 1, TextureFormat format = TextureFormat::RGBA8, bool mipmaps = false)  // Allocate buffer
-void begin()  // Begin drawing to FBO. No args = preserve previous content. With args = clear with specified color
-void begin(float r, float g, float b, float a = 1.0)  // Begin drawing to FBO. No args = preserve previous content. With args = clear with specified color
-void end()  // End drawing to FBO
-Texture& getTexture()  // Get internal texture
-void clearColor(float r, float g, float b, float a)  // Clear the FBO with a solid color
-bool readPixels(unsigned char* pixels)  // Read FBO contents into a CPU buffer (8-bit per channel)
-bool readPixelsFloat(float* pixels)  // Read FBO contents into a CPU buffer (32-bit float per channel)
-TextureFormat getTextureFormat()  // Get the FBO's color texture format
 ```
 
 ### Graphics - Shader
 
 ```cpp
- Shader()  // Create a shader (base class, inheritable)
-bool load(const sg_shader_desc* (*descFn)(sg_backend) descFn)  // Load from sokol-shdc generated function
-bool isLoaded()  // Check if shader is loaded
-void begin()  // Begin shader (pushes to stack)
-void end()  // End shader (pops from stack)
-void pushShader(Shader& shader)  // Push shader to stack (subsequent draws use this shader)
 void popShader()  // Pop shader from stack
-void setUniform(int slot, float value)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setUniform(int slot, const Vec2& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setUniform(int slot, const Vec3& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setUniform(int slot, const Vec4& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setUniform(int slot, const Color& c)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setUniform(int slot, const vector<float>& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setUniform(int slot, const vector<Vec2>& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setUniform(int slot, const vector<Vec3>& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setUniform(int slot, const vector<Vec4>& v)  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
-void setTexture(int slot, sg_view view, sg_sampler sampler)  // Bind texture to slot
-```
-
-### Types - Pixels
-
-```cpp
- Pixels()  // Create pixel buffer
-void allocate(int width, int height, int channels = 4, PixelFormat format = PixelFormat::U8)  // Allocate memory
-uint8_t* getData()  // Get raw data pointer
-Color getColor(int x, int y)  // Get color at pixel
-void setColor(int x, int y, const Color& c)  // Set color at pixel
-bool save(const std::filesystem::path & path)  // Save to file
-PixelFormat getFormat()  // Get the pixel format
-bool isFloat()  // Whether the pixel data uses 32-bit floats
-float* getDataF32()  // Get raw data pointer as float (float-format buffers)
-void* getDataVoid()  // Get raw data pointer as void* (any format)
-void setFromFloats(const float* srcData, int width, int height, int channels)  // Fill the buffer from a float array (allocates as needed)
-Pixels clone()  // Return a deep copy of the pixel buffer
-bool loadHDR(const std::filesystem::path & path)  // Load an HDR (.hdr) image into a float pixel buffer
-bool loadPlatform(const std::filesystem::path & path)  // Load an image using the platform image decoder
-```
-
-### Types - Mesh
-
-```cpp
- Mesh()  // Create a new Mesh (constructor)
-Mesh& setMode(PrimitiveMode mode)  // Set primitive mode (MESH_TRIANGLES, etc.)
-Mesh& addVertex(float x, float y, float z)  // Add a vertex
-Mesh& addVertex(const Vec3& v)  // Add a vertex
-Mesh& addColor(float r, float g, float b, float a)  // Add a color for the vertex
-Mesh& addColor(const Color& c)  // Add a color for the vertex
-Mesh& addTexCoord(float u, float v)  // Add a texture coordinate
-Mesh& addNormal(float x, float y, float z)  // Add a normal vector
-Mesh& addIndex(unsigned int)  // Add an index
-Mesh& addTriangle(unsigned int, unsigned int, unsigned int)  // Add a triangle (3 indices)
-Mesh& clear()  // Clear all data
-void draw()  // Draw the mesh
-Mesh& addTangent(float tx, float ty, float tz, float tw = 1.0f)  // Add a tangent vector (xyz direction + w handedness)
-Mesh& addTangent(const Vec4& t)  // Add a tangent vector (xyz direction + w handedness)
-Mesh& addTangent(const Vec3& t, float w = 1.0f)  // Add a tangent vector (xyz direction + w handedness)
-std::vector<Vec4>& getTangents()  // Get the tangent array (mutable)
-const std::vector<Vec4>& getTangents()  // Get the tangent array (read-only)
-int getNumTangents()  // Number of tangents
-bool hasTangents()  // Whether the mesh has tangents
-Mesh& clearTangents()  // Remove all tangents
-void drawNoLighting()  // Draw the mesh without lighting
-void drawWithLighting()  // Draw the mesh with lighting
-void drawNoLightingWithTexture(const Texture& texture)  // Draw the mesh textured without lighting
-void markGpuDirty()  // Mark GPU buffers stale after editing data in place
-void uploadToGpu()  // Upload mesh data to GPU buffers now
-int getGpuVertexCount()  // Number of vertices currently uploaded to the GPU
-int getGpuIndexCount()  // Number of indices currently uploaded to the GPU
-```
-
-### Types - Path
-
-```cpp
- Path()  // Create a new Path (constructor)
-void addVertex(float x, float y)  // Add a vertex
-void lineTo(float x, float y, float z = 0)  // Add a line segment to point
-void bezierTo(float cx1, float cy1, float cx2, float cy2, float x, float y, int resolution = -1)  // Add a cubic bezier curve
-void quadBezierTo(float cx, float cy, float x, float y, int resolution = -1)  // Add a quadratic bezier curve
-void curveTo(float x, float y, float z = 0, int resolution = -1)  // Add a Catmull-Rom curve segment
-void arc(float x, float y, float radiusX, float radiusY, float angleBegin, float angleEnd, int circleResolution = 20)  // Add an arc
-void close()  // Close the shape
-size_t getNumSubpaths()  // Number of subpaths (contours)
-std::pair<size_t, size_t> getSubpathRange(size_t i)  // Vertex index range [begin, end) of subpath i
-bool isSubpathClosed(size_t i)  // Whether subpath i is closed
-std::vector<std::array<float, 2>> buildFillTriangles()  // Triangulate the path interior into a flat list of 2D triangle vertices
-Mesh toFillMesh()  // Build a fillable Mesh from the path interior
-```
-
-### Types - StrokeMesh
-
-```cpp
-StrokeMesh& setWidth(float width)  // Set stroke width (method chaining)
-StrokeMesh& setColor(const Color &color)  // Set stroke color (method chaining)
-StrokeMesh& setCapType(StrokeMesh::CapType type)  // Set cap type: Butt, Round, Square (method chaining)
-StrokeMesh& setJoinType(StrokeMesh::JoinType type)  // Set join type: Miter, Round, Bevel (method chaining)
-StrokeMesh& setMiterLimit(float limit)  // Set miter limit for sharp corners (method chaining)
-StrokeMesh& addVertex(float x, float y, float z = 0)  // Add a vertex (method chaining)
-StrokeMesh& addVertex(const Vec3& p)  // Add a vertex (method chaining)
-StrokeMesh& addVertex(float x, float y, float z = 0)  // Add a vertex (method chaining)
-StrokeMesh& addVertex(const Vec3& p)  // Add a vertex (method chaining)
-StrokeMesh& addVertexWithWidth(float x, float y, float width)  // Add a vertex with variable width (method chaining)
-StrokeMesh& setShape(const Path & path)  // Set shape from Path (method chaining)
-StrokeMesh& setClosed(bool closed)  // Set whether the stroke is closed (method chaining)
-StrokeMesh& clear()  // Clear all vertices (method chaining)
-void update()  // Update the internal mesh (required before draw)
-void draw()  // Draw the stroke mesh
+void pushShader(Shader & shader)  // Push shader to stack (subsequent draws use this shader)
 ```
 
 ### Video
 
 ```cpp
- VideoPlayer()  // Create a video player
-bool load(const string& path)  // Load a video file
-void close()  // Close the video and release resources
-bool isLoaded()  // Check if a video is loaded
-void play()  // Start or resume playback
-void stop()  // Stop playback and reset to beginning
-void setPaused(bool paused)  // Pause or resume playback
-void togglePause()  // Toggle pause state
-void update()  // Update the video frame. Call once per frame in update()
-bool isPlaying()  // Check if video is currently playing (not paused)
-bool isPaused()  // Check if video is paused
-bool isFrameNew()  // Check if a new frame is available since last update
-bool isDone()  // Check if playback has reached the end
-float getWidth()  // Get video width in pixels
-float getHeight()  // Get video height in pixels
-float getDuration()  // Get total duration in seconds
-float getPosition()  // Get current position (0.0 to 1.0)
-void setPosition(float pct)  // Seek to position (0.0 to 1.0)
-float getCurrentTime()  // Get current playback time in seconds
-void setCurrentTime(float seconds)  // Seek to a specific time in seconds
-void setVolume(float vol)  // Set audio volume (0.0 to 1.0)
-float getVolume()  // Get current volume
-void setSpeed(float speed)  // Set playback speed (1.0 = normal, 2.0 = double speed)
-float getSpeed()  // Get current playback speed
-void setPan(float pan)  // Set stereo pan (-1.0 left, 0.0 center, 1.0 right)
-float getPan()  // Get current stereo pan
-void setLoop(bool loop)  // Enable/disable looping
-bool isLoop()  // Check if looping is enabled
-int getCurrentFrame()  // Get current frame number
-int getTotalFrames()  // Get total number of frames
-void setFrame(int frame)  // Seek to a specific frame number
-void nextFrame()  // Advance to the next frame
-void previousFrame()  // Go back to the previous frame
-void firstFrame()  // Go to the first frame
-void setGammaCorrection(float gamma)  // Set gamma correction (1.0 = none). Use ~0.45 to brighten on platforms with dark output (e.g. macOS AVFoundation)
-float getGammaCorrection()  // Get current gamma correction value
-void setUseHwAccel(bool enable)  // Enable/disable hardware decoding. Must be called before load(). Default: true. When enabled, the player probes available HW backends (VAAPI, V4L2M2M, CUDA, etc.) and falls back to software if none are available. Currently affects the Linux backend only.
-bool getUseHwAccel()  // Get HW accel preference (not the actual backend — use isUsingHwAccel() for that)
-bool isUsingHwAccel()  // Check if hardware decoding is currently active (after load)
-string getHwAccelName()  // Get the name of the active decode backend. Returns 'vaapi', 'v4l2m2m', 'cuda', 'videotoolbox', 'mediafoundation', 'software', or 'none'
-void setResyncThreshold(float seconds)  // Set the maximum video/audio drift before hard re-sync. When drift exceeds this threshold, video seeks to match audio position instead of catching up frame-by-frame. Set to 0 to disable. Default: 0.5s. Primarily affects Linux (FFmpeg) backend.
-float getResyncThreshold()  // Get the current resync threshold in seconds
-bool hasAudio()  // Check if the loaded video has an audio track
-void draw(float x, float y)  // Draw the current video frame at (x, y), optionally scaled to w x h
-void draw(float x, float y, float w, float h)  // Draw the current video frame at (x, y), optionally scaled to w x h
-unsigned char * getPixels()  // Pointer to the current RGBA pixel buffer (mutable)
-const unsigned char * getPixels()  // Pointer to the current RGBA pixel buffer (read-only)
-unsigned char * getPixelsY()  // Pointer to the Y (luma) plane when decoding NV12/YUV; null otherwise
-unsigned char * getPixelsUV()  // Pointer to the interleaved UV (chroma) plane when decoding NV12; null otherwise
-uint32_t getAudioCodec()  // FourCC of the audio codec in the loaded video (0 if none)
-std::vector<uint8_t> getAudioData()  // Raw decoded audio data for the loaded video
-int getAudioSampleRate()  // Audio sample rate in Hz (0 if no audio)
-int getAudioChannels()  // Number of audio channels (0 if no audio)
- ScreenRecorder()  // Live screen recorder: captures the window (or an Fbo) every frame to a video file (native encoder, no ffmpeg)
-bool start(const string& path, const VideoRecordSettings& settings = {})  // Start live capture (window, or an Fbo for clean GUI-free output); size is taken automatically
-bool start(const Fbo& fbo, const string& path, const VideoRecordSettings& settings = {})  // Start live capture (window, or an Fbo for clean GUI-free output); size is taken automatically
-void stop()  // Stop live capture and finalize the file
-bool isRecording()  // Check if the screen recorder is currently capturing
-int getFrameCount()  // Number of frames captured so far
-const std::string & getPath()  // Output file path of the current recording
-VideoWriter & writer()  // Access the underlying VideoWriter for advanced introspection
- VideoWriter()  // Low-level video encoder: you feed it frames (deterministic, fixed-rate offline render)
-bool open(const string& path, int width, int height, const VideoRecordSettings& settings = {})  // Open the encoder at the given size (path resolved via getDataPath)
-bool addFrame(const Fbo& fbo)  // Append one frame at the fixed-rate clock (frameIndex/fps)
-bool addFrame(const Pixels& pixels)  // Append one frame at the fixed-rate clock (frameIndex/fps)
-bool addFrameAt(const Fbo& fbo, double timeSec)  // Append one frame at an explicit presentation time (seconds)
-bool addFrameAt(const Pixels& pixels, double timeSec)  // Append one frame at an explicit presentation time (seconds)
-void close()  // Finalize and flush the video file
-bool isOpen()  // Check if the encoder is open and accepting frames
-int getFrameCount()  // Number of frames written so far
-int getWidth()  // Encoder output width in pixels
-int getHeight()  // Encoder output height in pixels
-float getFps()  // Fixed encoding frame rate
-const std::string & getPath()  // Resolved output file path
-const VideoRecordSettings & getSettings()  // Encoder settings the writer was opened with
-unsigned char * lockFrame(int & strideOut)  // Lock and return the encoder's frame buffer for zero-copy fills; strideOut receives the row stride. Pair with submitFrame
-bool submitFrame(double timeSec)  // Append the previously locked frame at the given presentation time (seconds)
-const char * videoCodecName(VideoCodec c)  // Return a human-readable name for a VideoCodec value (e.g. "H.264", "HEVC", "ProRes 422")
-```
-
-### Addon: tcxLut (Color Grading)
-
-```cpp
- tcx::lut::Lut3D()  // Create a 3D LUT for color grading
-bool load(const fs::path& path)  // Load .cube file
-void allocate(int size, const float* data = nullptr)  // Allocate LUT with optional data
-bool isAllocated()  // Check if LUT is allocated
-int getSize()  // Get LUT size (e.g., 32 for 32x32x32)
-Lut3D tcx::lut::createIdentity(int size = 32)  // Create identity LUT (no color change)
-Lut3D tcx::lut::createVintage(int size = 32)  // Create vintage/faded look LUT
-Lut3D tcx::lut::createCinematic(int size = 32)  // Create cinematic orange/teal LUT
-Lut3D tcx::lut::createFilmNoir(int size = 32)  // Create film noir high-contrast B&W LUT
-Lut3D tcx::lut::createWarm(int size = 32)  // Create warm color shift LUT
-Lut3D tcx::lut::createCool(int size = 32)  // Create cool color shift LUT
-Lut3D tcx::lut::createPastel(int size = 32)  // Create soft pastel LUT
- tcx::lut::LutShader()  // Create a LUT shader for color grading
-void setTexture(const T& tex)  // Set source texture (VideoGrabber, Texture, Fbo, etc.)
-void setLut(const Lut3D& lut)  // Set LUT to apply
-void setBlend(float blend)  // Set blend amount (0=original, 1=full LUT)
-void draw(float x, float y)  // Draw with LUT applied
-void draw(float x, float y, float w, float h)  // Draw with LUT applied
-void drawSubsection(float x, float y, float w, float h, float sx, float sy, float sw, float sh)  // Draw subsection with LUT applied
-```
-
-### Timers
-
-```cpp
-uint64_t callAfter(double delay, std::function<void()> callback)  // Run callback once after delay seconds. Fired from the update loop (frame-quantized). Returns a timer id.
-uint64_t callEvery(double interval, std::function<void()> callback)  // Run callback repeatedly every interval seconds. Fired from the update loop (frame-quantized). Returns a timer id.
-uint64_t callAfterAsync(double delay, std::function<void()> callback)  // Like callAfter, but fired by a precise background scheduler thread (no frame jitter). The callback runs OFF the main thread: guard shared state with a mutex, never draw from it, and don't cancel while holding that mutex. Native only (uses a real thread). Returns a timer id.
-uint64_t callEveryAsync(double interval, std::function<void()> callback)  // Like callEvery, but fired by a precise background scheduler thread with no drift (reschedules at absolute times). Ideal for sequencer clocks and LED/MIDI output timing. Same threading rules as callAfterAsync. Native only. Returns a timer id.
-void cancelTimer(uint64_t id)  // Cancel a frame timer (callAfter/callEvery) by id.
-void cancelAllTimers()  // Cancel all frame timers on this node.
-void cancelAsyncTimer(uint64_t id)  // Cancel an async timer by id. Blocks until its callback finishes if it is running now (unless called from inside the callback). Do not call while holding the mutex the callback uses.
-void cancelAllAsyncTimers()  // Cancel all async timers on this node (e.g. on mode change). Waits out any in-flight callback. Call it WITHOUT holding the callback's mutex to avoid a deadlock.
+const char * videoCodecName(VideoCodec c)  // Return a human-readable name for a VideoCodec value (e.g. "H.264", "HEVC", "ProRes 422") 
 ```
 
 ### Network
 
 ```cpp
+std::string getLocalIp()  // The most likely LAN address (skips loopback/down, IPv4 preferred). "" if none 
+std::vector<std::string> getLocalIps()  // Every non-loopback address (one per interface entry)
+std::string getOui(const std::string & mac)  // The OUI (first 3 bytes) of a MAC, uppercase "A4:83:E7". "" if unparseable 
+bool isLinkLocal(const std::string & addr)  // True if addr is link-local (169.254/16 or fe80::/10)
+bool isLocallyAdministered(const std::string & mac)  // True if the MAC's locally-administered bit is set (randomized/virtual MAC)
+bool isLoopback(const std::string & addr)  // True if addr is a loopback address (127.0.0.0/8 or ::1)
+bool isPrivate(const std::string & addr)  // True if addr is a private IPv4 (10/8, 172.16/12, 192.168/16)
 std::vector<NetworkInterface> listNetworkInterfaces()  // List all network interface address entries (IPv4/IPv6, loopback, up or down)
 void printNetworkInterfaces()  // Log the interface list (one line per entry)
-std::string getLocalIp()  // The most likely LAN address (skips loopback/down, IPv4 preferred). "" if none
-std::vector<std::string> getLocalIps()  // Every non-loopback address (one per interface entry)
-bool isLoopback(const std::string& addr)  // True if addr is a loopback address (127.0.0.0/8 or ::1)
-bool isPrivate(const std::string& addr)  // True if addr is a private IPv4 (10/8, 172.16/12, 192.168/16)
-bool isLinkLocal(const std::string& addr)  // True if addr is link-local (169.254/16 or fe80::/10)
-bool sameSubnet(const std::string& a, const std::string& b, const std::string& netmask)  // True if IPv4 a and b are on the same subnet under netmask
-std::string getOui(const std::string& mac)  // The OUI (first 3 bytes) of a MAC, uppercase "A4:83:E7". "" if unparseable
-bool isLocallyAdministered(const std::string& mac)  // True if the MAC's locally-administered bit is set (randomized/virtual MAC)
-```
-
-### Types
-
-#### Vec2 — 2D vector (x, y)
-
-```cpp
-Vec2()
-Vec2(float x, float y)
-Vec2(float v)
-float x  // X component
-float y  // Y component
-Vec2& set(float x, float y)  // Set vector components
-Vec2& set(float x_, float y_)  // Set vector components
-float length()  // Get vector length
-float lengthSquared()  // Get squared length (faster, no sqrt)
-Vec2 normalized()  // Get normalized copy
-Vec2& normalize()  // Normalize in place
-Vec2& limit(float max)  // Limit length to max
-float dot(const Vec2 & v)  // Dot product
-float cross(const Vec2 & v)  // Cross product (z component)
-float distance(const Vec2 & v)  // Distance to another vector
-float distanceSquared(const Vec2 & v)  // Squared distance (faster)
-float angle()  // Angle in radians
-float angle(const Vec2& v)  // Angle in radians
-Vec2 rotated(float radians)  // Get rotated copy
-Vec2& rotate(float radians)  // Rotate in place
-Vec2 lerp(const Vec2 & v, float t)  // Linear interpolation
-Vec2 perpendicular()  // Get perpendicular vector
-Vec2 reflected(const Vec2 & normal)  // Get reflected vector
-Vec2 fromAngle(float radians)  // Create Vec2 from angle
-Vec2 fromAngle(float radians, float length)  // Create Vec2 from angle
-float& operator[](int)  // Component access by index
-Vec2 operator+(const Vec2&) const  // Component-wise addition
-Vec2 operator-(const Vec2&) const  // Component-wise subtraction
-Vec2 operator*(float) const  // Scalar multiplication
-Vec2 operator/(float) const  // Scalar division
-Vec2 operator*(const Vec2&) const  // Component-wise multiplication
-Vec2 operator/(const Vec2&) const  // Component-wise division
-Vec2 operator-() const  // Negation
-Vec2& operator+=(const Vec2&)  // In-place addition
-Vec2& operator-=(const Vec2&)  // In-place subtraction
-Vec2& operator*=(float)  // In-place scalar multiplication
-Vec2& operator/=(float)  // In-place scalar division
-Vec2& operator*=(const Vec2&)  // In-place component-wise multiplication
-Vec2& operator/=(const Vec2&)  // In-place component-wise division
-bool operator==(const Vec2&) const  // Equality comparison
-bool operator!=(const Vec2&) const  // Inequality comparison
-friend Vec2 operator*(float, const Vec2&)  // Component-wise multiplication
-```
-
-#### Vec3 — 3D vector (x, y, z)
-
-```cpp
-Vec3()
-Vec3(float x, float y, float z)
-Vec3(float v)
-float x  // X component
-float y  // Y component
-float z  // Z component
-Vec3& set(float x, float y, float z)  // Set vector components
-Vec3& set(float x_, float y_, float z_)  // Set vector components
-float length()  // Get vector length
-float lengthSquared()  // Get squared length
-Vec3 normalized()  // Get normalized copy
-Vec3& normalize()  // Normalize in place
-Vec3& limit(float max)  // Limit length to max
-float dot(const Vec3 & v)  // Dot product
-Vec3 cross(const Vec3 & v)  // Cross product
-float distance(const Vec3 & v)  // Distance to another vector
-float distanceSquared(const Vec3 & v)  // Squared distance
-Vec3 lerp(const Vec3 & v, float t)  // Linear interpolation
-Vec3 reflected(const Vec3 & normal)  // Get reflected vector
-Vec2 xy()  // Get XY components as Vec2
-float& operator[](int)  // Component access by index
-Vec3 operator+(const Vec3&) const  // Component-wise addition
-Vec3 operator-(const Vec3&) const  // Component-wise subtraction
-Vec3 operator*(float) const  // Scalar multiplication
-Vec3 operator/(float) const  // Scalar division
-Vec3 operator*(const Vec3&) const  // Component-wise multiplication
-Vec3 operator/(const Vec3&) const  // Component-wise division
-Vec3 operator-() const  // Negation
-Vec3& operator+=(const Vec3&)  // In-place addition
-Vec3& operator-=(const Vec3&)  // In-place subtraction
-Vec3& operator*=(float)  // In-place scalar multiplication
-Vec3& operator/=(float)  // In-place scalar division
-Vec3& operator*=(const Vec3&)  // In-place component-wise multiplication
-Vec3& operator/=(const Vec3&)  // In-place component-wise division
-bool operator==(const Vec3&) const  // Equality comparison
-bool operator!=(const Vec3&) const  // Inequality comparison
-friend Vec3 operator*(float, const Vec3&)  // Component-wise multiplication
-```
-
-#### IVec2 — 2D integer vector (x, y)
-
-```cpp
-IVec2()
-IVec2(int x, int y)
-IVec2(int v)
-int x  // X component
-int y  // Y component
-Vec2 toVec2()  // Convert to Vec2 (float)
-IVec2 operator+(const IVec2&) const  // Component-wise addition
-IVec2 operator-(const IVec2&) const  // Component-wise subtraction
-IVec2 operator*(int) const  // Scalar multiplication
-IVec2 operator-() const  // Negation
-IVec2& operator+=(const IVec2&)  // In-place addition
-IVec2& operator-=(const IVec2&)  // In-place subtraction
-IVec2& operator*=(int)  // In-place scalar multiplication
-bool operator==(const IVec2&) const  // Equality comparison
-bool operator!=(const IVec2&) const  // Inequality comparison
-friend IVec2 operator*(int, const IVec2&)  // Component-wise multiplication
-```
-
-#### IVec3 — 3D integer vector (x, y, z)
-
-```cpp
-IVec3()
-IVec3(int x, int y, int z)
-IVec3(int v)
-IVec3(IVec2 v, int z)
-int x  // X component
-int y  // Y component
-int z  // Z component
-Vec3 toVec3()  // Convert to Vec3 (float)
-IVec2 xy()  // Get XY components as IVec2
-IVec3 operator+(const IVec3&) const  // Component-wise addition
-IVec3 operator-(const IVec3&) const  // Component-wise subtraction
-IVec3 operator*(int) const  // Scalar multiplication
-IVec3 operator-() const  // Negation
-IVec3& operator+=(const IVec3&)  // In-place addition
-IVec3& operator-=(const IVec3&)  // In-place subtraction
-IVec3& operator*=(int)  // In-place scalar multiplication
-bool operator==(const IVec3&) const  // Equality comparison
-bool operator!=(const IVec3&) const  // Inequality comparison
-friend IVec3 operator*(int, const IVec3&)  // Component-wise multiplication
-```
-
-#### Color — RGBA color (0.0-1.0 range)
-
-```cpp
-Color()
-Color(float r, float g, float b)
-Color(float r, float g, float b, float a)
-Color(float gray)
-Color(float gray, float a)
-float r  // Red component (0.0-1.0)
-float g  // Green component (0.0-1.0)
-float b  // Blue component (0.0-1.0)
-float a  // Alpha component (0.0-1.0)
-Color& set(float r_, float g_, float b_, float a_ = 1.0f)  // Set color components
-Color& set(float r, float g, float b, float a)  // Set color components
-Color& set(float gray, float a_ = 1.0f)  // Set color components
-uint32_t toHex(bool includeAlpha = false)  // Convert to hex value
-uint32_t toHex(bool includeAlpha)  // Convert to hex value
-Color lerp(const Color & target, float t)  // Interpolate in OKLab space
-Color lerpRGB(const Color & target, float t)  // Interpolate in RGB space
-Color clamped()  // Get clamped copy (0.0-1.0)
-ColorLinear toLinear()  // Convert to linear RGB color space
-ColorHSB toHSB()  // Convert to HSB (H: 0-1, S: 0-1, B: 0-1)
-ColorOKLab toOKLab()  // Convert to OKLab (perceptually uniform)
-ColorOKLCH toOKLCH()  // Convert to OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
-Color lerpLinear(const Color & target, float t)  // Interpolate in linear RGB space
-Color lerpHSB(const Color & target, float t)  // Interpolate in HSB space
-Color lerpOKLab(const Color & target, float t)  // Interpolate in OKLab space (perceptually uniform)
-Color lerpOKLCH(const Color & target, float t)  // Interpolate in OKLCH space (shortest hue path)
-Color fromHex(uint hex)  // Create from hex value
-Color fromHex(uint hex, bool hasAlpha)  // Create from hex value
-Color fromHSB(float h, float s, float b)  // Create from HSB (H: 0-1)
-Color fromHSB(float h, float s, float b, float a)  // Create from HSB (H: 0-1)
-Color fromOKLab(float L, float a, float b)  // Create from OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
-Color fromOKLab(float L, float a, float b, float alpha)  // Create from OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
-Color fromOKLCH(float L, float C, float H)  // Create from OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
-Color fromOKLCH(float L, float C, float H, float a)  // Create from OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
-Color fromLinear(float r, float g, float b)  // Create from linear RGB
-Color fromLinear(float r, float g, float b, float a)  // Create from linear RGB
-Color fromBytes(int r, int g, int b)  // Create from 0-255 values
-Color fromBytes(int r, int g, int b, int a)  // Create from 0-255 values
-Color operator+(const Color&) const  // Component-wise addition
-Color operator-(const Color&) const  // Component-wise subtraction
-Color operator*(float) const  // Scalar multiplication
-Color operator/(float) const  // Scalar division
-bool operator==(const Color&) const  // Equality comparison
-bool operator!=(const Color&) const  // Inequality comparison
-```
-
-#### Rect — Rectangle (x, y, width, height)
-
-```cpp
-Rect()
-Rect(float x, float y, float width, float height)
-float x  // X position
-float y  // Y position
-float width  // Width
-float height  // Height
-Rect& set(float x, float y, float w, float h)  // Set rectangle bounds
-float getRight()  // Get right edge (x + width)
-float getBottom()  // Get bottom edge (y + height)
-float getCenterX()  // Get center X
-float getCenterY()  // Get center Y
-Vec2 getCenter()  // Get the center point of the rectangle
-bool contains(float px, float py)  // Check if point is inside
-bool intersects(const Rect & other)  // Check if intersects with another rect
-```
-
-#### Mat4 — 4x4 matrix for 3D transformations
-
-```cpp
-Mat4()
-float[16] m  // Raw row-major element storage (16 floats)
-float& at(int row, int col)  // Access the element at (row, col)
-const float& at(int row, int col)  // Read the element at (row, col) (const overload)
-Mat4 transposed()  // Get transposed matrix
-Mat4 inverted()  // Get inverse matrix
-Mat4 identity()  // Create an identity matrix
-Mat4 translate(float x, float y, float z)  // Create a translation matrix
-Mat4 translate(const Vec3& v)  // Create a translation matrix
-Mat4 rotateX(float radians)  // Create X-axis rotation matrix
-Mat4 rotateY(float radians)  // Create Y-axis rotation matrix
-Mat4 rotateZ(float radians)  // Create Z-axis rotation matrix
-Mat4 scale(float s)  // Create a scaling matrix
-Mat4 scale(float sx, float sy, float sz)  // Create a scaling matrix
-Mat4 lookAt(const Vec3 & eye, const Vec3 & target, const Vec3 & up)  // Create a view matrix
-Mat4 ortho(float left, float right, float bottom, float top, float nearPlane, float farPlane)  // Create an orthographic projection matrix
-Mat4 perspective(float fovY, float aspect, float nearPlane, float farPlane)  // Create a perspective projection matrix
-Mat4 frustum(float left, float right, float bottom, float top, float nearPlane, float farPlane)  // Create an asymmetric perspective (frustum) projection matrix
-Mat4 rotate(float radians, const Vec3& axis)  // Create a rotation matrix about an arbitrary axis
-Mat4 fromHomography(const Mat3& h)  // Build a Mat4 from a 3x3 homography (for 2D projection)
-Mat4 operator*(const Mat4&) const  // Composition (matrix product)
-Vec3 operator*(const Vec3&) const  // Transform vector by Mat4
-Vec4 operator*(const Vec4&) const  // Transform vector by Mat4
-```
-
-#### Quaternion — Unit quaternion for 3D rotations
-
-```cpp
-Quaternion()
-Quaternion(float w, float x, float y, float z)
-float w  // W component
-float x  // X component
-float y  // Y component
-float z  // Z component
-Vec3 rotate(const Vec3 & v)  // Rotate a vector
-Vec3 toEuler()  // Convert to Euler angles
-Mat4 toMatrix()  // Convert to rotation matrix
-Quaternion normalized()  // Get normalized quaternion
-float length()  // Get quaternion length
-float lengthSquared()  // Get the squared length (avoids the sqrt)
-Quaternion& normalize()  // Normalize this quaternion in place and return *this
-Quaternion conjugate()  // Get conjugate quaternion
-Quaternion identity()  // Create an identity quaternion
-Quaternion fromAxisAngle(const Vec3 & axis, float radians)  // Create quaternion from axis-angle
-Quaternion fromEuler(float pitch, float yaw, float roll)  // Create quaternion from Euler angles
-Quaternion fromEuler(const Vec3& euler)  // Create quaternion from Euler angles
-Quaternion slerp(const Quaternion & a, const Quaternion & b, float t)  // Spherical linear interpolation
-bool operator==(const Quaternion&) const  // Equality comparison
-bool operator!=(const Quaternion&) const  // Inequality comparison
-Quaternion operator*(const Quaternion&) const  // Composition (matrix product)
-```
-
-#### Pixels — Pixel buffer for image manipulation
-
-```cpp
-Pixels()
-void allocate(int width, int height, int channels = 4, PixelFormat format = PixelFormat::U8)  // Allocate pixel buffer
-void allocate(int width, int height, int channels = 4, PixelFormat format = PixelFormat::U8)  // Allocate pixel buffer
-Color getColor(int x, int y)  // Get pixel color at position
-void setColor(int x, int y, const Color & c)  // Set pixel color at position
-void halve()  // Replace with 2x2 box-averaged half. Gamma-correct for U8.
-void resize(int newWidth, int newHeight)  // Quality resize: BoxArea on downscale, Catmull-Rom bicubic on upscale, gamma-correct for U8.
-void crop(int x, int y, int w, int h)  // Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge.
-void mirror(bool horizontal, bool vertical)  // Flip in place. Both true is 180°.
-void mirrorH()  // Mirror horizontally (alias for mirror(true, false))
-void mirrorV()  // Mirror vertically (alias for mirror(false, true))
-bool load(const std::filesystem::path & path)  // Load image from file
-bool save(const std::filesystem::path & path)  // Save image to file
-int getWidth()  // Get width
-int getHeight()  // Get height
-bool isAllocated()  // Check if allocated
-void clear()  // Release pixel buffer
-int getChannels()  // Get number of channels
-size_t getTotalBytes()  // Get total byte size
-uint8_t* getData()  // Get raw data pointer
-bool loadFromMemory(const uint8_t* buffer, int len)  // Load image from memory
-void setFromPixels(const uint8_t* data, int width, int height, int channels)  // Copy from external pixel data
-void copyTo(uint8_t* dst)  // Copy to external buffer
-```
-
-#### Image — Image with CPU pixels and GPU texture
-
-```cpp
-bool load(const std::filesystem::path & path, bool mipmaps = false)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
-bool load(const std::filesystem::path & path, bool mipmaps = false)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
-bool loadFromMemory(const unsigned char * buffer, int len, bool mipmaps = false)  // Load image from memory. `mipmaps=true` builds a mip chain.
-bool loadFromMemory(const uint8_t* buffer, int len, bool mipmaps)  // Load image from memory. `mipmaps=true` builds a mip chain.
-bool save(const std::filesystem::path & path)  // Save image to file
-void allocate(int width, int height, int channels = 4, bool mipmaps = false)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
-void allocate(int width, int height, int channels = 4, bool mipmaps = false)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
-void allocate(int width, int height, int channels, bool mipmaps)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
-void clear()  // Release image resources
-void halve()  // Replace with 2x2 box-averaged half. Gamma-correct for U8.
-void resize(int newWidth, int newHeight)  // Quality resize: BoxArea on downscale, Catmull-Rom bicubic on upscale, gamma-correct for U8. Use FBO sampling for fast paths.
-void crop(int x, int y, int w, int h)  // Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge.
-void mirror(bool horizontal, bool vertical)  // Flip the image. `horizontal=true` mirrors left-right; `vertical=true` mirrors top-bottom; both true is 180°.
-void mirrorH()  // Mirror horizontally (alias for mirror(true, false))
-void mirrorV()  // Mirror vertically (alias for mirror(false, true))
-bool isAllocated()  // Check if allocated
-int getWidth()  // Get width
-int getHeight()  // Get height
-int getChannels()  // Get number of channels
-Pixels& getPixels()  // Get pixels reference for direct manipulation
-uint8_t* getPixelsData()  // Get raw pixel data pointer
-Color getColor(int x, int y)  // Get pixel color at position
-void setColor(int x, int y, const Color & c)  // Set pixel color at position (marks image as dirty)
-void update()  // Apply pixel changes to GPU texture
-void setDirty()  // Mark image as needing update
-Texture& getTexture()  // Get internal texture
-void draw(float x, float y)  // Draw image
-void draw(float x, float y, float w, float h)  // Draw image
-```
-
-#### Texture — GPU texture for rendering
-
-```cpp
-Texture()
-void allocate(int width, int height, int channels = 4, TextureUsage usage = TextureUsage::Immutable, int sampleCount = 1)  // Allocate texture
-void allocate(const Pixels& pixels, TextureUsage usage = TextureUsage::Immutable, bool mipmaps = false)  // Allocate texture
-void loadData(const Pixels& pixels)  // Load pixel data to texture
-void bind()  // Bind texture for rendering
-void unbind()  // Unbind texture
-int getWidth()  // Get width
-int getHeight()  // Get height
-bool isAllocated()  // Check if allocated
-void draw(float x, float y)  // Draw texture
-void draw(float x, float y, float w, float h)  // Draw texture
-void drawSubsection(float x, float y, float w, float h, float sx, float sy, float sw, float sh)  // Draw subsection of texture
-void clear()  // Release texture resources
-int getChannels()  // Get number of channels
-TextureUsage getUsage()  // Get texture usage mode
-int getSampleCount()  // Get MSAA sample count
-void setMinFilter(TextureFilter filter)  // Set minification filter
-void setMagFilter(TextureFilter filter)  // Set magnification filter
-void setFilter(TextureFilter filter)  // Set both min and mag filters
-TextureFilter getMinFilter()  // Get minification filter
-TextureFilter getMagFilter()  // Get magnification filter
-void setWrapU(TextureWrap wrap)  // Set horizontal wrap mode
-void setWrapV(TextureWrap wrap)  // Set vertical wrap mode
-void setWrap(TextureWrap wrap)  // Set both wrap modes
-TextureWrap getWrapU()  // Get horizontal wrap mode
-TextureWrap getWrapV()  // Get vertical wrap mode
-```
-
-#### Fbo — Framebuffer object for offscreen rendering
-
-```cpp
-Fbo()
-void allocate(int w, int h, int sampleCount = 1, TextureFormat format = TextureFormat::RGBA8, bool mipmaps = false)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
-void allocate(int w, int h, int sampleCount = 1, TextureFormat format = TextureFormat::RGBA8, bool mipmaps = false)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
-void allocate(int w, int h, int sampleCount = 1, TextureFormat format = TextureFormat::RGBA8, bool mipmaps = false)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
-void allocate(int width, int height, int sampleCount, TextureFormat format, bool mipmaps)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
-void begin()  // Begin rendering to FBO
-void begin(float r, float g, float b, float a)  // Begin rendering to FBO
-void end()  // End rendering to FBO
-const Texture& getTexture()  // Get FBO texture
-int getWidth()  // Get width
-int getHeight()  // Get height
-bool isAllocated()  // Check if allocated
-void draw(float x, float y)  // Draw FBO contents
-void draw(float x, float y, float w, float h)  // Draw FBO contents
-int getSampleCount()  // Get MSAA sample count
-bool isActive()  // Check if currently rendering to FBO
-void clear()  // Release FBO resources
-bool save(const std::filesystem::path & path)  // Save FBO contents to file
-bool copyTo(Image & image)  // Copy FBO contents to Image
-```
-
-#### Path — Path/Polyline for lines and curves
-
-```cpp
-Path()
-Path(vector<Vec2> verts)
-Path(vector<Vec3> verts)
-void addVertex(float x, float y)  // Add a vertex
-void addVertex(float x, float y, float z)  // Add a vertex
-void addVertex(float x, float y)  // Add a vertex
-void addVertex(float x, float y, float z)  // Add a vertex
-void addVertices(const std::vector<Vec3>& verts)  // Add multiple vertices
-void addVertices(const std::vector<Vec2>& verts)  // Add multiple vertices
-const std::vector<Vec3>& getVertices()  // Get all vertices
-int size()  // Get vertex count
-bool empty()  // Check if polyline is empty
-void clear()  // Clear all vertices
-void moveTo(float x, float y, float z = 0)  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
-void moveTo(float x, float y, float z)  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
-void moveTo(float x, float y, float z = 0)  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
-void moveTo(const Vec3& p)  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
-void lineTo(float x, float y, float z = 0)  // Add line segment to point
-void lineTo(float x, float y, float z)  // Add line segment to point
-void lineTo(float x, float y, float z = 0)  // Add line segment to point
-void lineTo(const Vec3& p)  // Add line segment to point
-void bezierTo(float cx1, float cy1, float cx2, float cy2, float x, float y, int resolution = -1)  // Add cubic bezier curve (resolution=-1 uses current curve style)
-void bezierTo(float cx1, float cy1, float cx2, float cy2, float x, float y, int resolution = -1)  // Add cubic bezier curve (resolution=-1 uses current curve style)
-void bezierTo(const Vec3& cp1, const Vec3& cp2, const Vec3& to, int resolution = -1)  // Add cubic bezier curve (resolution=-1 uses current curve style)
-void quadBezierTo(float cx, float cy, float x, float y, int resolution = -1)  // Add quadratic bezier curve (resolution=-1 uses current curve style)
-void quadBezierTo(float cx, float cy, float x, float y, int resolution = -1)  // Add quadratic bezier curve (resolution=-1 uses current curve style)
-void quadBezierTo(const Vec3& cp, const Vec3& to, int resolution = -1)  // Add quadratic bezier curve (resolution=-1 uses current curve style)
-void curveTo(float x, float y, float z = 0, int resolution = -1)  // Add Catmull-Rom curve segment (needs >=4 consecutive calls; resolution=-1 uses current curve style)
-void curveTo(const Vec2& to, int resolution = -1)  // Add Catmull-Rom curve segment (needs >=4 consecutive calls; resolution=-1 uses current curve style)
-void curveTo(float x, float y, float z = 0, int resolution = -1)  // Add Catmull-Rom curve segment (needs >=4 consecutive calls; resolution=-1 uses current curve style)
-void arc(float x, float y, float radius, float angleBegin, float angleEnd, bool clockwise = true)  // Add an arc (angles in radians)
-void arc(float x, float y, float radius, float angleBegin, float angleEnd, bool clockwise = true)  // Add an arc (angles in radians)
-void arc(const Vec3& center, float radius, float angleBegin, float angleEnd, bool clockwise = true)  // Add an arc (angles in radians)
-void close()  // Close the path
-void setClosed(bool closed)  // Set closed state
-bool isClosed()  // Check if path is closed
-Path& reverseWinding()  // Reverse the winding direction (vertex order) of all subpaths, or of one subpath. Under drawFill's non-zero winding rule, reversing a subpath toggles it between filling and cutting — e.g. build a circle contour, then reverseWinding(i) it into a hole punch. Reversing ALL subpaths leaves the render unchanged (only relative direction matters) — handy for imported outlines using the opposite convention.
-Path& reverseWinding(size_t subpath)  // Reverse the winding direction (vertex order) of all subpaths, or of one subpath. Under drawFill's non-zero winding rule, reversing a subpath toggles it between filling and cutting — e.g. build a circle contour, then reverseWinding(i) it into a hole punch. Reversing ALL subpaths leaves the render unchanged (only relative direction matters) — handy for imported outlines using the opposite convention.
-void draw()  // Draw the polyline (fill + 1px stroke based on current style — fill uses triangle fan, convex only). For concave shapes / holes use drawFill.
-void drawFill()  // Fill the path as a concave polygon with holes (earcut tessellation). Subpaths follow the non-zero winding rule (SVG / PostScript default): a subpath wound opposite to its enclosing ring becomes a hole; same-direction subpaths union (never punch holes). Handles glyphs with holes (e, a, O, 日 ...), overlapping contours, and both TrueType / CFF winding conventions. To cut a hole in a hand-built Path, wind the inner subpath opposite (see reverseWinding).
-void drawStroke()  // Thick stroke via StrokeMesh (respects strokeWeight / strokeCap / strokeJoin), per-subpath. Use draw() for 1-pixel lines.
-Rect getBounds()  // Get bounding box as Rect
-float getPerimeter()  // Get total path length
-Vec3& operator[](int)  // Component access by index
-```
-
-#### Mesh — 3D mesh with vertices, colors, normals, indices
-
-```cpp
-Mesh()
-Mesh& setMode(PrimitiveMode mode)  // Set primitive mode (Triangles, Lines, Points, etc.)
-PrimitiveMode getMode()  // Get current primitive mode
-Mesh& addVertex(float x, float y, float z)  // Add a vertex
-Mesh& addVertex(float x, float y, float z = 0.0f)  // Add a vertex
-Mesh& addVertex(const Vec3& v)  // Add a vertex
-Mesh& addVertices(const std::vector<Vec3> & verts)  // Add multiple vertices
-Mesh& addVertices(const std::vector<Vec3> & verts)  // Add multiple vertices
-const std::vector<Vec3>& getVertices()  // Get all vertices
-int getNumVertices()  // Get vertex count
-Mesh& addColor(const Color& c)  // Add a vertex color
-Mesh& addColor(float r, float g, float b, float a = 1.0f)  // Add a vertex color
-Mesh& addColors(const std::vector<Color> & cols)  // Add multiple vertex colors
-const std::vector<Color>& getColors()  // Get all vertex colors
-int getNumColors()  // Get vertex color count
-bool hasColors()  // Check if mesh has vertex colors
-Mesh& addIndex(unsigned int index)  // Add an index
-Mesh& addIndices(const std::vector<unsigned int> & inds)  // Add multiple indices
-Mesh& addTriangle(unsigned int i0, unsigned int i1, unsigned int i2)  // Add a triangle (3 indices)
-const std::vector<unsigned int>& getIndices()  // Get all indices
-int getNumIndices()  // Get index count
-bool hasIndices()  // Check if mesh has indices
-Mesh& addNormal(float nx, float ny, float nz)  // Add a normal vector
-Mesh& addNormal(float nx, float ny, float nz)  // Add a normal vector
-Mesh& addNormals(const std::vector<Vec3> & norms)  // Add multiple normals
-Mesh& setNormal(size_t index, const Vec3 & n)  // Set normal at index
-Vec3 getNormal(size_t index)  // Get normal at index
-const std::vector<Vec3>& getNormals()  // Get all normals
-int getNumNormals()  // Get normal count
-bool hasNormals()  // Check if mesh has normals
-Mesh& addTexCoord(float u, float v)  // Add a texture coordinate
-Mesh& addTexCoord(float u, float v)  // Add a texture coordinate
-const std::vector<Vec2>& getTexCoords()  // Get all texture coordinates
-int getNumTexCoords()  // Get texture coordinate count
-bool hasTexCoords()  // Check if mesh has texture coordinates
-bool hasValidTexCoords()  // Check if texture coordinates match vertex count
-Mesh& clear()  // Clear all mesh data
-Mesh& clearVertices()  // Clear vertices only
-Mesh& clearColors()  // Clear colors only
-Mesh& clearIndices()  // Clear indices only
-Mesh& clearNormals()  // Clear normals only
-Mesh& clearTexCoords()  // Clear texture coordinates only
-Mesh& translate(float x, float y, float z)  // Translate all vertices
-Mesh& translate(float x, float y, float z)  // Translate all vertices
-Mesh& rotateX(float radians)  // Rotate mesh around X axis
-Mesh& rotateY(float radians)  // Rotate mesh around Y axis
-Mesh& rotateZ(float radians)  // Rotate mesh around Z axis
-Mesh& scale(float s)  // Scale mesh
-Mesh& scale(float x, float y, float z)  // Scale mesh
-Mesh& transform(const Mat4 & m)  // Apply transformation matrix
-Mesh& append(const Mesh & other)  // Append another mesh
-void draw()  // Draw the mesh
-void draw(const Texture& texture)  // Draw the mesh
-void draw(const Image& image)  // Draw the mesh
-void drawWireframe()  // Draw mesh as wireframe
-void drawGpuPbr()  // Draw the mesh through the GPU PBR pipeline (uploads to GPU buffers as needed, then renders using active lights, material and environment)
-```
-
-#### Sound — Audio playback
-
-```cpp
-Sound()
-bool load(const std::string & path)  // Load audio file. Format auto-detected by extension: .wav .mp3 .ogg .flac .aac .m4a
-void play()  // Play audio
-void stop()  // Stop audio
-bool isLoaded()  // Check if loaded
-bool isPlaying()  // Check if playing
-void setVolume(float volume)  // Set volume (0.0-1.0)
-void setLoop(bool loop)  // Set loop mode
-bool isLoop()  // Check if loop mode is enabled
-void setPan(float pan)  // Set panning (-1.0=left, 0.0=center, 1.0=right)
-float getPan()  // Get current panning
-void setSpeed(float speed)  // Set playback speed (1.0=normal)
-float getSpeed()  // Get current playback speed
-void pause()  // Pause playback
-void resume()  // Resume playback
-bool isPaused()  // Check if paused
-float getPosition()  // Get playback position in seconds
-float getDuration()  // Get total duration in seconds
-void loadTestTone(float frequency = 440.0f, float duration = 1.0f)  // Load a generated sine test tone (no file needed). Handy for verifying audio output.
-void loadFromBuffer(const SoundBuffer& buf)  // Load PCM directly from a pre-generated SoundBuffer (e.g. from ChipSound or a procedural waveform), copying it or adopting the shared_ptr.
-void loadFromBuffer(std::shared_ptr<SoundBuffer> buf)  // Load PCM directly from a pre-generated SoundBuffer (e.g. from ChipSound or a procedural waveform), copying it or adopting the shared_ptr.
-MixMode getMixMode()  // Current channel mix policy (Auto / DownmixMono). Overridden when a non-empty channel map is set.
-std::shared_ptr<const std::vector<std::vector<int>>> getChannelMap()  // Current per-output-channel source routing snapshot, or null if mixMode rules apply.
-std::shared_ptr<const std::vector<float>> getChannelGains()  // Current per-output-channel gain multipliers snapshot, or null if none set.
-```
-
-#### Font — TrueType font for text rendering
-
-```cpp
-Font()
-bool load(const std::string & nameOrPath, int size)  // Load font file
-bool isLoaded()  // Check if loaded
-void drawString(const string& text, float x, float y)  // Draw text
-Path getGlyphPath(uint32_t codepoint)  // Vector outline of a single glyph as one Path with one subpath per contour. Em-normalized (1.0 = em), screen Y-down, baseline at y=0, pen at x=0. Use Path::drawFill() for filled rendering — holes (e, a, O, 日 ...) are auto-detected via earcut.
-Path getStringPath(const string& text, float x, float y)  // Vector outline of the whole string at (x, y) as one Path containing every glyph's contours (one subpath each). Uses the same layout pipeline as drawString (writing mode, alignment, wrap, kinsoku, TCY). Logical pixels — drawStroke / drawFill / transform freely.
-Path getStringPath(const string& text, float x, float y, Direction h, Direction v)  // Vector outline of the whole string at (x, y) as one Path containing every glyph's contours (one subpath each). Uses the same layout pipeline as drawString (writing mode, alignment, wrap, kinsoku, TCY). Logical pixels — drawStroke / drawFill / transform freely.
-float getWidth(const std::string & text)  // Get text width
-float getHeight(const std::string & text)  // Get text height
-float getLineHeight()  // Get line height
-int getSize()  // Get font size
-void clearAtlas()  // Clear font atlas (GPU memory freed, glyphs re-rasterized on next draw)
-size_t getMemoryUsage()  // Get atlas memory usage in bytes
-size_t getLoadedGlyphCount()  // Get number of loaded glyphs
-size_t getAtlasCount()  // Get number of atlas pages
-void setWritingMode(WritingMode mode)  // Switch between horizontal and vertical (tategaki) writing. Default is Horizontal (existing behavior unchanged).
-WritingMode getWritingMode()  // Current writing mode
-void setTcyDigits(int maxDigits, TcyMode inMode, TcyMode overflowMode)  // Tate-chu-yoko config for ASCII digit runs in vertical text. Runs with <= maxDigits use inMode (typically Combine — squeezed into one cell); longer runs fall back to overflowMode (typically Rotate).
-void setTcyLatin(TcyMode mode)  // Tate-chu-yoko mode for Latin letter runs in vertical text. Default is Rotate (whole run rotated 90 CW).
-void setAlign(Direction h, Direction v)  // Set horizontal (and optional vertical) text alignment
-void setAlign(Direction h)  // Set horizontal (and optional vertical) text alignment
-Direction getAlignH()  // Get current horizontal text alignment
-Direction getAlignV()  // Get current vertical text alignment
-void setLineHeight(float pixels)  // Set line height in pixels (0 = use font default)
-void setLineHeightEm(float multiplier)  // Set line height as a multiple of the font default (1.0 = default, 1.5 = 1.5x)
-void resetLineHeight()  // Reset line height to the font default
-float getDefaultLineHeight()  // Get the font's default line height (unaffected by setLineHeight)
-TcyMode getTcyLatinMode()  // Get the tate-chu-yoko mode for Latin letter runs
-int getTcyDigitMax()  // Get the maximum digit-run length that uses tate-chu-yoko combine mode
-void enableWrap(bool enabled)  // Enable or disable line wrapping (default off)
-bool isWrapEnabled()  // Check if line wrapping is enabled
-void setMaxLineLength(float length)  // Set the wrap length (horizontal: line width; vertical: column height)
-float getMaxLineLength()  // Get the current wrap length
-void setLatinHyphenation(bool enabled)  // When wrapping a Latin run with no break point, insert '-' before the forced break (default off)
-bool getLatinHyphenation()  // Check if Latin hyphenation is enabled
-void setHangingPunctuation(bool enabled)  // Let prohibited line-start CJK punctuation hang past the line edge instead of wrapping (default off)
-bool getHangingPunctuation()  // Check if hanging punctuation is enabled
-void setKinsoku(KinsokuLevel level)  // Choose which CJK kinsoku (line-break prohibition) table to apply during wrap
-KinsokuLevel getKinsoku()  // Get the current kinsoku level
-float stringWidth(const std::string & text)  // Pixel width of the text (alias of getWidth)
-Rect getBBox(const std::string & text)  // Get the bounding box of the text (top-left origin)
-float getAscent()  // Get the font ascent (distance from baseline to top)
-float getDescent()  // Get the font descent (distance from baseline to bottom; negative)
-size_t getAtlasMemoryUsage()  // Get atlas memory usage in bytes (alias of getMemoryUsage)
-void forEachGlyph(const std::string & text, float x, float y, Direction h, Direction v, const GlyphVisitor & visitor)  // Invoke a visitor once per laid-out glyph (positions follow writing mode, wrap, kinsoku, and TCY). Backend-agnostic layout pass shared by drawing, vector outlines, and hit testing
-void forEachGlyph(const std::string & text, float x, float y, const GlyphVisitor & visitor)  // Invoke a visitor once per laid-out glyph (positions follow writing mode, wrap, kinsoku, and TCY). Backend-agnostic layout pass shared by drawing, vector outlines, and hit testing
-size_t getTotalCacheMemoryUsage()  // Total memory used by the shared font atlas cache across all fonts
-```
-
-#### FileWriter — Streaming file writer with immediate flush
-
-```cpp
-FileWriter()
-bool open(const std::string & path, bool append = false)  // Open file for writing
-bool open(const std::string & path, bool append = false)  // Open file for writing
-void close()  // Close file
-bool isOpen()  // Check if file is open
-FileWriter& write(const std::string& text)  // Write data to file
-FileWriter& write(char c)  // Write data to file
-FileWriter& write(const void* data, size_t size)  // Write data to file
-FileWriter & writeLine(const std::string & text = "")  // Write line with newline
-FileWriter & writeLine(const std::string & text = "")  // Write line with newline
-void flush()  // Flush buffer to disk
-```
-
-#### FileReader — Streaming file reader for large files
-
-```cpp
-FileReader()
-bool open(const std::string & path)  // Open file for reading
-void close()  // Close file
-bool isOpen()  // Check if file is open
-bool eof()  // Check if at end of file
-string readLine()  // Read one line
-int readChar()  // Read one character (-1 at EOF)
-size_t read(void* buffer, size_t size)  // Read binary data
-void seek(size_t pos)  // Seek to position
-size_t tell()  // Get current position
-size_t remaining()  // Get remaining bytes
-```
-
-#### ColorHSB — HSB color space (H/S/B: 0-1)
-
-```cpp
-float h  // Hue (0.0-1.0)
-float s  // Saturation (0.0-1.0)
-float b  // Brightness (0.0-1.0)
-float a  // Alpha component (0.0-1.0)
-ColorLinear toLinear()  // Convert to linear RGB color space
-ColorOKLab toOKLab()  // Convert to OKLab color space
-ColorOKLCH toOKLCH()  // Convert to OKLCH color space
-```
-
-#### ColorOKLCH — Perceptually uniform OKLCH color
-
-```cpp
-float L  // Lightness (0.0-1.0)
-float C  // Chroma (0.0 - ~0.4)
-float H  // Hue (0.0-1.0)
-float alpha  // Alpha component (0.0-1.0)
-ColorOKLab toOKLab()  // Convert to OKLab color space
-ColorLinear toLinear()  // Convert to linear RGB color space
-ColorHSB toHSB()  // Convert to HSB color space
-```
-
-#### Light — Light source for 3D PBR rendering (directional, point, or spot)
-
-```cpp
-Light()
-void setDirectional(const Vec3& direction)  // Set as directional light
-void setDirectional(float dx, float dy, float dz)  // Set as directional light
-void setPoint(const Vec3& position)  // Set as point light
-void setPoint(float x, float y, float z)  // Set as point light
-void setSpot(const Vec3& position, const Vec3& direction, float innerHalfAngle, float outerHalfAngle)  // Set as spot light with cone angles
-void setSpot(float px, float py, float pz, float dx, float dy, float dz, float innerHalfAngle, float outerHalfAngle)  // Set as spot light with cone angles
-void setAmbient(const Color& c)  // Set ambient light color
-void setAmbient(float r, float g, float b, float a)  // Set ambient light color
-void setDiffuse(const Color& c)  // Set diffuse (main) light color
-void setDiffuse(float r, float g, float b, float a)  // Set diffuse (main) light color
-void setSpecular(const Color& c)  // Set specular light color
-void setSpecular(float r, float g, float b, float a)  // Set specular light color
-void setIntensity(float intensity)  // Set light intensity multiplier
-void setAttenuation(float constant, float linear, float quadratic)  // Set distance attenuation factors
-void setProjectionTexture(const Texture* tex)  // Set texture for projector-style light (gobo)
-void setLensShift(float sx, float sy)  // Set projector lens shift (-1 to 1, normalized)
-void setProjectorAspect(float aspect)  // Set projector aspect ratio
-void setIesProfile(const IesProfile* ies)  // Attach IES photometric profile for angular intensity
-void enableShadow(int resolution)  // Enable shadow casting (depth map at given resolution)
-void disableShadow()  // Disable shadow casting
-void enable()  // Enable this light
-void disable()  // Disable this light
-void setShadowBias(float bias)  // Set shadow depth bias in world units
-LightType getType()  // Get light type (Directional, Point, or Spot)
-const Vec3& getPosition()  // Get light position
-const Vec3& getDirection()  // Get light direction
-float getIntensity()  // Get light intensity
-const Color& getAmbient()  // Get ambient light color
-const Color& getDiffuse()  // Get diffuse (main) light color
-const Color& getSpecular()  // Get specular light color
-float getConstantAttenuation()  // Get constant attenuation factor
-float getLinearAttenuation()  // Get linear attenuation factor
-float getQuadraticAttenuation()  // Get quadratic attenuation factor
-bool isEnabled()  // Check if light is enabled
-bool isShadowEnabled()  // Check if shadow casting is enabled
-int getShadowResolution()  // Get shadow map resolution
-float getShadowBias()  // Get shadow depth bias
-float getSpotInnerCos()  // Get spot light inner cone cosine
-float getSpotOuterCos()  // Get spot light outer cone cosine
-const Texture* getProjectionTexture()  // Get projection texture (gobo)
-bool hasProjectionTexture()  // Check if a projection texture is set
-float getLensShiftX()  // Get projector horizontal lens shift
-float getLensShiftY()  // Get projector vertical lens shift
-float getProjectorAspect()  // Get projector aspect ratio
-const IesProfile* getIesProfile()  // Get attached IES photometric profile
-bool hasIesProfile()  // Check if an IES profile is attached
-Mat4 computeProjectorViewProj(float nearClip = 0.1f, float farClip = 10000.0f)  // Build the projector's view-projection matrix from spot params and lens shift
-Color calculate(const Vec3& worldPos, const Vec3& worldNormal, const Material& material, const Vec3& viewPos)  // Compute the CPU Phong lighting contribution at a world position/normal for a material
-```
-
-#### Material — PBR material (metallic-roughness workflow, glTF 2.0 compatible)
-
-```cpp
-Material()
-Material& setBaseColor(const Color& c)  // Set base color (albedo)
-Material& setBaseColor(float r, float g, float b, float a)  // Set base color (albedo)
-Material& setMetallic(float m)  // Set metallic factor (0=dielectric, 1=metal)
-Material& setRoughness(float r)  // Set roughness factor (0=mirror, 1=matte)
-Material& setEmissive(const Color& c)  // Set emissive color
-Material& setEmissive(float r, float g, float b)  // Set emissive color
-Material& setEmissiveStrength(float s)  // Set emissive strength multiplier
-Material& setAo(float ao)  // Set ambient occlusion factor
-Material& setNormalMap(const Texture* tex)  // Set normal map texture for bump mapping
-Material& setBaseColorTexture(const Texture* tex)  // Set base color (albedo) texture map
-Material& setMetallicRoughnessTexture(const Texture* tex)  // Set metallic-roughness texture (glTF: G=roughness, B=metallic)
-Material& setEmissiveTexture(const Texture* tex)  // Set emissive texture map
-Material& setOcclusionTexture(const Texture* tex)  // Set occlusion texture map
-const Color& getBaseColor()  // Get base color (albedo)
-float getMetallic()  // Get metallic factor
-float getRoughness()  // Get roughness factor
-float getAo()  // Get ambient occlusion factor
-const Color& getEmissive()  // Get emissive color
-float getEmissiveStrength()  // Get emissive strength multiplier
-const Texture* getNormalMap()  // Get normal map texture
-bool hasNormalMap()  // Check if a normal map is set
-const Texture* getBaseColorTexture()  // Get base color texture
-bool hasBaseColorTexture()  // Check if a base color texture is set
-const Texture* getMetallicRoughnessTexture()  // Get metallic-roughness texture
-bool hasMetallicRoughnessTexture()  // Check if a metallic-roughness texture is set
-const Texture* getEmissiveTexture()  // Get emissive texture
-bool hasEmissiveTexture()  // Check if an emissive texture is set
-const Texture* getOcclusionTexture()  // Get occlusion texture
-bool hasOcclusionTexture()  // Check if an occlusion texture is set
-Material gold()  // Gold material preset
-Material silver()  // Silver material preset
-Material copper()  // Copper material preset
-Material iron()  // Iron material preset
-Material plastic(const Color& baseColor, float roughness)  // Plastic material preset
-Material rubber(const Color& baseColor)  // Rubber material preset
-Material bronze()  // Bronze material preset
-Material emerald()  // Emerald material preset
-Material ruby()  // Ruby material preset
-Material fromPhong(const Color& diffuse, const Color& specular, float shininess, const Color& emissive)  // Convert Phong material parameters to PBR (roughness from shininess, metallic estimated from specular luminance)
-```
-
-#### IesProfile — IESNA LM-63 photometric profile for angular light intensity
-
-```cpp
-IesProfile()
-bool load(const string& path)  // Load IES profile from file
-bool loadFromString(const string& data)  // Load IES profile from inline string data
-bool isLoaded()  // Check if profile is loaded
-float getMaxVerticalAngle()  // Get maximum vertical angle in the profile (radians)
-float getMaxCandela()  // Get maximum candela value in the profile
-int getTextureWidth()  // Get width of the generated 1D lookup texture
-```
-
-#### Environment — IBL environment map for PBR ambient lighting (irradiance + prefilter + BRDF LUT)
-
-```cpp
-Environment()
-bool loadFromHDR(const string& path)  // Load environment from HDR image file
-bool loadProcedural()  // Generate a simple procedural sky environment
-bool isLoaded()  // Check if environment is loaded
-void release()  // Release GPU resources
-const Texture& getIrradianceMap()  // Get irradiance cubemap for diffuse IBL
-const Texture& getPrefilterMap()  // Get prefiltered environment cubemap for specular IBL
-const Texture& getBrdfLut()  // Get BRDF integration lookup texture
-int getPrefilterMipLevels()  // Get number of mip levels in the prefilter map
-```
-
-#### Platform — Compile-time OS detection. All methods are constexpr and resolve at compile time based on the target platform.
-
-```cpp
-bool isWeb()  // True on Web (Emscripten / WASM)
-bool isMacOS()  // True on macOS
-bool isIOS()  // True on iOS
-bool isWindows()  // True on Windows
-bool isAndroid()  // True on Android
-bool isLinux()  // True on Linux (desktop, excludes Android)
-bool isApple()  // True on any Apple platform (macOS or iOS)
-bool isMobile()  // True on mobile (iOS or Android)
-bool isDesktop()  // True on desktop (macOS, Windows, or Linux)
-const char* name()  // Short platform name: "web" / "macos" / "ios" / "windows" / "android" / "linux" / "unknown"
-```
-
-#### GraphicsBackend — Runtime sokol_gfx backend query. Values are meaningful only after sg_setup() has completed (i.e. after the first setup() call).
-
-```cpp
-bool isOpenGL()  // True when running on OpenGL (core or GLES3)
-bool isMetal()  // True when running on Apple Metal
-bool isD3D11()  // True when running on Direct3D 11
-bool isWebGPU()  // True when running on WebGPU
-bool isWebGL2()  // True when running on WebGL2 (GLES3 under Emscripten)
-bool isVulkan()  // True when running on Vulkan
-const char* name()  // Short backend name: "opengl" / "gles3" / "webgl2" / "d3d11" / "metal" / "webgpu" / "vulkan" / "dummy" / "unknown"
-```
-
-#### BuildInfo — Build timestamp info injected as compile definitions by trussc_app() at CMake configure time. Refreshes when cmake reconfigures. Date/time fields are local time; timestamp is UTC Unix seconds.
-
-```cpp
-const char* date()  // Build date in "YYYY-MM-DD" form (local time)
-const char* time()  // Build time in "HH:MM:SS" form (local time)
-const char* dateTime()  // Build date-time in "YYYY-MM-DD HH:MM:SS" form (local time)
-int64_t timestamp()  // Build timestamp as Unix seconds (UTC)
-int year()  // Build year (e.g. 2026)
-int month()  // Build month (1-12)
-int day()  // Build day of month (1-31)
-int hour()  // Build hour (0-23)
-int minute()  // Build minute (0-59)
-int second()  // Build second (0-59)
-```
-
-#### NetworkInterface — One address entry of a network interface (returned by listNetworkInterfaces)
-
-```cpp
-std::string name  // Interface name (en0 / Ethernet / wlan0)
-std::string address  // IP address (IPv4 dotted-quad or IPv6 textual)
-std::string netmask  // Subnet mask (IPv4)
-std::string mac  // Hardware MAC address (empty if unavailable)
-bool isIPv4  // True for IPv4, false for IPv6
-bool isLoopback  // True if a loopback interface
-bool isUp  // True if the interface link is up
-const std::string& getName()  // Interface name
-const std::string& getAddress()  // IP address
-const std::string& getNetmask()  // Subnet mask
-const std::string& getMac()  // MAC address
-bool getIsIPv4()  // Whether the address is IPv4
-bool getIsLoopback()  // Whether this is a loopback interface
-bool getIsUp()  // Whether the link is up
-```
-
-#### UdpSocket — UDP socket (send/receive datagrams, broadcast, multicast)
-
-```cpp
-UdpSocket()
-Event<UdpReceiveEventArgs> onReceive  // Fired when data is received
-Event<UdpErrorEventArgs> onError  // Fired on error
-bool create()  // Create the socket explicitly (usually auto-created by bind/connect)
-bool bind(int port, bool startReceiving = true)  // Bind a port for receiving (startReceiving auto-starts the receive thread)
-bool connect(const std::string& host, int port)  // Set the destination for send()
-void close()  // Close the socket
-bool sendTo(const std::string& host, int port, const void* data, size_t size)  // Send data to a specific host and port
-bool sendTo(const std::string& host, int port, const std::string& message)  // Send data to a specific host and port
-bool send(const void* data, size_t size)  // Send to the destination set by connect()
-bool send(const std::string& message)  // Send to the destination set by connect()
-int receive(void* buffer, size_t bufferSize)  // Blocking receive (for non-event use); returns byte count or -1
-int receive(void* buffer, size_t bufferSize, std::string& remoteHost, int& remotePort)  // Blocking receive (for non-event use); returns byte count or -1
-void startReceiving()  // Start the receive thread (auto-called after bind)
-void stopReceiving()  // Stop the receive thread
-bool isReceiving()  // Whether the receive thread is active
-bool setNonBlocking(bool nonBlocking)  // Set non-blocking mode
-bool setBroadcast(bool enable)  // Allow broadcast sending
-bool setReuseAddress(bool enable)  // Allow address reuse (set before bind)
-bool setReusePort(bool enable)  // Allow multiple sockets on the same port (multicast receivers; set before bind)
-bool setReceiveBufferSize(int size)  // Set the receive buffer size
-bool setSendBufferSize(int size)  // Set the send buffer size
-bool setReceiveTimeout(int timeoutMs)  // Set the receive timeout (0 = infinite)
-void setUseThread(bool useThread)  // Whether to use a receive thread (must be false on Wasm)
-bool joinMulticastGroup(const std::string& groupAddr, const std::string& interfaceAddr = "")  // Join a multicast group for receiving (call after bind; "" = default route)
-bool leaveMulticastGroup(const std::string& groupAddr, const std::string& interfaceAddr = "")  // Leave a previously joined multicast group
-bool setMulticastTTL(int ttl)  // Hop limit for outgoing multicast (default 1 = local subnet)
-bool setMulticastLoopback(bool enable)  // Whether outgoing multicast loops back to local listeners (default on)
-bool setMulticastInterface(const std::string& interfaceAddr)  // Pick the NIC for outgoing multicast ("" = default route)
-int getLocalPort()  // The bound local port
-bool isValid()  // Whether the socket is valid
-const std::string& getConnectedHost()  // Destination host from connect()
-int getConnectedPort()  // Destination port from connect()
-```
-
-#### UdpReceiveEventArgs — Event args for UdpSocket::onReceive
-
-```cpp
-std::vector<char> data  // Received data
-std::string remoteHost  // Source host
-int remotePort  // Source port
-```
-
-#### UdpErrorEventArgs — Event args for UdpSocket::onError
-
-```cpp
-std::string message  // Error message
-int errorCode  // Error code
-```
-
-#### TcpClient — TCP client connection (connect, send/receive a stream)
-
-```cpp
-TcpClient()
-Event<TcpConnectEventArgs> onConnect  // Fired when the connection completes
-Event<TcpReceiveEventArgs> onReceive  // Fired when data is received
-Event<TcpDisconnectEventArgs> onDisconnect  // Fired when disconnected
-Event<TcpErrorEventArgs> onError  // Fired on error
-bool connect(const std::string& host, int port)  // Connect to a server (blocking)
-void connectAsync(const std::string& host, int port)  // Connect asynchronously (notifies via onConnect)
-void disconnect()  // Disconnect
-bool isConnected()  // Whether currently connected
-bool send(const void* data, size_t size)  // Send data to the server
-bool send(const std::vector<char>& data)  // Send data to the server
-bool send(const std::string& message)  // Send data to the server
-void setReceiveBufferSize(size_t size)  // Set the receive buffer size
-void setBlocking(bool blocking)  // Set blocking mode
-void setUseThread(bool useThread)  // Whether to use threads (must be false on Wasm)
-bool isUsingThread()  // Whether threading is in use
-std::string getRemoteHost()  // Remote host name
-int getRemotePort()  // Remote port
-```
-
-#### TcpConnectEventArgs — Event args for TcpClient::onConnect
-
-```cpp
-bool success  // Whether the connection succeeded
-std::string message  // Connection message
-```
-
-#### TcpReceiveEventArgs — Event args for TcpClient::onReceive
-
-```cpp
-std::vector<char> data  // Received data
-```
-
-#### TcpDisconnectEventArgs — Event args for TcpClient::onDisconnect
-
-```cpp
-std::string reason  // Disconnect reason
-bool wasClean  // Whether it was a clean disconnect
-```
-
-#### TcpErrorEventArgs — Event args for TcpClient::onError
-
-```cpp
-std::string message  // Error message
-int errorCode  // Error code
-```
-
-#### TcpServer — TCP server (accept clients, send/broadcast)
-
-```cpp
-TcpServer()
-Event<TcpClientConnectEventArgs> onClientConnect  // Fired when a client connects
-Event<TcpServerReceiveEventArgs> onReceive  // Fired when data is received from a client
-Event<TcpClientDisconnectEventArgs> onClientDisconnect  // Fired when a client disconnects
-Event<TcpServerErrorEventArgs> onError  // Fired on a server or per-client error
-bool start(int port, int maxClients = 10)  // Start listening on a port
-void stop()  // Stop the server
-bool isRunning()  // Whether the server is running
-void disconnectClient(int clientId)  // Disconnect a specific client
-void disconnectAllClients()  // Disconnect all clients
-int getClientCount()  // Number of connected clients
-std::vector<int> getClientIds()  // IDs of all connected clients
-const TcpServerClient* getClient(int clientId)  // Client info (nullptr if not found)
-bool send(int clientId, const void* data, size_t size)  // Send data to a specific client
-bool send(int clientId, const std::vector<char>& data)  // Send data to a specific client
-bool send(int clientId, const std::string& message)  // Send data to a specific client
-void broadcast(const void* data, size_t size)  // Broadcast data to all clients
-void broadcast(const std::vector<char>& data)  // Broadcast data to all clients
-void broadcast(const std::string& message)  // Broadcast data to all clients
-void setReceiveBufferSize(size_t size)  // Set the receive buffer size
-int getPort()  // The listening port
-```
-
-#### TcpServerClient — A client connected to a TcpServer (read-only handle)
-
-```cpp
-int getId()  // Client ID assigned by the server
-const std::string& getHost()  // Client IP address
-int getPort()  // Client port
-```
-
-#### TcpClientConnectEventArgs — Event args for TcpServer::onClientConnect
-
-```cpp
-int clientId  // Client ID
-std::string host  // Client IP address
-int port  // Client port
-```
-
-#### TcpServerReceiveEventArgs — Event args for TcpServer::onReceive
-
-```cpp
-int clientId  // Client ID
-std::vector<char> data  // Received data
-```
-
-#### TcpClientDisconnectEventArgs — Event args for TcpServer::onClientDisconnect
-
-```cpp
-int clientId  // Client ID
-std::string reason  // Disconnect reason
-bool wasClean  // Whether the disconnect was clean
-```
-
-#### TcpServerErrorEventArgs — Event args for TcpServer::onError
-
-```cpp
-std::string message  // Error message
-int errorCode  // Error code
-int clientId  // Client ID (-1 = server-level error, not a specific client)
-```
-
-#### Serial — Cross-platform serial port (USB/COM): connect, read/write bytes
-
-```cpp
-Serial()
-bool setup(const std::string& portName, int baudRate)  // Connect to a port by path or by index from listDevices()
-bool setup(int deviceIndex, int baudRate)  // Connect to a port by path or by index from listDevices()
-void close()  // Disconnect and release resources
-bool isInitialized()  // Whether currently connected
-const std::string& getDevicePath()  // Current device path
-int available()  // Number of bytes available to read
-int readBytes(void* buffer, int length)  // Read bytes; returns actual count (>=0) or -1 on error
-int readBytes(std::string& buffer, int length)  // Read bytes; returns actual count (>=0) or -1 on error
-int readByte()  // Read a single byte; 0-255 on success, -1 no data, -2 error
-int writeBytes(const void* buffer, int length)  // Write bytes; returns actual count or -1 on error
-int writeBytes(const std::string& buffer)  // Write bytes; returns actual count or -1 on error
-bool writeByte(unsigned char byte)  // Write a single byte; true on success
-void flushInput()  // Clear the input buffer
-void flushOutput()  // Clear the output buffer
-void flush()  // Clear both input and output buffers
-void drain()  // Wait until output transmission completes
-std::vector<SerialDeviceInfo> listDevices()  // List available serial devices
-std::vector<SerialDeviceInfo> getDeviceList()  // Deprecated alias for listDevices()
-void printDevices()  // Log all available serial devices
-```
-
-#### SerialDeviceInfo — Info for one serial device (from Serial::listDevices)
-
-```cpp
-int deviceId  // Device index
-std::string devicePath  // Device path (e.g. COM3, /dev/tty.usbserial-*)
-std::string deviceName  // Device name
-int getDeviceID()  // Device index
-const std::string& getDevicePath()  // Device path
-const std::string& getDeviceName()  // Device name
-```
-
-#### PlayingSound — A single live mixer voice returned by AudioEngine::play(). Its fields are the real-time playback state the audio thread reads each callback (volume / pan / speed / loop / playing / paused / mixMode / position) plus the channel routing snapshots. Most fields are atomics so the UI thread can mutate them while the audio thread plays; set them directly.
-
-```cpp
-float volume  // Playback volume (0.0-1.0). Stored as an atomic; safe to set from the UI thread while playing.
-float pan  // Stereo pan (-1.0 left, 0.0 center, 1.0 right). Atomic.
-float speed  // Playback speed (0.5 half, 1.0 normal, 2.0 double). Atomic.
-bool loop  // Loop the voice when it reaches the end. Atomic.
-bool playing  // True while this voice is active in the mixer. Atomic.
-bool paused  // True while paused (still a live voice, but not advancing). Atomic.
-MixMode mixMode  // Channel mix policy when no explicit channelMap is set (Auto / DownmixMono). Stored as an atomic int holding the MixMode value.
-double positionF  // Floating-point playback cursor in source samples; advances by speed * rateRatio each output frame.
-float rateRatio  // Source-to-engine sample-rate ratio (buffer sampleRate / engine sampleRate), set when queued so the voice plays at correct pitch regardless of engine rate.
-internal::AtomicSharedPtr<const std::vector<std::vector<int>>> channelMap  // Atomically-swappable per-output-channel source routing. Null means follow mixMode; non-null map is the source of truth. UI thread installs new versions, audio thread reads each callback.
-internal::AtomicSharedPtr<const std::vector<float>> channelGains  // Atomically-swappable per-output-channel gain multipliers. Entries beyond .size() default to 1.0. Orthogonal to channelMap / mixMode.
-```
-
-#### SoundSource — Abstract base for anything Sound::play() can consume. Two concrete subclasses: SoundBuffer (eager, full PCM in RAM) and SoundStream (decoded on demand from disk). Holds the shared channels / sampleRate fields and the kind() / getDuration() interface.
-
-```cpp
-int channels  // Channel count of the source (1 = mono, 2 = stereo, ...)
-int sampleRate  // Source sample rate in Hz
-SoundSource::Kind kind()  // Source kind (Eager for SoundBuffer, Stream for SoundStream). Lets the mixer dispatch without a virtual call per frame.
-float getDuration()  // Duration in seconds. numSamples/sampleRate for buffers; the decoded file's duration for streams.
-```
-
-#### SoundBuffer — Eager sound source: the full file decoded into interleaved float PCM held in RAM. Derives from SoundSource (inherits channels / sampleRate / kind() / getDuration()). Also provides waveform generators, an ADSR envelope, and mixing helpers, so it doubles as a procedural-audio scratch buffer. Best for short SFX and zero-latency play / seek / multi-instance.
-
-```cpp
-SoundBuffer()
-vector<float> samples  // Interleaved PCM samples (channels interleaved per frame)
-size_t numSamples  // Number of samples per channel (frame count)
-bool load(const string& path)  // Decode a file into PCM, auto-detecting format from the extension (.wav .mp3 .ogg .flac .aac .m4a, case-insensitive). Returns false on failure.
-bool loadWav(const string& path)  // Decode a WAV file into PCM.
-bool loadMp3(const string& path)  // Decode an MP3 file into PCM.
-bool loadOgg(const string& path)  // Decode an OGG Vorbis file into PCM (via stb_vorbis).
-bool loadFlac(const string& path)  // Decode a FLAC file into PCM.
-bool loadAac(const string& path)  // Decode an AAC / M4A file into PCM (platform-specific; returns false on unsupported platforms).
-bool loadWavFromMemory(const void* data, size_t dataSize)  // Decode WAV data from a memory buffer.
-bool loadMp3FromMemory(const void* data, size_t dataSize)  // Decode MP3 data from a memory buffer.
-bool loadOggFromMemory(const void* data, size_t dataSize)  // Decode OGG Vorbis data from a memory buffer.
-bool loadFlacFromMemory(const void* data, size_t dataSize)  // Decode FLAC data from a memory buffer.
-bool loadAacFromMemory(const void* data, size_t dataSize)  // Decode AAC data from a memory buffer (platform-specific; returns false on unsupported platforms).
-bool loadPcmFromMemory(const void* data, size_t dataSize, int numChannels, int rate, int bitsPerSample = 16, bool bigEndian = false)  // Load raw interleaved PCM (16-bit signed or 32-bit float) from memory with explicit format. Returns false for unsupported bit depths.
-float getDuration()  // Duration in seconds (numSamples / sampleRate).
-void generateSineWave(float frequency, float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with a mono sine wave of the given frequency (Hz) and duration (seconds).
-void generateSquareWave(float frequency, float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with a mono square wave.
-void generateTriangleWave(float frequency, float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with a mono triangle wave.
-void generateSawtoothWave(float frequency, float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with a mono sawtooth wave.
-void generateNoise(float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with mono white noise.
-void generatePinkNoise(float duration, float volume = 0.5f, int sr = 44100)  // Fill the buffer with mono pink noise (1/f spectrum, Paul Kellet's method).
-void generateSilence(float duration, int sr = 44100)  // Fill the buffer with silence of the given duration (useful as a base for mixFrom).
-void applyADSR(float attack, float decay, float sustainLevel, float release)  // Apply an ADSR amplitude envelope to the buffer in place (attack / decay / release in seconds, sustainLevel 0-1).
-void mixFrom(const SoundBuffer& other, size_t offsetSamples, float volume = 1.0f)  // Additively mix another buffer into this one starting at offsetSamples, growing this buffer if needed.
-void clip()  // Hard-clip all samples into the -1.0 .. 1.0 range.
-int SoundBuffer_getAdtsSampleRateIndex(int sampleRate)  // ADTS sample-rate index for the given rate (AAC-in-MOV container helper).
-void SoundBuffer_createAdtsHeader(uint8_t* header, int frameLength, int sampleRate, int channels, int profile = 2)  // Write a 7-byte ADTS header for one raw AAC frame into header (AAC-in-MOV container helper).
-```
-
-#### SoundStream — Streaming sound source: the file stays open and is decoded on demand into a small per-voice ring buffer instead of full PCM in RAM. Derives from SoundSource (inherits channels / sampleRate / kind() / getDuration()). Best for long files (BGM, podcasts). Trade-offs vs SoundBuffer: setSpeed() is treated as 1.0, setPosition() seeks with a ~10 ms refill, and each polyphony slot costs one open file handle + decoder + ring buffer.
-
-```cpp
-SoundStream()
-bool loadStream(const string& path, int maxPolyphony = 1)  // Open the file, validate format (.wav .mp3 .flac .ogg), and populate channels / sampleRate / duration. maxPolyphony reserves that many concurrent decoder slots. Returns false if the file can't be opened or the format is unsupported.
-float getDuration()  // Decoded file duration in seconds.
-const string& getPath()  // Path the stream was opened from.
-int getMaxPolyphony()  // Number of concurrent decoder slots reserved at loadStream().
-```
-
-#### AudioEngine — Singleton miniaudio-based mixer engine. Owns the output device, mixes all playing Sound voices, exposes real-time audioOut / audioIn / audioDeviceChanged events, and an FFT analysis ring buffer. Access via AudioEngine::getInstance(); most apps drive it indirectly through the Sound class and the global initAudio() / shutdownAudio() helpers.
-
-```cpp
-Event<AudioOutBuffer> audioOut  // Real-time playback callback event. listen() to add a synthesis / processing listener. Fires per audio buffer on the audio thread; keep RT-safe.
-Event<AudioInBuffer> audioIn  // Real-time capture callback event (microphone input). listen() to add an input-processing listener. Fires per audio buffer on the audio thread; keep RT-safe.
-Event<AudioDeviceChangedArgs> audioDeviceChanged  // Fires after every successful init() (initial AND re-init). Args carry the resolved device's real name, isDefaultDevice flag, sampleRate, channels, bufferSize, maxPolyphony. Listener runs on the thread that called init() (main), not the audio thread.
-bool init()  // Initialize the engine with defaults, or with an AudioSettings override. Re-init on a running engine migrates active voices to the new settings. Returns true on success.
-bool init(const AudioSettings& settings)  // Initialize the engine with defaults, or with an AudioSettings override. Re-init on a running engine migrates active voices to the new settings. Returns true on success.
-void shutdown()  // Stop and close the audio device.
-int getSampleRate()  // Current engine output sample rate (Hz). Returns the default (48000) before init().
-int getChannels()  // Current engine output channel count.
-int getMaxPolyphony()  // Maximum number of simultaneously-playing Sound voices.
-int getBufferSize()  // Current device buffer size in frames (0 = miniaudio default).
-bool isInitialized()  // True after a successful init().
-size_t getAnalysisBuffer(float* outBuffer, size_t numSamples)  // Copy the latest mixed output samples (mono, L+R average) into outBuffer. numSamples is capped at 4096. Returns the number of samples written. (Global wrapper: getAudioAnalysisBuffer.)
-std::shared_ptr<PlayingSound> play(std::shared_ptr<SoundSource> source)  // Start a new mixer voice for the given source (eager SoundBuffer or streaming SoundStream) and return its live PlayingSound handle. Usually called indirectly via Sound::play().
-std::shared_ptr<PlayingSound> play(std::shared_ptr<SoundBuffer> buffer)  // Start a new mixer voice for the given source (eager SoundBuffer or streaming SoundStream) and return its live PlayingSound handle. Usually called indirectly via Sound::play().
-AudioEngine& getInstance()  // Get the global AudioEngine singleton.
-vector<AudioDeviceInfo> listDevices()  // Enumerate available playback devices (name + isDefault). Empty if unsupported on the platform.
-```
-
-#### MicInput — Microphone capture (miniaudio). Opens an input device and exposes the latest samples through a ring buffer. Use the global getMicInput() to access the shared instance, then start() it; getMicAnalysisBuffer() is a convenience wrapper over getBuffer().
-
-```cpp
-MicInput()
-bool start(int sampleRate = 44100)  // Open the microphone device at the given sample rate and begin capturing. Returns false on failure.
-void stop()  // Stop capture and close the microphone device.
-size_t getBuffer(float* outBuffer, size_t numSamples)  // Copy the latest captured samples into outBuffer. numSamples is capped at the ring buffer size (4096). Returns the number of samples written.
-bool isRunning()  // True while the microphone device is open and capturing.
-int getSampleRate()  // Sample rate the microphone was opened at.
-```
-
-#### AudioSettings — Configuration passed to AudioEngine::init() to override engine defaults (sample rate, channels, buffer size, polyphony, device). Empty deviceName selects the system default playback device.
-
-```cpp
-int sampleRate  // Engine output sample rate in Hz (default 96000)
-int channels  // Output channel count (1 = mono, 2 = stereo; default 2)
-int bufferSize  // Requested device buffer size in frames; 0 = let miniaudio choose
-int maxPolyphony  // Max simultaneously-playing Sound voices (default 32)
-string deviceName  // Playback device name; empty = system default. Use AudioEngine::listDevices() to enumerate.
-```
-
-#### AudioDeviceInfo — One entry in the list returned by AudioEngine::listDevices().
-
-```cpp
-string name  // Device name (pass to AudioSettings::deviceName)
-bool isDefault  // True if this is the system default playback device
-```
-
-#### AudioDeviceChangedArgs — Argument type for the AudioEngine::audioDeviceChanged event, fired after every successful init() (initial and re-init). Reports the resolved device's real name (never empty).
-
-```cpp
-string deviceName  // Actual device name now active (resolved, never empty)
-bool isDefaultDevice  // True when the opened device is the OS's current default playback device
-int sampleRate  // Active engine sample rate in Hz
-int channels  // Active output channel count
-int bufferSize  // Active device buffer size in frames
-int maxPolyphony  // Active max polyphony
-```
-
-#### AudioOutBuffer — Argument type for the AudioEngine::audioOut event. Holds the interleaved mutable output buffer for a single audio callback. Listeners should ADD their contribution to data (voices are already mixed in); do not call engine APIs from here.
-
-```cpp
-float* data  // Interleaved mutable output, frameCount * channels samples
-int frameCount  // Number of frames in this callback
-int channels  // Channel count (floats per frame)
-int sampleRate  // Engine output sample rate in Hz
-uint64_t framePosition  // Monotonic count of output frames emitted since engine init (sample-accurate time/phase reference)
-```
-
-#### AudioInBuffer — Argument type for the AudioEngine::audioIn event. Holds the interleaved read-only microphone input for a single capture callback. Process and return quickly; do not call engine APIs from here.
-
-```cpp
-const float* data  // Interleaved read-only mic input, frameCount * channels samples
-int frameCount  // Number of frames in this callback
-int channels  // Channel count (floats per frame)
-int sampleRate  // Input sample rate in Hz
-uint64_t framePosition  // Monotonic count of input frames received since capture start
-```
-
-#### ChipSoundNote — One 8-bit-style note: a plain aggregate of public fields (wave, hz, volume, duration, and the ADSR envelope attack/decay/sustain/release). Set fields directly via designated initializers ({ .wave = Wave::Square, .hz = 440, .duration = 0.2f }) or the constructor, then build() it into a Sound (or add() it to a ChipSoundBundle).
-
-```cpp
-ChipSoundNote()
-ChipSoundNote(Wave w, float freq, float dur, float vol = 0.5f)
-Wave wave  // Waveform (Sin, Square, Triangle, Sawtooth, Noise, PinkNoise, Silent)
-float hz  // Frequency in Hz (ignored for Noise / Silent)
-float volume  // Volume (0.0-1.0)
-float duration  // Note duration in seconds
-float attack  // ADSR attack time in seconds
-float decay  // ADSR decay time in seconds
-float sustain  // ADSR sustain level (0.0-1.0)
-float release  // ADSR release time in seconds
-Sound build()  // Render this note (with its ADSR envelope) into a playable Sound
-void generateBuffer(SoundBuffer& buf)  // Write this note's raw waveform (without the ADSR envelope) into buf. Used internally by build() and by ChipSoundBundle mixing.
-float getTotalDuration()  // Total note duration in seconds (used by ChipSoundBundle to lay out note timing).
-```
-
-#### ChipSoundBundle — A timeline of chiptune notes (ChipSoundNote + start time) that builds into a single mixed Sound. Add notes at times, then call build() to render the mix with ADSR and clipping applied.
-
-```cpp
-ChipSoundBundle()
-vector<ChipSoundBundle::Entry> entries  // The scheduled notes (each Entry pairs a ChipSoundNote with its start time in seconds)
-float volume  // Master volume multiplier applied when mixing (default 1.0)
-ChipSoundBundle& add(const ChipSoundNote& note, float time)  // Schedule a note to start at the given time (seconds). The second overload constructs the note inline from wave / frequency / duration.
-ChipSoundBundle& add(ChipSoundNote::Wave wave, float hz, float duration, float time, float vol = 0.5f)  // Schedule a note to start at the given time (seconds). The second overload constructs the note inline from wave / frequency / duration.
-ChipSoundBundle& clear()  // Remove all scheduled notes.
-float getDuration()  // Total duration in seconds, auto-computed from the last note's end.
-Sound build()  // Render all scheduled notes into a single mixed, clipped Sound ready to play.
-```
-
-#### Logger — Logging core with console and file output and an onLog event; access the global instance via getLogger()
-
-```cpp
-Event<LogEventArgs> onLog  // Event fired for every log message; listen to it to route logs (console/file/custom sink)
-void log(LogLevel level, const string& message)  // Emit a log message at the given level
-void setConsoleLogLevel(LogLevel level)  // Set the minimum console log level
-LogLevel getConsoleLogLevel()  // Get the current console log level
-bool setLogFile(const string& path)  // Open a file to receive log output
-void closeFile()  // Close the current log file
-void setFileLogLevel(LogLevel level)  // Set the minimum file log level
-LogLevel getFileLogLevel()  // Get the current file log level
-const string& getLogFilePath()  // Get the path of the current log file
-bool isFileOpen()  // Check whether a log file is currently open
-```
-
-#### CoreEvents — Hub of all framework core events. Each member is an Event you subscribe to with .listen(callback); access the global instance via events()
-
-```cpp
-Event<void> setup  // Fired after app setup completes
-Event<void> update  // Fired before update each frame
-Event<void> draw  // Fired before draw each frame
-Event<void> onRender  // Fired after sokol_gl flush, while the render pass is still active
-Event<void> afterFrame  // Fired after present() (swapchain committed, outside any pass)
-Event<void> exit  // Fired on app exit
-Event<ExitRequestEventArgs> exitRequested  // Fired when an exit is requested; set args.cancel = true to cancel it
-Event<KeyEventArgs> keyPressed  // Fired when a key is pressed
-Event<KeyEventArgs> keyReleased  // Fired when a key is released
-Event<MouseEventArgs> mousePressed  // Fired when a mouse button is pressed
-Event<MouseEventArgs> mouseReleased  // Fired when a mouse button is released
-Event<MouseMoveEventArgs> mouseMoved  // Fired when the mouse moves with no button held
-Event<MouseDragEventArgs> mouseDragged  // Fired when the mouse moves with a button held
-Event<ScrollEventArgs> mouseScrolled  // Fired when the mouse wheel / trackpad scrolls
-Event<ResizeEventArgs> windowResized  // Fired when the window is resized
-Event<DragDropEventArgs> filesDropped  // Fired when files are dropped onto the window
-Event<ClipboardPastedEventArgs> clipboardPasted  // Fired on a paste gesture (Cmd+V / Ctrl+V / browser paste); args.text holds the content
-Event<ConsoleEventArgs> console  // Fired when a command line is received from stdin
-Event<TouchEventArgs> touchPressed  // Fired when a touch begins (Android/iOS, multi-touch)
-Event<TouchEventArgs> touchMoved  // Fired when a touch moves (Android/iOS, multi-touch)
-Event<TouchEventArgs> touchReleased  // Fired when a touch ends or is cancelled (check args.cancelled)
-Event<const sapp_event> rawEvent  // Fired for every raw sokol_app event (for addons needing the full sapp_event)
-```
-
-#### Event — Generic event you subscribe to with listen(callback) and fire with notify(arg). The template parameter is the argument type passed to listeners by reference; Event<void> is the no-argument specialization (callbacks and notify take no argument). listen() returns an EventListener RAII token that disconnects when destroyed
-
-```cpp
-EventListener listen(Callback callback, int priority = EventPriority::App)  // Register a listener callback and return an EventListener token; lower priority runs first, and Deliver::Main runs the callback on the main thread
-EventListener listen(Callback callback, Deliver deliver, int priority = EventPriority::App)  // Register a listener callback and return an EventListener token; lower priority runs first, and Deliver::Main runs the callback on the main thread
-void notify(T& arg)  // Fire the event, calling all listeners in priority order (no argument for Event<void>); stops early if a listener marks an input arg consumed
-size_t listenerCount()  // Number of currently registered listeners
-void clear()  // Remove all listeners
-```
-
-#### EventListener — RAII token returned by Event::listen(); the listener is automatically disconnected when this token is destroyed or reassigned. Move-only
-
-```cpp
-void disconnect()  // Explicitly disconnect the listener now (otherwise happens automatically on destruction)
-bool isConnected()  // True while the listener is still connected to its event
-```
-
-#### KeyEventArgs — Arguments for keyPressed / keyReleased events
-
-```cpp
-int key  // Key code (KEY_* / SAPP_KEYCODE_*)
-bool isRepeat  // True if this is a repeat from holding the key
-bool shift  // Shift modifier held
-bool ctrl  // Ctrl modifier held
-bool alt  // Alt modifier held
-bool super  // Super / Command modifier held
-bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
-```
-
-#### MouseEventArgs — Arguments for mousePressed / mouseReleased events. pos is local space, globalPos is screen space (equal at app level)
-
-```cpp
-Vec2 pos  // Cursor position in the receiving node's local space (== globalPos at app level)
-Vec2 globalPos  // Cursor position in screen space
-int button  // Mouse button (MOUSE_BUTTON_LEFT / RIGHT / MIDDLE)
-float x  // Legacy mirror of pos.x (removed at v1.0)
-float y  // Legacy mirror of pos.y (removed at v1.0)
-bool shift  // Shift modifier held
-bool ctrl  // Ctrl modifier held
-bool alt  // Alt modifier held
-bool super  // Super / Command modifier held
-bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
-```
-
-#### MouseMoveEventArgs — Arguments for mouseMoved (cursor moving with no button held)
-
-```cpp
-Vec2 pos  // Cursor position in local space (== globalPos at app level)
-Vec2 globalPos  // Cursor position in screen space
-Vec2 delta  // Movement since the last event, in local space
-Vec2 globalDelta  // Movement since the last event, in screen space
-float x  // Legacy mirror of pos.x (removed at v1.0)
-float y  // Legacy mirror of pos.y (removed at v1.0)
-float deltaX  // Legacy mirror of delta.x (removed at v1.0)
-float deltaY  // Legacy mirror of delta.y (removed at v1.0)
-bool shift  // Shift modifier held
-bool ctrl  // Ctrl modifier held
-bool alt  // Alt modifier held
-bool super  // Super / Command modifier held
-bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
-```
-
-#### MouseDragEventArgs — Arguments for mouseDragged (cursor moving with a button held)
-
-```cpp
-Vec2 pos  // Cursor position in local space (== globalPos at app level)
-Vec2 globalPos  // Cursor position in screen space
-Vec2 delta  // Movement since the last event, in local space
-Vec2 globalDelta  // Movement since the last event, in screen space
-int button  // Mouse button being dragged (MOUSE_BUTTON_*)
-float x  // Legacy mirror of pos.x (removed at v1.0)
-float y  // Legacy mirror of pos.y (removed at v1.0)
-float deltaX  // Legacy mirror of delta.x (removed at v1.0)
-float deltaY  // Legacy mirror of delta.y (removed at v1.0)
-bool shift  // Shift modifier held
-bool ctrl  // Ctrl modifier held
-bool alt  // Alt modifier held
-bool super  // Super / Command modifier held
-bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
-```
-
-#### ScrollEventArgs — Arguments for mouseScrolled events
-
-```cpp
-Vec2 pos  // Cursor position in local space (== globalPos at app level)
-Vec2 globalPos  // Cursor position in screen space
-Vec2 scroll  // Scroll amount (x: horizontal, y: vertical)
-float scrollX  // Legacy mirror of scroll.x (removed at v1.0)
-float scrollY  // Legacy mirror of scroll.y (removed at v1.0)
-bool shift  // Shift modifier held
-bool ctrl  // Ctrl modifier held
-bool alt  // Alt modifier held
-bool super  // Super / Command modifier held
-bool consumed  // Set true in a listener to stop propagation to lower-priority listeners
-```
-
-#### ResizeEventArgs — Arguments for windowResized events
-
-```cpp
-int width  // New window width in pixels
-int height  // New window height in pixels
-```
-
-#### DragDropEventArgs — Arguments for filesDropped events
-
-```cpp
-vector<string> files  // Paths of the dropped files
-float x  // Drop position x
-float y  // Drop position y
-```
-
-#### ClipboardPastedEventArgs — Arguments for clipboardPasted events; the only reliable way to read the clipboard on the Web platform
-
-```cpp
-string text  // Pasted clipboard content (already read for you)
-```
-
-#### TouchPoint — A single finger within a TouchEventArgs
-
-```cpp
-int id  // Touch ID, persistent across move events
-float x  // Touch x position
-float y  // Touch y position
-float pressure  // Touch pressure (0.0-1.0; not yet reported by sokol, defaults to 1.0)
-bool changed  // True if this touch was part of the current action
-```
-
-#### TouchEventArgs — Arguments for touchPressed / touchMoved / touchReleased events (multi-touch, Android/iOS)
-
-```cpp
-TouchPoint[8] touches  // Array of active touch points (up to MAX_TOUCHES = 8)
-int numTouches  // Number of valid entries in touches
-bool cancelled  // True when touchReleased fires due to system cancellation (incoming call, system gesture)
-float x()  // Convenience: X position of the first touch point
-float y()  // Convenience: Y position of the first touch point
-int id()  // Convenience: ID of the first touch point
-```
-
-#### ExitRequestEventArgs — Arguments for the exitRequested event
-
-```cpp
-bool cancel  // Set true in a listener to cancel the requested exit
-```
-
-#### LogEventArgs — Arguments delivered for each log message (level, text, and timestamp)
-
-```cpp
-LogLevel level  // Severity of the log message
-string message  // The log message text
-string timestamp  // Timestamp string (HH:MM:SS.mmm) generated when the message was logged
-```
-
-#### ConsoleEventArgs — Arguments for the console event (a command line received from stdin)
-
-```cpp
-string raw  // Raw input line (e.g. "tcdebug screenshot /tmp/a.png")
-vector<string> args  // Input line split on whitespace (e.g. ["tcdebug", "screenshot", "/tmp/a.png"])
-```
-
-#### FullscreenShader — Shader specialization for fullscreen post-processing effects (position + texcoord quad). Set uniforms via setParams, then call draw to render a fullscreen quad.
-
-```cpp
-FullscreenShader()
-void setParams(const T& params)  // Set uniform parameter block (template; copies the struct bytes). Call before draw.
-void draw()  // Draw a fullscreen quad with this shader applied
-```
-
-#### Ray — A ray with an origin and a normalized direction, used for unified hit testing and picking
-
-```cpp
-Vec3 origin  // Ray origin point
-Vec3 direction  // Ray direction (normalized)
-Vec3 at(float t)  // Get the point along the ray at distance t: origin + direction * t
-Ray transformed(const Mat4& inverseMatrix)  // Transform the ray by a matrix (typically an inverse to map into local space)
-bool intersectZPlane(float& outT, Vec3& outPoint)  // Intersect the Z=0 plane; writes distance and hit point, returns whether it hit
-bool intersectPlane(const Vec3& planeNormal, float planeD, float& outT, Vec3& outPoint)  // Intersect an arbitrary plane; writes distance and hit point, returns whether it hit
-bool intersectSphere(float radius, float& outT)  // Intersect a sphere centered at the origin; writes distance, returns whether it hit
-bool intersectAABB(const Vec3& boxMin, const Vec3& boxMax, float& outT)  // Intersect an axis-aligned bounding box; writes distance, returns whether it hit
-Ray fromScreenPoint2D(float screenX, float screenY, float startZ = 1000.0f)  // Build an orthographic Z-parallel ray from a 2D screen point
-```
-
-#### ColorLinear — A color in linear RGB space (no gamma encoding), 0.0-1.0 float per channel
-
-```cpp
-float r  // Red component (linear, 0.0-1.0)
-float g  // Green component (linear, 0.0-1.0)
-float b  // Blue component (linear, 0.0-1.0)
-float a  // Alpha component (0.0-1.0)
-Color toSRGB()  // Convert to sRGB (gamma-encoded) Color
-ColorHSB toHSB()  // Convert to HSB color space
-ColorOKLab toOKLab()  // Convert to OKLab color space
-ColorOKLCH toOKLCH()  // Convert to OKLCH color space
-ColorLinear clamped()  // Clamp to non-negative RGB (HDR-safe) with alpha in 0-1
-ColorLinear clampedLDR()  // Clamp every channel to the 0-1 LDR range
-ColorLinear lerp(const ColorLinear& target, float t)  // Interpolate in linear space (physically correct)
-ColorLinear operator+(const ColorLinear&) const  // Component-wise addition
-ColorLinear operator-(const ColorLinear&) const  // Component-wise subtraction
-ColorLinear operator*(float) const  // Scalar multiplication
-ColorLinear operator/(float) const  // Scalar division
-ColorLinear operator*(const ColorLinear&) const  // Component-wise multiplication
-bool operator==(const ColorLinear&) const  // Equality comparison
-bool operator!=(const ColorLinear&) const  // Inequality comparison
-```
-
-#### ColorOKLab — A color in the OKLab perceptual color space (lightness + two opponent axes)
-
-```cpp
-float L  // Lightness (0.0-1.0)
-float a  // Green-Red opponent axis (approx -0.4 to 0.4)
-float b  // Blue-Yellow opponent axis (approx -0.4 to 0.4)
-float alpha  // Alpha component (0.0-1.0)
-ColorLinear toLinear()  // Convert to linear RGB color space
-Color toRGB()  // Convert to sRGB Color
-ColorHSB toHSB()  // Convert to HSB color space
-ColorOKLCH toOKLCH()  // Convert to OKLCH color space
-ColorOKLab lerp(const ColorOKLab& target, float t)  // Interpolate in OKLab space (perceptually uniform)
-```
-
-#### Xml — XML document wrapper around pugixml. Loads, saves and queries XML; node-level access is via XmlNode returned from root() and child().
-
-```cpp
-Xml()
-bool load(const string& path)  // Load an XML document from a file. Relative paths are resolved via getDataPath. Returns true on success.
-bool parse(const string& str)  // Parse an XML document from a string. Returns true on success.
-bool save(const string& path, const string& indent = "  ")  // Save the document to a file. Relative paths are resolved via getDataPath. indent sets the per-level indentation string. Returns true on success.
-string toString(const string& indent = "  ")  // Serialize the document to an XML string. indent sets the per-level indentation string.
-XmlNode root()  // Get the document's root element node.
-XmlNode addRoot(const string& name)  // Append a new root element with the given name and return it.
-XmlNode child(const string& name)  // Find a direct child node of the document by name.
-XmlDocument& document()  // Access the underlying pugixml document for advanced operations.
-bool empty()  // Return true if the document has no content.
-void addDeclaration(const string& version = "1.0", const string& encoding = "UTF-8")  // Prepend an XML declaration (<?xml ...?>) with the given version and encoding.
-```
-
-#### Mod — Attachable behavior base class for Node. Subclass it, override the lifecycle and input hooks, and attach with node->addMod<T>(). Lifecycle: setup() on attach, then each frame earlyUpdate() -> Node::update() -> update() -> draw(), and onDestroy() on removal. Override isExclusive() to allow only one instance per Node, and canAttachTo() to restrict attachment.
-
-```cpp
-Node* getOwner()  // Get the owner Node this Mod is attached to.
-void removeSelf()  // Remove this Mod from its owner (no need to name its own type). Safe to call from inside the Mod's own update/draw/event handler; destruction is deferred until the current dispatch finishes. (protected)
-void setup()  // Override: called once when the Mod is attached to the Node. (protected, virtual)
-void earlyUpdate()  // Override: called every frame BEFORE Node::update(). Use for applying transforms, tweens, physics. (protected, virtual)
-void update()  // Override: called every frame AFTER Node::update(). Use for reactions to node state changes. (protected, virtual)
-void draw()  // Override: called during the draw phase, after Node::draw(). (protected, virtual)
-void onDestroy()  // Override: called when the Mod is removed or the Node is destroyed. (protected, virtual)
-bool onMousePress(const MouseEventArgs& e)  // Override: mouse press on the hit node. Return true to consume the event (counts as the node consuming it). (protected, virtual)
-bool onMouseRelease(const MouseEventArgs& e)  // Override: mouse release on the hit node. Return true to consume. (protected, virtual)
-bool onMouseMove(const MouseMoveEventArgs& e)  // Override: mouse move over the hit node. Return true to consume. (protected, virtual)
-bool onMouseDrag(const MouseDragEventArgs& e)  // Override: mouse drag on the hit node. Return true to consume. (protected, virtual)
-bool onMouseScroll(const ScrollEventArgs& e)  // Override: mouse scroll over the hit node. Return true to consume. (protected, virtual)
-bool onKeyPress(const KeyEventArgs& e)  // Override: key press (broadcast to mods on every node). Return true to consume. (protected, virtual)
-bool onKeyRelease(const KeyEventArgs& e)  // Override: key release (broadcast to mods on every node). Return true to consume. (protected, virtual)
-void onMouseEnter()  // Override: pointer entered the owner node. (protected, virtual)
-void onMouseLeave()  // Override: pointer left the owner node. (protected, virtual)
-bool hitTest(const Ray& localRay, float& outDistance)  // Override: screen-space pointer picking (NOT physics collision). Define a hit shape in the node's LOCAL space; if the node's own test OR any mod's returns true, the node is the hit. (protected, virtual)
-bool isExclusive()  // Override to return true if only one instance of this Mod type may be attached per Node (e.g. LayoutMod). Default false. (protected, virtual)
-bool canAttachTo(Node* node)  // Override to restrict which Node types this Mod can attach to. Return false to reject attachment. Default true. (protected, virtual)
-```
-
-#### RectNodeButton — Simple clickable button node (a RectNode subclass). Set normalColor/hoverColor/pressColor and label; it draws a filled rect that changes color on hover/press and a centered label. Events are enabled on construction. Listen on its inherited mousePressed/mouseReleased events for clicks.
-
-```cpp
-RectNodeButton()
-Color normalColor  // Fill color when idle (default dark grey).
-Color hoverColor  // Fill color when the pointer is over the button.
-Color pressColor  // Fill color while pressed.
-string label  // Text drawn centered on the button (skipped if empty).
-bool isPressed()  // Whether the button is currently pressed.
-void draw()  // Draw the button: fills the rect with the state-dependent color and draws the centered label. (override)
-```
-
-#### Thread — Base class for background threads (ofThread compatible). Subclass it, override the protected pure-virtual threadedFunction() with a while (isThreadRunning()) { ... } loop, then control it with startThread()/stopThread()/waitForThread(). A protected mutex dataMutex_ is available for sharing data.
-
-```cpp
-Thread()
-void startThread()  // Start the background thread (runs threadedFunction). No-op if already running.
-void stopThread()  // Send the stop signal: isThreadRunning() returns false inside threadedFunction so a while-loop can exit. Does not block.
-void waitForThread(bool callStopThread = true)  // Wait (join) for the thread to finish. If callStopThread is true (default), calls stopThread() first.
-bool isThreadRunning()  // Whether the thread is currently running.
-thread::id getThreadId()  // Get the underlying thread's ID.
-void threadedFunction()  // Override this with the work to run on the thread; recommended pattern is while (isThreadRunning()) { ... }. (protected, pure virtual)
-void sleep(unsigned long milliseconds)  // Pause the current thread for the given number of milliseconds.
-void yield()  // Yield execution to other threads.
-bool isCurrentThreadTheMainThread()  // Whether the current thread is the main thread. The main thread ID must be recorded first (call getMainThreadId() from the main thread).
-thread::id getMainThreadId()  // Get the main thread ID, recording the current thread's ID on the first call.
-```
-
-#### ThreadChannel — Thread-safe FIFO queue for one-way inter-thread communication (ofThreadChannel compatible), template<typename T>. Producer-Consumer pattern: a worker thread send()s values and another thread receive()s them. Use two channels for bidirectional communication.
-
-```cpp
-ThreadChannel()
-bool send(const T& value)  // Send a value onto the queue (copy or move overload). Returns false if the channel is closed (with the move overload the value is invalidated even on failure).
-bool send(T&& value)  // Send a value onto the queue (copy or move overload). Returns false if the channel is closed (with the move overload the value is invalidated even on failure).
-bool receive(T& value)  // Receive a value (blocking): waits until data arrives, writing it into value. Returns false if the channel is closed.
-bool tryReceive(T& value)  // Receive a value without blocking, or waiting at most timeoutMs milliseconds (timeout overload). Returns false immediately/after the timeout if no data.
-bool tryReceive(T& value, int64_t timeoutMs)  // Receive a value without blocking, or waiting at most timeoutMs milliseconds (timeout overload). Returns false immediately/after the timeout if no data.
-void close()  // Close the channel, waking all waiting threads. After closing, send/receive return false.
-void clear()  // Clear the queue, discarding all pending values.
-bool empty()  // Whether the queue is empty (approximate).
-size_t size()  // Number of queued values (approximate).
-bool isClosed()  // Whether the channel has been closed.
-```
-
-#### HitResult — Result of a node hit test (this is Node::HitResult). Returned by Node::findHitNode() / findHitNodeFromScreen(); call hit() to check whether anything was hit.
-
-```cpp
-Node::Ptr node  // The hit node (shared_ptr), or null if nothing was hit.
-float distance  // Distance from the ray origin to the hit point.
-Vec3 localPoint  // Hit position in the hit node's local coordinates.
-bool hit()  // Whether a node was hit (node is non-null).
-```
-
-#### Location — GPS / WiFi location fix returned by getLocation()
-
-```cpp
-double latitude  // Latitude in degrees
-double longitude  // Longitude in degrees
-double altitude  // Altitude in meters
-float accuracy  // Horizontal accuracy in meters; -1 if not available yet
-```
-
-#### FpsSettings — FPS configuration returned by getFpsSettings(). Rates use VSYNC (-1) and EVENT_DRIVEN (0) sentinels, or a fixed fps
-
-```cpp
-float updateFps  // Target update rate: VSYNC (-1), EVENT_DRIVEN (0), or a fixed fps
-float drawFps  // Target draw rate: VSYNC (-1), EVENT_DRIVEN (0), or a fixed fps
-float actualVsyncFps  // Actual monitor refresh rate (0 if unknown)
-bool synced  // true when update and draw run in sync (1:1)
-```
-
-#### WindowSettings — Window configuration passed to the app at startup (size, title, DPI, MSAA, fullscreen, decoration, VSync). Setters chain
-
-```cpp
-int width  // Window width (default 1280)
-int height  // Window height (default 720)
-string title  // Window title (default "TrussC App")
-bool highDpi  // High DPI support for sharp rendering on Retina (default true)
-bool pixelPerfect  // true: coords match framebuffer size; false: coords use logical size (default false)
-int sampleCount  // MSAA sample count (default 4)
-bool fullscreen  // Start in fullscreen (default false)
-bool decorated  // false: borderless/chromeless window with no title bar (default true)
-int clipboardSize  // Clipboard buffer size in bytes (default 65536)
-int swapInterval  // VSync present interval: 1 = on (default), 0 = off, N = every Nth refresh
-WindowSettings& setSize(int w, int h)  // Set window size (chainable)
-WindowSettings& setTitle(const string& t)  // Set window title (chainable)
-WindowSettings& setHighDpi(bool enabled)  // Enable/disable high DPI support (chainable)
-WindowSettings& setPixelPerfect(bool enabled)  // Set pixel-perfect mode: true = framebuffer-size coords, false = logical-size coords (chainable)
-WindowSettings& setSampleCount(int count)  // Set MSAA sample count (chainable)
-WindowSettings& setFullscreen(bool enabled)  // Enable/disable fullscreen at startup (chainable)
-WindowSettings& setDecorated(bool enabled)  // false = borderless/chromeless window that can still take focus and be closed programmatically (chainable)
-WindowSettings& setClipboardSize(int size)  // Set clipboard buffer size in bytes (chainable)
-WindowSettings& setSwapInterval(int interval)  // Set VSync present interval: 1 = on, 0 = off, N = every Nth refresh (chainable)
-```
-
-#### HeadlessSettings — Settings for runHeadlessApp() (no window / graphics). Currently just the target update rate
-
-```cpp
-float targetFps  // Target update rate (default 60)
-HeadlessSettings& setFps(float fps)  // Set the target update rate (chainable)
-```
-
-#### FileDialogResult — Result of a load/save file dialog
-
-```cpp
-string filePath  // Full path to the chosen file
-string fileName  // Filename only (no directory)
-bool success  // true if a file was chosen, false if the dialog was cancelled
-```
-
-#### Vec4 — 4D vector (x, y, z, w). Used for homogeneous coordinates and RGBA-style data
-
-```cpp
-Vec4()
-Vec4(float x, float y, float z, float w)
-Vec4(float v)
-Vec4(const Vec3& v, float w = 1.0f)
-Vec4(const Vec2& v, float z = 0.0f, float w = 1.0f)
-float x  // X component
-float y  // Y component
-float z  // Z component
-float w  // W component
-Vec4& set(float x, float y, float z, float w)  // Set all components (chainable)
-Vec4& set(const Vec4& v)  // Set all components (chainable)
-float length()  // Get the vector's magnitude
-float lengthSquared()  // Get the squared magnitude (cheaper than length())
-Vec4 normalized()  // Return a unit-length copy of this vector
-Vec4& normalize()  // Normalize this vector in place (chainable)
-float dot(const Vec4& v)  // Dot product with another vector
-Vec4 lerp(const Vec4& v, float t)  // Linearly interpolate toward v by t (0..1)
-Vec2 xy()  // Get the (x, y) components as a Vec2
-Vec3 xyz()  // Get the (x, y, z) components as a Vec3
-float& operator[](int)  // Component access by index
-Vec4 operator+(const Vec4&) const  // Component-wise addition
-Vec4 operator-(const Vec4&) const  // Component-wise subtraction
-Vec4 operator*(float) const  // Scalar multiplication
-Vec4 operator/(float) const  // Scalar division
-Vec4 operator-() const  // Negation
-Vec4& operator+=(const Vec4&)  // In-place addition
-Vec4& operator-=(const Vec4&)  // In-place subtraction
-Vec4& operator*=(float)  // In-place scalar multiplication
-Vec4& operator/=(float)  // In-place scalar division
-bool operator==(const Vec4&) const  // Equality comparison
-bool operator!=(const Vec4&) const  // Inequality comparison
-friend Vec4 operator*(float, const Vec4&)  // Component-wise multiplication
-```
-
-#### Mat3 — 3x3 matrix for 2D affine / homography transforms (row-major). Includes static factories and a homography solver
-
-```cpp
-Mat3()
-Mat3(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22)
-float[9] m  // Raw row-major element storage (9 floats)
-float& at(int row, int col)  // Access the element at (row, col)
-const float& at(int row, int col)  // Read the element at (row, col) (const overload)
-Mat3 transposed()  // Return the transpose of this matrix
-float determinant()  // Compute the determinant
-Mat3 inverted()  // Return the inverse matrix (identity if singular)
-Mat3 identity()  // Return the identity matrix
-Mat3 translate(float tx, float ty)  // Build a 2D translation matrix
-Mat3 translate(const Vec2& t)  // Build a 2D translation matrix
-Mat3 rotate(float radians)  // Build a 2D rotation matrix (radians)
-Mat3 scale(float sx, float sy)  // Build a 2D scale matrix
-Mat3 scale(float s)  // Build a 2D scale matrix
-Mat3 scale(const Vec2& s)  // Build a 2D scale matrix
-Mat3 getHomography(const Vec2 src[4], const Vec2 dst[4])  // Compute the homography matrix mapping 4 source points to 4 destination points (solves H * src = dst)
-Mat3 operator*(const Mat3&) const  // Composition (matrix product)
-Vec2 operator*(const Vec2&) const  // Transform vector by Mat3
-Vec3 operator*(const Vec3&) const  // Transform vector by Mat3
-```
-
-#### VideoGrabber — Webcam capture source. Call setup() once, then update() every frame; getTexture() (via HasTexture) gives the live frame. Move-only. Camera permission is requested automatically on macOS
-
-```cpp
-VideoGrabber()
-vector<VideoDeviceInfo> listDevices()  // Return the list of available camera devices
-void setDeviceID(int deviceId)  // Select which camera to use; call before setup()
-int getDeviceID()  // Return the selected device ID
-void setDesiredFrameRate(int fps)  // Request a capture frame rate; call before setup()
-int getDesiredFrameRate()  // Return the requested frame rate (-1 if unspecified)
-void setVerbose(bool verbose)  // Enable or disable verbose logging
-bool isVerbose()  // Return whether verbose logging is enabled
-bool setup(int width = 640, int height = 480)  // Start the camera at the requested size. Returns false if permission is not yet granted (it is requested asynchronously); keep calling update() and capture begins once granted
-void close()  // Stop the camera and release its resources
-void update()  // Poll for a new frame and upload it to the texture. Call every frame; also completes a setup() that was waiting on permission
-bool isFrameNew()  // Return true if a new frame arrived during the most recent update()
-bool isInitialized()  // Return true once the camera is set up and capturing
-bool isPendingPermission()  // Return true while waiting for camera permission to be granted
-int getWidth()  // Return the captured frame width in pixels
-int getHeight()  // Return the captured frame height in pixels
-const string & getDeviceName()  // Return the name of the active capture device
-unsigned char * getPixels()  // Return a pointer to the current RGBA pixel buffer
-void copyToImage(Image &image)  // Copy the current frame into an Image (allocating/updating it as needed)
-Texture & getTexture()  // Return the texture holding the live camera frame (HasTexture override)
-bool checkCameraPermission()  // Return whether camera access has been granted (macOS 10.14+)
-void requestCameraPermission()  // Request camera access asynchronously (macOS)
-```
-
-#### Tween — Animates a value of type T with easing. Templated over any lerp-able type (float, Vec2, Vec3, Vec4, Color, etc.). Auto-updates each frame via events().update once start() is called; chainable setters configure it
-
-```cpp
-Tween()
-Tween(T start, T end, float duration, EaseType type = EaseType::Cubic, EaseMode mode = EaseMode::InOut)
-std::unique_ptr<Event<void>> complete  // Event fired once the tween finishes; subscribe with complete->listen(...)
-Tween & from(T value)  // Set the start value (chainable)
-Tween & to(T value)  // Set the end value (chainable)
-Tween & duration(float seconds)  // Set the animation duration in seconds (chainable)
-Tween & ease(EaseType type, EaseMode mode = EaseMode::InOut)  // Set the easing curve; the two-type overload uses an asymmetric ease (one curve in, another out)
-Tween & ease(EaseType inType, EaseType outType)  // Set the easing curve; the two-type overload uses an asymmetric ease (one curve in, another out)
-Tween & loop(int count = -1)  // Repeat the animation: -1 = infinite, 0 = no loop, N = repeat N times (chainable)
-Tween & yoyo(bool enable = true)  // Reverse direction on each loop iteration (chainable)
-Tween & delay(float seconds)  // Delay before the animation starts, in seconds (chainable)
-Tween & start()  // Start (or restart) the animation and begin auto-updating each frame
-Tween & pause()  // Pause the animation, keeping its current progress
-Tween & resume()  // Resume a paused animation
-Tween & reset()  // Stop the animation and reset progress to the start
-Tween & finish()  // Jump immediately to the end value and fire the complete event
-T getValue()  // Return the current eased value
-float getProgress()  // Return normalized progress through the current iteration (0.0-1.0)
-float getElapsed()  // Return elapsed time in seconds within the current iteration
-float getDuration()  // Return the configured duration in seconds
-bool isPlaying()  // Return true while the animation is actively playing
-bool isComplete()  // Return true once the animation (all loops) has finished
-T getStart()  // Return the start value
-T getEnd()  // Return the end value
-int getLoopCount()  // Return how many loop iterations have completed so far
-```
-
-#### VideoDeviceInfo — Information about an available camera device, returned by VideoGrabber::listDevices()
-
-```cpp
-int deviceId  // Numeric device ID (pass to setDeviceID); -1 if unknown
-string deviceName  // Human-readable device name
-string uniqueId  // Stable unique identifier for the device
-int getDeviceID()  // Get the numeric device ID (-1 if unknown)
-const std::string & getDeviceName()  // Get the human-readable device name
-const std::string & getUniqueId()  // Get the stable unique identifier for the device
-```
-
-#### VideoRecordSettings — Encoder settings passed to VideoWriter::open(), ScreenRecorder::start(), and startRecording()
-
-```cpp
-VideoCodec codec  // Output codec (default H264)
-float fps  // Capture/output frame rate. For ScreenRecorder this is the capture ceiling; for VideoWriter it is the exact output rate (default 60)
-int bitrate  // Target bits/sec for H.264/HEVC; 0 = auto. Ignored by ProRes
-int keyframeInterval  // Frames between keyframes; 0 = encoder default
-```
-
-#### Glyph — A bitmap glyph to register via registerGlyph(): a codepoint plus packed 1-bit pixel rows. The data pointer must outlive every drawBitmapString call
-
-```cpp
-uint32_t codepoint  // Unicode codepoint this glyph renders
-const uint8_t * data  // Packed bitmap rows (MSB first); must outlive all draw calls
-Width width  // Glyph width: Halfwidth (8x13) or Fullwidth (16x13)
-```
-
-#### PlacedGlyph — One laid-out glyph emitted by Font::forEachGlyph (nested as Font::PlacedGlyph). Carries the final codepoint and pen position so visitors can render quads, build vector paths, or hit-test independently of the layout pass
-
-```cpp
-uint32_t codepoint  // Final codepoint after vertical-form mapping
-float drawX  // Pen X position; the glyph's own xoffset is added on top
-float baselineY  // Baseline Y position; the glyph's own yoffset is added on top
-float rotationCw  // Clockwise rotation in radians: 0 (upright) or TAU/4 (90 degrees, vertical text)
-float pivotX  // Rotation center X (used only when rotationCw is non-zero)
-float pivotY  // Rotation center Y (used only when rotationCw is non-zero)
-float scaleX  // Horizontal scale (1.0 normally, less than 1 for TCY combine)
-```
-
-#### StrokeMesh — Variable-width polyline stroke geometry with caps, joins and miter limit; build it from points or a Path, then update() and draw()
-
-```cpp
-StrokeMesh()
-StrokeMesh(const Path& polyline)
-StrokeMesh& setWidth(float w)  // Set the stroke width
-StrokeMesh& setColor(const Color& c)  // Set the stroke color
-StrokeMesh& setCapType(StrokeMesh::CapType type)  // Set the line cap shape (StrokeMesh::CapType: Butt, Round, Square)
-StrokeMesh& setJoinType(StrokeMesh::JoinType type)  // Set the line join shape (StrokeMesh::JoinType: Miter, Round, Bevel)
-StrokeMesh& setMiterLimit(float limit)  // Set the miter limit for sharp corners
-StrokeMesh& addVertex(float x, float y, float z = 0)  // Append a vertex to the stroke path
-StrokeMesh& addVertex(const Vec2& v)  // Append a vertex to the stroke path
-StrokeMesh& addVertex(const Vec3& v)  // Append a vertex to the stroke path
-StrokeMesh& addVertexWithWidth(float x, float y, float width)  // Append a vertex with a per-vertex width
-StrokeMesh& addVertexWithWidth(const Vec3& p, float width)  // Append a vertex with a per-vertex width
-StrokeMesh& setWidths(const vector<float>& w)  // Set per-vertex widths from a list
-StrokeMesh& setShape(const Path& polyline)  // Set the stroke shape from a Path
-StrokeMesh& setClosed(bool closed)  // Set whether the stroke forms a closed loop
-StrokeMesh& clear()  // Remove all vertices
-void update()  // Rebuild the internal triangle mesh (call before draw after edits)
-void draw()  // Draw the stroke mesh
-Mesh& getMesh()  // Get a reference to the underlying generated triangle Mesh
-vector<Path>& getPolylines()  // Get a reference to the stroke's source polylines
-```
-
-#### RectNode — 2D UI rectangle node: size, clipping and ray-based hit testing, plus subscribable mouse Event members
-
-```cpp
-Event<MouseEventArgs> mousePressed  // Fired when a mouse button is pressed over this node (localized args)
-Event<MouseEventArgs> mouseReleased  // Fired when a mouse button is released over this node (localized args)
-Event<MouseDragEventArgs> mouseDragged  // Fired when the mouse is dragged on this node (localized args)
-Event<ScrollEventArgs> mouseScrolled  // Fired when the mouse wheel / trackpad scrolls over this node (localized args)
-```
-
-#### TweenMod — Animation modifier (Mod) that tweens a Node's position, scale and rotation with easing; exposes a complete Event
-
-```cpp
-Event<void> complete  // Fired once when all tweens finish; subscribe with complete.listen(callback)
-```
-
-#### VideoPlayer — Plays a video file: load/play/stop, per-frame update, and a texture you can draw each frame
-
-```cpp
-bool extractFrame(const std::string & path, Pixels & outPixels, float timeSec = 1.0f, float * outDuration = nullptr)  // Extract a single frame from a video file without loading the full video. Useful for thumbnails
-```
-
-#### CurveStyle — Curve tessellation settings: Mode (Tolerance or Resolution), the pixel tolerance, and the fixed resolution fallback
-
-```cpp
-CurveStyle::Mode mode  // Tessellation mode: adaptive Tolerance or fixed Resolution
-float tolerance  // Maximum chord-to-curve error in screen pixels (Tolerance mode)
-int resolution  // Fixed segment count used in Resolution mode (and as a fallback)
-```
-
-### Enums
-
-```cpp
-enum class BlendMode {
-  Alpha = 0,  // Normal alpha blending (default)
-  Add = 1,  // Additive blending
-  Multiply = 2,  // Multiply blending
-  Screen = 3,  // Screen blending
-  Subtract = 4,  // Subtractive blending
-  Disabled = 5,  // No blending (overwrite)
-}
-
-enum class TextureFilter {
-  Nearest = 0,  // Nearest neighbor (for pixel art)
-  Linear = 1,  // Bilinear interpolation (default)
-}
-
-enum class TextureWrap {
-  Repeat = 0,  // Repeat
-  ClampToEdge = 1,  // Clamp to edge pixel (default)
-  MirroredRepeat = 2,  // Mirrored repeat
-}
-
-enum class Cursor {
-  Default = 0,  // System default cursor
-  Arrow = 1,  // Arrow cursor
-  IBeam = 2,  // Text input cursor
-  Crosshair = 3,  // Crosshair cursor
-  Hand = 4,  // Pointing hand cursor
-  ResizeEW = 5,  // East-west resize cursor
-  ResizeNS = 6,  // North-south resize cursor
-  ResizeNWSE = 7,  // NW-SE diagonal resize cursor
-  ResizeNESW = 8,  // NE-SW diagonal resize cursor
-  ResizeAll = 9,  // Move/resize all directions cursor
-  NotAllowed = 10,  // Not allowed cursor
-  Custom0 = 11,  // Custom cursor slot 0 (bind image first)
-  Custom1 = 12,  // Custom cursor slot 1
-  Custom2 = 13,  // Custom cursor slot 2
-  Custom3 = 14,  // Custom cursor slot 3
-  Custom4 = 15,
-  Custom5 = 16,
-  Custom6 = 17,
-  Custom7 = 18,
-  Custom8 = 19,
-  Custom9 = 20,
-  Custom10 = 21,
-  Custom11 = 22,
-  Custom12 = 23,
-  Custom13 = 24,
-  Custom14 = 25,
-  Custom15 = 26,
-}
-
-enum class Modifier {
-  None = 0,
-  Shift = 1,
-  Ctrl = 2,
-  Alt = 3,
-  Super = 4,
-}
-
-enum class LightType {
-  Directional = 0,  // Parallel light (sunlight)
-  Point = 1,  // Point light
-  Spot = 2,  // Spot light (point + cone)
-}
-
-enum class EaseType {
-  Linear = 0,  // No easing
-  Quad = 1,  // Quadratic (t^2)
-  Cubic = 2,  // Cubic (t^3)
-  Quart = 3,  // Quartic (t^4)
-  Quint = 4,  // Quintic (t^5)
-  Sine = 5,  // Sinusoidal
-  Expo = 6,  // Exponential
-  Circ = 7,  // Circular
-  Back = 8,  // Overshoot
-  Elastic = 9,  // Elastic spring
-  Bounce = 10,  // Bouncing
-}
-
-enum class EaseMode {
-  In = 0,  // Accelerate
-  Out = 1,  // Decelerate
-  InOut = 2,  // Accelerate then decelerate
-}
-
-enum class Deliver {
-  Inline = 0,
-  Main = 1,
-}
-
-enum class MouseButton {
-  Left = 0,  // SAPP_MOUSEBUTTON_LEFT
-  Right = 1,  // SAPP_MOUSEBUTTON_RIGHT
-  Middle = 2,  // SAPP_MOUSEBUTTON_MIDDLE
-  None = 256,  // SAPP_MOUSEBUTTON_INVALID (no button; e.g. during a plain move)
-}
-
-enum class TextureFormat {
-  RGBA8 = 0,  // 4ch, 8-bit/ch (default)
-  RGBA16F = 1,  // 4ch, 16-bit float/ch
-  RGBA32F = 2,  // 4ch, 32-bit float/ch
-  R8 = 3,  // 1ch, 8-bit
-  R16F = 4,  // 1ch, 16-bit float
-  R32F = 5,  // 1ch, 32-bit float
-  RG8 = 6,  // 2ch, 8-bit/ch
-  RG16F = 7,  // 2ch, 16-bit float/ch
-  RG32F = 8,  // 2ch, 32-bit float/ch
-  BGRA8 = 9,  // 4ch, 8-bit/ch, B-G-R-A byte order (swapchain / Syphon / video interop)
-  RGBA16 = 10,  // 4ch, 16-bit unorm/ch (high-precision integer; texture-sharing interop)
-}
-
-enum class TextureUsage {
-  Immutable = 0,  // Set once, cannot update (for Image::load)
-  Dynamic = 1,  // Update periodically from CPU (for Image::allocate)
-  Stream = 2,  // Update every frame (for VideoGrabber)
-  RenderTarget = 3,  // For FBO color attachment
-}
-
-enum class WritingMode {
-  Horizontal = 0,  // Left-to-right horizontal text (default)
-  VerticalRL = 1,  // Top-to-bottom columns, columns flow right-to-left (Japanese tategaki)
-}
-
-enum class ImageType {
-  Color = 0,  // RGBA
-  Grayscale = 1,  // Grayscale
-}
-
-enum class PrimitiveMode {
-  Triangles = 0,
-  TriangleStrip = 1,
-  TriangleFan = 2,
-  Lines = 3,
-  LineStrip = 4,
-  LineLoop = 5,
-  Points = 6,
-}
-
-enum class PixelFormat {
-  U8 = 0,
-  F32 = 1,
-}
-
-enum class StrokeCap {
-  Butt = 0,  // Flat line cap (no extension)
-  Round = 1,  // Rounded line cap
-  Square = 2,  // Square line cap (extends by half stroke width)
-}
-
-enum class StrokeJoin {
-  Miter = 0,  // Sharp corner join
-  Round = 1,  // Rounded corner join
-  Bevel = 2,  // Beveled corner join
-}
-
-enum class PrimitiveType {
-  Points = 0,
-  Lines = 1,
-  LineStrip = 2,
-  Triangles = 3,
-  TriangleStrip = 4,
-  Quads = 5,
-}
-
-enum class WindowType {
-  Rect = 0,  // Rectangular window (no window)
-  Hanning = 1,  // Hanning window
-  Hamming = 2,  // Hamming window
-  Blackman = 3,  // Blackman window
-}
-
-enum class Wave {
-  Sin = 0,  // Sine wave (smooth, pure tone)
-  Square = 1,  // Square wave (harsh, 8-bit style)
-  Triangle = 2,  // Triangle wave (softer than square)
-  Sawtooth = 3,  // Sawtooth wave (bright, buzzy)
-  Noise = 4,  // White noise
-  PinkNoise = 5,  // Pink noise (1/f noise, more natural)
-  Silent = 6,  // Silent (no sound)
-}
-
-enum class MixMode {
-  Auto = 0,
-  DownmixMono = 1,
-}
-
-enum class SoundSource::Kind {  // Source kind tag on SoundSource, letting the mixer dispatch without a per-frame virtual call: Eager (SoundBuffer, full PCM in RAM) vs Stream (SoundStream, decoded on demand).
-  Eager = 0,  // Eager source (SoundBuffer): the whole file decoded into RAM.
-  Stream = 1,  // Streaming source (SoundStream): decoded on demand from disk.
-}
-
-enum class Direction {
-  Left = 0,
-  Center = 1,
-  Right = 2,
-  Top = 3,
-  Bottom = 4,
-  Baseline = 5,  // Text-specific: character baseline
-}
-
-enum class LayoutDirection {
-  Vertical = 0,  // VStack: top to bottom
-  Horizontal = 1,  // HStack: left to right
-}
-
-enum class AxisMode {
-  None = 0,  // Don't change size (default)
-  Fill = 1,  // Stretch children to fill parent
-  Content = 2,  // Resize parent to fit children
-}
-
-enum class Codec {
-  None = 0,  // store verbatim (identity copy) - the "no compression" option
-  LZ4 = 1,  // LZ4 block compression (fast, lossless)
-}
-
-enum class LogLevel {
-  Verbose = 0,  // Detailed info (for debugging)
-  Notice = 1,  // Normal info
-  Warning = 2,  // Warning
-  Error = 3,  // Error
-  Fatal = 4,  // Fatal error
-  Silent = 5,  // No output (for filtering)
-}
-
-enum class Beep {
-  ping = 0,  // Single beep (default)
-  success = 1,  // Two-tone rising (pico)
-  complete = 2,  // Task completion fanfare
-  coin = 3,  // Game item pickup (sparkly)
-  error = 4,  // Low buzz (boo)
-  warning = 5,  // Attention (two short beeps)
-  cancel = 6,  // Cancel/back
-  click = 7,  // UI selection click
-  typing = 8,  // Key input feedback
-  notify = 9,  // Two-tone notification
-  sweep = 10,  // Screen transition whoosh
-}
-
-enum class VideoCodec {
-  H264 = 0,  // H.264 / AVC — broad compatibility (default)
-  HEVC = 1,  // H.265 / HEVC — smaller files, hardware-encoded
-  ProRes422 = 2,  // Apple ProRes 422 — editing-grade, macOS/iOS only (.mov)
-  ProRes4444 = 3,  // Apple ProRes 4444 — highest quality + alpha, macOS/iOS only (.mov)
-}
-
-enum class Source {
-  None = 0,
-  Swapchain = 1,
-  Fbo = 2,
-}
-
-enum class ThermalState {
-  Nominal = 0,  // Normal operation
-  Fair = 1,  // Slightly elevated, performance may be reduced
-  Serious = 2,  // High temperature, should reduce workload
-  Critical = 3,  // Thermal throttling active, risk of shutdown
-}
-
-enum class TcyMode {  // Tate-chu-yoko: how Latin / digit runs are laid out within vertical text
-  Rotate = 0,  // Rotate the whole Latin / digit run 90 degrees CW so it reads top-to-bottom
-  Upright = 1,  // Each glyph upright, one per CJK-sized cell (一文字ずつ正立)
-  Combine = 2,  // Squeeze a Latin / digit run into a single CJK cell (true 縦中横)
-}
-
-enum class KinsokuLevel {  // Line-breaking (kinsoku) strictness for vertical / Japanese text
-  Off = 0,  // No line-break prohibition rules
-  PunctuationOnly = 1,  // Only punctuation kinsoku rules
-  Standard = 2,  // Standard kinsoku rules
-}
-
-enum class Orientation {  // Screen orientation mask passed to setOrientation (iOS/Android); values are bit flags and can be combined with |
-  Portrait = 2,  // Portrait, home button at bottom
-  PortraitUpsideDown = 4,  // Portrait, home button at top
-  LandscapeLeft = 16,  // Landscape, home button on the left
-  LandscapeRight = 8,  // Landscape, home button on the right
-  Landscape = 24,  // Either landscape orientation
-  All = 30,  // All four orientations
-  AllButUpsideDown = 26,  // All orientations except portrait-upside-down
-}
-friend Orientation operator|(Orientation, Orientation);  // Combine flags
-friend Orientation operator&(Orientation, Orientation);  // Mask / test flags
-
-enum class Mode {  // Curve tessellation mode: adaptive tolerance or fixed resolution
-  Tolerance = 0,  // Pick segment count so the chord-to-curve error stays under the tolerance (pixels)
-  Resolution = 1,  // Use a fixed segment count regardless of radius
-}
-
-enum class CapType {  // Line cap shape for the ends of an open stroke
-  CAP_BUTT = 0,  // Butt cap (cut flat at the endpoint)
-  CAP_ROUND = 1,  // Round cap (semicircle)
-  CAP_SQUARE = 2,  // Square cap (extend by half the width)
-}
-
-enum class JoinType {  // Line join shape at the corners of a stroke
-  JOIN_MITER = 0,  // Miter join (sharp pointed corners)
-  JOIN_ROUND = 1,  // Round join (rounded corners)
-  JOIN_BEVEL = 2,  // Bevel join (flat cut corners)
-}
-```
-
-### Macros
-
-```cpp
-TC_RUN_APP(AppClass, settings)  // Application entry-point macro. Expands to main() and runs AppClass. Required to enable hot reload.
-TC_HOT_RELOAD(AppClass)  // Opt the app into hot reload. Place in the app's .cpp; triggers a CMake reconfigure on next build.
-TC_REFLECT(Self, ...Bases) { TC_VALUE(...) ... }  // Declare reflected members inside a class (exposed to the inspector, serialization, and MCP). Bases are the direct base classes.
-TC_REFLECT_ROOT(Self) { TC_VALUE(...) ... }  // Like TC_REFLECT but for a root type with no reflected base classes.
-TC_REFLECT_FREE(Type) { TC_VALUE(...) ... }  // Reflect a non-member / external type at namespace scope (for types you can't add TC_REFLECT inside).
-TC_VALUE(member) | TC_VALUE(name, getter) | TC_VALUE(name, getter, setter)  // Declare one reflected member inside a TC_REFLECT body. 1 arg = in-place, 2 = read-only, 3 = getter/setter.
-TC_ENUM_LABELS(EnumType, "Label0", "Label1", ...)  // Declare string labels for an enum (labels[(int)value] == name), used by the inspector and serialization.
-```
-
-### Constants
-
-```cpp
-TAU = 6.283...  // Full circle (2*PI)
-HALF_TAU = 3.141...  // Half circle (PI)
-QUARTER_TAU = 1.570...  // Quarter circle (PI/2)
-PI = 3.141...  // Pi (use TAU instead)
-VERSION_MAJOR = 0  // TrussC major version number
-VERSION_MINOR = 0  // TrussC minor version number
-VERSION_PATCH = 1  // TrussC patch version number
-VSYNC = -1.0  // Frame-rate sentinel: sync to the monitor refresh rate
-EVENT_DRIVEN = 0.0  // Frame-rate sentinel: only redraw on demand (event-driven)
-Left = Direction::Left  // Direction shorthand for Direction::Left
-Center = Direction::Center  // Direction shorthand for Direction::Center
-Right = Direction::Right  // Direction shorthand for Direction::Right
-Top = Direction::Top  // Direction shorthand for Direction::Top
-Bottom = Direction::Bottom  // Direction shorthand for Direction::Bottom
-Baseline = Direction::Baseline  // Direction shorthand for Direction::Baseline (text baseline)
-BeforeApp = 0  // Event priority that runs before the app (EventPriority::BeforeApp)
-App = 100  // Default app-level event priority (EventPriority::App)
-AfterApp = 200  // Event priority that runs after the app (EventPriority::AfterApp)
-Generator = 100  // Audio listener priority for generators/synths (audio::priority::Generator)
-Effect = 500  // Audio listener priority for effects (audio::priority::Effect)
-Monitor = 900  // Audio listener priority for monitors/scopes (audio::priority::Monitor)
-FONT_SANS = string  // System sans-serif font path (CDN URL on Web)
-FONT_SERIF = string  // System serif font path (CDN URL on Web)
-FONT_MONO = string  // System monospace font path (CDN URL on Web)
-FONT_SANS_JA = string  // Japanese sans-serif font (Hiragino Sans on macOS, Yu Gothic on Win, Noto Sans CJK JP on Linux/Android, Google Fonts CDN URL on Web)
-FONT_SERIF_JA = string  // Japanese serif font (Hiragino Mincho on macOS, Yu Mincho on Win, Noto Serif CJK JP on Linux/Android, Google Fonts CDN URL on Web)
-KEY_SPACE = 32  // Space key
-KEY_ESCAPE = 256  // Escape key
-KEY_ENTER = 257  // Enter/Return key
-KEY_TAB = 258  // Tab key
-KEY_BACKSPACE = 259  // Backspace key
-KEY_DELETE = 261  // Delete key
-KEY_RIGHT = 262  // Right arrow key
-KEY_LEFT = 263  // Left arrow key
-KEY_DOWN = 264  // Down arrow key
-KEY_UP = 265  // Up arrow key
-KEY_LEFT_SHIFT = 340  // Left Shift key
-KEY_RIGHT_SHIFT = 344  // Right Shift key
-KEY_LEFT_CONTROL = 341  // Left Control key
-KEY_RIGHT_CONTROL = 345  // Right Control key
-KEY_LEFT_ALT = 342  // Left Alt/Option key
-KEY_RIGHT_ALT = 346  // Right Alt/Option key
-KEY_LEFT_SUPER = 343  // Left Super/Command key
-KEY_RIGHT_SUPER = 347  // Right Super/Command key
-KEY_F1 = 290  // F1 function key
-KEY_F2 = 291  // F2 function key
-KEY_F3 = 292  // F3 function key
-KEY_F4 = 293  // F4 function key
-KEY_F5 = 294  // F5 function key
-KEY_F6 = 295  // F6 function key
-KEY_F7 = 296  // F7 function key
-KEY_F8 = 297  // F8 function key
-KEY_F9 = 298  // F9 function key
-KEY_F10 = 299  // F10 function key
-KEY_F11 = 300  // F11 function key
-KEY_F12 = 301  // F12 function key
-MOUSE_BUTTON_LEFT = 0  // Left mouse button
-MOUSE_BUTTON_RIGHT = 1  // Right mouse button
-MOUSE_BUTTON_MIDDLE = 2  // Middle mouse button
+bool sameSubnet(const std::string & a, const std::string & b, const std::string & netmask)  // True if IPv4 a and b are on the same subnet under netmask
+```
+
+### Other
+
+```cpp
+Baseline  // Direction shorthand for Direction::Baseline (text baseline)
+Bottom  // Direction shorthand for Direction::Bottom
+Center  // Direction shorthand for Direction::Center
+EVENT_DRIVEN  // Frame-rate sentinel: only redraw on demand (event-driven)
+HALF_TAU  // Half circle (PI)
+KEY_BACKSPACE  // Backspace key
+KEY_DELETE  // Delete key
+KEY_DOWN  // Down arrow key
+KEY_ENTER  // Enter/Return key
+KEY_ESCAPE  // Escape key
+KEY_F1  // F1 function key
+KEY_F10  // F10 function key
+KEY_F11  // F11 function key
+KEY_F12  // F12 function key
+KEY_F2  // F2 function key
+KEY_F3  // F3 function key
+KEY_F4  // F4 function key
+KEY_F5  // F5 function key
+KEY_F6  // F6 function key
+KEY_F7  // F7 function key
+KEY_F8  // F8 function key
+KEY_F9  // F9 function key
+KEY_LEFT  // Left arrow key
+KEY_LEFT_ALT  // Left Alt/Option key
+KEY_LEFT_CONTROL  // Left Control key
+KEY_LEFT_SHIFT  // Left Shift key
+KEY_LEFT_SUPER  // Left Super/Command key
+KEY_RIGHT  // Right arrow key
+KEY_RIGHT_ALT  // Right Alt/Option key
+KEY_RIGHT_CONTROL  // Right Control key
+KEY_RIGHT_SHIFT  // Right Shift key
+KEY_RIGHT_SUPER  // Right Super/Command key
+KEY_SPACE  // Space key
+KEY_TAB  // Tab key
+KEY_UP  // Up arrow key
+Left  // Direction shorthand for Direction::Left
+MOUSE_BUTTON_LEFT  // Left mouse button
+MOUSE_BUTTON_MIDDLE  // Middle mouse button
+MOUSE_BUTTON_RIGHT  // Right mouse button
+PI ⚠️deprecated  // Pi (use TAU instead)
+QUARTER_TAU  // Quarter circle (PI/2)
+Right  // Direction shorthand for Direction::Right
+TAU  // Full circle (2*PI)
+Top  // Direction shorthand for Direction::Top
+VERSION_MAJOR  // TrussC major version number
+VERSION_MINOR  // TrussC minor version number
+VERSION_PATCH  // TrussC patch version number
+VSYNC  // Frame-rate sentinel: sync to the monitor refresh rate
+```
+
+## Types
+
+### App — Base application class: subclass it and override setup/update/draw and the input callbacks (mousePressed, keyPressed, etc.) to build a TrussC app
+
+```cpp
+void App::audioIn(const AudioInBuffer & buf)  // Real-time capture callback event (microphone input). RT-safe same as audioOut.
+void App::audioOut(AudioOutBuffer & buf)  // Fill the audio output buffer (override to synthesize audio)
+void App::exit()  // App exit callback (override for cleanup before shutdown)
+void App::filesDropped(const std::vector<std::string> & files)  // Files were dropped onto the window
+bool App::isExitRequested() const  // Whether an exit has been requested
+void App::keyPressed(const KeyEventArgs & e) [+1]  // Key pressed. Use KEY_* constants for special keys, or uppercase char literals for printable keys (e.g. key == 'A', key == '1')
+void App::keyReleased(const KeyEventArgs & e) [+1]  // Key released
+void App::mouseDragged(const MouseDragEventArgs & e) [+1]  // Mouse dragged
+void App::mouseMoved(const MouseMoveEventArgs & e) [+1]  // Mouse moved
+void App::mousePressed(const MouseEventArgs & e) [+1]  // Mouse button pressed
+void App::mouseReleased(const MouseEventArgs & e) [+1]  // Mouse button released
+void App::mouseScrolled(const ScrollEventArgs & e) [+1]  // Mouse wheel / trackpad scrolled
+void App::requestExit()  // Request the app to exit
+void App::setSize(float w, float h)  // Set the app's size
+void App::touchMoved(const TouchEventArgs & touch)  // Touch moved (Android/iOS, multi-touch)
+void App::touchPressed(const TouchEventArgs & touch)  // Touch began (Android/iOS, multi-touch)
+void App::touchReleased(const TouchEventArgs & touch)  // Touch ended or was cancelled (check touch.cancelled)
+void App::windowResized(int width, int height)  // Window resized
+```
+
+### AudioDeviceChangedArgs — Argument type for the AudioEngine::audioDeviceChanged event, fired after every successful init() (initial and re-init). Reports the resolved device's real name (never empty).
+
+```cpp
+```
+
+### AudioDeviceInfo — One entry in the list returned by AudioEngine::listDevices().
+
+```cpp
+```
+
+### AudioEngine — Singleton miniaudio-based mixer engine. Owns the output device, mixes all playing Sound voices, exposes real-time audioOut / audioIn / audioDeviceChanged events, and an FFT analysis ring buffer. Access via AudioEngine::getInstance(); most apps drive it indirectly through the Sound class and the global initAudio() / shutdownAudio() helpers.
+
+```cpp
+size_t AudioEngine::getAnalysisBuffer(float * outBuffer, size_t numSamples)  // Copy the latest mixed output samples (mono, L+R average) into outBuffer. numSamples is capped at 4096. Returns the number of samples written. (Global wrapper: getAudioAnalysisBuffer.)
+int AudioEngine::getBufferSize() const  // Current device buffer size in frames (0 = miniaudio default)
+int AudioEngine::getChannels() const  // Current engine output channel count
+AudioEngine & AudioEngine::getInstance()  // Get the global AudioEngine singleton.
+int AudioEngine::getMaxPolyphony() const  // Max simultaneously-playing Sound voices
+int AudioEngine::getSampleRate() const  // Current engine sample rate (Hz). Returns default (48000) if not yet initialized.
+bool AudioEngine::init() [+1]  // Initialize / re-initialize audio engine. Re-entrant: calling on a running engine stops the device, migrates active voices to new settings, restarts. ~30-100 ms gap; voices keep playback position.
+bool AudioEngine::isInitialized() const  // True after a successful init()
+std::vector<AudioDeviceInfo> AudioEngine::listDevices()  // Enumerate available playback devices (name + isDefault). Empty if unsupported on the platform.
+std::shared_ptr<PlayingSound> AudioEngine::play(std::shared_ptr<SoundSource> source) [+1]  // Start a new mixer voice for the given source (eager SoundBuffer or streaming SoundStream) and return its live PlayingSound handle. Usually called indirectly via Sound::play().
+void AudioEngine::shutdown()  // Shut down the audio device. Usually called automatically at program exit.
+```
+
+### AudioInBuffer — Argument type for the AudioEngine::audioIn event. Holds the interleaved read-only microphone input for a single capture callback. Process and return quickly; do not call engine APIs from here.
+
+```cpp
+```
+
+### AudioOutBuffer — Argument type for the AudioEngine::audioOut event. Holds the interleaved mutable output buffer for a single audio callback. Listeners should ADD their contribution to data (voices are already mixed in); do not call engine APIs from here.
+
+```cpp
+```
+
+### AudioSettings — Configuration passed to AudioEngine::init() to override engine defaults (sample rate, channels, buffer size, polyphony, device). Empty deviceName selects the system default playback device.
+
+```cpp
+```
+
+### BuildInfo — Build timestamp info injected as compile definitions by trussc_app() at CMake configure time. Refreshes when cmake reconfigures. Date/time fields are local time; timestamp is UTC Unix seconds.
+
+```cpp
+const char * BuildInfo::date()  // Build date in "YYYY-MM-DD" form (local time) 
+const char * BuildInfo::dateTime()  // Build date-time in "YYYY-MM-DD HH:MM:SS" form (local time) 
+int BuildInfo::day()  // Build day of month (1-31)
+int BuildInfo::hour()  // Build hour (0-23)
+int BuildInfo::minute()  // Build minute (0-59)
+int BuildInfo::month()  // Build month (1-12)
+int BuildInfo::second()  // Build second (0-59)
+const char * BuildInfo::time()  // Build time in "HH:MM:SS" form (local time) 
+int64_t BuildInfo::timestamp()  // Build timestamp as Unix seconds (UTC)
+int BuildInfo::year()  // Build year (e.g. 2026)
+```
+
+### CameraContext
+
+```cpp
+Vec3 CameraContext::worldToScreen(const Vec3 & worldPos) const  // Convert world coordinate to screen coordinate (x, y = screen pos, z = depth 0-1)
+```
+
+### ChipSoundBundle — A timeline of chiptune notes (ChipSoundNote + start time) that builds into a single mixed Sound. Add notes at times, then call build() to render the mix with ADSR and clipping applied.
+
+```cpp
+ChipSoundBundle & ChipSoundBundle::add(const ChipSoundNote & note, float time) [+1]  // Add a note at specified time (seconds)
+Sound ChipSoundBundle::build() const  // Render all scheduled notes into a single mixed, clipped Sound ready to play.
+ChipSoundBundle & ChipSoundBundle::clear()  // Clear all notes from bundle
+float ChipSoundBundle::getDuration() const  // Get the total duration of the bundle
+```
+
+### ChipSoundNote — Create a chip sound note (8-bit style sound)
+
+```cpp
+Sound ChipSoundNote::build() const  // Build and return Sound object from note
+void ChipSoundNote::generateBuffer(SoundBuffer & buf) const  // Write this note's raw waveform (without the ADSR envelope) into buf. Used internally by build() and by ChipSoundBundle mixing.
+float ChipSoundNote::getTotalDuration() const  // Total note duration in seconds (used by ChipSoundBundle to lay out note timing).
+```
+
+### ClipboardPastedEventArgs — Arguments for clipboardPasted events; the only reliable way to read the clipboard on the Web platform
+
+```cpp
+```
+
+### Color — Create color (type constructor)
+
+```cpp
+Color Color::clamped() const  // Get clamped copy (0.0-1.0)
+Color Color::fromBytes(int r, int g, int b, int a = …)  // Create from 0-255 values
+Color Color::fromHex(uint32_t hex, bool hasAlpha = …)  // Create from hex value
+Color Color::fromHSB(float h, float s, float b, float a = …)  // Create from HSB (H: 0-1)
+Color Color::fromLinear(float r, float g, float b, float a = …)  // Create from linear RGB
+Color Color::fromOKLab(float L, float a_lab, float b_lab, float alpha = …)  // Create from OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
+Color Color::fromOKLCH(float L, float C, float H, float a = …)  // Create from OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
+Color Color::lerp(const Color & target, float t) const  // Interpolate in OKLab space
+Color Color::lerpHSB(const Color & target, float t) const  // Interpolate in HSB space
+Color Color::lerpLinear(const Color & target, float t) const  // Interpolate in linear RGB space
+Color Color::lerpOKLab(const Color & target, float t) const  // Interpolate in OKLab space (perceptually uniform)
+Color Color::lerpOKLCH(const Color & target, float t) const  // Interpolate in OKLCH space (shortest hue path)
+Color Color::lerpRGB(const Color & target, float t) const  // Interpolate in RGB space
+Color & Color::set(float r_, float g_, float b_, float a_ = …) [+2]  // Set color components (type method)
+uint32_t Color::toHex(bool includeAlpha = …) const  // Convert to hex value
+ColorHSB Color::toHSB() const  // Convert to HSB color space (H: 0-1, S: 0-1, B: 0-1)
+ColorLinear Color::toLinear() const  // Convert to linear RGB color space
+ColorOKLab Color::toOKLab() const  // Convert to OKLab color space (perceptually uniform)
+ColorOKLCH Color::toOKLCH() const  // Convert to OKLCH color space (L: 0-1, C: 0-0.4, H: 0-1)
+```
+
+### ColorHSB — HSB color type (H: 0-1, S: 0-1, B: 0-1). Use toRGB() to convert to Color
+
+```cpp
+ColorHSB ColorHSB::lerp(const ColorHSB & target, float t, bool shortestPath = …) const  // Interpolate in HSB space (shortest hue path)
+ColorLinear ColorHSB::toLinear() const  // Convert to linear RGB color space
+ColorOKLab ColorHSB::toOKLab() const  // Convert to OKLab color space
+ColorOKLCH ColorHSB::toOKLCH() const  // Convert to OKLCH color space
+Color ColorHSB::toRGB() const  // Convert ColorHSB to Color (RGB)
+```
+
+### ColorLinear — A color in linear RGB space (no gamma encoding), 0.0-1.0 float per channel
+
+```cpp
+ColorLinear ColorLinear::clamped() const  // Clamp to non-negative RGB (HDR-safe) with alpha in 0-1
+ColorLinear ColorLinear::clampedLDR() const  // Clamp every channel to the 0-1 LDR range
+ColorLinear ColorLinear::lerp(const ColorLinear & target, float t) const  // Interpolate in linear space (physically correct)
+ColorHSB ColorLinear::toHSB() const  // Convert to HSB color space
+ColorOKLab ColorLinear::toOKLab() const  // Convert to OKLab color space
+ColorOKLCH ColorLinear::toOKLCH() const  // Convert to OKLCH color space
+Color ColorLinear::toSRGB() const  // Convert to sRGB (gamma-encoded) Color
+```
+
+### ColorOKLCH — OKLCH color type (L: 0-1, C: 0-0.4, H: 0-1). Perceptually uniform
+
+```cpp
+ColorOKLCH ColorOKLCH::lerp(const ColorOKLCH & target, float t, bool shortestPath = …) const  // Interpolate in OKLCH space (shortest hue path, perceptually uniform)
+ColorHSB ColorOKLCH::toHSB() const  // Convert to HSB color space
+ColorLinear ColorOKLCH::toLinear() const  // Convert to linear RGB color space
+ColorOKLab ColorOKLCH::toOKLab() const  // Convert to OKLab color space
+Color ColorOKLCH::toRGB() const  // Convert ColorOKLCH to Color (RGB)
+```
+
+### ColorOKLab — A color in the OKLab perceptual color space (lightness + two opponent axes)
+
+```cpp
+ColorOKLab ColorOKLab::lerp(const ColorOKLab & target, float t) const  // Interpolate in OKLab space (perceptually uniform)
+ColorHSB ColorOKLab::toHSB() const  // Convert to HSB color space
+ColorLinear ColorOKLab::toLinear() const  // Convert to linear RGB color space
+ColorOKLCH ColorOKLab::toOKLCH() const  // Convert to OKLCH color space
+Color ColorOKLab::toRGB() const  // Convert to sRGB Color
+```
+
+### ConsoleEventArgs — Arguments for the console event (a command line received from stdin)
+
+```cpp
+```
+
+### CoreEvents — Hub of all framework core events. Each member is an Event you subscribe to with .listen(callback); access the global instance via events()
+
+```cpp
+```
+
+### CurveStyle — Curve tessellation settings: Mode (Tolerance or Resolution), the pixel tolerance, and the fixed resolution fallback
+
+```cpp
+```
+
+### DragDropEventArgs — Arguments for filesDropped events
+
+```cpp
+```
+
+### EasyCam — 3D camera with mouse control
+
+```cpp
+void EasyCam::begin()  // Apply camera transform (start 3D mode)
+void EasyCam::clearControlArea()  // Clear the camera mouse-input control area constraint
+void EasyCam::disableMouseInput()  // Disable mouse input for camera control
+void EasyCam::disableOrtho()  // Disable orthographic projection (use perspective)
+void EasyCam::enableMouseInput()  // Enable mouse input for camera control
+void EasyCam::enableOrtho()  // Enable orthographic projection
+void EasyCam::end()  // Restore previous transform (end 3D mode)
+float EasyCam::getAzimuth() const  // Get orbit azimuth (horizontal angle, radians)
+float EasyCam::getDistance() const  // Get distance from target
+Modifier EasyCam::getDragModifier() const  // Get the modifier key required for camera mouse input
+float EasyCam::getElevation() const  // Get orbit elevation (vertical angle, radians)
+float EasyCam::getFov() const  // Get field of view in radians
+int EasyCam::getOrbitButton() const  // Get the mouse button that orbits the camera
+Quaternion EasyCam::getOrientation() const  // Get the camera orientation quaternion
+bool EasyCam::getOrtho() const  // Get whether orthographic projection is enabled
+int EasyCam::getPanButton() const  // Get the mouse button that pans the camera
+Vec3 EasyCam::getPosition() const  // Get camera position
+Vec3 EasyCam::getTarget() const  // Get camera look-at target
+Vec3 EasyCam::getUpAxis() const  // Get the camera up axis
+bool EasyCam::isMouseInputEnabled() const  // Check if mouse input is enabled
+void EasyCam::mouseDragged(int x, int y, int button)  // Handle mouse drag event
+void EasyCam::mousePressed(int x, int y, int button)  // Handle mouse press event
+void EasyCam::mouseReleased(int x, int y, int button)  // Handle mouse release event
+void EasyCam::mouseScrolled(float dx, float dy)  // Handle mouse scroll event (for zoom)
+void EasyCam::reset()  // Reset camera to default position
+void EasyCam::setAzimuth(float radians)  // Set orbit azimuth (horizontal angle, radians)
+void EasyCam::setControlArea(const Rect & area)  // Constrain camera mouse input to a screen rectangle
+void EasyCam::setDistance(float d)  // Set distance from target
+EasyCam & EasyCam::setDragModifier(Modifier m)  // Set the modifier key required for camera mouse input (default: None)
+void EasyCam::setElevation(float radians)  // Set orbit elevation (vertical angle, radians; clamped to ~±80°)
+void EasyCam::setFarClip(float farClip)  // Set far clipping plane
+void EasyCam::setFov(float fov)  // Set field of view in radians
+void EasyCam::setFovDeg(float degrees)  // Set field of view in degrees
+void EasyCam::setNearClip(float nearClip)  // Set near clipping plane
+EasyCam & EasyCam::setOrbitButton(int button)  // Set the mouse button that orbits the camera (default: left)
+void EasyCam::setOrientation(const Quaternion & q)  // Set the camera orientation quaternion
+void EasyCam::setOrtho(bool ortho)  // Set orthographic projection on/off
+EasyCam & EasyCam::setPanButton(int button)  // Set the mouse button that pans the camera (default: middle)
+void EasyCam::setPanSensitivity(float s)  // Set pan sensitivity
+void EasyCam::setSensitivity(float s)  // Set rotation sensitivity
+void EasyCam::setTarget(float x, float y, float z) [+1]  // Set camera look-at target
+void EasyCam::setUpAxis(const Vec3 & up) [+1]  // Set the camera up axis (default Y-up; use (0,0,1) for Z-up)
+void EasyCam::setZoomSensitivity(float s)  // Set zoom sensitivity
+```
+
+### Environment — IBL environment map for PBR ambient lighting (irradiance + prefilter + BRDF LUT)
+
+```cpp
+const Texture & Environment::getBrdfLut() const  // Get BRDF integration lookup texture
+const Texture & Environment::getIrradianceMap() const  // Get irradiance cubemap for diffuse IBL
+const Texture & Environment::getPrefilterMap() const  // Get prefiltered environment cubemap for specular IBL
+int Environment::getPrefilterMipLevels() const  // Get number of mip levels in the prefilter map
+bool Environment::isLoaded() const  // Check if environment is loaded
+bool Environment::loadFromHDR(const std::string & path) [+1]  // Load environment from HDR image file
+bool Environment::loadProcedural()  // Generate a simple procedural sky environment
+void Environment::release()  // Release GPU resources
+```
+
+### Event<T> — Generic event you subscribe to with listen(callback) and fire with notify(arg). The template parameter is the argument type passed to listeners by reference; Event<void> is the no-argument specialization (callbacks and notify take no argument). listen() returns an EventListener RAII token that disconnects when destroyed
+
+```cpp
+void Event::clear()  // Remove all listeners
+EventListener Event::listen(Callback callback, int priority = …) [+2] ⚠️deprecated  // Register a listener callback and return an EventListener token; lower priority runs first, and Deliver::Main runs the callback on the main thread
+size_t Event::listenerCount() const  // Number of currently registered listeners
+void Event::notify(T & arg)  // Fire the event, calling all listeners in priority order (no argument for Event<void>); stops early if a listener marks an input arg consumed
+```
+
+### EventListener — RAII token returned by Event::listen(); the listener is automatically disconnected when this token is destroyed or reassigned. Move-only
+
+```cpp
+void EventListener::disconnect()  // Explicitly disconnect the listener now (otherwise happens automatically on destruction)
+bool EventListener::isConnected() const  // True while the listener is still connected to its event
+```
+
+### ExitRequestEventArgs — Arguments for the exitRequested event
+
+```cpp
+```
+
+### Fbo — Create an FBO
+
+```cpp
+void Fbo::allocate(int w, int h, int sampleCount = …, TextureFormat format = …, bool mipmaps = …)  // Allocate buffer
+void Fbo::begin() [+1]  // Begin drawing to FBO. No args = preserve previous content. With args = clear with specified color
+void Fbo::clear()  // Release FBO resources
+void Fbo::clearColor(float r, float g, float b, float a)  // Clear the FBO with a solid color
+bool Fbo::copyTo(Image & image) const  // Copy FBO contents to Image
+void Fbo::draw(float x, float y) const [+1]  // Draw FBO contents
+void Fbo::end()  // End drawing to FBO
+int Fbo::getHeight() const  // Get height
+int Fbo::getSampleCount() const  // Get MSAA sample count
+Texture & Fbo::getTexture() [+1]  // Get FBO texture
+TextureFormat Fbo::getTextureFormat() const  // Get the FBO's color texture format
+int Fbo::getWidth() const  // Get width
+bool Fbo::isActive() const  // Check if currently rendering to FBO
+bool Fbo::isAllocated() const  // Check if allocated
+bool Fbo::readPixels(unsigned char * pixels) const  // Read FBO contents into a CPU buffer (8-bit per channel)
+bool Fbo::readPixelsFloat(float * pixels) const  // Read FBO contents into a CPU buffer (32-bit float per channel)
+bool Fbo::save(const fs::path & path) const  // Save FBO contents to file
+```
+
+### FileDialogResult — Result of a load/save file dialog
+
+```cpp
+```
+
+### FileReader — Streaming file reader for large files
+
+```cpp
+void FileReader::close()  // Close file
+bool FileReader::eof() const  // Check if at end of file
+bool FileReader::isOpen() const  // Check if file is open
+bool FileReader::open(const std::string & path)  // Open file for reading
+size_t FileReader::read(void * buffer, size_t size)  // Read binary data
+int FileReader::readChar()  // Read one character (-1 at EOF)
+std::string FileReader::readLine() [+1]  // Read one line
+size_t FileReader::remaining()  // Get remaining bytes
+void FileReader::seek(size_t pos)  // Seek to position
+size_t FileReader::tell()  // Get current position
+```
+
+### FileWriter — Streaming file writer with immediate flush
+
+```cpp
+void FileWriter::close()  // Close file
+void FileWriter::flush()  // Flush buffer to disk
+bool FileWriter::isOpen() const  // Check if file is open
+bool FileWriter::open(const std::string & path, bool append = …)  // Open file for writing
+FileWriter & FileWriter::write(const std::string & text) [+2]  // Write data to file
+FileWriter & FileWriter::writeLine(const std::string & text = …)  // Write line with newline
+```
+
+### Font — TrueType font for text rendering
+
+```cpp
+void Font::clearAtlas()  // Clear font atlas (GPU memory freed, glyphs re-rasterized on next draw)
+void Font::drawString(const std::string & text, float x, float y) const [+1]  // Draw text at position
+void Font::enableWrap(bool enabled)  // Enable or disable line wrapping (default off)
+void Font::forEachGlyph(const std::string & text, float x, float y, Direction h, Direction v, const GlyphVisitor & visitor) const [+1]  // Invoke a visitor once per laid-out glyph (positions follow writing mode, wrap, kinsoku, and TCY). Backend-agnostic layout pass shared by drawing, vector outlines, and hit testing
+Direction Font::getAlignH() const  // Get current horizontal text alignment
+Direction Font::getAlignV() const  // Get current vertical text alignment
+float Font::getAscent() const  // Get the font ascent (distance from baseline to top)
+size_t Font::getAtlasCount() const  // Get number of atlas pages
+size_t Font::getAtlasMemoryUsage() const  // Get atlas memory usage in bytes (alias of getMemoryUsage)
+Rect Font::getBBox(const std::string & text) const  // Get the bounding box of the text (top-left origin)
+float Font::getDefaultLineHeight() const  // Get the font's default line height (unaffected by setLineHeight)
+float Font::getDescent() const  // Get the font descent (distance from baseline to bottom; negative)
+Path Font::getGlyphPath(uint32_t codepoint) const  // Vector outline of a single glyph as one Path with one subpath per contour. Em-normalized (1.0 = em), screen Y-down, baseline at y=0, pen at x=0. Use Path::drawFill() for filled rendering — holes (e, a, O, 日 ...) are auto-detected via earcut.
+bool Font::getHangingPunctuation() const  // Check if hanging punctuation is enabled
+float Font::getHeight(const std::string & text) const  // Get text height in pixels
+KinsokuLevel Font::getKinsoku() const  // Get the current kinsoku level
+bool Font::getLatinHyphenation() const  // Check if Latin hyphenation is enabled
+float Font::getLineHeight() const  // Get line height
+size_t Font::getLoadedGlyphCount() const  // Get number of loaded glyphs
+float Font::getMaxLineLength() const  // Get the current wrap length
+size_t Font::getMemoryUsage() const  // Get atlas memory usage in bytes
+int Font::getSize() const  // Get font size
+Path Font::getStringPath(const std::string & text, float x, float y, Direction h, Direction v) const [+1]  // Get text outline as a Path (one subpath per contour). Stays crisp under scale / rotation; use drawStroke / drawFill (holes auto-detected for e, a, O, 日, etc.).
+int Font::getTcyDigitMax() const  // Get the maximum digit-run length that uses tate-chu-yoko combine mode
+TcyMode Font::getTcyLatinMode() const  // Get the tate-chu-yoko mode for Latin letter runs
+size_t Font::getTotalCacheMemoryUsage()  // Total memory used by the shared font atlas cache across all fonts
+float Font::getWidth(const std::string & text) const  // Get text width in pixels
+WritingMode Font::getWritingMode() const  // Current writing mode
+bool Font::isLoaded() const  // Check if font is loaded
+bool Font::isWrapEnabled() const  // Check if line wrapping is enabled
+bool Font::load(const std::string & nameOrPath, int size)  // Load TTF font file
+void Font::resetLineHeight()  // Reset line height to the font default
+void Font::setAlign(Direction h, Direction v) [+1]  // Set horizontal (and optional vertical) text alignment
+void Font::setHangingPunctuation(bool enabled)  // Let prohibited line-start CJK punctuation hang past the line edge instead of wrapping (default off)
+void Font::setKinsoku(KinsokuLevel level)  // Choose which CJK kinsoku (line-break prohibition) table to apply during wrap
+void Font::setLatinHyphenation(bool enabled)  // When wrapping a Latin run with no break point, insert '-' before the forced break (default off)
+void Font::setLineHeight(float pixels)  // Set line height in pixels (0 = use font default)
+void Font::setLineHeightEm(float multiplier)  // Set line height as a multiple of the font default (1.0 = default, 1.5 = 1.5x)
+void Font::setMaxLineLength(float length)  // Set the wrap length (horizontal: line width; vertical: column height)
+void Font::setTcyDigits(int maxDigits, TcyMode inMode, TcyMode overflowMode)  // Tate-chu-yoko config for ASCII digit runs in vertical text. Runs with <= maxDigits use inMode (typically Combine — squeezed into one cell); longer runs fall back to overflowMode (typically Rotate).
+void Font::setTcyLatin(TcyMode mode)  // Tate-chu-yoko mode for Latin letter runs in vertical text. Default is Rotate (whole run rotated 90 CW).
+void Font::setWritingMode(WritingMode mode)  // Switch between horizontal and vertical (tategaki) writing. Default is Horizontal (existing behavior unchanged).
+float Font::stringWidth(const std::string & text) const  // Pixel width of the text (alias of getWidth)
+```
+
+### FpsSettings — FPS configuration returned by getFpsSettings(). Rates use VSYNC (-1) and EVENT_DRIVEN (0) sentinels, or a fixed fps
+
+```cpp
+```
+
+### FullscreenShader — Shader specialization for fullscreen post-processing effects (position + texcoord quad). Set uniforms via setParams, then call draw to render a fullscreen quad.
+
+```cpp
+void FullscreenShader::draw()  // Draw a fullscreen quad with this shader applied
+```
+
+### Glyph — A bitmap glyph to register via registerGlyph(): a codepoint plus packed 1-bit pixel rows. The data pointer must outlive every drawBitmapString call
+
+```cpp
+```
+
+### GraphicsBackend — Runtime sokol_gfx backend query. Values are meaningful only after sg_setup() has completed (i.e. after the first setup() call).
+
+```cpp
+bool GraphicsBackend::isD3D11()  // True when running on Direct3D 11
+bool GraphicsBackend::isMetal()  // True when running on Apple Metal
+bool GraphicsBackend::isOpenGL()  // True when running on OpenGL (core or GLES3)
+bool GraphicsBackend::isVulkan()  // True when running on Vulkan
+bool GraphicsBackend::isWebGL2()  // True when running on WebGL2 (GLES3 under Emscripten)
+bool GraphicsBackend::isWebGPU()  // True when running on WebGPU
+const char * GraphicsBackend::name()  // Short backend name: "opengl" / "gles3" / "webgl2" / "d3d11" / "metal" / "webgpu" / "vulkan" / "dummy" / "unknown" 
+```
+
+### HasTexture
+
+```cpp
+Texture & HasTexture::getTexture() [+1]  // Get internal texture
+```
+
+### HeadlessSettings — Settings for runHeadlessApp() (no window / graphics). Currently just the target update rate
+
+```cpp
+HeadlessSettings & HeadlessSettings::setFps(float fps)  // Set the target update rate (chainable)
+```
+
+### HitResult — Result of a node hit test (this is Node::HitResult). Returned by Node::findHitNode() / findHitNodeFromScreen(); call hit() to check whether anything was hit.
+
+```cpp
+bool HitResult::hit() const  // Whether a node was hit (node is non-null).
+```
+
+### IVec2 — 2D integer vector (x, y)
+
+```cpp
+Vec2 IVec2::toVec2() const  // Convert to Vec2 (float)
+```
+
+### IVec3 — 3D integer vector (x, y, z)
+
+```cpp
+Vec3 IVec3::toVec3() const  // Convert to Vec3 (float)
+IVec2 IVec3::xy() const  // Get XY components as IVec2
+```
+
+### IesProfile — IESNA LM-63 photometric profile for angular light intensity
+
+```cpp
+float IesProfile::getMaxCandela() const  // Get maximum candela value in the profile
+float IesProfile::getMaxVerticalAngle() const  // Get maximum vertical angle in the profile (radians)
+int IesProfile::getTextureWidth() const  // Get width of the generated 1D lookup texture
+bool IesProfile::isLoaded() const  // Check if profile is loaded
+bool IesProfile::load(const std::string & path)  // Load IES profile from file
+bool IesProfile::loadFromString(const std::string & data)  // Load IES profile from inline string data
+```
+
+### Image — Image with CPU pixels and GPU texture
+
+```cpp
+void Image::allocate(int width, int height, int channels = …, bool mipmaps = …)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
+void Image::clear()  // Release image resources
+void Image::crop(int x, int y, int w, int h)  // Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge.
+int Image::getChannels() const  // Get number of channels
+Color Image::getColor(int x, int y) const  // Get pixel color at position
+int Image::getHeight() const  // Get height
+Pixels & Image::getPixels() [+1]  // Get pixels reference for direct manipulation
+unsigned char * Image::getPixelsData() [+1]  // Get raw pixel data pointer
+Texture & Image::getTexture() [+1]  // Get internal texture
+int Image::getWidth() const  // Get width
+void Image::halve()  // Replace with 2x2 box-averaged half. Gamma-correct for U8.
+bool Image::isAllocated() const  // Check if allocated
+bool Image::load(const fs::path & path, bool mipmaps = …)  // Load image from file
+bool Image::loadFromMemory(const unsigned char * buffer, int len, bool mipmaps = …)  // Load image from memory. `mipmaps=true` builds a mip chain.
+void Image::mirror(bool horizontal, bool vertical)  // Flip the image. `horizontal=true` mirrors left-right; `vertical=true` mirrors top-bottom; both true is 180°.
+void Image::mirrorH()  // Mirror horizontally (alias for mirror(true, false))
+void Image::mirrorV()  // Mirror vertically (alias for mirror(false, true))
+void Image::resize(int newW, int newH)  // Quality resize: BoxArea on downscale, Catmull-Rom bicubic on upscale, gamma-correct for U8. Use FBO sampling for fast paths.
+bool Image::save(const fs::path & path) const  // Save image to file
+void Image::setColor(int x, int y, const Color & c)  // Set pixel color at position (marks image as dirty)
+void Image::setDirty()  // Mark image as needing update
+void Image::update()  // Apply pixel changes to GPU texture
+```
+
+### KeyEventArgs — Arguments for keyPressed / keyReleased events
+
+```cpp
+```
+
+### LayoutMod — Layout modifier for automatic child arrangement (C++ only)
+
+```cpp
+AxisMode LayoutMod::getCrossAxis() const  // Get the cross-axis sizing mode (LayoutMod method) (C++ only)
+LayoutDirection LayoutMod::getDirection() const  // Get the layout direction (Vertical/Horizontal) (LayoutMod method) (C++ only)
+AxisMode LayoutMod::getMainAxis() const  // Get the main-axis sizing mode (LayoutMod method) (C++ only)
+float LayoutMod::getPaddingBottom() const  // Get the bottom padding (LayoutMod method) (C++ only)
+float LayoutMod::getPaddingLeft() const  // Get the left padding (LayoutMod method) (C++ only)
+float LayoutMod::getPaddingRight() const  // Get the right padding (LayoutMod method) (C++ only)
+float LayoutMod::getPaddingTop() const  // Get the top padding (LayoutMod method) (C++ only)
+float LayoutMod::getSpacing() const  // Get the spacing between children (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setCrossAxis(AxisMode mode)  // Set the cross-axis sizing mode and re-layout (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setDirection(LayoutDirection dir)  // Set the layout direction and re-layout (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setMainAxis(AxisMode mode)  // Set the main-axis sizing mode and re-layout (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setPadding(float padding) [+2]  // Set padding (uniform, vertical/horizontal, or per-side) and re-layout (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setPaddingBottom(float v)  // Set the bottom padding and re-layout (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setPaddingLeft(float v)  // Set the left padding and re-layout (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setPaddingRight(float v)  // Set the right padding and re-layout (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setPaddingTop(float v)  // Set the top padding and re-layout (LayoutMod method) (C++ only)
+LayoutMod & LayoutMod::setSpacing(float spacing)  // Set the spacing between children and re-layout (LayoutMod method) (C++ only)
+void LayoutMod::updateLayout()  // Recalculate layout (call after adding/removing children) (C++ only)
+```
+
+### Light — Light source for 3D PBR rendering (directional, point, or spot)
+
+```cpp
+Color Light::calculate(const Vec3 & worldPos, const Vec3 & worldNormal, const Material & material, const Vec3 & viewPos) const  // Compute the CPU Phong lighting contribution at a world position/normal for a material
+Mat4 Light::computeProjectorViewProj(float nearClip = …, float farClip = …) const  // Build the projector's view-projection matrix from spot params and lens shift
+void Light::disable()  // Disable this light
+void Light::disableShadow()  // Disable shadow casting
+void Light::enable()  // Enable this light
+void Light::enableShadow(int resolution = …)  // Enable shadow casting (depth map at given resolution)
+const Color & Light::getAmbient() const  // Get ambient light color
+float Light::getConstantAttenuation() const  // Get constant attenuation factor
+const Color & Light::getDiffuse() const  // Get diffuse (main) light color
+const Vec3 & Light::getDirection() const  // Get light direction
+const IesProfile * Light::getIesProfile() const  // Get attached IES photometric profile
+float Light::getIntensity() const  // Get light intensity
+float Light::getLensShiftX() const  // Get projector horizontal lens shift
+float Light::getLensShiftY() const  // Get projector vertical lens shift
+float Light::getLinearAttenuation() const  // Get linear attenuation factor
+const Vec3 & Light::getPosition() const  // Get light position
+const Texture * Light::getProjectionTexture() const  // Get projection texture (gobo)
+float Light::getProjectorAspect() const  // Get projector aspect ratio
+float Light::getQuadraticAttenuation() const  // Get quadratic attenuation factor
+float Light::getShadowBias() const  // Get shadow depth bias
+int Light::getShadowResolution() const  // Get shadow map resolution
+const Color & Light::getSpecular() const  // Get specular light color
+float Light::getSpotInnerCos() const  // Get spot light inner cone cosine
+float Light::getSpotOuterCos() const  // Get spot light outer cone cosine
+LightType Light::getType() const  // Get light type (Directional, Point, or Spot)
+bool Light::hasIesProfile() const  // Check if an IES profile is attached
+bool Light::hasProjectionTexture() const  // Check if a projection texture is set
+bool Light::isEnabled() const  // Check if light is enabled
+bool Light::isShadowEnabled() const  // Check if shadow casting is enabled
+void Light::setAmbient(const Color & c) [+1]  // Set ambient light color
+void Light::setAttenuation(float constant, float linear, float quadratic)  // Set distance attenuation factors
+void Light::setDiffuse(const Color & c) [+1]  // Set diffuse (main) light color
+void Light::setDirectional(const Vec3 & direction) [+1]  // Set as directional light
+void Light::setIesProfile(const IesProfile * ies)  // Attach IES photometric profile for angular intensity
+void Light::setIntensity(float i)  // Set light intensity multiplier
+void Light::setLensShift(float sx, float sy)  // Set projector lens shift (-1 to 1, normalized)
+void Light::setPoint(const Vec3 & position) [+1]  // Set as point light
+void Light::setProjectionTexture(const Texture * tex)  // Set texture for projector-style light (gobo)
+void Light::setProjectorAspect(float a)  // Set projector aspect ratio
+void Light::setShadowBias(float bias)  // Set shadow depth bias in world units
+void Light::setSpecular(const Color & c) [+1]  // Set specular light color
+void Light::setSpot(const Vec3 & position, const Vec3 & direction, float innerHalfAngle = …, float outerHalfAngle = …) [+1]  // Set as spot light with cone angles
+```
+
+### Location — GPS / WiFi location fix returned by getLocation()
+
+```cpp
+```
+
+### LogEventArgs — Arguments delivered for each log message (level, text, and timestamp)
+
+```cpp
+```
+
+### Logger — Logging core with console and file output and an onLog event; access the global instance via getLogger()
+
+```cpp
+void Logger::closeFile()  // Close the current log file
+LogLevel Logger::getConsoleLogLevel() const  // Get the current console log level
+LogLevel Logger::getFileLogLevel() const  // Get the current file log level
+const std::string & Logger::getLogFilePath() const  // Get the path of the current log file
+bool Logger::isFileOpen() const  // Check whether a log file is currently open
+void Logger::log(LogLevel level, const std::string & message)  // Natural logarithm
+void Logger::setConsoleLogLevel(LogLevel level)  // Set the minimum console log level
+void Logger::setFileLogLevel(LogLevel level)  // Set the minimum file log level
+bool Logger::setLogFile(const std::string & path)  // Open a file to receive log output
+```
+
+### Mat3 — 3x3 matrix for 2D affine / homography transforms (row-major). Includes static factories and a homography solver
+
+```cpp
+float & Mat3::at(int row, int col) [+1]  // Access the element at (row, col)
+float Mat3::determinant() const  // Compute the determinant
+Mat3 Mat3::getHomography(const Vec2 * src, const Vec2 * dst)  // Compute the homography matrix mapping 4 source points to 4 destination points (solves H * src = dst)
+Mat3 Mat3::identity()  // Return the identity matrix
+Mat3 Mat3::inverted() const  // Return the inverse matrix (identity if singular)
+Mat3 Mat3::rotate(float radians)  // Build a 2D rotation matrix (radians)
+Mat3 Mat3::scale(float sx, float sy) [+2]  // Build a 2D scale matrix
+Mat3 Mat3::translate(float tx, float ty) [+1]  // Build a 2D translation matrix
+Mat3 Mat3::transposed() const  // Return the transpose of this matrix
+```
+
+### Mat4 — 4x4 matrix for 3D transformations
+
+```cpp
+float & Mat4::at(int row, int col) [+1]  // Access the element at (row, col)
+Mat4 Mat4::fromHomography(const Mat3 & h)  // Build a Mat4 from a 3x3 homography (for 2D projection)
+Mat4 Mat4::frustum(float left, float right, float bottom, float top, float nearPlane, float farPlane)  // Create an asymmetric perspective (frustum) projection matrix
+Mat4 Mat4::identity()  // Create an identity matrix
+Mat4 Mat4::inverted() const  // Get inverse matrix
+Mat4 Mat4::lookAt(const Vec3 & eye, const Vec3 & target, const Vec3 & up)  // Create a view matrix
+Mat4 Mat4::ortho(float left, float right, float bottom, float top, float nearPlane, float farPlane)  // Create an orthographic projection matrix
+Mat4 Mat4::perspective(float fovY, float aspect, float nearPlane, float farPlane)  // Create a perspective projection matrix
+Mat4 Mat4::rotate(float radians, const Vec3 & axis)  // Create a rotation matrix about an arbitrary axis
+Mat4 Mat4::rotateX(float radians)  // Create X-axis rotation matrix
+Mat4 Mat4::rotateY(float radians)  // Create Y-axis rotation matrix
+Mat4 Mat4::rotateZ(float radians)  // Create Z-axis rotation matrix
+Mat4 Mat4::scale(float sx, float sy, float sz) [+2]  // Create a scaling matrix
+Mat4 Mat4::translate(float tx, float ty, float tz) [+1]  // Create a translation matrix
+Mat4 Mat4::transposed() const  // Get transposed matrix
+```
+
+### Material — PBR material (metallic-roughness workflow, glTF 2.0 compatible)
+
+```cpp
+Material Material::bronze()  // Bronze material preset
+Material Material::copper()  // Copper material preset
+Material Material::emerald()  // Emerald material preset
+Material Material::fromPhong(const Color & diffuse, const Color & specular, float shininess, const Color & emissive = …)  // Convert Phong material parameters to PBR (roughness from shininess, metallic estimated from specular luminance)
+float Material::getAo() const  // Get ambient occlusion factor
+const Color & Material::getBaseColor() const  // Get base color (albedo)
+const Texture * Material::getBaseColorTexture() const  // Get base color texture
+const Color & Material::getEmissive() const  // Get emissive color
+float Material::getEmissiveStrength() const  // Get emissive strength multiplier
+const Texture * Material::getEmissiveTexture() const  // Get emissive texture
+float Material::getMetallic() const  // Get metallic factor
+const Texture * Material::getMetallicRoughnessTexture() const  // Get metallic-roughness texture
+const Texture * Material::getNormalMap() const  // Get normal map texture
+const Texture * Material::getOcclusionTexture() const  // Get occlusion texture
+float Material::getRoughness() const  // Get roughness factor
+Material Material::gold()  // Gold material preset
+bool Material::hasBaseColorTexture() const  // Check if a base color texture is set
+bool Material::hasEmissiveTexture() const  // Check if an emissive texture is set
+bool Material::hasMetallicRoughnessTexture() const  // Check if a metallic-roughness texture is set
+bool Material::hasNormalMap() const  // Check if a normal map is set
+bool Material::hasOcclusionTexture() const  // Check if an occlusion texture is set
+Material Material::iron()  // Iron material preset
+Material Material::plastic(const Color & baseColor, float roughness = …)  // Plastic material preset
+Material Material::rubber(const Color & baseColor)  // Rubber material preset
+Material Material::ruby()  // Ruby material preset
+Material & Material::setAo(float ao)  // Set ambient occlusion factor
+Material & Material::setBaseColor(const Color & c) [+1]  // Set base color (albedo)
+Material & Material::setBaseColorTexture(const Texture * tex)  // Set base color (albedo) texture map
+Material & Material::setEmissive(const Color & c) [+1]  // Set emissive color
+Material & Material::setEmissiveStrength(float s)  // Set emissive strength multiplier
+Material & Material::setEmissiveTexture(const Texture * tex)  // Set emissive texture map
+Material & Material::setMetallic(float m)  // Set metallic factor (0=dielectric, 1=metal)
+Material & Material::setMetallicRoughnessTexture(const Texture * tex)  // Set metallic-roughness texture (glTF: G=roughness, B=metallic)
+Material & Material::setNormalMap(const Texture * tex)  // Set normal map texture for bump mapping
+Material & Material::setOcclusionTexture(const Texture * tex)  // Set occlusion texture map
+Material & Material::setRoughness(float r)  // Set roughness factor (0=mirror, 1=matte)
+Material Material::silver()  // Silver material preset
+```
+
+### Mesh — Create a new Mesh (constructor)
+
+```cpp
+Mesh & Mesh::addColor(const Color & c) [+1]  // Add a color for the vertex
+Mesh & Mesh::addColors(const std::vector<Color> & cols)  // Add multiple vertex colors
+Mesh & Mesh::addIndex(unsigned int index)  // Add an index
+Mesh & Mesh::addIndices(const std::vector<unsigned int> & inds)  // Add multiple indices
+Mesh & Mesh::addNormal(float nx, float ny, float nz) [+1]  // Add a normal vector
+Mesh & Mesh::addNormals(const std::vector<Vec3> & norms)  // Add multiple normals
+Mesh & Mesh::addTangent(float tx, float ty, float tz, float tw = …) [+2]  // Add a tangent vector (xyz direction + w handedness)
+Mesh & Mesh::addTexCoord(float u, float v) [+1]  // Add a texture coordinate
+Mesh & Mesh::addTriangle(unsigned int i0, unsigned int i1, unsigned int i2)  // Add a triangle (3 indices)
+Mesh & Mesh::addVertex(float x, float y, float z = …) [+2]  // Add a vertex
+Mesh & Mesh::addVertices(const std::vector<Vec3> & verts)  // Add multiple vertices
+Mesh & Mesh::append(const Mesh & other)  // Append another mesh
+Mesh & Mesh::clear()  // Clear all data
+Mesh & Mesh::clearColors()  // Clear colors only
+Mesh & Mesh::clearIndices()  // Clear indices only
+Mesh & Mesh::clearNormals()  // Clear normals only
+Mesh & Mesh::clearTangents()  // Remove all tangents
+Mesh & Mesh::clearTexCoords()  // Clear texture coordinates only
+Mesh & Mesh::clearVertices()  // Clear vertices only
+void Mesh::draw() const [+2]  // Draw the mesh
+void Mesh::drawGpuPbr() const  // Draw the mesh through the GPU PBR pipeline (uploads to GPU buffers as needed, then renders using active lights, material and environment)
+void Mesh::drawNoLighting() const  // Draw the mesh without lighting
+void Mesh::drawNoLightingWithTexture(const Texture & texture) const  // Draw the mesh textured without lighting
+void Mesh::drawWireframe() const  // Draw mesh as wireframe
+void Mesh::drawWithLighting() const  // Draw the mesh with lighting
+std::vector<Color> & Mesh::getColors() [+1]  // Get all vertex colors
+int Mesh::getGpuIndexCount() const  // Number of indices currently uploaded to the GPU
+int Mesh::getGpuVertexCount() const  // Number of vertices currently uploaded to the GPU
+std::vector<unsigned int> & Mesh::getIndices() [+1]  // Get all indices
+PrimitiveMode Mesh::getMode() const  // Get current primitive mode
+Vec3 Mesh::getNormal(size_t index) const  // Get normal at index
+std::vector<Vec3> & Mesh::getNormals() [+1]  // Get all normals
+int Mesh::getNumColors() const  // Get vertex color count
+int Mesh::getNumIndices() const  // Get index count
+int Mesh::getNumNormals() const  // Get normal count
+int Mesh::getNumTangents() const  // Number of tangents
+int Mesh::getNumTexCoords() const  // Get texture coordinate count
+int Mesh::getNumVertices() const  // Get vertex count
+std::vector<Vec4> & Mesh::getTangents() [+1]  // Get the tangent array (mutable)
+std::vector<Vec2> & Mesh::getTexCoords() [+1]  // Get all texture coordinates
+std::vector<Vec3> & Mesh::getVertices() [+1]  // Get all vertices
+bool Mesh::hasColors() const  // Check if mesh has vertex colors
+bool Mesh::hasIndices() const  // Check if mesh has indices
+bool Mesh::hasNormals() const  // Check if mesh has normals
+bool Mesh::hasTangents() const  // Whether the mesh has tangents
+bool Mesh::hasTexCoords() const  // Check if mesh has texture coordinates
+bool Mesh::hasValidTexCoords() const  // Check if texture coordinates match vertex count
+void Mesh::markGpuDirty() const  // Mark GPU buffers stale after editing data in place
+Mesh & Mesh::rotateX(float radians)  // Rotate mesh around X axis
+Mesh & Mesh::rotateY(float radians)  // Rotate mesh around Y axis
+Mesh & Mesh::rotateZ(float radians)  // Rotate mesh around Z axis
+Mesh & Mesh::scale(float x, float y, float z) [+2]  // Scale mesh
+Mesh & Mesh::setMode(PrimitiveMode mode)  // Set primitive mode (MESH_TRIANGLES, etc.)
+Mesh & Mesh::setNormal(size_t index, const Vec3 & n)  // Set normal at index
+Mesh & Mesh::transform(const Mat4 & m)  // Apply transformation matrix
+Mesh & Mesh::translate(float x, float y, float z) [+1]  // Translate all vertices
+void Mesh::uploadToGpu() const  // Upload mesh data to GPU buffers now
+```
+
+### MicInput — Microphone capture (miniaudio). Opens an input device and exposes the latest samples through a ring buffer. Use the global getMicInput() to access the shared instance, then start() it; getMicAnalysisBuffer() is a convenience wrapper over getBuffer().
+
+```cpp
+size_t MicInput::getBuffer(float * outBuffer, size_t numSamples)  // Copy the latest captured samples into outBuffer. numSamples is capped at the ring buffer size (4096). Returns the number of samples written.
+int MicInput::getSampleRate() const  // Sample rate the microphone was opened at.
+bool MicInput::isRunning() const  // True while the microphone device is open and capturing.
+bool MicInput::start(int sampleRate = …)  // Open the microphone device at the given sample rate and begin capturing. Returns false on failure.
+void MicInput::stop()  // Stop capture and close the microphone device.
+```
+
+### Mod — Attachable behavior base class for Node. Subclass it, override the lifecycle and input hooks, and attach with node->addMod<T>(). Lifecycle: setup() on attach, then each frame earlyUpdate() -> Node::update() -> update() -> draw(), and onDestroy() on removal. Override isExclusive() to allow only one instance per Node, and canAttachTo() to restrict attachment.
+
+```cpp
+bool Mod::canAttachTo(Node * node)  // Override to restrict which Node types this Mod can attach to. Return false to reject attachment. Default true. (protected, virtual)
+void Mod::draw()  // Override: called during the draw phase, after Node::draw(). (protected, virtual)
+void Mod::earlyUpdate()  // Override: called every frame BEFORE Node::update(). Use for applying transforms, tweens, physics. (protected, virtual)
+Node * Mod::getOwner() [+1]  // Get the owner Node this Mod is attached to.
+bool Mod::hitTest(const Ray & localRay, float & outDistance)  // Override: screen-space pointer picking (NOT physics collision). Define a hit shape in the node's LOCAL space; if the node's own test OR any mod's returns true, the node is the hit. (protected, virtual)
+bool Mod::isExclusive() const  // Override to return true if only one instance of this Mod type may be attached per Node (e.g. LayoutMod). Default false. (protected, virtual)
+void Mod::onDestroy()  // Override: called when the Mod is removed or the Node is destroyed. (protected, virtual)
+bool Mod::onKeyPress(const KeyEventArgs & e)  // Override: key press (broadcast to mods on every node). Return true to consume. (protected, virtual)
+bool Mod::onKeyRelease(const KeyEventArgs & e)  // Override: key release (broadcast to mods on every node). Return true to consume. (protected, virtual)
+bool Mod::onMouseDrag(const MouseDragEventArgs & e)  // Override: mouse drag on the hit node. Return true to consume. (protected, virtual)
+void Mod::onMouseEnter()  // Override: pointer entered the owner node. (protected, virtual)
+void Mod::onMouseLeave()  // Override: pointer left the owner node. (protected, virtual)
+bool Mod::onMouseMove(const MouseMoveEventArgs & e)  // Override: mouse move over the hit node. Return true to consume. (protected, virtual)
+bool Mod::onMousePress(const MouseEventArgs & e)  // Override: mouse press on the hit node. Return true to consume the event (counts as the node consuming it). (protected, virtual)
+bool Mod::onMouseRelease(const MouseEventArgs & e)  // Override: mouse release on the hit node. Return true to consume. (protected, virtual)
+bool Mod::onMouseScroll(const ScrollEventArgs & e)  // Override: mouse scroll over the hit node. Return true to consume. (protected, virtual)
+void Mod::removeSelf()  // Remove this Mod from its owner (no need to name its own type). Safe to call from inside the Mod's own update/draw/event handler; destruction is deferred until the current dispatch finishes. (protected)
+void Mod::setup()  // Override: called once when the Mod is attached to the Node. (protected, virtual)
+void Mod::update()  // Override: called every frame AFTER Node::update(). Use for reactions to node state changes. (protected, virtual)
+```
+
+### MouseDragEventArgs — Arguments for mouseDragged (cursor moving with a button held)
+
+```cpp
+```
+
+### MouseEventArgs — Arguments for mousePressed / mouseReleased events. pos is local space, globalPos is screen space (equal at app level)
+
+```cpp
+```
+
+### MouseMoveEventArgs — Arguments for mouseMoved (cursor moving with no button held)
+
+```cpp
+```
+
+### NetworkInterface — One address entry of a network interface (returned by listNetworkInterfaces)
+
+```cpp
+const std::string & NetworkInterface::getAddress() const  // IP address
+bool NetworkInterface::getIsIPv4() const  // Whether the address is IPv4
+bool NetworkInterface::getIsLoopback() const  // Whether this is a loopback interface
+bool NetworkInterface::getIsUp() const  // Whether the link is up
+const std::string & NetworkInterface::getMac() const  // MAC address
+const std::string & NetworkInterface::getName() const  // Interface name
+const std::string & NetworkInterface::getNetmask() const  // Subnet mask
+```
+
+### Node — Create a base scene node (C++ only - uses shared_ptr)
+
+```cpp
+void Node::addChild(Ptr child, bool keepGlobalPosition = …)  // Add a child node (C++ only)
+uint64_t Node::callAfter(double delay, std::function<void ()> callback)  // Run callback once after delay seconds. Fired from the update loop (frame-quantized). Returns a timer id.
+uint64_t Node::callAfterAsync(double delay, std::function<void ()> callback)  // Like callAfter, but fired by a precise background scheduler thread (no frame jitter). The callback runs OFF the main thread: guard shared state with a mutex, never draw from it, and don't cancel while holding that mutex. Native only (uses a real thread). Returns a timer id.
+uint64_t Node::callEvery(double interval, std::function<void ()> callback)  // Run callback repeatedly every interval seconds. Fired from the update loop (frame-quantized). Returns a timer id.
+uint64_t Node::callEveryAsync(double interval, std::function<void ()> callback)  // Like callEvery, but fired by a precise background scheduler thread with no drift (reschedules at absolute times). Ideal for sequencer clocks and LED/MIDI output timing. Same threading rules as callAfterAsync. Native only. Returns a timer id.
+void Node::cancelAllAsyncTimers()  // Cancel all async timers on this node (e.g. on mode change). Waits out any in-flight callback. Call it WITHOUT holding the callback's mutex to avoid a deadlock.
+void Node::cancelAllTimers()  // Cancel all frame timers on this node.
+void Node::cancelAsyncTimer(uint64_t id)  // Cancel an async timer by id. Blocks until its callback finishes if it is running now (unless called from inside the callback). Do not call while holding the mutex the callback uses.
+void Node::cancelTimer(uint64_t id)  // Cancel a frame timer (callAfter/callEvery) by id.
+void Node::cleanup()  // Called once before exit (optional user callback for cleanup)
+void Node::destroy()  // Mark node for deferred removal from scene graph (C++ only)
+void Node::disableEvents()  // Disable mouse/key events for this node (C++ only)
+void Node::draw()  // Called every frame after update
+void Node::enableEvents()  // Enable mouse/key events for this node (C++ only)
+Node * Node::findByInstanceId(uint64_t id)  // Find a node in this subtree (self included) by instance id, depth-first (null if not found) (C++ only)
+HitResult Node::findHitNode(const Ray & globalRay)  // Hit test the whole tree with a global ray, returning the frontmost node (C++ only)
+HitResult Node::findHitNodeFromScreen(float screenX, float screenY)  // Hit test the whole tree from a screen point, using each node's own camera context (C++ only)
+bool Node::getActive() const ⚠️deprecated  // Deprecated alias for isActive()
+size_t Node::getChildCount() const  // Get the number of child nodes (C++ only)
+int Node::getChildIndex() const  // This node's index among its parent's children (-1 if no parent) (C++ only)
+std::vector<Ptr> Node::getChildren() const  // Get a copy of the child node list (safe to iterate while modifying) (C++ only)
+std::string Node::getDisplayName() const  // Short type-anchored label for trees / inspectors, e.g. "RectNode" or "RectNode (play)" (C++ only) 
+Vec3 Node::getEuler() const  // Get rotation as Euler angles in radians (pitch=X, yaw=Y, roll=Z) (C++ only)
+Vec3 Node::getEulerDeg() const  // Get rotation as Euler angles in degrees (C++ only)
+const Mat4 & Node::getGlobalMatrix() const  // Get this node's global transform matrix, including parent transforms (cached) (C++ only)
+Mat4 Node::getGlobalMatrixInverse() const  // Get the inverse of the global transform matrix (C++ only)
+Vec3 Node::getGlobalPos() const  // Get the node's origin in global (world) space (C++ only)
+uint64_t Node::getInstanceId() const  // Per-process unique id, assigned once at construction and stable across reparenting (C++ only)
+const Mat4 & Node::getLocalMatrix() const  // Get this node's local transform matrix (cached) (C++ only)
+Mod * Node::getModByTypeName(const std::string & name) const  // Find an attached mod by its short type name, e.g. "LayoutMod" (null if not attached) (C++ only) 
+std::vector<Mod *> Node::getMods() const  // Get all attached mods (pointers stay owned by this node) (C++ only)
+std::vector<std::string> Node::getModTypeNames() const  // Get the short (unqualified) type names of the attached mods (C++ only)
+float Node::getMouseX() const  // Get mouse X in this node's local coordinate system (C++ only)
+float Node::getMouseY() const  // Get mouse Y in this node's local coordinate system (C++ only)
+const std::string & Node::getName() const  // Get the optional instance name (empty unless setName() was called) (C++ only)
+Ptr Node::getParent() const  // Get the parent node (null if none) (C++ only)
+float Node::getPMouseX() const  // Get previous-frame mouse X in this node's local coordinate system (C++ only)
+float Node::getPMouseY() const  // Get previous-frame mouse Y in this node's local coordinate system (C++ only)
+const Vec3 & Node::getPos() const  // Get local position (C++ only)
+const Quaternion & Node::getQuaternion() const  // Get rotation as a quaternion (C++ only)
+float Node::getRot() const  // Get 2D Z-axis rotation in radians (C++ only)
+float Node::getRotDeg() const  // Get 2D Z-axis rotation in degrees (C++ only)
+const Vec3 & Node::getScale() const  // Get local scale (C++ only)
+float Node::getScaleX() const  // Get local X scale (C++ only)
+float Node::getScaleY() const  // Get local Y scale (C++ only)
+float Node::getScaleZ() const  // Get local Z scale (C++ only)
+const std::string & Node::getTypeName() const  // C++ class name (most-derived type) via RTTI, e.g. "trussc::RectNode" (cached) (C++ only) 
+bool Node::getVisible() const ⚠️deprecated  // Deprecated alias for isVisible()
+float Node::getX() const  // Get local X position (C++ only)
+float Node::getY() const  // Get local Y position (C++ only)
+float Node::getZ() const  // Get local Z position (C++ only)
+Vec3 Node::globalToLocal(const Vec3 & global) const [+1] ⚠️deprecated  // Convert a global coordinate to this node's local space (C++ only)
+bool Node::hasName() const  // Whether an instance name has been set (C++ only)
+int Node::indexOfChild(const Node * child) const  // Index of the given child among this node's children (-1 if not a child) (C++ only)
+void Node::insertChild(size_t index, Ptr child, bool keepGlobalPosition = …)  // Insert a child node at a specific index (C++ only)
+bool Node::isActive() const  // Whether the node is active (inactive: update and draw are skipped) (C++ only)
+bool Node::isDead() const  // Check if node is marked for destruction (C++ only)
+bool Node::isEventsEnabled() const  // Whether events are enabled (only such nodes are hit-test targets) (C++ only)
+bool Node::isMouseOver() const  // Whether the mouse is over this node (auto-updated each frame, O(1)) (C++ only)
+bool Node::isVisible() const  // Whether the node is visible (invisible: only draw is skipped) (C++ only)
+Vec3 Node::localToGlobal(const Vec3 & local) const [+1] ⚠️deprecated  // Convert a local coordinate to global space (C++ only)
+void Node::moveToBack()  // Move this node to the beginning of its parent's child list — drawn first, beneath siblings. No-op if no parent or already first (C++ only)
+void Node::moveToFront()  // Move this node to the end of its parent's child list — drawn last, on top of siblings. No-op if no parent or already last (C++ only)
+void Node::onChildAdded(Ptr child)  // Callback fired when a child is added (overridable) (C++ only)
+void Node::onChildRemoved(Ptr child)  // Callback fired when a child is removed (overridable) (C++ only)
+void Node::removeAllChildren()  // Remove all child nodes (C++ only)
+void Node::removeChild(Ptr child)  // Remove a child node (C++ only)
+void Node::setActive(bool active)  // Set the active state (inactive: update and draw are skipped) (C++ only)
+void Node::setEuler(const Vec3 & euler) [+1]  // Set rotation from Euler angles in radians (pitch=X, yaw=Y, roll=Z) (C++ only)
+void Node::setEulerDeg(const Vec3 & deg)  // Set rotation from Euler angles in degrees (C++ only)
+void Node::setGlobalPos(const Vec3 & global) [+1]  // Set the node's position in global (world) space (C++ only)
+void Node::setIsActive(bool active) ⚠️deprecated  // Deprecated alias for setActive()
+void Node::setIsVisible(bool visible) ⚠️deprecated  // Deprecated alias for setVisible()
+Node & Node::setName(const std::string & name)  // Set an optional instance name (chainable) (C++ only)
+void Node::setPos(const Vec3 & pos) [+1]  // Set local position (C++ only)
+void Node::setQuaternion(const Quaternion & q)  // Set rotation from a quaternion (C++ only)
+void Node::setRot(float radians)  // Set 2D Z-axis rotation in radians (C++ only)
+void Node::setRotDeg(float degrees)  // Set 2D Z-axis rotation in degrees (C++ only)
+void Node::setScale(const Vec3 & s) [+2]  // Set local scale (vector, uniform, or per-axis) (C++ only)
+void Node::setScaleX(float sx)  // Set local X scale (C++ only)
+void Node::setScaleY(float sy)  // Set local Y scale (C++ only)
+void Node::setScaleZ(float sz)  // Set local Z scale (C++ only)
+void Node::setup()  // Called once at start
+void Node::setVisible(bool visible)  // Set the visible state (invisible: only draw is skipped) (C++ only)
+void Node::setX(float x)  // Set local X position (C++ only)
+void Node::setY(float y)  // Set local Y position (C++ only)
+void Node::setZ(float z)  // Set local Z position (C++ only)
+void Node::update()  // Called every frame before draw
+```
+
+### Path — Create a new Path (constructor)
+
+```cpp
+void Path::addVertex(float x, float y) [+3]  // Add a vertex
+void Path::addVertices(const std::vector<Vec2> & verts) [+1]  // Add multiple vertices
+void Path::arc(const Vec3 & center, float radiusX, float radiusY, float angleBegin, float angleEnd, bool clockwise = …, int circleResolution = …) [+5]  // Add an arc
+void Path::bezierTo(const Vec3 & cp1, const Vec3 & cp2, const Vec3 & to, int resolution) [+2]  // Add a cubic bezier curve
+std::vector<std::array<float, 2>> Path::buildFillTriangles() const  // Triangulate the path interior into a flat list of 2D triangle vertices
+void Path::clear()  // Clear all vertices
+void Path::close()  // Close the shape
+void Path::curveTo(const Vec3 & to, int resolution) [+2]  // Add a Catmull-Rom curve segment
+void Path::draw() const  // Draw the polyline (fill + 1px stroke based on current style — fill uses triangle fan, convex only). For concave shapes / holes use drawFill.
+void Path::drawFill() const  // Fill the path as a concave polygon with holes (earcut tessellation). Subpaths follow the non-zero winding rule (SVG / PostScript default): a subpath wound opposite to its enclosing ring becomes a hole; same-direction subpaths union (never punch holes). Handles glyphs with holes (e, a, O, 日 ...), overlapping contours, and both TrueType / CFF winding conventions. To cut a hole in a hand-built Path, wind the inner subpath opposite (see reverseWinding).
+void Path::drawStroke() const  // Thick stroke via StrokeMesh (respects strokeWeight / strokeCap / strokeJoin), per-subpath. Use draw() for 1-pixel lines.
+bool Path::empty() const  // Check if polyline is empty
+Rect Path::getBounds() const  // Get bounding box as Rect
+size_t Path::getNumSubpaths() const  // Number of subpaths (contours)
+float Path::getPerimeter() const  // Get total path length
+std::pair<size_t, size_t> Path::getSubpathRange(size_t i) const  // Vertex index range [begin, end) of subpath i
+const std::vector<Vec3> & Path::getVertices() const [+1]  // Get all vertices
+bool Path::isClosed() const  // Check if path is closed
+bool Path::isSubpathClosed(size_t i) const  // Whether subpath i is closed
+void Path::lineTo(float x, float y, float z = …) [+2]  // Add a line segment to point
+void Path::moveTo(float x, float y, float z = …) [+2]  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
+void Path::quadBezierTo(const Vec3 & cp, const Vec3 & to, int resolution) [+2]  // Add a quadratic bezier curve
+Path & Path::reverseWinding(size_t i) [+1]  // Reverse the winding direction (vertex order) of all subpaths, or of one subpath. Under drawFill's non-zero winding rule, reversing a subpath toggles it between filling and cutting — e.g. build a circle contour, then reverseWinding(i) it into a hole punch. Reversing ALL subpaths leaves the render unchanged (only relative direction matters) — handy for imported outlines using the opposite convention.
+void Path::setClosed(bool closed)  // Set closed state
+int Path::size() const  // Get vertex count
+Mesh Path::toFillMesh() const  // Build a fillable Mesh from the path interior
+```
+
+### Pixels — Create pixel buffer
+
+```cpp
+void Pixels::allocate(int width, int height, int channels = …, PixelFormat format = …)  // Allocate memory
+void Pixels::clear()  // Release pixel buffer
+Pixels Pixels::clone() const  // Return a deep copy of the pixel buffer
+void Pixels::copyTo(unsigned char * dst) const  // Copy to external buffer
+void Pixels::crop(int x, int y, int w, int h)  // Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge.
+int Pixels::getChannels() const  // Get number of channels
+Color Pixels::getColor(int x, int y) const  // Get color at pixel
+unsigned char * Pixels::getData() [+1]  // Get raw data pointer
+float * Pixels::getDataF32() [+1]  // Get raw data pointer as float (float-format buffers)
+void * Pixels::getDataVoid() [+1]  // Get raw data pointer as void* (any format)
+PixelFormat Pixels::getFormat() const  // Get the pixel format
+int Pixels::getHeight() const  // Get height
+size_t Pixels::getTotalBytes() const  // Get total byte size
+int Pixels::getWidth() const  // Get width
+void Pixels::halve()  // Replace with 2x2 box-averaged half. Gamma-correct for U8.
+bool Pixels::isAllocated() const  // Check if allocated
+bool Pixels::isFloat() const  // Whether the pixel data uses 32-bit floats
+bool Pixels::load(const fs::path & path)  // Load image from file
+bool Pixels::loadFromMemory(const unsigned char * buffer, int len)  // Load image from memory
+bool Pixels::loadHDR(const fs::path & path)  // Load an HDR (.hdr) image into a float pixel buffer
+bool Pixels::loadPlatform(const fs::path & path)  // Load an image using the platform image decoder
+void Pixels::mirror(bool horizontal, bool vertical)  // Flip in place. Both true is 180°.
+void Pixels::mirrorH()  // Mirror horizontally (alias for mirror(true, false))
+void Pixels::mirrorV()  // Mirror vertically (alias for mirror(false, true))
+void Pixels::resize(int newW, int newH)  // Quality resize: BoxArea on downscale, Catmull-Rom bicubic on upscale, gamma-correct for U8.
+bool Pixels::save(const fs::path & path) const  // Save to file
+void Pixels::setColor(int x, int y, const Color & c)  // Set color at pixel
+void Pixels::setFromFloats(const float * srcData, int width, int height, int channels)  // Fill the buffer from a float array (allocates as needed)
+void Pixels::setFromPixels(const unsigned char * srcData, int width, int height, int channels)  // Copy from external pixel data
+```
+
+### PlacedGlyph — One laid-out glyph emitted by Font::forEachGlyph (nested as Font::PlacedGlyph). Carries the final codepoint and pen position so visitors can render quads, build vector paths, or hit-test independently of the layout pass
+
+```cpp
+```
+
+### Platform — Compile-time OS detection. All methods are constexpr and resolve at compile time based on the target platform.
+
+```cpp
+bool Platform::isAndroid()  // True on Android
+bool Platform::isApple()  // True on any Apple platform (macOS or iOS)
+bool Platform::isDesktop()  // True on desktop (macOS, Windows, or Linux)
+bool Platform::isIOS()  // True on iOS
+bool Platform::isLinux()  // True on Linux (desktop, excludes Android)
+bool Platform::isMacOS()  // True on macOS
+bool Platform::isMobile()  // True on mobile (iOS or Android)
+bool Platform::isWeb()  // True on Web (Emscripten / WASM)
+bool Platform::isWindows()  // True on Windows
+const char * Platform::name()  // Short platform name: "web" / "macos" / "ios" / "windows" / "android" / "linux" / "unknown" 
+```
+
+### PlayingSound — A single live mixer voice returned by AudioEngine::play(). Its fields are the real-time playback state the audio thread reads each callback (volume / pan / speed / loop / playing / paused / mixMode / position) plus the channel routing snapshots. Most fields are atomics so the UI thread can mutate them while the audio thread plays; set them directly.
+
+```cpp
+```
+
+### Quaternion — Unit quaternion for 3D rotations
+
+```cpp
+Quaternion Quaternion::conjugate() const  // Get conjugate quaternion
+Quaternion Quaternion::fromAxisAngle(const Vec3 & axis, float radians)  // Create quaternion from axis-angle
+Quaternion Quaternion::fromEuler(float pitch, float yaw, float roll) [+1]  // Create quaternion from Euler angles
+Quaternion Quaternion::identity()  // Create an identity quaternion
+float Quaternion::length() const  // Get quaternion length
+float Quaternion::lengthSquared() const  // Get the squared length (avoids the sqrt)
+Quaternion & Quaternion::normalize()  // Normalize this quaternion in place and return *this
+Quaternion Quaternion::normalized() const  // Get normalized quaternion
+Vec3 Quaternion::rotate(const Vec3 & v) const  // Rotate a vector
+Quaternion Quaternion::slerp(const Quaternion & a, const Quaternion & b, float t)  // Spherical linear interpolation
+Vec3 Quaternion::toEuler() const  // Convert to Euler angles
+Mat4 Quaternion::toMatrix() const  // Convert to rotation matrix
+```
+
+### Ray — A ray with an origin and a normalized direction, used for unified hit testing and picking
+
+```cpp
+Vec3 Ray::at(float t) const  // Get the point along the ray at distance t: origin + direction * t
+Ray Ray::fromScreenPoint2D(float screenX, float screenY, float startZ = …)  // Build an orthographic Z-parallel ray from a 2D screen point
+bool Ray::intersectAABB(const Vec3 & boxMin, const Vec3 & boxMax, float & outT) const  // Intersect an axis-aligned bounding box; writes distance, returns whether it hit
+bool Ray::intersectPlane(const Vec3 & planeNormal, float planeD, float & outT, Vec3 & outPoint) const  // Intersect an arbitrary plane; writes distance and hit point, returns whether it hit
+bool Ray::intersectSphere(float radius, float & outT) const  // Intersect a sphere centered at the origin; writes distance, returns whether it hit
+bool Ray::intersectZPlane(float & outT, Vec3 & outPoint) const  // Intersect the Z=0 plane; writes distance and hit point, returns whether it hit
+Ray Ray::transformed(const Mat4 & inverseMatrix) const  // Transform the ray by a matrix (typically an inverse to map into local space)
+```
+
+### Rect — Create a rectangle (type constructor)
+
+```cpp
+bool Rect::contains(float px, float py) const  // Check if point is inside (type method)
+float Rect::getBottom() const  // Get bottom edge (y + height)
+Vec2 Rect::getCenter() const  // Get the center point of the rectangle
+float Rect::getCenterX() const  // Get center X
+float Rect::getCenterY() const  // Get center Y
+float Rect::getRight() const  // Get right edge (x + width)
+bool Rect::intersects(const Rect & other) const  // Check intersection (type method)
+Rect & Rect::set(float x_, float y_, float w_, float h_) [+1]  // Set rectangle properties (type method)
+```
+
+### RectNode — Create a 2D rectangle node (C++ only - uses shared_ptr)
+
+```cpp
+float RectNode::getBottom() const  // Local bottom edge (equals height) (RectNode method) (C++ only)
+float RectNode::getHeight() const  // Get the node height (RectNode method) (C++ only)
+float RectNode::getLeft() const  // Local left edge (always 0) (RectNode method) (C++ only)
+float RectNode::getRight() const  // Local right edge (equals width) (RectNode method) (C++ only)
+Vec2 RectNode::getSize() const  // Get the node size as a Vec2 (RectNode method) (C++ only)
+float RectNode::getTop() const  // Local top edge (always 0) (RectNode method) (C++ only)
+float RectNode::getWidth() const  // Get the node width (RectNode method) (C++ only)
+bool RectNode::hitTest(const Ray & localRay, float & outDistance) [+1]  // Hit-test the rectangle against a ray (with out distance) or a 2D point (RectNode method) (C++ only)
+bool RectNode::isClipping() const  // Whether scissor clipping is enabled (RectNode method) (C++ only)
+void RectNode::setClipping(bool enabled)  // Enable/disable scissor clipping for RectNode (C++ only)
+void RectNode::setHeight(float h)  // Set the node height (RectNode method) (C++ only)
+void RectNode::setRect(float x, float y, float w, float h)  // Set position and size at once (RectNode method) (C++ only)
+void RectNode::setSize(float w, float h) [+2]  // Set size (C++ only)
+void RectNode::setWidth(float w)  // Set the node width (RectNode method) (C++ only)
+```
+
+### RectNodeButton — Simple clickable button node (a RectNode subclass). Set normalColor/hoverColor/pressColor and label; it draws a filled rect that changes color on hover/press and a centered label. Events are enabled on construction. Listen on its inherited mousePressed/mouseReleased events for clicks.
+
+```cpp
+void RectNodeButton::draw()  // Draw the button: fills the rect with the state-dependent color and draws the centered label. (override)
+bool RectNodeButton::isPressed() const  // Whether the button is currently pressed.
+```
+
+### ResizeEventArgs — Arguments for windowResized events
+
+```cpp
+```
+
+### ScreenRecorder — Live screen recorder: captures the window (or an Fbo) every frame to a video file (native encoder, no ffmpeg)
+
+```cpp
+int ScreenRecorder::getFrameCount() const  // Number of frames captured so far
+const std::string & ScreenRecorder::getPath() const  // Output file path of the current recording
+bool ScreenRecorder::isRecording() const  // Check if the screen recorder is currently capturing
+bool ScreenRecorder::start(const std::string & path, const VideoRecordSettings & settings = …) [+1]  // Start live capture (window, or an Fbo for clean GUI-free output); size is taken automatically
+void ScreenRecorder::stop()  // Stop live capture and finalize the file
+VideoWriter & ScreenRecorder::writer()  // Access the underlying VideoWriter for advanced introspection
+```
+
+### ScrollBar — Visual scroll indicator for ScrollContainer (C++ only)
+
+```cpp
+Color ScrollBar::getBarColor() const  // Get the scroll-bar color (ScrollBar method) (C++ only)
+float ScrollBar::getBarWidth() const  // Get the scroll-bar thickness (ScrollBar method) (C++ only)
+float ScrollBar::getMargin() const  // Get the margin between the bar and the container edge (ScrollBar method) (C++ only)
+float ScrollBar::getOffset() const  // Get the rounded-cap draw offset (round(barWidth/2)) (ScrollBar method) (C++ only)
+void ScrollBar::setBarColor(const Color & color)  // Set the scroll-bar color (ScrollBar method) (C++ only)
+void ScrollBar::setBarWidth(float width)  // Set the scroll-bar thickness (ScrollBar method) (C++ only)
+void ScrollBar::setMargin(float margin)  // Set the margin between the bar and the container edge (ScrollBar method) (C++ only)
+void ScrollBar::updateFromContainer()  // Resync the bar size and position from its ScrollContainer (ScrollBar method) (C++ only)
+```
+
+### ScrollContainer — Scrollable container node with clipping (C++ only)
+
+```cpp
+Node::Ptr ScrollContainer::getContent() const  // Get the scrollable content node (ScrollContainer method) (C++ only)
+RectNode * ScrollContainer::getContentRect() const  // Get the content node cast to RectNode (null if not a RectNode) (ScrollContainer method) (C++ only)
+float ScrollContainer::getMaxScrollX() const  // Get the maximum horizontal scroll (ScrollContainer method) (C++ only)
+float ScrollContainer::getMaxScrollY() const  // Get the maximum vertical scroll (ScrollContainer method) (C++ only)
+Vec2 ScrollContainer::getScroll() const  // Get the scroll position as a Vec2 (ScrollContainer method) (C++ only)
+float ScrollContainer::getScrollSpeed() const  // Get the scroll speed (wheel/trackpad sensitivity) (ScrollContainer method) (C++ only)
+float ScrollContainer::getScrollX() const  // Get the horizontal scroll position (ScrollContainer method) (C++ only)
+float ScrollContainer::getScrollY() const  // Get the vertical scroll position (ScrollContainer method) (C++ only)
+bool ScrollContainer::isHorizontalScrollEnabled() const  // Whether horizontal scrolling is enabled (ScrollContainer method) (C++ only)
+bool ScrollContainer::isVerticalScrollEnabled() const  // Whether vertical scrolling is enabled (ScrollContainer method) (C++ only)
+void ScrollContainer::setContent(Node::Ptr newContent)  // Set content node for ScrollContainer (C++ only)
+void ScrollContainer::setHorizontalScrollEnabled(bool enabled)  // Enable or disable horizontal scrolling (ScrollContainer method) (C++ only)
+void ScrollContainer::setScroll(float x, float y) [+1]  // Set the scroll position from x/y or a Vec2 (clamped) (ScrollContainer method) (C++ only)
+void ScrollContainer::setScrollSpeed(float speed)  // Set the scroll speed (wheel/trackpad sensitivity) (ScrollContainer method) (C++ only)
+void ScrollContainer::setScrollX(float x)  // Set the horizontal scroll position (clamped) (ScrollContainer method) (C++ only)
+void ScrollContainer::setScrollY(float y)  // Set vertical scroll position (C++ only)
+void ScrollContainer::setVerticalScrollEnabled(bool enabled)  // Enable or disable vertical scrolling (ScrollContainer method) (C++ only)
+void ScrollContainer::updateScrollBounds()  // Recalculate scroll bounds from the content size (ScrollContainer method) (C++ only)
+```
+
+### ScrollEventArgs — Arguments for mouseScrolled events
+
+```cpp
+```
+
+### Serial — Cross-platform serial port (USB/COM): connect, read/write bytes
+
+```cpp
+int Serial::available() const  // Number of bytes available to read
+void Serial::close()  // Disconnect and release resources
+void Serial::drain()  // Wait until output transmission completes
+void Serial::flush()  // Clear both input and output buffers
+void Serial::flushInput()  // Clear the input buffer
+void Serial::flushOutput()  // Clear the output buffer
+std::vector<SerialDeviceInfo> Serial::getDeviceList() ⚠️deprecated  // Deprecated alias for listDevices()
+const std::string & Serial::getDevicePath() const  // Current device path
+bool Serial::isInitialized() const  // Whether currently connected
+std::vector<SerialDeviceInfo> Serial::listDevices()  // List available serial devices
+void Serial::printDevices()  // Log all available serial devices
+int Serial::readByte()  // Read a single byte; 0-255 on success, -1 no data, -2 error
+int Serial::readBytes(void * buffer, int length) [+1]  // Read bytes; returns actual count (>=0) or -1 on error
+bool Serial::setup(const std::string & portName, int baudRate) [+1]  // Connect to a port by path or by index from listDevices()
+bool Serial::writeByte(unsigned char byte)  // Write a single byte; true on success
+int Serial::writeBytes(const void * buffer, int length) [+1]  // Write bytes; returns actual count or -1 on error
+```
+
+### SerialDeviceInfo — Info for one serial device (from Serial::listDevices)
+
+```cpp
+int SerialDeviceInfo::getDeviceID() const  // Device index
+const std::string & SerialDeviceInfo::getDeviceName() const  // Device name
+const std::string & SerialDeviceInfo::getDevicePath() const  // Device path
+```
+
+### Shader — Create a shader (base class, inheritable)
+
+```cpp
+void Shader::begin()  // Begin shader (pushes to stack)
+void Shader::end()  // End shader (pops from stack)
+bool Shader::isLoaded() const  // Check if shader is loaded
+bool Shader::load(const sg_shader_desc *(*)(sg_backend) descFn)  // Load from sokol-shdc generated function
+void Shader::setTexture(int slot, sg_image image, sg_sampler sampler) [+1]  // Bind texture to slot
+void Shader::setUniform(int slot, float value) [+9]  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+```
+
+### Sound — Create a sound player
+
+```cpp
+void Sound::clearChannelGains()  // Clear per-channel gains (back to uniform 1.0).
+void Sound::clearChannelMap()  // Clear the explicit channel map; routing falls back to setMixMode rules.
+std::shared_ptr<const std::vector<float>> Sound::getChannelGains() const  // Current per-output-channel gain multipliers snapshot, or null if none set.
+std::shared_ptr<const std::vector<std::vector<int>>> Sound::getChannelMap() const  // Current per-output-channel source routing snapshot, or null if mixMode rules apply.
+float Sound::getDuration() const  // Get total duration of the loaded sound in seconds
+MixMode Sound::getMixMode() const  // Current channel mix policy (Auto / DownmixMono). Overridden when a non-empty channel map is set.
+float Sound::getPan() const  // Get current pan value
+float Sound::getPosition() const  // Get current playback position in seconds
+float Sound::getSpeed() const  // Get current playback speed
+float Sound::getVolume() const  // Get current volume
+bool Sound::isLoaded() const  // True after a successful load() / loadStream() / loadTestTone()
+bool Sound::isLoop() const  // True if looping is enabled
+bool Sound::isPaused() const  // True while paused
+bool Sound::isPlaying() const  // True while playing (false if stopped, paused, or never played)
+bool Sound::isStreaming() const  // True if this Sound was loaded via loadStream() (vs eager load())
+bool Sound::load(const std::string & path)  // Load sound file. Format auto-detected by extension: .wav .mp3 .ogg .flac .aac .m4a
+void Sound::loadFromBuffer(const SoundBuffer & buf) [+1]  // Load PCM directly from a pre-generated SoundBuffer (e.g. from ChipSound or a procedural waveform), copying it or adopting the shared_ptr.
+bool Sound::loadStream(const std::string & path, int maxPolyphony = …)  // Stream sound from disk (WAV/MP3/FLAC). Best for long files; cuts memory. maxPolyphony = simultaneous play() count.
+void Sound::loadTestTone(float frequency = …, float duration = …)  // Load a generated sine test tone (no file needed). Handy for verifying audio output.
+void Sound::pause()  // Pause playback (resume() to continue)
+void Sound::play()  // Play sound
+void Sound::resume()  // Resume paused playback
+void Sound::setChannelGains(const std::vector<float> & gains)  // Per-output-channel gain multiplier. Entries beyond .size() default to 1.0. No internal normalization (setVolume is the overall gain).
+void Sound::setChannelMap(const std::vector<int> & map) [+1]  // Per-output-channel routing. 1D: each entry is a src ch index (-1 = silent). 2D: each entry lists src ch indices that sum into that output.
+void Sound::setLoop(bool loop)  // Enable/disable looping
+void Sound::setMixMode(MixMode m)  // Channel routing preset. Auto (default) = mono broadcasts / multi 1:1. DownmixMono = average src to all out ch.
+void Sound::setPan(float pan)  // Set stereo balance (-1.0 left ~ 0 center ~ +1.0 right). On multi-ch devices only affects ch0/ch1.
+void Sound::setPosition(float seconds)  // Seek to a specific time in seconds. On streams, costs ~10 ms blackout while the ring refills.
+void Sound::setSpeed(float speed)  // Playback speed [-10, 10]. Negative = reverse (eager only). Streams clamp to [0, 10]. 0 = freeze.
+void Sound::setVolume(float vol)  // Set volume (0.0-1.0)
+void Sound::stop()  // Stop sound
+```
+
+### SoundBuffer — Eager sound source: the full file decoded into interleaved float PCM held in RAM. Derives from SoundSource (inherits channels / sampleRate / kind() / getDuration()). Also provides waveform generators, an ADSR envelope, and mixing helpers, so it doubles as a procedural-audio scratch buffer. Best for short SFX and zero-latency play / seek / multi-instance.
+
+```cpp
+void SoundBuffer::applyADSR(float attack, float decay, float sustainLevel, float release)  // Apply an ADSR amplitude envelope to the buffer in place (attack / decay / release in seconds, sustainLevel 0-1).
+void SoundBuffer::clip()  // Hard-clip all samples into the -1.0 .. 1.0 range.
+void SoundBuffer::generateNoise(float duration, float volume = …, int sr = …)  // Fill the buffer with mono white noise.
+void SoundBuffer::generatePinkNoise(float duration, float volume = …, int sr = …)  // Fill the buffer with mono pink noise (1/f spectrum, Paul Kellet's method).
+void SoundBuffer::generateSawtoothWave(float frequency, float duration, float volume = …, int sr = …)  // Fill the buffer with a mono sawtooth wave.
+void SoundBuffer::generateSilence(float duration, int sr = …)  // Fill the buffer with silence of the given duration (useful as a base for mixFrom).
+void SoundBuffer::generateSineWave(float frequency, float duration, float volume = …, int sr = …)  // Fill the buffer with a mono sine wave of the given frequency (Hz) and duration (seconds).
+void SoundBuffer::generateSquareWave(float frequency, float duration, float volume = …, int sr = …)  // Fill the buffer with a mono square wave.
+void SoundBuffer::generateTriangleWave(float frequency, float duration, float volume = …, int sr = …)  // Fill the buffer with a mono triangle wave.
+float SoundBuffer::getDuration() const  // Duration in seconds (numSamples / sampleRate).
+bool SoundBuffer::load(const std::string & path)  // Decode a file into PCM, auto-detecting format from the extension (.wav .mp3 .ogg .flac .aac .m4a, case-insensitive). Returns false on failure.
+bool SoundBuffer::loadAac(const std::string & path)  // Decode an AAC / M4A file into PCM (platform-specific; returns false on unsupported platforms).
+bool SoundBuffer::loadAacFromMemory(const void * data, size_t dataSize)  // Decode AAC data from a memory buffer (platform-specific; returns false on unsupported platforms).
+bool SoundBuffer::loadFlac(const std::string & path)  // Decode a FLAC file into PCM.
+bool SoundBuffer::loadFlacFromMemory(const void * data, size_t dataSize)  // Decode FLAC data from a memory buffer.
+bool SoundBuffer::loadMp3(const std::string & path)  // Decode an MP3 file into PCM.
+bool SoundBuffer::loadMp3FromMemory(const void * data, size_t dataSize)  // Decode MP3 data from a memory buffer.
+bool SoundBuffer::loadOgg(const std::string & path)  // Decode an OGG Vorbis file into PCM (via stb_vorbis).
+bool SoundBuffer::loadOggFromMemory(const void * data, size_t dataSize)  // Decode OGG Vorbis data from a memory buffer.
+bool SoundBuffer::loadPcmFromMemory(const void * data, size_t dataSize, int numChannels, int rate, int bitsPerSample = …, bool bigEndian = …)  // Load raw interleaved PCM (16-bit signed or 32-bit float) from memory with explicit format. Returns false for unsupported bit depths.
+bool SoundBuffer::loadWav(const std::string & path)  // Decode a WAV file into PCM.
+bool SoundBuffer::loadWavFromMemory(const void * data, size_t dataSize)  // Decode WAV data from a memory buffer.
+void SoundBuffer::mixFrom(const SoundBuffer & other, size_t offsetSamples, float volume = …)  // Additively mix another buffer into this one starting at offsetSamples, growing this buffer if needed.
+```
+
+### SoundSource — Abstract base for anything Sound::play() can consume. Two concrete subclasses: SoundBuffer (eager, full PCM in RAM) and SoundStream (decoded on demand from disk). Holds the shared channels / sampleRate fields and the kind() / getDuration() interface.
+
+```cpp
+float SoundSource::getDuration() const  // Duration in seconds. numSamples/sampleRate for buffers; the decoded file's duration for streams.
+Kind SoundSource::kind() const  // Source kind (Eager for SoundBuffer, Stream for SoundStream). Lets the mixer dispatch without a virtual call per frame.
+```
+
+### SoundStream — Streaming sound source: the file stays open and is decoded on demand into a small per-voice ring buffer instead of full PCM in RAM. Derives from SoundSource (inherits channels / sampleRate / kind() / getDuration()). Best for long files (BGM, podcasts). Trade-offs vs SoundBuffer: setSpeed() is treated as 1.0, setPosition() seeks with a ~10 ms refill, and each polyphony slot costs one open file handle + decoder + ring buffer.
+
+```cpp
+float SoundStream::getDuration() const  // Decoded file duration in seconds.
+int SoundStream::getMaxPolyphony() const  // Number of concurrent decoder slots reserved at loadStream().
+const std::string & SoundStream::getPath() const  // Path the stream was opened from.
+bool SoundStream::loadStream(const std::string & path, int maxPolyphony = …)  // Open the file, validate format (.wav .mp3 .flac .ogg), and populate channels / sampleRate / duration. maxPolyphony reserves that many concurrent decoder slots. Returns false if the file can't be opened or the format is unsupported.
+```
+
+### StrokeMesh — Variable-width polyline stroke geometry with caps, joins and miter limit; build it from points or a Path, then update() and draw()
+
+```cpp
+StrokeMesh & StrokeMesh::addVertex(float x, float y, float z = …) [+2]  // Add a vertex (method chaining)
+StrokeMesh & StrokeMesh::addVertexWithWidth(float x, float y, float width) [+1]  // Add a vertex with variable width (method chaining)
+StrokeMesh & StrokeMesh::clear()  // Clear all vertices (method chaining)
+void StrokeMesh::draw()  // Draw the stroke mesh
+Mesh & StrokeMesh::getMesh()  // Get a reference to the underlying generated triangle Mesh
+std::vector<Path> & StrokeMesh::getPolylines()  // Get a reference to the stroke's source polylines
+StrokeMesh & StrokeMesh::setCapType(CapType type)  // Set cap type: Butt, Round, Square (method chaining)
+StrokeMesh & StrokeMesh::setClosed(bool closed)  // Set whether the stroke is closed (method chaining)
+StrokeMesh & StrokeMesh::setColor(const Color & color)  // Set stroke color (method chaining)
+StrokeMesh & StrokeMesh::setJoinType(JoinType type)  // Set join type: Miter, Round, Bevel (method chaining)
+StrokeMesh & StrokeMesh::setMiterLimit(float limit)  // Set miter limit for sharp corners (method chaining)
+StrokeMesh & StrokeMesh::setShape(const Path & polyline)  // Set shape from Path (method chaining)
+StrokeMesh & StrokeMesh::setWidth(float width)  // Set stroke width (method chaining)
+StrokeMesh & StrokeMesh::setWidths(const std::vector<float> & w)  // Set per-vertex widths from a list
+void StrokeMesh::update()  // Update the internal mesh (required before draw)
+```
+
+### TcpClient — TCP client connection (connect, send/receive a stream)
+
+```cpp
+bool TcpClient::connect(const std::string & host, int port)  // Connect to a server (blocking)
+void TcpClient::connectAsync(const std::string & host, int port)  // Connect asynchronously (notifies via onConnect)
+void TcpClient::disconnect()  // Disconnect
+std::string TcpClient::getRemoteHost() const  // Remote host name
+int TcpClient::getRemotePort() const  // Remote port
+bool TcpClient::isConnected() const  // Whether currently connected
+bool TcpClient::isUsingThread() const  // Whether threading is in use
+bool TcpClient::send(const void * data, size_t size) [+2]  // Send data to the server
+void TcpClient::setBlocking(bool blocking)  // Set blocking mode
+void TcpClient::setReceiveBufferSize(size_t size)  // Set the receive buffer size
+void TcpClient::setUseThread(bool useThread)  // Whether to use threads (must be false on Wasm)
+```
+
+### TcpClientConnectEventArgs — Event args for TcpServer::onClientConnect
+
+```cpp
+```
+
+### TcpClientDisconnectEventArgs — Event args for TcpServer::onClientDisconnect
+
+```cpp
+```
+
+### TcpConnectEventArgs — Event args for TcpClient::onConnect
+
+```cpp
+```
+
+### TcpDisconnectEventArgs — Event args for TcpClient::onDisconnect
+
+```cpp
+```
+
+### TcpErrorEventArgs — Event args for TcpClient::onError
+
+```cpp
+```
+
+### TcpReceiveEventArgs — Event args for TcpClient::onReceive
+
+```cpp
+```
+
+### TcpServer — TCP server (accept clients, send/broadcast)
+
+```cpp
+void TcpServer::broadcast(const void * data, size_t size) [+2]  // Broadcast data to all clients
+void TcpServer::disconnectAllClients()  // Disconnect all clients
+void TcpServer::disconnectClient(int clientId)  // Disconnect a specific client
+const TcpServerClient * TcpServer::getClient(int clientId) const  // Client info (nullptr if not found)
+int TcpServer::getClientCount() const  // Number of connected clients
+std::vector<int> TcpServer::getClientIds() const  // IDs of all connected clients
+int TcpServer::getPort() const  // The listening port
+bool TcpServer::isRunning() const  // Whether the server is running
+bool TcpServer::send(int clientId, const void * data, size_t size) [+2]  // Send data to a specific client
+void TcpServer::setReceiveBufferSize(size_t size)  // Set the receive buffer size
+bool TcpServer::start(int port, int maxClients = …)  // Start listening on a port
+void TcpServer::stop()  // Stop the server
+```
+
+### TcpServerClient — A client connected to a TcpServer (read-only handle)
+
+```cpp
+const std::string & TcpServerClient::getHost() const  // Client IP address
+int TcpServerClient::getId() const  // Client ID assigned by the server
+int TcpServerClient::getPort() const  // Client port
+```
+
+### TcpServerErrorEventArgs — Event args for TcpServer::onError
+
+```cpp
+```
+
+### TcpServerReceiveEventArgs — Event args for TcpServer::onReceive
+
+```cpp
+```
+
+### Texture — Create a texture
+
+```cpp
+void Texture::allocate(int width, int height, int channels = …, TextureUsage usage = …, int sampleCount = …) [+2]  // Allocate texture
+void Texture::allocateCubemap(int sideSize, TextureFormat format, TextureUsage usage = …, int mipLevels = …)  // Allocate a cubemap texture without initial data
+void Texture::bind() const  // Bind texture
+void Texture::clear()  // Release texture resources
+void Texture::draw(float x, float y) const [+1]  // Draw texture
+void Texture::drawFlippedY(float x, float y, float w, float h) const  // Draw the texture vertically flipped
+void Texture::drawSubsection(float x, float y, float w, float h, float sx, float sy, float sw, float sh) const  // Draw subsection with LUT applied
+int Texture::getChannels() const  // Get number of channels
+int Texture::getHeight() const  // Get height
+TextureFilter Texture::getMagFilter() const  // Get magnification filter
+TextureFilter Texture::getMinFilter() const  // Get minification filter
+int Texture::getNumMipLevels() const  // Number of mip levels
+int Texture::getSampleCount() const  // Get MSAA sample count
+TextureUsage Texture::getUsage() const  // Get texture usage mode
+int Texture::getWidth() const  // Get width
+TextureWrap Texture::getWrapU() const  // Get horizontal wrap mode
+TextureWrap Texture::getWrapV() const  // Get vertical wrap mode
+bool Texture::isAllocated() const  // Check if allocated
+bool Texture::isCompressed() const  // Whether this texture uses a compressed pixel format
+bool Texture::isCubemap() const  // Whether this texture is a cubemap
+bool Texture::isPremultipliedAlpha() const  // Whether the texture color is premultiplied by alpha
+void Texture::loadData(const Pixels & pixels) [+2]  // Load pixel data to texture
+void Texture::setFilter(TextureFilter filter)  // Set both min and mag filters
+void Texture::setMagFilter(TextureFilter filter)  // Set magnification filter
+void Texture::setMinFilter(TextureFilter filter)  // Set minification filter
+void Texture::setPremultipliedAlpha(bool v)  // Set whether the texture color is premultiplied by alpha
+void Texture::setWrap(TextureWrap wrap)  // Set both wrap modes
+void Texture::setWrapU(TextureWrap wrap)  // Set horizontal wrap mode
+void Texture::setWrapV(TextureWrap wrap)  // Set vertical wrap mode
+void Texture::unbind() const  // Unbind texture
+void Texture::updateCompressed(const void * data, size_t dataSize)  // Upload compressed pixel data to an already-allocated texture
+void Texture::uploadCubemapFace(int face, int mipLevel, const void * data, size_t dataSize)  // Upload pixel data for one cubemap face at one mip level
+void Texture::uploadCubemapMip(int mipLevel, const void * data, size_t dataSize)  // Upload pixel data for all six faces of one cubemap mip level
+```
+
+### Thread — Base class for background threads (ofThread compatible). Subclass it, override the protected pure-virtual threadedFunction() with a while (isThreadRunning()) { ... } loop, then control it with startThread()/stopThread()/waitForThread(). A protected mutex dataMutex_ is available for sharing data.
+
+```cpp
+std::thread::id Thread::getMainThreadId()  // Get the main thread ID, recording the current thread's ID on the first call.
+std::thread::id Thread::getThreadId() const  // Get the underlying thread's ID.
+bool Thread::isCurrentThreadTheMainThread()  // Whether the current thread is the main thread. The main thread ID must be recorded first (call getMainThreadId() from the main thread).
+bool Thread::isThreadRunning() const  // Whether the thread is currently running.
+void Thread::sleep(unsigned long milliseconds)  // Pause the current thread for the given number of milliseconds.
+void Thread::startThread()  // Start the background thread (runs threadedFunction). No-op if already running.
+void Thread::stopThread()  // Send the stop signal: isThreadRunning() returns false inside threadedFunction so a while-loop can exit. Does not block.
+void Thread::threadedFunction()  // Override this with the work to run on the thread; recommended pattern is while (isThreadRunning()) { ... }. (protected, pure virtual)
+void Thread::waitForThread(bool callStopThread = …)  // Wait (join) for the thread to finish. If callStopThread is true (default), calls stopThread() first.
+void Thread::yield()  // Yield execution to other threads.
+```
+
+### ThreadChannel<T> — Thread-safe FIFO queue for one-way inter-thread communication (ofThreadChannel compatible), template<typename T>. Producer-Consumer pattern: a worker thread send()s values and another thread receive()s them. Use two channels for bidirectional communication.
+
+```cpp
+void ThreadChannel::clear()  // Clear the queue, discarding all pending values.
+void ThreadChannel::close()  // Close the channel, waking all waiting threads. After closing, send/receive return false.
+bool ThreadChannel::empty() const  // Whether the queue is empty (approximate).
+bool ThreadChannel::isClosed() const  // Whether the channel has been closed.
+bool ThreadChannel::receive(T & value)  // Receive a value (blocking): waits until data arrives, writing it into value. Returns false if the channel is closed.
+bool ThreadChannel::send(const T & value) [+1]  // Send a value onto the queue (copy or move overload). Returns false if the channel is closed (with the move overload the value is invalidated even on failure).
+size_t ThreadChannel::size() const  // Number of queued values (approximate).
+bool ThreadChannel::tryReceive(T & value) [+1]  // Receive a value without blocking, or waiting at most timeoutMs milliseconds (timeout overload). Returns false immediately/after the timeout if no data.
+```
+
+### TouchEventArgs — Arguments for touchPressed / touchMoved / touchReleased events (multi-touch, Android/iOS)
+
+```cpp
+int TouchEventArgs::id() const  // Convenience: ID of the first touch point
+float TouchEventArgs::x() const  // Convenience: X position of the first touch point
+float TouchEventArgs::y() const  // Convenience: Y position of the first touch point
+```
+
+### TouchPoint — A single finger within a TouchEventArgs
+
+```cpp
+```
+
+### Tween<T> — Animates a value of type T with easing. Templated over any lerp-able type (float, Vec2, Vec3, Vec4, Color, etc.). Auto-updates each frame via events().update once start() is called; chainable setters configure it
+
+```cpp
+Tween<T> & Tween::delay(float seconds)  // Delay before the animation starts, in seconds (chainable)
+Tween<T> & Tween::duration(float seconds)  // Set animation duration
+Tween<T> & Tween::ease(EaseType type, EaseMode mode = …) [+1]  // Set easing type
+Tween<T> & Tween::finish()  // Jump to end (chainable)
+Tween<T> & Tween::from(T value)  // Set start value
+float Tween::getDuration() const  // Get duration
+float Tween::getElapsed() const  // Get elapsed time
+T Tween::getEnd() const  // Get end value
+int Tween::getLoopCount() const  // Get number of completed loop iterations
+float Tween::getProgress() const  // Get progress (0-1)
+T Tween::getStart() const  // Get start value
+T Tween::getValue() const  // Get current tween value
+bool Tween::isComplete() const  // Check if complete
+bool Tween::isPlaying() const  // Check if playing
+Tween<T> & Tween::loop(int count)  // Set loop count (-1=infinite, 0=none, N=repeat N times)
+Tween<T> & Tween::pause()  // Pause animation (chainable)
+Tween<T> & Tween::reset()  // Reset animation (chainable)
+Tween<T> & Tween::resume()  // Resume animation (chainable)
+Tween<T> & Tween::start()  // Start animation (chainable)
+Tween<T> & Tween::to(T value)  // Set end value
+Tween<T> & Tween::yoyo(bool enable = …)  // Enable yoyo (reverse direction each loop)
+```
+
+### TweenMod — Animation modifier for Node properties (position, scale, rotation) with easing (C++ only)
+
+```cpp
+TweenMod & TweenMod::delay(float seconds)  // Set delay before animation starts (TweenMod method) (C++ only)
+TweenMod & TweenMod::duration(float seconds)  // Set animation duration (TweenMod method) (C++ only)
+TweenMod & TweenMod::ease(EaseType type, EaseMode mode = …)  // Set easing function (TweenMod method). Types: Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce. Modes: In, Out, InOut (C++ only)
+float TweenMod::getDelay() const  // Get the start delay in seconds (TweenMod method) (C++ only)
+float TweenMod::getDuration() const  // Get the animation duration in seconds (TweenMod method) (C++ only)
+EaseMode TweenMod::getEaseMode() const  // Get the current easing mode (In/Out/InOut) (TweenMod method) (C++ only)
+EaseType TweenMod::getEaseType() const  // Get the current easing type (TweenMod method) (C++ only)
+float TweenMod::getProgress() const  // Current progress in 0..1 (TweenMod method) (C++ only)
+bool TweenMod::isComplete() const  // Whether the tween has finished (TweenMod method) (C++ only)
+bool TweenMod::isPlaying() const  // Whether the tween is currently playing (TweenMod method) (C++ only)
+TweenMod & TweenMod::moveBy(float dx, float dy, float dz = …) [+2]  // Animate position by relative amount (TweenMod method) (C++ only)
+TweenMod & TweenMod::moveFrom(float x, float y, float z = …) [+1]  // Set an explicit start position for the position tween (TweenMod method) (C++ only)
+TweenMod & TweenMod::moveTo(float x, float y, float z = …) [+2]  // Animate position to target (TweenMod method) (C++ only)
+TweenMod & TweenMod::pause()  // Pause playback, keeping the current progress (TweenMod method) (C++ only)
+TweenMod & TweenMod::reset()  // Reset progress to the start and stop playback (TweenMod method) (C++ only)
+TweenMod & TweenMod::resume()  // Resume a paused tween (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateBy(float radians)  // Animate rotation by relative angle (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateFrom(float radians) [+1]  // Set an explicit start rotation (angle or quaternion) for the rotation tween (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateTo(float radians) [+1]  // Animate rotation to target angle or quaternion (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateXBy(float radians)  // Animate X-axis rotation by a relative angle (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateXFrom(float radians)  // Set an explicit start angle for the X-axis rotation tween (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateXTo(float radians)  // Animate X-axis rotation to an absolute angle (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateYBy(float radians)  // Animate Y-axis rotation by a relative angle (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateYFrom(float radians)  // Set an explicit start angle for the Y-axis rotation tween (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateYTo(float radians)  // Animate Y-axis rotation to an absolute angle (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateZBy(float radians)  // Animate Z-axis rotation by a relative angle (same as rotateBy for 2D) (TweenMod method) (C++ only)
+TweenMod & TweenMod::rotateZTo(float radians)  // Animate Z-axis rotation to an absolute angle (same as rotateTo for 2D) (TweenMod method) (C++ only)
+TweenMod & TweenMod::scaleBy(float factor) [+1]  // Animate scale by relative multiplier (TweenMod method) (C++ only)
+TweenMod & TweenMod::scaleFrom(float uniform) [+1]  // Set an explicit start scale for the scale tween (TweenMod method) (C++ only)
+TweenMod & TweenMod::scaleTo(float uniform) [+2]  // Animate scale to target (TweenMod method) (C++ only)
+TweenMod & TweenMod::start()  // Start (or restart) the tween from its configured values (TweenMod method) (C++ only)
+```
+
+### UdpErrorEventArgs — Event args for UdpSocket::onError
+
+```cpp
+```
+
+### UdpReceiveEventArgs — Event args for UdpSocket::onReceive
+
+```cpp
+```
+
+### UdpSocket — UDP socket (send/receive datagrams, broadcast, multicast)
+
+```cpp
+bool UdpSocket::bind(int port, bool startReceiving = …)  // Bind a port for receiving (startReceiving auto-starts the receive thread)
+void UdpSocket::close()  // Close the socket
+bool UdpSocket::connect(const std::string & host, int port)  // Set the destination for send()
+bool UdpSocket::create()  // Create the socket explicitly (usually auto-created by bind/connect)
+const std::string & UdpSocket::getConnectedHost() const  // Destination host from connect()
+int UdpSocket::getConnectedPort() const  // Destination port from connect()
+int UdpSocket::getLocalPort() const  // The bound local port
+bool UdpSocket::isReceiving() const  // Whether the receive thread is active
+bool UdpSocket::isValid() const  // Whether the socket is valid
+bool UdpSocket::joinMulticastGroup(const std::string & groupAddr, const std::string & interfaceAddr = …)  // Join a multicast group for receiving (call after bind; "" = default route) 
+bool UdpSocket::leaveMulticastGroup(const std::string & groupAddr, const std::string & interfaceAddr = …)  // Leave a previously joined multicast group
+int UdpSocket::receive(void * buffer, size_t bufferSize) [+1]  // Blocking receive (for non-event use); returns byte count or -1
+bool UdpSocket::send(const void * data, size_t size) [+1]  // Send to the destination set by connect()
+bool UdpSocket::sendTo(const std::string & host, int port, const void * data, size_t size) [+1]  // Send data to a specific host and port
+bool UdpSocket::setBroadcast(bool enable)  // Allow broadcast sending
+bool UdpSocket::setMulticastInterface(const std::string & interfaceAddr)  // Pick the NIC for outgoing multicast ("" = default route) 
+bool UdpSocket::setMulticastLoopback(bool enable)  // Whether outgoing multicast loops back to local listeners (default on)
+bool UdpSocket::setMulticastTTL(int ttl)  // Hop limit for outgoing multicast (default 1 = local subnet)
+bool UdpSocket::setNonBlocking(bool nonBlocking)  // Set non-blocking mode
+bool UdpSocket::setReceiveBufferSize(int size)  // Set the receive buffer size
+bool UdpSocket::setReceiveTimeout(int timeoutMs)  // Set the receive timeout (0 = infinite)
+bool UdpSocket::setReuseAddress(bool enable)  // Allow address reuse (set before bind)
+bool UdpSocket::setReusePort(bool enable)  // Allow multiple sockets on the same port (multicast receivers; set before bind)
+bool UdpSocket::setSendBufferSize(int size)  // Set the send buffer size
+void UdpSocket::setUseThread(bool useThread)  // Whether to use a receive thread (must be false on Wasm)
+void UdpSocket::startReceiving()  // Start the receive thread (auto-called after bind)
+void UdpSocket::stopReceiving()  // Stop the receive thread
+```
+
+### Vec2 — Create 2D vector (type constructor)
+
+```cpp
+float Vec2::angle() const [+1]  // Angle in radians
+float Vec2::cross(const Vec2 & v) const  // Cross product (z component)
+float Vec2::distance(const Vec2 & v) const  // Distance to another vector
+float Vec2::distanceSquared(const Vec2 & v) const  // Squared distance (faster)
+float Vec2::dot(const Vec2 & v) const  // Dot product
+Vec2 Vec2::fromAngle(float radians, float length = …)  // Create Vec2 from angle
+float Vec2::length() const  // Get vector length
+float Vec2::lengthSquared() const  // Get squared length (faster, no sqrt)
+Vec2 Vec2::lerp(const Vec2 & v, float t) const  // Linear interpolation
+Vec2 & Vec2::limit(float max)  // Limit length to max
+Vec2 & Vec2::normalize()  // Normalize in place
+Vec2 Vec2::normalized() const  // Get normalized copy
+Vec2 Vec2::perpendicular() const  // Get perpendicular vector
+Vec2 Vec2::reflected(const Vec2 & normal) const  // Get reflected vector
+Vec2 & Vec2::rotate(float radians)  // Rotate in place
+Vec2 Vec2::rotated(float radians) const  // Get rotated copy
+Vec2 & Vec2::set(float x_, float y_) [+1]  // Set vector components (type method)
+```
+
+### Vec3 — Create 3D vector (type constructor)
+
+```cpp
+Vec3 Vec3::cross(const Vec3 & v) const  // Cross product
+float Vec3::distance(const Vec3 & v) const  // Distance to another vector
+float Vec3::distanceSquared(const Vec3 & v) const  // Squared distance
+float Vec3::dot(const Vec3 & v) const  // Dot product
+float Vec3::length() const  // Get vector length
+float Vec3::lengthSquared() const  // Get squared length
+Vec3 Vec3::lerp(const Vec3 & v, float t) const  // Linear interpolation
+Vec3 & Vec3::limit(float max)  // Limit length to max
+Vec3 & Vec3::normalize()  // Normalize in place
+Vec3 Vec3::normalized() const  // Get normalized copy
+Vec3 Vec3::reflected(const Vec3 & normal) const  // Get reflected vector
+Vec3 & Vec3::set(float x_, float y_, float z_) [+1]  // Set vector components (type method)
+Vec2 Vec3::xy() const  // Get XY components as Vec2
+```
+
+### Vec4 — 4D vector (x, y, z, w). Used for homogeneous coordinates and RGBA-style data
+
+```cpp
+float Vec4::dot(const Vec4 & v) const  // Dot product with another vector
+float Vec4::length() const  // Get the vector's magnitude
+float Vec4::lengthSquared() const  // Get the squared magnitude (cheaper than length())
+Vec4 Vec4::lerp(const Vec4 & v, float t) const  // Linearly interpolate toward v by t (0..1)
+Vec4 & Vec4::normalize()  // Normalize this vector in place (chainable)
+Vec4 Vec4::normalized() const  // Return a unit-length copy of this vector
+Vec4 & Vec4::set(float x_, float y_, float z_, float w_) [+1]  // Set all components (chainable)
+Vec2 Vec4::xy() const  // Get the (x, y) components as a Vec2
+Vec3 Vec4::xyz() const  // Get the (x, y, z) components as a Vec3
+```
+
+### VideoDeviceInfo — Information about an available camera device, returned by VideoGrabber::listDevices()
+
+```cpp
+int VideoDeviceInfo::getDeviceID() const  // Get the numeric device ID (-1 if unknown)
+const std::string & VideoDeviceInfo::getDeviceName() const  // Get the human-readable device name
+const std::string & VideoDeviceInfo::getUniqueId() const  // Get the stable unique identifier for the device
+```
+
+### VideoGrabber — Webcam capture source. Call setup() once, then update() every frame; getTexture() (via HasTexture) gives the live frame. Move-only. Camera permission is requested automatically on macOS
+
+```cpp
+bool VideoGrabber::checkCameraPermission()  // Return whether camera access has been granted (macOS 10.14+)
+void VideoGrabber::close()  // Stop the camera and release its resources
+void VideoGrabber::copyToImage(Image & image) const  // Copy the current frame into an Image (allocating/updating it as needed)
+int VideoGrabber::getDesiredFrameRate() const  // Return the requested frame rate (-1 if unspecified)
+int VideoGrabber::getDeviceID() const  // Return the selected device ID
+const std::string & VideoGrabber::getDeviceName() const  // Return the name of the active capture device
+int VideoGrabber::getHeight() const  // Return the captured frame height in pixels
+unsigned char * VideoGrabber::getPixels() [+1]  // Return a pointer to the current RGBA pixel buffer
+Texture & VideoGrabber::getTexture() [+1]  // Return the texture holding the live camera frame (HasTexture override)
+int VideoGrabber::getWidth() const  // Return the captured frame width in pixels
+bool VideoGrabber::isFrameNew() const  // Check if a new frame is available since last update
+bool VideoGrabber::isInitialized() const  // Return true once the camera is set up and capturing
+bool VideoGrabber::isPendingPermission() const  // Return true while waiting for camera permission to be granted
+bool VideoGrabber::isVerbose() const  // Return whether verbose logging is enabled
+std::vector<VideoDeviceInfo> VideoGrabber::listDevices()  // Return the list of available camera devices
+void VideoGrabber::requestCameraPermission()  // Request camera access asynchronously (macOS)
+void VideoGrabber::setDesiredFrameRate(int fps)  // Request a capture frame rate; call before setup()
+void VideoGrabber::setDeviceID(int deviceId)  // Select which camera to use; call before setup()
+bool VideoGrabber::setup(int width = …, int height = …)  // Start the camera at the requested size. Returns false if permission is not yet granted (it is requested asynchronously); keep calling update() and capture begins once granted
+void VideoGrabber::setVerbose(bool verbose)  // Enable or disable verbose logging
+void VideoGrabber::update()  // Poll for a new frame and upload it to the texture. Call every frame; also completes a setup() that was waiting on permission
+```
+
+### VideoPlayer — Create a video player
+
+```cpp
+void VideoPlayer::close()  // Close the video and release resources
+void VideoPlayer::draw(float x, float y) const [+1]  // Draw the current video frame at (x, y), optionally scaled to w x h
+bool VideoPlayer::extractFrame(const std::string & path, Pixels & outPixels, float timeSec = …, float * outDuration = …)  // Extract a single frame from a video file without loading the full video. Useful for thumbnails
+int VideoPlayer::getAudioChannels() const  // Number of audio channels (0 if no audio)
+uint32_t VideoPlayer::getAudioCodec() const  // FourCC of the audio codec in the loaded video (0 if none)
+std::vector<uint8_t> VideoPlayer::getAudioData() const  // Raw decoded audio data for the loaded video
+int VideoPlayer::getAudioSampleRate() const  // Audio sample rate in Hz (0 if no audio)
+int VideoPlayer::getCurrentFrame() const  // Get current frame number
+float VideoPlayer::getDuration() const  // Get total duration in seconds
+float VideoPlayer::getGammaCorrection() const  // Get current gamma correction value
+std::string VideoPlayer::getHwAccelName() const  // Get the name of the active decode backend. Returns 'vaapi', 'v4l2m2m', 'cuda', 'videotoolbox', 'mediafoundation', 'software', or 'none'
+unsigned char * VideoPlayer::getPixels() [+1]  // Pointer to the current RGBA pixel buffer (mutable)
+unsigned char * VideoPlayer::getPixelsUV()  // Pointer to the interleaved UV (chroma) plane when decoding NV12; null otherwise
+unsigned char * VideoPlayer::getPixelsY()  // Pointer to the Y (luma) plane when decoding NV12/YUV; null otherwise
+float VideoPlayer::getPosition() const  // Get current position (0.0 to 1.0)
+int VideoPlayer::getTotalFrames() const  // Get total number of frames
+bool VideoPlayer::getUseHwAccel() const  // Get HW accel preference (not the actual backend — use isUsingHwAccel() for that)
+bool VideoPlayer::hasAudio() const  // Check if the loaded video has an audio track
+bool VideoPlayer::isUsingHwAccel() const  // Check if hardware decoding is currently active (after load)
+bool VideoPlayer::load(const std::string & path)  // Load a video file
+void VideoPlayer::nextFrame()  // Advance to the next frame
+void VideoPlayer::previousFrame()  // Go back to the previous frame
+void VideoPlayer::setFrame(int frame)  // Seek to a specific frame number
+void VideoPlayer::setGammaCorrection(float gamma)  // Set gamma correction (1.0 = none). Use ~0.45 to brighten on platforms with dark output (e.g. macOS AVFoundation)
+void VideoPlayer::setUseHwAccel(bool enable)  // Enable/disable hardware decoding. Must be called before load(). Default: true. When enabled, the player probes available HW backends (VAAPI, V4L2M2M, CUDA, etc.) and falls back to software if none are available. Currently affects the Linux backend only.
+void VideoPlayer::update()  // Update the video frame. Call once per frame in update()
+```
+
+### VideoPlayerBase
+
+```cpp
+void VideoPlayerBase::firstFrame()  // Go to the first frame
+float VideoPlayerBase::getCurrentTime() const  // Get current playback time in seconds
+float VideoPlayerBase::getHeight() const  // Get video height in pixels
+float VideoPlayerBase::getPan() const  // Get current stereo pan
+float VideoPlayerBase::getResyncThreshold() const  // Get the current resync threshold in seconds
+float VideoPlayerBase::getSpeed() const  // Get current playback speed
+float VideoPlayerBase::getVolume() const  // Get current volume
+float VideoPlayerBase::getWidth() const  // Get video width in pixels
+bool VideoPlayerBase::isDone() const  // Check if playback has reached the end
+bool VideoPlayerBase::isLoaded() const  // Check if a video is loaded
+bool VideoPlayerBase::isLoop() const  // Check if looping is enabled
+bool VideoPlayerBase::isPaused() const  // Check if video is paused
+bool VideoPlayerBase::isPlaying() const  // Check if video is currently playing (not paused)
+void VideoPlayerBase::play()  // Start or resume playback
+void VideoPlayerBase::setCurrentTime(float seconds)  // Seek to a specific time in seconds
+void VideoPlayerBase::setLoop(bool loop)  // Enable/disable looping
+void VideoPlayerBase::setPan(float pan)  // Set stereo pan (-1.0 left, 0.0 center, 1.0 right)
+void VideoPlayerBase::setPaused(bool paused)  // Pause or resume playback
+void VideoPlayerBase::setResyncThreshold(float seconds)  // Set the maximum video/audio drift before hard re-sync. When drift exceeds this threshold, video seeks to match audio position instead of catching up frame-by-frame. Set to 0 to disable. Default: 0.5s. Primarily affects Linux (FFmpeg) backend.
+void VideoPlayerBase::setSpeed(float speed)  // Set playback speed (1.0 = normal, 2.0 = double speed)
+void VideoPlayerBase::setVolume(float vol)  // Set audio volume (0.0 to 1.0)
+void VideoPlayerBase::stop()  // Stop playback and reset to beginning
+void VideoPlayerBase::togglePause()  // Toggle pause state
+```
+
+### VideoRecordSettings — Encoder settings passed to VideoWriter::open(), ScreenRecorder::start(), and startRecording()
+
+```cpp
+```
+
+### VideoWriter — Low-level video encoder: you feed it frames (deterministic, fixed-rate offline render)
+
+```cpp
+bool VideoWriter::addFrame(const Fbo & fbo) [+1]  // Append one frame at the fixed-rate clock (frameIndex/fps)
+bool VideoWriter::addFrameAt(const Fbo & fbo, double timeSec) [+2]  // Append one frame at an explicit presentation time (seconds)
+void VideoWriter::close()  // Finalize and flush the video file
+float VideoWriter::getFps() const  // Fixed encoding frame rate
+int VideoWriter::getFrameCount() const  // Number of frames written so far
+int VideoWriter::getHeight() const  // Encoder output height in pixels
+const std::string & VideoWriter::getPath() const  // Resolved output file path
+const VideoRecordSettings & VideoWriter::getSettings() const  // Encoder settings the writer was opened with
+int VideoWriter::getWidth() const  // Encoder output width in pixels
+bool VideoWriter::isOpen() const  // Check if the encoder is open and accepting frames
+unsigned char * VideoWriter::lockFrame(int & strideOut)  // Lock and return the encoder's frame buffer for zero-copy fills; strideOut receives the row stride. Pair with submitFrame
+bool VideoWriter::open(const std::string & path, int width, int height, const VideoRecordSettings & settings = …)  // Open the encoder at the given size (path resolved via getDataPath)
+bool VideoWriter::submitFrame(double timeSec)  // Append the previously locked frame at the given presentation time (seconds)
+```
+
+### WindowSettings — Window configuration passed to the app at startup (size, title, DPI, MSAA, fullscreen, decoration, VSync). Setters chain
+
+```cpp
+WindowSettings & WindowSettings::setClipboardSize(int size)  // Set clipboard buffer size in bytes (chainable)
+WindowSettings & WindowSettings::setDecorated(bool enabled)  // false = borderless/chromeless window that can still take focus and be closed programmatically (chainable)
+WindowSettings & WindowSettings::setFullscreen(bool enabled)  // Enable/disable fullscreen at startup (chainable)
+WindowSettings & WindowSettings::setHighDpi(bool enabled)  // Enable/disable high DPI support (chainable)
+WindowSettings & WindowSettings::setPixelPerfect(bool enabled)  // Set pixel-perfect mode: true = framebuffer-size coords, false = logical-size coords (chainable)
+WindowSettings & WindowSettings::setSampleCount(int count)  // Set MSAA sample count (chainable)
+WindowSettings & WindowSettings::setSize(int w, int h)  // Set window size (chainable)
+WindowSettings & WindowSettings::setSwapInterval(int interval)  // Set VSync present interval: 1 = on, 0 = off, N = every Nth refresh (chainable)
+WindowSettings & WindowSettings::setTitle(const std::string & t)  // Set window title (chainable)
+```
+
+### Xml — XML document wrapper around pugixml. Loads, saves and queries XML; node-level access is via XmlNode returned from root() and child().
+
+```cpp
+void Xml::addDeclaration(const std::string & version = …, const std::string & encoding = …)  // Prepend an XML declaration (<?xml ...?>) with the given version and encoding.
+XmlNode Xml::addRoot(const std::string & name)  // Append a new root element with the given name and return it.
+XmlNode Xml::child(const std::string & name)  // Find a direct child node of the document by name.
+XmlDocument & Xml::document() [+1]  // Access the underlying pugixml document for advanced operations.
+bool Xml::empty() const  // Return true if the document has no content.
+bool Xml::load(const std::string & path)  // Load an XML document from a file. Relative paths are resolved via getDataPath. Returns true on success.
+bool Xml::parse(const std::string & str)  // Parse an XML document from a string. Returns true on success.
+XmlNode Xml::root() [+1]  // Get the document's root element node.
+bool Xml::save(const std::string & path, const std::string & indent = …) const  // Save the document to a file. Relative paths are resolved via getDataPath. indent sets the per-level indentation string. Returns true on success.
+std::string Xml::toString(const std::string & indent = …) const  // Serialize the document to an XML string. indent sets the per-level indentation string.
+```
+
+## Enums
+
+```cpp
+enum AxisMode { None, Fill, Content }
+enum Beep { ping, success, complete, coin, error, warning, cancel, click, typing, notify, sweep }
+enum bitmapfont::Width { Halfwidth, Fullwidth }
+enum BlendMode { Alpha, Add, Multiply, Screen, Subtract, Disabled }
+enum ChipSoundNote::Wave { Sin, Square, Triangle, Sawtooth, Noise, PinkNoise, Silent }
+enum Codec { None, LZ4 }
+enum Cursor { Default, Arrow, IBeam, Crosshair, Hand, ResizeEW, ResizeNS, ResizeNWSE, ResizeNESW, ResizeAll, NotAllowed, Custom0, Custom1, Custom2, Custom3, Custom4, Custom5, Custom6, Custom7, Custom8, Custom9, Custom10, Custom11, Custom12, Custom13, Custom14, Custom15 }
+enum CurveStyle::Mode { Tolerance, Resolution }  // Curve tessellation mode: adaptive tolerance or fixed resolution
+enum Deliver { Inline, Main }
+enum Direction { Left, Center, Right, Top, Bottom, Baseline }
+enum EaseMode { In, Out, InOut }
+enum EaseType { Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce }
+enum EasyCam::Modifier { None, Shift, Ctrl, Alt, Super }
+enum ImageType { Color, Grayscale }
+enum KinsokuLevel { Off, PunctuationOnly, Standard }  // Line-breaking (kinsoku) strictness for vertical / Japanese text
+enum LayoutDirection { Vertical, Horizontal }
+enum LightType { Directional, Point, Spot }
+enum LogLevel { Verbose, Notice, Warning, Error, Fatal, Silent }
+enum MixMode { Auto, DownmixMono }
+enum MouseButton { Left, Right, Middle, None }
+enum Orientation { Portrait, PortraitUpsideDown, LandscapeLeft, LandscapeRight, Landscape, All, AllButUpsideDown }  // Screen orientation mask passed to setOrientation (iOS/Android); values are bit flags and can be combined with |
+enum PixelFormat { U8, F32 }
+enum PrimitiveMode { Triangles, TriangleStrip, TriangleFan, Lines, LineStrip, LineLoop, Points }
+enum PrimitiveType { Points, Lines, LineStrip, Triangles, TriangleStrip, Quads }
+enum ScrollBar::Direction { Vertical, Horizontal }
+enum SoundSource::Kind { Eager, Stream }  // Source kind tag on SoundSource, letting the mixer dispatch without a per-frame virtual call: Eager (SoundBuffer, full PCM in RAM) vs Stream (SoundStream, decoded on demand).
+enum StrokeCap { Butt, Round, Square }
+enum StrokeJoin { Miter, Round, Bevel }
+enum StrokeMesh::CapType { CAP_BUTT, CAP_ROUND, CAP_SQUARE }  // Line cap shape for the ends of an open stroke
+enum StrokeMesh::JoinType { JOIN_MITER, JOIN_ROUND, JOIN_BEVEL }  // Line join shape at the corners of a stroke
+enum TcyMode { Rotate, Upright, Combine }  // Tate-chu-yoko: how Latin / digit runs are laid out within vertical text
+enum TextureFilter { Nearest, Linear }
+enum TextureFormat { RGBA8, RGBA16F, RGBA32F, R8, R16F, R32F, RG8, RG16F, RG32F, BGRA8, RGBA16 }
+enum TextureUsage { Immutable, Dynamic, Stream, RenderTarget }
+enum TextureWrap { Repeat, ClampToEdge, MirroredRepeat }
+enum ThermalState { Nominal, Fair, Serious, Critical }
+enum VideoCodec { H264, HEVC, ProRes422, ProRes4444 }
+enum WindowType { Rect, Hanning, Hamming, Blackman }
+enum WritingMode { Horizontal, VerticalRL }
+```
+
+## Type aliases
+
+```cpp
+using Json  // Alias for nlohmann::json (using Json = nlohmann::json). Used as the in-memory JSON value type by loadJson, saveJson, parseJson and toJsonString. See the nlohmann/json documentation for its full API.
+using NodePtr  // Shared pointer to a Node (std::shared_ptr<Node>); the standard way to hold and pass scene nodes
+using NodeWeakPtr  // Alias for weak_ptr<Node> (using NodeWeakPtr = weak_ptr<Node>). A non-owning weak reference to a Node; lock() it to obtain a NodePtr if the node still exists.
+using XmlAttribute  // Alias for pugi::xml_attribute. A name/value attribute on an XmlNode; see the pugixml documentation for its API.
+using XmlDocument  // Alias for pugi::xml_document. The owning XML document type underlying the Xml wrapper; see the pugixml documentation for its full API.
+using XmlNode  // Alias for pugi::xml_node. A single element/node within an XML document, returned by Xml::root() and Xml::child(); see the pugixml documentation for node query and manipulation methods.
+using XmlParseResult  // Alias for pugi::xml_parse_result. Result of an XML parse operation, carrying success status, error description and offset.
 ```
 
 <!-- API-INDEX-END -->
