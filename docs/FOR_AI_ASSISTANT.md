@@ -3137,6 +3137,18 @@ Addons add optional features. To use: run `trusscli addon add <addon>` (or check
 using namespace tcx::box2d;
 ```
 
+**Getting the current addon list.** The list below is a snapshot baked in when this
+doc was generated — addons are added over time. For the live registry (name,
+category, platforms, dependencies, repo URL for each addon):
+
+- `trusscli addon list --remote` — list everything in the registry
+- `trusscli addon search <query>` — search by name / keyword / category
+- Or fetch the raw registry JSON directly:
+  `https://raw.githubusercontent.com/TrussC-org/trussc-addons/gh-pages/registry.json`
+
+Always check the registry before assuming a feature needs to be built from scratch —
+it may already be an addon.
+
 ### Bundled Addons (ship with TrussC)
 
 <!-- ADDON-LIST-START -->
