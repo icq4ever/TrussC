@@ -331,6 +331,7 @@ Reference for oF users finding equivalent features in TrussC.
 | `ofDegToRad` | `deg2rad(deg)` |  |
 | `ofDist` | `dist(x1, y1, x2, y2)` |  |
 | `ofDistSquared` | `distSquared(x1, y1, x2, y2)` |  |
+| `ofLerp` | `lerp(a, b, t)` | std::lerp (C++20) |
 | `ofNoise` | `noise(x)` |  |
 | `ofRadToDeg` | `rad2deg(rad)` |  |
 | `ofRandom` | `random()` |  |
