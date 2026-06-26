@@ -1,6 +1,6 @@
 # API Reference System — Redesign
 
-> Status: **design frozen** (pending validation by a prototype spike — see §11).
+> Status: **validated** — a prototype spike (§12) confirmed every empirical unknown.
 > Supersedes the hand-authored `api-definition.yaml` approach.
 
 ## 1. Why (the problem)
@@ -217,3 +217,31 @@ Spike symbols: `Color::fromHSB` (overload), `Mat4::identity` (static), `drawRect
 `EventPriority::App` (ns const), `Node` (type), `Texture::getWidth` (plain method).
 
 The spike may revise this document.
+
+## 12. Spike validation results (2026-06-26)
+
+A prototype over the 10 §11 symbols (run against a real clang AST dump of
+`<TrussC.h>`) confirmed every open question — **the design needs no revision**:
+
+| Question | Result |
+|---|---|
+| namespaced constant in the AST (`EventPriority::App`) | `VarDecl` in `trussc::EventPriority` → derives cleanly to `EventPriority::App` ✓ |
+| symbol-id collisions (incl. same-name free fn across namespaces) | **0 collisions across 2408 unique ids / 2754 public decls** — the grammar is collision-free ✓ |
+| TOML parser enforces dup-key / sub-table dup | `smol-toml` rejects all three: duplicate table, duplicate dotted key, dotted-key-vs-subtable ✓ |
+| TOML authoring ergonomics | clean; `description.en/ja/ko` via dotted keys, multi-line `'''…'''` examples preserved ✓ |
+| overload sharing | `drawRect`×3 / `Node`×3 decls collapse to one id ✓ |
+| template parameter | `Tween<T>` — `T` extracted from `TemplateTypeParmDecl` ✓ |
+| join (orphan / undocumented) | all 10 keys resolve (orphan 0); the other 2398 ids report `undocumented` as expected ✓ |
+
+**Conclusions:**
+- The "duplicate-definition is structurally impossible" guarantee holds at the
+  **format** level (smol-toml errors on the dup) — the 125 duplicate entries
+  found in the old yaml could not even be written.
+- **Parser:** `smol-toml` (TOML 1.0, strict dups). Confirmed.
+- **Implementation note:** the current `coverage-audit` enumerate does **not**
+  capture template parameter names — the structure generator must walk
+  `TemplateTypeParmDecl` (added in the spike's `tparams`) to emit `Type<T>`.
+
+Spike artifacts (scratchpad, not committed): `spike-ids.js` (id derivation +
+collision test), `spike-lib.js`, `sample.toml` (10 entries), `spike-toml.js`
+(dup + join).
