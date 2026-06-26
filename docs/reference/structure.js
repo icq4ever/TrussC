@@ -94,6 +94,8 @@ function enumerate(objs) {
                 syms.push({ kind: 'field', ns: nsPath, owner: rec.name, name: m.name, file: fileOf(m), access, flags: [], deprecated: deprecatedOf(m) });
             } else if (m.kind === 'EnumDecl' && m.name) {
                 syms.push({ kind: 'enum', ns: nsPath, owner: rec.name, name: m.name, file: fileOf(m), access, flags: ['nested'], deprecated: deprecatedOf(m) });
+            } else if (m.kind === 'CXXRecordDecl' && m.name && access === 'public') {
+                walkRecord(m, nsPath, extraFlags);              // nested public type (e.g. Node::HitResult) — keyed by its bare name
             }
         }
     }
@@ -130,7 +132,7 @@ const isHidden = (s) => nsSegs(s.ns).some(seg => HIDDEN.includes(seg));
 const nsPrefix = (s) => nsSegs(s.ns).join('::');
 const isTc = (f) => /core\/include\/(tc\/|tc[A-Z]\w*\.h|TrussC\.h)/.test(f || '');
 const noise = (s) => (s.flags || []).some(f => ['implicit', 'defaulted', 'deleted'].includes(f))
-    || (s.name || '').endsWith('_') || (s.access && s.access !== 'public')
+    || (s.name || '').endsWith('_') || s.access === 'private'   // protected = part of the subclass/override contract (Mod hooks, Node::callAfter), kept
     || s.kind === 'ctor' || s.kind === 'dtor' || s.name === 'reflectMembers';
 function symbolId(s) {
     const pre = nsPrefix(s); const q = (n) => pre ? pre + '::' + n : n;
