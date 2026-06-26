@@ -179,7 +179,7 @@ void RenderContext::drawBitmapString(const std::string& text, float x, float y, 
 
     if (screenFixed) {
         // Transform local position to world coordinates using current matrix
-        Mat4 currentMat = getCurrentMatrix();
+        Mat4 currentMat = getMatrix();
         float localX = x + offset.x;
         float localY = y + offset.y;
         float worldX = currentMat.m[0]*localX + currentMat.m[1]*localY + currentMat.m[3];
@@ -353,7 +353,7 @@ void RenderContext::drawBitmapString(const std::string& text, float x, float y,
     Vec2 offset = calcBitmapAlignOffset(text, h, v);
 
     if (screenFixed) {
-        Mat4 currentMat = getCurrentMatrix();
+        Mat4 currentMat = getMatrix();
         float localX = x + offset.x;
         float localY = y + offset.y;
         float worldX = currentMat.m[0]*localX + currentMat.m[1]*localY + currentMat.m[3];

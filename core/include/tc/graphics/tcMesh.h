@@ -573,7 +573,7 @@ public:
         }
 
         // Get current transformation matrix
-        Mat4 modelMatrix = getDefaultContext().getCurrentMatrix();
+        Mat4 modelMatrix = getDefaultContext().getMatrix();
 
         const Material& baseMaterial = *internal::currentMaterial;
         bool useVertexColors = hasColors() && colors_.size() >= vertices_.size();
