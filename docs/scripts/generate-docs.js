@@ -463,7 +463,10 @@ function generateTrussCApiJS(api, lang, examplesMap = {}) {
         keywords: api.keywords,
         types: types,
         enums: enums,
-        macros: macros
+        macros: macros,
+        // Named color palette (grouped). Language-independent; rendered as
+        // swatches by reference.js (not a flat constant list).
+        ...(api.colors ? { colors: api.colors } : {})
     };
 
     let js = `// TrussC API Definition${lang ? ` (${lang})` : ''}
