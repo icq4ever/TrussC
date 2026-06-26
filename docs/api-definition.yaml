@@ -265,7 +265,6 @@ categories:
     functions:
       - name: clear
         related:
-          - ChipSoundBundle
           - StrokeMesh
           - setColor
           - setBlendMode
@@ -859,8 +858,6 @@ categories:
         keywords: ["alignment","justify","center","anchor"]
         return: void
         signatures:
-          - params: "Direction h, Direction v"
-            params_simple: "h, v"
           - params: "Direction h, Direction v"
             params_simple: "h, v"
         description: "Set text alignment"
@@ -3715,7 +3712,6 @@ categories:
           - cos
           - tan
           - atan2
-          - fbm
         keywords: ["sine","wave","oscillate","trig","circular"]
         examples:
           - vectorMathExample
@@ -4838,6 +4834,7 @@ categories:
 
       - name: toString
         template: true
+        lua: false   # template<T> — not Lua-bindable
         related:
           - toInt
           - toFloat
@@ -4933,6 +4930,7 @@ categories:
         sketch: true
 
       - name: stringReplace
+        lua: false   # std::string& in-out param — not Lua-bindable
         related:
           - splitString
           - isStringInString
@@ -5554,18 +5552,6 @@ categories:
         of_equivalent: "ofFilePath::join"
         sketch: true
 
-      - name: getAbsolutePath
-        keywords: ["absolute","full path","resolve","canonical"]
-        return: "string"
-        signatures:
-          - params: "const string& path"
-            params_simple: "path"
-        description: "Get absolute path"
-        description_ja: "絶対パスを取得"
-        description_ko: "절대 경로를 얻음"
-        of_equivalent: "ofFilePath::getAbsolutePath"
-        sketch: false
-
       # File system operations
       - name: fileExists
         related:
@@ -5845,7 +5831,7 @@ categories:
 
       - name: load
         self: Sound
-        keywords: ["open","read","file","movie"]
+        keywords: ["open","read","file"]
         return: "bool"
         signatures:
           - params: "const string& path"
@@ -6552,7 +6538,7 @@ categories:
     functions:
       - name: load
         self: Font
-        keywords: ["open","read","file","movie"]
+        keywords: ["open","read","file"]
         return: "bool"
         signatures:
           - params: "const string& path, int size"
@@ -6722,6 +6708,7 @@ categories:
       - name: registerGlyphs
         cppName: "bitmapfont::registerGlyphs"
         template: true
+        lua: false   # const Glyph(&)[N] array-ref + template N — not Lua-bindable
         related:
           - Glyph
         keywords: ["bitmap","glyphs","batch","atlas","custom chars"]
@@ -8463,7 +8450,7 @@ categories:
       - name: getPosition
         self: EasyCam
         const: true
-        keywords: ["progress","playhead","normalized","seek"]
+        keywords: ["position","location","eye","3d"]
         return: "Vec3"
         signatures:
           - params: ""
@@ -10667,7 +10654,7 @@ categories:
         sketch: false
 
       - name: stop
-        self: VideoPlayerBase
+        self: ScreenRecorder
         keywords: ["halt","end","reset","rewind"]
         return: "void"
         signatures:
@@ -10747,7 +10734,7 @@ categories:
         sketch: false
 
       - name: close
-        self: VideoPlayer
+        self: VideoWriter
         keywords: ["close","loop","join","finish"]
         return: "void"
         signatures:
@@ -11016,7 +11003,7 @@ categories:
         sketch: false
 
       - name: setBlend
-        self: Lut3D
+        self: LutShader
         addon: tcxLut
         related:
           - setBlendMode
@@ -11032,7 +11019,7 @@ categories:
         sketch: false
 
       - name: draw
-        self: Lut3D
+        self: LutShader
         addon: tcxLut
         keywords: ["render","paint","display","show","frame"]
         return: "void"
@@ -13627,90 +13614,6 @@ types:
         description: "Get XY components as IVec2"
         description_ja: "XY成分をIVec2として取得"
         description_ko: "XY 성분을 IVec2로 얻음"
-
-  - name: IVec2
-    related:
-      - Vec2
-      - IVec3
-    keywords: ["integer vector","int point","pixel coord","grid","2d int"]
-    description: "2D integer vector (x, y)"
-    description_ja: "2D整数ベクトル (x, y)"
-    of_type_category: "math-vector"
-    sketch: true
-    constructor:
-      signatures:
-        - params: ""
-        - params: "int x, int y"
-        - params: "int v"
-    properties:
-      - name: x
-        self: IVec2
-        type: int
-        description: "X component"
-        description_ja: "X成分"
-      - name: y
-        self: IVec2
-        type: int
-        description: "Y component"
-        description_ja: "Y成分"
-    methods:
-      - name: toVec2
-        self: IVec2
-        const: true
-        return: Vec2
-        signatures:
-          - params: ""
-        description: "Convert to Vec2 (float)"
-        description_ja: "Vec2（float）に変換"
-
-  - name: IVec3
-    related:
-      - Vec3
-      - IVec2
-    keywords: ["integer vector","int point","voxel","grid","3d int"]
-    description: "3D integer vector (x, y, z)"
-    description_ja: "3D整数ベクトル (x, y, z)"
-    of_type_category: "math-vector"
-    sketch: true
-    constructor:
-      signatures:
-        - params: ""
-        - params: "int x, int y, int z"
-        - params: "int v"
-        - params: "IVec2 v, int z"
-    properties:
-      - name: x
-        self: IVec3
-        type: int
-        description: "X component"
-        description_ja: "X成分"
-      - name: y
-        self: IVec3
-        type: int
-        description: "Y component"
-        description_ja: "Y成分"
-      - name: z
-        self: IVec3
-        type: int
-        description: "Z component"
-        description_ja: "Z成分"
-    methods:
-      - name: toVec3
-        self: IVec3
-        const: true
-        return: Vec3
-        signatures:
-          - params: ""
-        description: "Convert to Vec3 (float)"
-        description_ja: "Vec3（float）に変換"
-      - name: xy
-        self: IVec3
-        const: true
-        return: IVec2
-        signatures:
-          - params: ""
-        description: "Get XY components as IVec2"
-        description_ja: "XY成分をIVec2として取得"
 
   - name: Color
     operators:
@@ -19005,6 +18908,12 @@ types:
         description: "Real-time playback callback event. listen() to add a synthesis / processing listener. Fires per audio buffer on the audio thread; keep RT-safe."
         description_ja: "リアルタイム再生コールバック event。listen() でシンセ / 処理用 listener を追加。各バッファごとに audio thread で発火、RT-safe を維持"
         description_ko: "실시간 재생 콜백 이벤트. listen()으로 신스 / 처리 리스너 추가. 버퍼별로 오디오 스레드에서 발화, RT-safe 유지"
+      - name: audioIn
+        self: AudioEngine
+        type: "Event<AudioInBuffer>"
+        description: "Real-time capture callback event (microphone input). listen() to add an input-processing listener. Fires per audio buffer on the audio thread; keep RT-safe."
+        description_ja: "リアルタイム入力コールバック event (マイク入力)。listen() で入力処理用 listener を追加。各バッファごとに audio thread で発火、RT-safe を維持"
+        description_ko: "실시간 입력 콜백 이벤트 (마이크 입력). listen()으로 입력 처리 리스너 추가. 버퍼별로 오디오 스레드에서 발화, RT-safe 유지"
       - name: audioDeviceChanged
         self: AudioEngine
         type: "Event<AudioDeviceChangedArgs>"
