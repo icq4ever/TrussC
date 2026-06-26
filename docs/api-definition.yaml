@@ -1252,36 +1252,6 @@ categories:
         description_ko: "현재 곡선 분할 개수를 얻음"
         sketch: true
 
-      - name: pushStyle
-        related:
-          - popStyle
-          - pushMatrix
-        keywords: ["save","state","stack","ofpushstyle"]
-        return: "void"
-        signatures:
-          - params: ""
-            params_simple: ""
-        description: "Save current style state (color, stroke, fill)"
-        description_ja: "現在のスタイル状態を保存（色、ストローク、塗りつぶし）"
-        description_ko: "현재 스타일 상태를 저장 (색상, 스트로크, 채우기)"
-        of_equivalent: "ofPushStyle"
-        sketch: true
-
-      - name: popStyle
-        related:
-          - pushStyle
-          - popMatrix
-        keywords: ["restore","state","stack","ofpopstyle"]
-        return: "void"
-        signatures:
-          - params: ""
-            params_simple: ""
-        description: "Restore previous style state"
-        description_ja: "保存したスタイル状態を復元"
-        description_ko: "이전 스타일 상태를 복원"
-        of_equivalent: "ofPopStyle"
-        sketch: true
-
       - name: resetStyle
         keywords: ["default","reset","clear style"]
         return: "void"
@@ -1406,6 +1376,9 @@ categories:
       # --- Style Stack ---
 
       - name: pushStyle
+        related:
+          - popStyle
+          - pushMatrix
         keywords: ["save","state","stack","ofpushstyle"]
         return: "void"
         signatures:
@@ -1415,9 +1388,12 @@ categories:
         description_ja: "現在のスタイル（色、塗り、ストローク、ブレンド）をスタックにプッシュ"
         description_ko: "현재 스타일(색상, 채우기, 스트로크, 블렌드)을 스택에 푸시"
         of_equivalent: "ofPushStyle"
-        sketch: false
+        sketch: true
 
       - name: popStyle
+        related:
+          - pushStyle
+          - popMatrix
         keywords: ["restore","state","stack","ofpopstyle"]
         return: "void"
         signatures:
@@ -1427,18 +1403,7 @@ categories:
         description_ja: "スタイルをスタックからポップし、前の状態を復元"
         description_ko: "스택에서 스타일을 꺼내서 이전 상태로 복원"
         of_equivalent: "ofPopStyle"
-        sketch: false
-
-      - name: resetStyle
-        keywords: ["default","reset","clear style"]
-        return: "void"
-        signatures:
-          - params: ""
-            params_simple: ""
-        description: "Reset all style settings to defaults"
-        description_ja: "全スタイル設定をデフォルトにリセット"
-        description_ko: "모든 스타일 설정을 기본값으로 초기화"
-        sketch: false
+        sketch: true
 
   # ==========================================================================
   # Transform
