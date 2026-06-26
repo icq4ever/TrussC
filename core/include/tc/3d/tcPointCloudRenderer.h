@@ -77,7 +77,9 @@ public:
     ~PointCloudRenderer() { release(); }
 
     // Draw the cloud. Call INSIDE view.begin()/view.end().
-    void draw(const Mesh& cloud, const Options& opt = {}) {
+    void draw(const Mesh& cloud) { draw(cloud, Options{}); }
+
+    void draw(const Mesh& cloud, const Options& opt) {
         const std::vector<Vec3>&  verts = cloud.getVertices();
         const std::vector<Color>& cols  = cloud.getColors();
         const int n = static_cast<int>(verts.size());
