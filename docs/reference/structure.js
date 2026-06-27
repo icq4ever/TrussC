@@ -135,11 +135,19 @@ function enumerate(objs) {
     const fileOf = (node) => { if (node.loc && node.loc.file) sticky = node.loc.file; return sticky; };
     function walkRecord(rec, nsPath, extraFlags, tps) {
         const recFile = fileOf(rec);
-        syms.push({ kind: 'type', ns: nsPath, owner: null, name: rec.name, file: recFile, flags: [...(extraFlags || [])], tparams: tps, ann: annotationsOf(rec, recFile), deprecated: deprecatedOf(rec) });
+        const typeSym = { kind: 'type', ns: nsPath, owner: null, name: rec.name, file: recFile, flags: [...(extraFlags || [])], tparams: tps, ann: annotationsOf(rec, recFile), deprecated: deprecatedOf(rec) };
+        syms.push(typeSym);
         let access = rec.tagUsed === 'class' ? 'private' : 'public';
         for (const m of (rec.inner || [])) {
             fileOf(m);
             if (m.kind === 'AccessSpecDecl') { access = m.access; continue; }
+            if (m.kind === 'CXXConstructorDecl' && access === 'public'
+                && !m.isImplicit && !m.explicitlyDeleted && !/&&/.test((m.type && m.type.qualType) || '')) {
+                const ca = argsOf(m);
+                const isCopy = ca.length === 1 && ca[0].type === `const ${rec.name} &`;   // skip copy ctor (noise)
+                if (!isCopy) (typeSym.ctors = typeSym.ctors || []).push({ params: paramsOf(m), args: ca });
+                continue;
+            }
             if (m.kind === 'CXXMethodDecl') {
                 const flags = [/operator/.test(m.name || '') ? 'operator' : null, m.storageClass === 'static' ? 'static' : null,
                     m.isImplicit ? 'implicit' : null, m.explicitlyDeleted ? 'deleted' : null, m.explicitlyDefaulted ? 'defaulted' : null].filter(Boolean);
@@ -214,7 +222,7 @@ const pub = syms.filter(s => isTc(s.file) && !isHidden(s) && !noise(s) && symbol
 const structure = Object.create(null);                          // null proto: ids like "toString"/"constructor" are safe keys
 for (const s of pub) {
     const id = symbolId(s);
-    if (!structure[id]) structure[id] = { id, kind: s.kind, owner: s.owner || undefined, name: s.name, ns: nsPrefix(s) || undefined, signatures: [], static: false, members: s.members && s.members.length ? s.members : undefined, platforms: s.ann && s.ann.platforms, lua_bind: s.ann && s.ann.lua_bind, deprecated: s.deprecated || undefined, tparams: s.tparams && s.tparams.length ? s.tparams : undefined };
+    if (!structure[id]) structure[id] = { id, kind: s.kind, owner: s.owner || undefined, name: s.name, ns: nsPrefix(s) || undefined, signatures: [], static: false, members: s.members && s.members.length ? s.members : undefined, constructors: s.ctors && s.ctors.length ? s.ctors : undefined, platforms: s.ann && s.ann.platforms, lua_bind: s.ann && s.ann.lua_bind, deprecated: s.deprecated || undefined, tparams: s.tparams && s.tparams.length ? s.tparams : undefined };
     const e = structure[id];
     if ((s.flags || []).includes('static')) e.static = true;
     if (s.deprecated && !e.deprecated) e.deprecated = s.deprecated;

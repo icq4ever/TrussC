@@ -30,6 +30,9 @@ const catOrder = Object.fromEntries(cats.map(c => [c.id, c.order]));
 const E = Object.values(data);
 const isOp = e => /::operator/.test(e.id);
 const documented = e => e.documented;
+// DISPLAY-only: drop a single trailing "_" from param names (member-shadow
+// convention, e.g. Vec2(float x_, float y_)). reference-data keeps the real name.
+const stripU = (s) => String(s || '').replace(/_(?=\s*(?:,|=|$))/g, '');
 
 // one collapsed line for a callable/type symbol
 function line(e) {
@@ -41,7 +44,7 @@ function line(e) {
     const desc = (e.description && e.description.en) ? '  // ' + e.description.en.replace(/\s*\n\s*/g, ' ') : '';
     let sig;
     if (s && (e.kind === 'method' || e.kind === 'func')) {
-        sig = `${s.ret ? s.ret + ' ' : ''}${e.id}(${s.params})${s.const ? ' const' : ''}`;
+        sig = `${s.ret ? s.ret + ' ' : ''}${e.id}(${stripU(s.params)})${s.const ? ' const' : ''}`;
     } else if (e.kind === 'type') {
         sig = `${e.tparams ? 'template<' + e.tparams.join(', ') + '> ' : ''}class ${e.id}`;
     } else if (e.kind === 'typedef') {

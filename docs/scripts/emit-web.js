@@ -66,6 +66,9 @@ function simpleParams(params) {                       // "float x, const Vec2& v
         return m ? m[1] : null;
     }).filter(Boolean).join(', ');
 }
+// DISPLAY-only: drop a single trailing "_" from param names (member-shadow
+// convention, e.g. Vec2(float x_, float y_)). reference-data keeps the real name.
+const stripU = (s) => String(s || '').replace(/_(?=\s*(?:,|=|$))/g, '');
 
 function getVersion() {
     try {
@@ -296,8 +299,8 @@ function build(examplesMap) {
                 const { desc, desc_ja, desc_ko } = prose;
                 const entry = {
                     name: sym.name,
-                    params: simpleParams(sig.params),
-                    params_typed: sig.params || '',
+                    params: stripU(simpleParams(sig.params)),
+                    params_typed: stripU(sig.params || ''),
                     return_type: (sig.ret !== undefined ? sig.ret : returnType) ?? null,
                     desc,
                     keywords,
@@ -375,7 +378,7 @@ function build(examplesMap) {
         const out = {
             name: sym.name,
             return: (sym.signatures[0] && sym.signatures[0].ret) ?? (ym && ym.return) ?? '',
-            signatures: (sym.signatures.length ? sym.signatures : [{ params: '' }]).map(s => s.params || ''),
+            signatures: (sym.signatures.length ? sym.signatures : [{ params: '' }]).map(s => stripU(s.params || '')),
             desc: descTrio(refId, ym).desc,
         };
         const dep = mergeDeprecated(refId, ym);
@@ -394,11 +397,12 @@ function build(examplesMap) {
         if (ym && Array.isArray(ym.related) && ym.related.length) typeData.related = ym.related;
         attachPlatforms(typeData, sym, ym);
 
-        // constructor: yaml-only (reference-data does not model constructors).
-        if (ym && ym.constructor && ym.constructor.signatures) {
+        // constructor signatures: from the AST (reference-data) now; the yaml
+        // sidecar only supplies an optional example snippet.
+        if (sym.constructors && sym.constructors.length) {
             typeData.constructor = {
-                signatures: ym.constructor.signatures.map(s => s.params || ''),
-                snippet: ym.constructor.snippet,
+                signatures: sym.constructors.map(c => stripU(c.params)),
+                snippet: ym && ym.constructor && ym.constructor.snippet,
             };
         }
         // properties (data members). Type comes from the yaml sidecar when known.

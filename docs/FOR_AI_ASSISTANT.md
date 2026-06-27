@@ -1530,7 +1530,7 @@ Color Color::lerpLinear(const Color & target, float t) const  // Interpolate in 
 Color Color::lerpOKLab(const Color & target, float t) const  // Interpolate in OKLab space (perceptually uniform)
 Color Color::lerpOKLCH(const Color & target, float t) const  // Interpolate in OKLCH space (shortest hue path)
 Color Color::lerpRGB(const Color & target, float t) const  // Interpolate in RGB space
-Color & Color::set(float r_, float g_, float b_, float a_ = …) [+2]  // Set color components (type method)
+Color & Color::set(float r, float g, float b, float a = …) [+2]  // Set color components (type method)
 uint32_t Color::toHex(bool includeAlpha = …) const  // Convert to hex value
 ColorHSB Color::toHSB() const  // Convert to HSB color space (H: 0-1, S: 0-1, B: 0-1)
 ColorLinear Color::toLinear() const  // Convert to linear RGB color space
@@ -2400,7 +2400,7 @@ float Rect::getCenterX() const  // Get center X
 float Rect::getCenterY() const  // Get center Y
 float Rect::getRight() const  // Get right edge (x + width)
 bool Rect::intersects(const Rect & other) const  // Check intersection (type method)
-Rect & Rect::set(float x_, float y_, float w_, float h_) [+1]  // Set rectangle properties (type method)
+Rect & Rect::set(float x, float y, float w, float h) [+1]  // Set rectangle properties (type method)
 ```
 
 ### RectNode — Create a 2D rectangle node (C++ only - uses shared_ptr)
@@ -2911,7 +2911,7 @@ Vec2 Vec2::perpendicular() const  // Get perpendicular vector
 Vec2 Vec2::reflected(const Vec2 & normal) const  // Get reflected vector
 Vec2 & Vec2::rotate(float radians)  // Rotate in place
 Vec2 Vec2::rotated(float radians) const  // Get rotated copy
-Vec2 & Vec2::set(float x_, float y_) [+1]  // Set vector components (type method)
+Vec2 & Vec2::set(float x, float y) [+1]  // Set vector components (type method)
 ```
 
 ### Vec3 — Create 3D vector (type constructor)
@@ -2928,7 +2928,7 @@ Vec3 & Vec3::limit(float max)  // Limit length to max
 Vec3 & Vec3::normalize()  // Normalize in place
 Vec3 Vec3::normalized() const  // Get normalized copy
 Vec3 Vec3::reflected(const Vec3 & normal) const  // Get reflected vector
-Vec3 & Vec3::set(float x_, float y_, float z_) [+1]  // Set vector components (type method)
+Vec3 & Vec3::set(float x, float y, float z) [+1]  // Set vector components (type method)
 Vec2 Vec3::xy() const  // Get XY components as Vec2
 ```
 
@@ -2941,7 +2941,7 @@ float Vec4::lengthSquared() const  // Get the squared magnitude (cheaper than le
 Vec4 Vec4::lerp(const Vec4 & v, float t) const  // Linearly interpolate toward v by t (0..1)
 Vec4 & Vec4::normalize()  // Normalize this vector in place (chainable)
 Vec4 Vec4::normalized() const  // Return a unit-length copy of this vector
-Vec4 & Vec4::set(float x_, float y_, float z_, float w_) [+1]  // Set all components (chainable)
+Vec4 & Vec4::set(float x, float y, float z, float w) [+1]  // Set all components (chainable)
 Vec2 Vec4::xy() const  // Get the (x, y) components as a Vec2
 Vec3 Vec4::xyz() const  // Get the (x, y, z) components as a Vec3
 ```
