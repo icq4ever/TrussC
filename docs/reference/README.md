@@ -122,9 +122,14 @@ This is the whole point: one key, one prose blurb, N signatures.
   Group by `ns` to reconstruct an enum's members.
 - **`signatures: []`** for `type`/`enum`/`typedef` (non-callable).
 - **Bindability** (Lua): derive from the signature. `shared_ptr<BoundType>` IS
-  bindable. Unbindable: raw out-params, raw pointers, un-instantiated templates,
-  raw C arrays. Visibility is namespace-driven (see below) — if it's in
-  `reference-data.json` it's a public symbol; bind everything bindable.
+  bindable. Unbindable: raw out-params, raw pointers, raw C arrays, and any
+  signature with **`tmpl: true`** (a template overload needing explicit
+  instantiation, e.g. `typeName<T>()` — skip those sigs). Visibility is
+  namespace-driven — if it's in `reference-data.json` it's a public symbol.
+- **`provider: "std"`** (sin/cos/lerp/…): these are NOT `trussc::` members —
+  they're plain `std::` available to user code via `using namespace std`. Bind
+  them via **`std::name`** (or unqualified), NOT `trussc::name`. They carry a
+  full `args[]` like any other symbol.
 - **`category`** is prose-supplied and may be absent; fall back to `owner`/`ns`.
 
 ## Visibility model (what gets into the reference at all)

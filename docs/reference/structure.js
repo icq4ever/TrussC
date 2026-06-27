@@ -238,7 +238,8 @@ for (const s of pub) {
     if (s.deprecated && !e.deprecated) e.deprecated = s.deprecated;
     if (s.sig) {
         const p = parseSig(s.sig);                             // ret + const from qualType
-        if (p) { const sig = { ret: p.ret, params: s.params !== undefined ? s.params : p.params, const: p.const, args: s.args };   // params (named) + structured args from ParmVarDecl
+        if (p) { const sig = { ret: p.ret, params: s.params !== undefined ? s.params : p.params, const: p.const, args: s.args,
+                tmpl: (s.flags || []).includes('template') || undefined };   // tmpl: needs explicit instantiation (e.g. typeName<T>()) — binders skip it
             if (!e.signatures.some(x => x.params === sig.params && x.const === sig.const)) e.signatures.push(sig); }
     }
 }
