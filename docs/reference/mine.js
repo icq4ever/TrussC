@@ -110,12 +110,8 @@ function consider(cand, bareName, e, srcLabel) {
 }
 
 // --- walk every prose-bearing legacy shape ---
-for (const c of api.categories || []) for (const f of c.functions || []) {
-    const real = f.cppName || f.name;
-    const cand = f.self ? `${f.self}::${real}` : real;
-    f.__category = c.id;                            // carry the category id into prose
-    consider(cand, f.name.replace(/^.*::/, ''), f, `cat:${c.id}/${f.name}`);
-}
+// types FIRST: when an id is documented both as a type and as a constructor-style
+// category function (e.g. Vec2), the type entry's description should win.
 for (const t of api.types || []) {
     consider(t.name, t.name, t, `type:${t.name}`);
     for (const m of t.methods || []) consider(`${t.name}::${m.cppName || m.name}`, m.name, m, `type:${t.name}.method`);
@@ -123,6 +119,12 @@ for (const t of api.types || []) {
     for (const m of t.properties || []) consider(`${t.name}::${m.cppName || m.name}`, m.name, m, `type:${t.name}.prop`);
     for (const o of t.operators || []) consider(`${t.name}::operator${o.symbol}`, `operator${o.symbol}`, o, `type:${t.name}.op`);
     for (const o of t.free_operators || []) consider(`operator${o.symbol}`, `operator${o.symbol}`, o, `type:${t.name}.freeop`);
+}
+for (const c of api.categories || []) for (const f of c.functions || []) {
+    const real = f.cppName || f.name;
+    const cand = f.self ? `${f.self}::${real}` : real;
+    f.__category = c.id;                            // carry the category id into prose
+    consider(cand, f.name.replace(/^.*::/, ''), f, `cat:${c.id}/${f.name}`);
 }
 for (const en of api.enums || []) {
     const real = en.cppName || en.name;

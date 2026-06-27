@@ -84,25 +84,24 @@ let refHits = 0, refMiss = 0;
 // Combined (legacy) en/ja/ko description trio: reference-data wins when it
 // documents the symbol; otherwise fall back to the yaml-authored prose.
 const _t = (s) => String(s == null ? '' : s).trim();   // reference-data prose carries trailing \n
-// Prose precedence: the CURATED api-definition.yaml wins (it is the hand-authored,
-// web-facing reference text). reference-data.json's prose is auto-mined and may be
-// lower quality (e.g. constructor-flavored type blurbs) or collide on bare names,
-// so it is used only as a FALLBACK for symbols the yaml leaves undocumented.
-// `allowRef` lets the caller veto the fallback when the bare-name join is unsafe.
+// Prose precedence: reference-data.json (the api-reference.toml prose, keyed by
+// symbol-id) is now the source of truth; the legacy yaml is only a transitional
+// fallback for anything not yet in reference-data. `allowRef` lets a caller veto
+// the REF lookup when an unsafe bare-name join would otherwise apply.
 function descTrio(refId, ym, allowRef = true) {
-    if (ym && _t(ym.description)) {
-        return { desc: _t(ym.description), desc_ja: _t(ym.description_ja), desc_ko: _t(ym.description_ko) };
-    }
     const r = allowRef && REF[refId];
     if (r) refHits++; else refMiss++;
     const d = (r && r.description) || {};
     if (d.en) return { desc: _t(d.en), desc_ja: _t(d.ja), desc_ko: _t(d.ko) };
+    if (ym && _t(ym.description)) {                     // transitional yaml fallback
+        return { desc: _t(ym.description), desc_ja: _t(ym.description_ja), desc_ko: _t(ym.description_ko) };
+    }
     return { desc: '', desc_ja: '', desc_ko: '' };
 }
 const refKeywords = (refId, ym, allowRef = true) => {
-    if (ym && Array.isArray(ym.keywords) && ym.keywords.length) return ym.keywords;
     const r = allowRef && REF[refId];
-    return (r && r.keywords) || [];
+    if (r && Array.isArray(r.keywords) && r.keywords.length) return r.keywords;
+    return (ym && ym.keywords) || [];                  // transitional yaml fallback
 };
 // Deprecation: reason from the C++ source (reference-data) wins; the human-facing
 // replacement/url come from the yaml sidecar.
