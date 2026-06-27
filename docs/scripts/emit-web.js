@@ -373,6 +373,7 @@ function build(examplesMap) {
     for (const sym of REF_VALS) {
         if (sym.kind !== 'var' || sym.owner) continue;
         if (sym.ns && ENUM_NS.has(sym.ns)) continue;         // defensive: skip enum members
+        if (sym.ns === 'colors') continue;                   // named colors are emitted in the `colors` palette, not as flat constants
         const { desc } = descTrio(sym.id, null);
         constants.push({
             name: sym.id,
