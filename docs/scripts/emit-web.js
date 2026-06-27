@@ -187,18 +187,17 @@ function mapOperators(owner, ym) {
             ops.push({ symbol, lhs: args[0].type, rhs: args[1].type, result: sig.ret, free: true });
         }
     }
-    const ymDesc = new Map();
-    for (const o of [...(ym && ym.operators || []), ...(ym && ym.free_operators || [])]) ymDesc.set(o.symbol, o);
     return ops.map(o => {
-        const yo = ymDesc.get(o.symbol) || {};
+        const opId = o.free ? `operator${o.symbol}` : `${owner}::operator${o.symbol}`;   // operator prose lives on its own symbol entry
+        const rd = (REF[opId] && REF[opId].description) || {};
         return {
             symbol: o.symbol,
             signature: opDisplay(o, owner),
             cpp: opCpp(o, owner),
             free: !!o.free,
-            desc: yo.description || '',
-            desc_ja: yo.description_ja || '',
-            desc_ko: yo.description_ko || '',
+            desc: rd.en || '',
+            desc_ja: rd.ja || '',
+            desc_ko: rd.ko || '',
         };
     });
 }
@@ -211,10 +210,11 @@ function attachPlatforms(entry, ref, ym) {
     const plats = (ref && Array.isArray(ref.platforms) && ref.platforms.length) ? ref.platforms
         : (ym && Array.isArray(ym.platforms) && ym.platforms.length ? ym.platforms : null);
     if (plats) entry.platforms = plats;
-    if (ym && ym.platformNote) {
-        entry.platformNote = ym.platformNote;
-        if (ym.platformNote_ja) entry.platformNote_ja = ym.platformNote_ja;
-        if (ym.platformNote_ko) entry.platformNote_ko = ym.platformNote_ko;
+    const pn = ref && ref.platform_note;
+    if (pn && pn.en) {
+        entry.platformNote = pn.en;
+        if (pn.ja) entry.platformNote_ja = pn.ja;
+        if (pn.ko) entry.platformNote_ko = pn.ko;
     }
     return entry;
 }
@@ -338,7 +338,7 @@ function build(examplesMap) {
                     if (ysig.description_ja) entry.sigDesc_ja = ysig.description_ja;
                     if (ysig.description_ko) entry.sigDesc_ko = ysig.description_ko;
                 }
-                if (ym && Array.isArray(ym.related) && ym.related.length) entry.related = ym.related;
+                if (Array.isArray(sym.related) && sym.related.length) entry.related = sym.related;
                 const dep = mergeDeprecated(refId, ym);
                 if (dep) entry.deprecated = dep;
                 // details: prefer the curated yaml sidecar (keeps ja/ko); fall back
@@ -418,7 +418,7 @@ function build(examplesMap) {
         const { desc, desc_ja, desc_ko } = descTrio(sym.id, ym);
         const typeData = { name: typeName, desc, keywords: refKeywords(sym.id, ym), desc_ja, desc_ko };
         if (examplesMap['type:' + typeName]) typeData.examples = examplesMap['type:' + typeName];
-        if (ym && Array.isArray(ym.related) && ym.related.length) typeData.related = ym.related;
+        if (Array.isArray(sym.related) && sym.related.length) typeData.related = sym.related;
         attachPlatforms(typeData, sym, ym);
 
         // constructor signatures: from the AST (reference-data) now; the yaml
@@ -454,23 +454,21 @@ function build(examplesMap) {
         if (sym.kind !== 'enum') continue;
         const ym = YML_ENUM.get(sym.name);
         const { desc, desc_ja, desc_ko } = descTrio(sym.id, ym);
-        // value numbers + per-value descriptions come from yaml when authored;
-        // otherwise the value name is taken from reference-data's `members` array.
-        const ymVals = new Map((ym && ym.values || []).map(v => [v.name, v]));
-        // members carry {name, value} from the AST now; yaml only adds per-value prose.
+        // members carry {name, value} from the AST; per-value prose from reference-data's value_desc.
+        const vd = sym.value_desc || {};
         const memberList = (Array.isArray(sym.members) && sym.members.length)
             ? sym.members
-            : [...ymVals.keys()].map((name, i) => ({ name, value: i }));
+            : Object.keys(vd).map((name, i) => ({ name, value: i }));
         const out = {
             name: sym.name,
             desc, keywords: refKeywords(sym.id, ym),
             values: memberList.map(m => {
-                const yv = ymVals.get(m.name);
-                return { name: m.name, value: m.value, desc: yv ? yv.description : '' };
+                const d = vd[m.name] || {};
+                return { name: m.name, value: m.value, desc: d.en || '', desc_ja: d.ja || '', desc_ko: d.ko || '' };
             }),
             desc_ja, desc_ko,
         };
-        if (ym && Array.isArray(ym.related) && ym.related.length) out.related = ym.related;
+        if (Array.isArray(sym.related) && sym.related.length) out.related = sym.related;
         const enumOps = mapOperators(sym.name, ym); if (enumOps.length) out.operators = enumOps;
         enums.push(out);
     }

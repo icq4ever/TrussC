@@ -65,6 +65,24 @@ function prose(e) {
     if (Object.keys(n).length) p.of_notes = n;
     if (e.of_type_category) p.of_category = e.of_type_category;   // oF mapping type group
     if (e.snippet) p.snippet = e.snippet;           // example code (authorable; web player / sketch)
+    if (Array.isArray(e.related) && e.related.length) p.related = e.related;   // related symbols
+    const pn = {};                                  // per-symbol platform behaviour note
+    if (e.platformNote) pn.en = e.platformNote;
+    if (e.platformNote_ja) pn.ja = e.platformNote_ja;
+    if (e.platformNote_ko) pn.ko = e.platformNote_ko;
+    if (Object.keys(pn).length) p.platform_note = pn;
+    if (Array.isArray(e.values)) {                  // enum: per-value descriptions ride on the enum entry
+        const vd = {};
+        for (const v of e.values) {
+            if (!v || !v.name) continue;
+            const d = {};
+            if (v.description) d.en = v.description;
+            if (v.description_ja) d.ja = v.description_ja;
+            if (v.description_ko) d.ko = v.description_ko;
+            if (Object.keys(d).length) vd[v.name] = d;
+        }
+        if (Object.keys(vd).length) p.value_desc = vd;
+    }
     return Object.keys(p).length ? p : null;
 }
 
@@ -103,8 +121,13 @@ for (const t of api.types || []) {
     for (const m of t.methods || []) consider(`${t.name}::${m.cppName || m.name}`, m.name, m, `type:${t.name}.method`);
     for (const m of t.static_methods || []) consider(`${t.name}::${m.cppName || m.name}`, m.name, m, `type:${t.name}.static`);
     for (const m of t.properties || []) consider(`${t.name}::${m.cppName || m.name}`, m.name, m, `type:${t.name}.prop`);
+    for (const o of t.operators || []) consider(`${t.name}::operator${o.symbol}`, `operator${o.symbol}`, o, `type:${t.name}.op`);
+    for (const o of t.free_operators || []) consider(`operator${o.symbol}`, `operator${o.symbol}`, o, `type:${t.name}.freeop`);
 }
-for (const en of api.enums || []) { const real = en.cppName || en.name; consider(real, en.name, en, `enum:${en.name}`); }
+for (const en of api.enums || []) {
+    const real = en.cppName || en.name;
+    consider(real, en.name, en, `enum:${en.name}`);   // per-value prose rides on the enum entry (value_desc), since enum members aren't symbols
+}
 for (const k of api.constants || []) { const real = k.cppName || k.name; consider(real, k.name, k, `const:${k.name}`); }
 
 // --- emit TOML ---
@@ -122,6 +145,9 @@ for (const id of [...out.keys()].sort()) {
     if (p.of_category) toml += `of_category = ${tstr(p.of_category)}\n`;
     if (p.of_notes) for (const lang of ['en', 'ja', 'ko']) if (p.of_notes[lang]) toml += `of_notes.${lang} = ${tstr(p.of_notes[lang])}\n`;
     if (p.snippet) toml += `snippet = ${tstr(p.snippet)}\n`;
+    if (p.related) toml += `related = ${tarr(p.related)}\n`;
+    if (p.platform_note) for (const lang of ['en', 'ja', 'ko']) if (p.platform_note[lang]) toml += `platform_note.${lang} = ${tstr(p.platform_note[lang])}\n`;
+    if (p.value_desc) for (const vn of Object.keys(p.value_desc)) for (const lang of ['en', 'ja', 'ko']) if (p.value_desc[vn][lang]) toml += `value_desc.${vn}.${lang} = ${tstr(p.value_desc[vn][lang])}\n`;
 }
 
 // --- verify it round-trips through a strict TOML parser (dup-key guard) ---
