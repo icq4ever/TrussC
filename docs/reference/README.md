@@ -70,7 +70,11 @@ else. Schema of one entry:
   "static":  true,               // static method (else absent)
   "tparams": ["T"],              // template params, literal names (templated types only)
   "signatures": [                // ONE entry per overload (callables); [] for type/enum
-    { "ret": "Color", "params": "float h, float s, float b, float a = …", "const": false }
+    { "ret": "Color", "params": "float h, float s, float b, float a = …", "const": false,
+      "args": [                  // structured, parsed params (for binding generators)
+        { "type": "float", "name": "h", "hasDefault": false },
+        { "type": "float", "name": "a", "hasDefault": true }
+      ] }
   ],
   "deprecated": { "reason": "…" },        // from C++ [[deprecated("…")]] — STRUCTURE side
   // ---- prose side (from api-reference.toml; absent when undocumented) ----
@@ -105,10 +109,12 @@ This is the whole point: one key, one prose blurb, N signatures.
 
 ### Notes for consumers (incl. the Lua-binding script)
 
-- **`params` is a display string**, not a parsed type list. Named params, and
-  `= …` marks a defaulted param (the actual default expr is elided). If you need
-  parsed param types for binding, re-derive from the AST or extend `structure.js`
-  to emit a structured `args[]` — say the word and we'll add it.
+- **`params` is a display string** (named params; `= …` marks a defaulted param,
+  the actual default expr is elided). For binding generators, each signature also
+  carries a structured **`args[]`**: `{ type, name, hasDefault }` plus the flags
+  `isRef` / `isConst` / `isPointer` / `isArray` (derived from the spelled C++
+  type) when applicable — so you don't have to parse `params`. The default
+  expression itself is still not reconstructed (`hasDefault` only).
 - **Enum values** are NOT nested under the enum `type` entry. They are sibling
   `kind:"var"` entries with `ns` = the enum name (`BlendMode::Add`, ns `BlendMode`).
   Group by `ns` to reconstruct an enum's members.

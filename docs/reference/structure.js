@@ -68,13 +68,28 @@ const tparamsOf = (node) => (node.inner || [])
 // param names come from ParmVarDecl children (the qualType carries types only).
 // "const Vec2 &" + name "v" -> "const Vec2 & v"; a ParmVarDecl with a default
 // expr child gets a trailing " = …" marker (value not reconstructed).
+const _hasDefault = (x) => (x.inner || []).some(c => /Expr|Literal|InitListExpr/.test(c.kind || ''));
 const paramsOf = (node) => (node.inner || [])
     .filter(x => x.kind === 'ParmVarDecl')
     .map(x => {
         const t = (x.type && x.type.qualType) || 'auto';
-        const hasDefault = (x.inner || []).some(c => /Expr|Literal|InitListExpr/.test(c.kind || ''));
-        return (x.name ? `${t} ${x.name}` : t) + (hasDefault ? ' = …' : '');
+        return (x.name ? `${t} ${x.name}` : t) + (_hasDefault(x) ? ' = …' : '');
     }).join(', ');
+
+// structured args for a signature — parsed {type,name,hasDefault} (+ cheap flags
+// from the spelled type) for downstream binding generators (tcxLua). The default
+// EXPRESSION is still not reconstructed (hasDefault only).
+const argsOf = (node) => (node.inner || [])
+    .filter(x => x.kind === 'ParmVarDecl')
+    .map(x => {
+        const type = (x.type && x.type.qualType) || 'auto';
+        const a = { type, name: x.name || '', hasDefault: _hasDefault(x) };
+        if (/&\s*$/.test(type)) a.isRef = true;            // lvalue or rvalue reference
+        if (/\bconst\b/.test(type)) a.isConst = true;
+        if (/\*\s*$/.test(type)) a.isPointer = true;
+        if (/\[/.test(type)) a.isArray = true;
+        return a;
+    });
 
 // enumerator names of an EnumDecl (the values: BlendMode { Alpha, Add, ... })
 function enumMembersOf(en) {
@@ -128,7 +143,7 @@ function enumerate(objs) {
             if (m.kind === 'CXXMethodDecl') {
                 const flags = [/operator/.test(m.name || '') ? 'operator' : null, m.storageClass === 'static' ? 'static' : null,
                     m.isImplicit ? 'implicit' : null, m.explicitlyDeleted ? 'deleted' : null, m.explicitlyDefaulted ? 'defaulted' : null].filter(Boolean);
-                syms.push({ kind: 'method', ns: nsPath, owner: rec.name, name: m.name, sig: m.type && m.type.qualType, params: paramsOf(m), file: fileOf(m), access, flags: [...(extraFlags || []), ...flags], ann: annotationsOf(m, fileOf(m)), deprecated: deprecatedOf(m) });
+                syms.push({ kind: 'method', ns: nsPath, owner: rec.name, name: m.name, sig: m.type && m.type.qualType, params: paramsOf(m), args: argsOf(m), file: fileOf(m), access, flags: [...(extraFlags || []), ...flags], ann: annotationsOf(m, fileOf(m)), deprecated: deprecatedOf(m) });
             } else if (m.kind === 'FieldDecl') {
                 syms.push({ kind: 'field', ns: nsPath, owner: rec.name, name: m.name, file: fileOf(m), access, flags: [], deprecated: deprecatedOf(m) });
             } else if (m.kind === 'EnumDecl' && m.name) {
@@ -145,7 +160,7 @@ function enumerate(objs) {
             fileOf(c);
             if (c.kind === 'NamespaceDecl') { walkNamespace(c, p); continue; }
             if (c.kind === 'FunctionDecl') {
-                syms.push({ kind: 'func', ns: p, owner: null, name: c.name, sig: c.type && c.type.qualType, params: paramsOf(c), file: fileOf(c),
+                syms.push({ kind: 'func', ns: p, owner: null, name: c.name, sig: c.type && c.type.qualType, params: paramsOf(c), args: argsOf(c), file: fileOf(c),
                     flags: [/operator/.test(c.name || '') ? 'operator' : null].filter(Boolean), ann: annotationsOf(c, fileOf(c)), deprecated: deprecatedOf(c) });
             } else if (c.kind === 'CXXRecordDecl' && c.name) { walkRecord(c, p);
             } else if (c.kind === 'EnumDecl' && c.name) { syms.push({ kind: 'enum', ns: p, owner: null, name: c.name, file: fileOf(c), flags: [], members: enumMembersOf(c), ann: annotationsOf(c, fileOf(c)), deprecated: deprecatedOf(c) });
@@ -154,7 +169,7 @@ function enumerate(objs) {
                 if (rec) { rec.name = c.name; walkRecord(rec, p, ['template'], tparamsOf(c)); }
             } else if (c.kind === 'FunctionTemplateDecl' && c.name) {
                 const fn = (c.inner || []).find(x => x.kind === 'FunctionDecl');
-                syms.push({ kind: 'func', ns: p, owner: null, name: c.name, sig: fn && fn.type && fn.type.qualType, params: fn ? paramsOf(fn) : '', file: fileOf(c), flags: ['template'], tparams: tparamsOf(c), deprecated: deprecatedOf(c) });
+                syms.push({ kind: 'func', ns: p, owner: null, name: c.name, sig: fn && fn.type && fn.type.qualType, params: fn ? paramsOf(fn) : '', args: fn ? argsOf(fn) : [], file: fileOf(c), flags: ['template'], tparams: tparamsOf(c), deprecated: deprecatedOf(c) });
             } else if (c.kind === 'TypedefDecl' || c.kind === 'TypeAliasDecl') { syms.push({ kind: 'typedef', ns: p, owner: null, name: c.name, file: fileOf(c), flags: [], deprecated: deprecatedOf(c) });
             } else if (c.kind === 'VarDecl') { syms.push({ kind: 'var', ns: p, owner: null, name: c.name, file: fileOf(c), flags: [], deprecated: deprecatedOf(c) });
             }
@@ -205,7 +220,7 @@ for (const s of pub) {
     if (s.deprecated && !e.deprecated) e.deprecated = s.deprecated;
     if (s.sig) {
         const p = parseSig(s.sig);                             // ret + const from qualType
-        if (p) { const sig = { ret: p.ret, params: s.params !== undefined ? s.params : p.params, const: p.const };   // params (named) from ParmVarDecl
+        if (p) { const sig = { ret: p.ret, params: s.params !== undefined ? s.params : p.params, const: p.const, args: s.args };   // params (named) + structured args from ParmVarDecl
             if (!e.signatures.some(x => x.params === sig.params && x.const === sig.const)) e.signatures.push(sig); }
     }
 }
