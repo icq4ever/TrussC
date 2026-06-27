@@ -117,7 +117,11 @@ function mergeDeprecated(refId, ym, trustRef = true) {
 }
 
 // === auxiliary: api-definition.yaml (display structure + un-migrated fields) =
-const API = yaml.load(fs.readFileSync(API_YAML, 'utf8'));
+// Legacy yaml sidecar — OPTIONAL now (being retired). All prose comes from
+// reference-data; macros/keywords/constant-values/example-links come from
+// reference/extras.json; colors from reference/colors.json.
+const API = fs.existsSync(API_YAML) ? yaml.load(fs.readFileSync(API_YAML, 'utf8')) : { categories: [], types: [], enums: [], constants: [] };
+const EXTRAS = JSON.parse(fs.readFileSync(path.join(__dirname, '../reference/extras.json'), 'utf8'));
 
 // --- yaml sidecar lookups, keyed by the SAME symbol-id reference-data uses ---
 // The full symbol surface is now driven by reference-data.json (every public
@@ -232,14 +236,13 @@ function buildExamplesMap() {
         return {};
     }
     const funcs = new Set(), types = new Set(), excluded = new Set();
-    for (const c of API.categories || []) {
-        for (const f of c.functions || []) {
-            if (c.name === 'Lifecycle' || c.name === 'Events') excluded.add(f.name);
-            else funcs.add(f.name);
-        }
+    for (const e of Object.values(REF)) {
+        if (e.kind === 'func') {
+            if (e.category === 'lifecycle' || e.category === 'events') excluded.add(e.name);
+            else funcs.add(e.name);
+        } else if (e.kind === 'type') types.add(e.name);
     }
     for (const n of excluded) funcs.delete(n);
-    for (const t of API.types || []) types.add(t.name);
 
     let rev = { index: {} };
     try { rev = buildReverseIndex({ funcs, types, excluded }); }
@@ -254,14 +257,15 @@ function buildExamplesMap() {
         }
         return out;
     };
+    const manual = EXTRAS.examples_manual || {};
     const map = {};
-    for (const c of API.categories || []) for (const f of c.functions || []) {
-        const ex = resolve(f.name, f.examples);
-        if (ex.length) map[f.name] = ex;
+    for (const name of funcs) {
+        const ex = resolve(name, manual[name]);
+        if (ex.length) map[name] = ex;
     }
-    for (const t of API.types || []) {
-        const ex = resolve(t.name, t.examples);
-        if (ex.length) map['type:' + t.name] = ex;
+    for (const name of types) {
+        const ex = resolve(name, manual['type:' + name]);
+        if (ex.length) map['type:' + name] = ex;
     }
     return map;
 }
@@ -369,13 +373,12 @@ function build(examplesMap) {
     for (const sym of REF_VALS) {
         if (sym.kind !== 'var' || sym.owner) continue;
         if (sym.ns && ENUM_NS.has(sym.ns)) continue;         // defensive: skip enum members
-        const ym = YML_CONST.get(sym.id) || YML_CONST.get(sym.name);
-        const { desc } = descTrio(sym.id, ym);
+        const { desc } = descTrio(sym.id, null);
         constants.push({
             name: sym.id,
-            value: ym ? ym.value : undefined,
+            value: EXTRAS.constants[sym.id] ?? EXTRAS.constants[sym.name],   // curated value (KEY_* etc. aren't in the AST)
             desc,
-            keywords: refKeywords(sym.id, ym),
+            keywords: refKeywords(sym.id, null),
         });
     }
 
@@ -474,7 +477,7 @@ function build(examplesMap) {
     }
 
     // --- macros (yaml only — not C++ symbols) ---
-    const macros = (API.macros || []).map(m => ({
+    const macros = (EXTRAS.macros || []).map(m => ({
         name: m.name,
         signature: m.signature || m.name,
         desc: m.description,
@@ -487,7 +490,7 @@ function build(examplesMap) {
         lang: 'all',
         categories,
         constants,
-        keywords: API.keywords,
+        keywords: EXTRAS.keywords,
         types,
         enums,
         macros,
