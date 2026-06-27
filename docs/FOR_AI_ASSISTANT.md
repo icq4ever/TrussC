@@ -6,8 +6,9 @@
   start with docs/GET_STARTED.md or the web reference at
   https://trussc.org/reference/ instead.
   If you are a CONSOLE CODING AGENT (Claude Code, Codex, or similar with
-  file/shell access), do not load this file — install the TrussC development
-  skill instead; it covers the same ground plus build/verify workflows:
+  file/shell access), also install the TrussC development skill — it reads this
+  API index on demand and adds the build/verify (MCP) workflow, common pitfalls,
+  and topic guides, so you don't need to load this whole file into context:
       git clone https://github.com/TrussC-org/trussc-dev-skill.git ~/.claude/skills/trussc-dev
   (Codex: clone into ~/.codex/skills/trussc-dev)
 -->
