@@ -96,7 +96,7 @@ if (enums.length) {
     out += '\n## Enums\n\n```cpp\n';
     for (const e of enums) {
         const desc = e.description && e.description.en ? '  // ' + e.description.en.replace(/\s*\n\s*/g, ' ') : '';
-        out += `enum ${e.id} { ${e.members.join(', ')} }${desc}\n`;
+        out += `enum ${e.id} { ${e.members.map(m => m.name).join(', ')} }${desc}\n`;
     }
     out += '```\n';
 }

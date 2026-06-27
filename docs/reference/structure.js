@@ -91,9 +91,19 @@ const argsOf = (node) => (node.inner || [])
         return a;
     });
 
-// enumerator names of an EnumDecl (the values: BlendMode { Alpha, Add, ... })
+// enumerators of an EnumDecl as {name, value}. Explicit values come from the
+// ConstantExpr's evaluated value; the rest are positional (prev + 1, from 0).
 function enumMembersOf(en) {
-    return (en.inner || []).filter(x => x.kind === 'EnumConstantDecl' && x.name).map(x => x.name);
+    const out = []; let next = 0;
+    for (const x of (en.inner || [])) {
+        if (x.kind !== 'EnumConstantDecl' || !x.name) continue;
+        const ce = (x.inner || []).find(c => c.kind === 'ConstantExpr');
+        let v = ce && ce.value != null ? parseInt(ce.value, 10) : next;
+        if (Number.isNaN(v)) v = next;
+        out.push({ name: x.name, value: v });
+        next = v + 1;
+    }
+    return out;
 }
 
 // TC_* annotations on a decl. Clang's JSON AST omits the annotate STRING, so we

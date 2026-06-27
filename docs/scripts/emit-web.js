@@ -433,15 +433,16 @@ function build(examplesMap) {
         // value numbers + per-value descriptions come from yaml when authored;
         // otherwise the value name is taken from reference-data's `members` array.
         const ymVals = new Map((ym && ym.values || []).map(v => [v.name, v]));
-        const memberNames = Array.isArray(sym.members) && sym.members.length
+        // members carry {name, value} from the AST now; yaml only adds per-value prose.
+        const memberList = (Array.isArray(sym.members) && sym.members.length)
             ? sym.members
-            : [...ymVals.keys()];
+            : [...ymVals.keys()].map((name, i) => ({ name, value: i }));
         const out = {
             name: sym.name,
             desc, keywords: refKeywords(sym.id, ym),
-            values: memberNames.map((vn, i) => {
-                const yv = ymVals.get(vn);
-                return { name: vn, value: yv ? yv.value : i, desc: yv ? yv.description : '' };
+            values: memberList.map(m => {
+                const yv = ymVals.get(m.name);
+                return { name: m.name, value: m.value, desc: yv ? yv.description : '' };
             }),
             desc_ja, desc_ko,
         };
