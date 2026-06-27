@@ -1,0 +1,345 @@
+[
+  {
+    "id": "lifecycle",
+    "name": "Lifecycle",
+    "name_ja": "ライフサイクル",
+    "name_ko": "라이프사이클",
+    "order": 0
+  },
+  {
+    "id": "events",
+    "name": "Events",
+    "name_ja": "イベント",
+    "name_ko": "이벤트",
+    "order": 1
+  },
+  {
+    "id": "graphics_color",
+    "name": "Graphics - Color",
+    "name_ja": "グラフィックス - 色",
+    "name_ko": "그래픽 - 색상",
+    "order": 2
+  },
+  {
+    "id": "graphics_shapes",
+    "name": "Graphics - Shapes",
+    "name_ja": "グラフィックス - 図形",
+    "name_ko": "그래픽 - 도형",
+    "order": 3
+  },
+  {
+    "id": "graphics_style",
+    "name": "Graphics - Style",
+    "name_ja": "グラフィックス - スタイル",
+    "name_ko": "그래픽 - 스타일",
+    "order": 4
+  },
+  {
+    "id": "transform",
+    "name": "Transform",
+    "name_ja": "変換",
+    "name_ko": "변환",
+    "order": 5
+  },
+  {
+    "id": "window_input",
+    "name": "Window & Input",
+    "name_ja": "ウィンドウと入力",
+    "name_ko": "윈도우 & 입력",
+    "order": 6
+  },
+  {
+    "id": "time_frame",
+    "name": "Time - Frame",
+    "name_ja": "時間 - フレーム",
+    "name_ko": "시간 - 프레임",
+    "order": 7
+  },
+  {
+    "id": "memory",
+    "name": "Memory",
+    "name_ja": "メモリ",
+    "name_ko": "메모리",
+    "order": 8
+  },
+  {
+    "id": "platform",
+    "name": "Platform",
+    "name_ja": "プラットフォーム",
+    "name_ko": "플랫폼",
+    "order": 9
+  },
+  {
+    "id": "graphics_backend",
+    "name": "Graphics Backend",
+    "name_ja": "グラフィックスバックエンド",
+    "name_ko": "그래픽스 백엔드",
+    "order": 10
+  },
+  {
+    "id": "time_elapsed",
+    "name": "Time - Elapsed",
+    "name_ja": "時間 - 経過",
+    "name_ko": "시간 - 경과",
+    "order": 11
+  },
+  {
+    "id": "time_system",
+    "name": "Time - System",
+    "name_ja": "時間 - システム",
+    "name_ko": "시간 - 시스템",
+    "order": 12
+  },
+  {
+    "id": "time_current",
+    "name": "Time - Current",
+    "name_ja": "時間 - 現在",
+    "name_ko": "시간 - 현재",
+    "order": 13
+  },
+  {
+    "id": "math_random",
+    "name": "Math - Random & Noise",
+    "name_ja": "数学 - 乱数とノイズ",
+    "name_ko": "수학 - 난수 & 노이즈",
+    "order": 14
+  },
+  {
+    "id": "math_interpolation",
+    "name": "Math - Interpolation",
+    "name_ja": "数学 - 補間",
+    "name_ko": "수학 - 보간",
+    "order": 15
+  },
+  {
+    "id": "math_trig",
+    "name": "Math - Trigonometry",
+    "name_ja": "数学 - 三角関数",
+    "name_ko": "수학 - 삼각함수",
+    "order": 16
+  },
+  {
+    "id": "math_general",
+    "name": "Math - General",
+    "name_ja": "数学 - 一般",
+    "name_ko": "수학 - 일반",
+    "order": 17
+  },
+  {
+    "id": "math_geometry",
+    "name": "Math - Geometry",
+    "name_ja": "数学 - 幾何",
+    "name_ko": "수학 - 기하학",
+    "order": 18
+  },
+  {
+    "id": "window_system",
+    "name": "Window & System",
+    "name_ja": "ウィンドウとシステム",
+    "name_ko": "윈도우 & 시스템",
+    "order": 19
+  },
+  {
+    "id": "utility",
+    "name": "Utility",
+    "name_ja": "ユーティリティ",
+    "name_ko": "유틸리티",
+    "order": 20
+  },
+  {
+    "id": "file",
+    "name": "File",
+    "name_ja": "ファイル",
+    "name_ko": "파일",
+    "order": 21
+  },
+  {
+    "id": "sound",
+    "name": "Sound",
+    "name_ja": "サウンド",
+    "name_ko": "사운드",
+    "order": 22
+  },
+  {
+    "id": "audioengine",
+    "name": "AudioEngine",
+    "name_ja": "オーディオエンジン",
+    "name_ko": "오디오 엔진",
+    "order": 23
+  },
+  {
+    "id": "chipsound",
+    "name": "ChipSound",
+    "name_ja": "チップサウンド",
+    "name_ko": "칩사운드",
+    "order": 24
+  },
+  {
+    "id": "font",
+    "name": "Font",
+    "name_ja": "フォント",
+    "name_ko": "폰트",
+    "order": 25
+  },
+  {
+    "id": "animation",
+    "name": "Animation",
+    "name_ja": "アニメーション",
+    "name_ko": "애니메이션",
+    "order": 26
+  },
+  {
+    "id": "types_vec2",
+    "name": "Types - Vec2",
+    "name_ja": "型 - Vec2",
+    "name_ko": "타입 - Vec2",
+    "order": 27
+  },
+  {
+    "id": "types_vec3",
+    "name": "Types - Vec3",
+    "name_ja": "型 - Vec3",
+    "name_ko": "타입 - Vec3",
+    "order": 28
+  },
+  {
+    "id": "types_color",
+    "name": "Types - Color",
+    "name_ja": "型 - Color",
+    "name_ko": "타입 - Color",
+    "order": 29
+  },
+  {
+    "id": "types_colorhsb",
+    "name": "Types - ColorHSB",
+    "name_ja": "型 - ColorHSB",
+    "name_ko": "타입 - ColorHSB",
+    "order": 30
+  },
+  {
+    "id": "types_coloroklch",
+    "name": "Types - ColorOKLCH",
+    "name_ja": "型 - ColorOKLCH",
+    "name_ko": "타입 - ColorOKLCH",
+    "order": 31
+  },
+  {
+    "id": "types_rect",
+    "name": "Types - Rect",
+    "name_ja": "型 - Rect",
+    "name_ko": "타입 - Rect",
+    "order": 32
+  },
+  {
+    "id": "scene_graph",
+    "name": "Scene Graph",
+    "name_ja": "シーングラフ",
+    "name_ko": "씬 그래프",
+    "order": 33
+  },
+  {
+    "id": "graphics_3d_setup",
+    "name": "3D Setup",
+    "name_ja": "3Dセットアップ",
+    "name_ko": "3D 셋업",
+    "order": 34
+  },
+  {
+    "id": "graphics_camera",
+    "name": "3D Camera",
+    "name_ja": "3Dカメラ",
+    "name_ko": "3D 카메라",
+    "order": 35
+  },
+  {
+    "id": "graphics_lighting",
+    "name": "Lighting & PBR",
+    "name_ja": "照明・PBR",
+    "name_ko": "조명 및 PBR",
+    "order": 36
+  },
+  {
+    "id": "graphics_advanced",
+    "name": "Graphics - Advanced",
+    "name_ja": "グラフィックス - 高度",
+    "name_ko": "그래픽 - 고급",
+    "order": 37
+  },
+  {
+    "id": "graphics_texture",
+    "name": "Graphics - Texture & GPU",
+    "name_ja": "グラフィックス - テクスチャとGPU",
+    "name_ko": "그래픽 - 텍스처 & GPU",
+    "order": 38
+  },
+  {
+    "id": "graphics_fbo",
+    "name": "Graphics - FBO",
+    "name_ja": "グラフィックス - FBO",
+    "name_ko": "그래픽 - FBO",
+    "order": 39
+  },
+  {
+    "id": "graphics_shader",
+    "name": "Graphics - Shader",
+    "name_ja": "グラフィックス - シェーダー",
+    "name_ko": "그래픽 - 셰이더",
+    "order": 40
+  },
+  {
+    "id": "graphics_pixels",
+    "name": "Types - Pixels",
+    "name_ja": "型 - Pixels",
+    "name_ko": "타입 - Pixels",
+    "order": 41
+  },
+  {
+    "id": "types_mesh",
+    "name": "Types - Mesh",
+    "name_ja": "型 - Mesh",
+    "name_ko": "타입 - Mesh",
+    "order": 42
+  },
+  {
+    "id": "types_path",
+    "name": "Types - Path",
+    "name_ja": "型 - Path",
+    "name_ko": "타입 - Path",
+    "order": 43
+  },
+  {
+    "id": "types_strokemesh",
+    "name": "Types - StrokeMesh",
+    "name_ja": "型 - StrokeMesh",
+    "name_ko": "타입 - StrokeMesh",
+    "order": 44
+  },
+  {
+    "id": "video",
+    "name": "Video",
+    "name_ja": "ビデオ",
+    "name_ko": "비디오",
+    "order": 45
+  },
+  {
+    "id": "addon_tcxlut",
+    "name": "Addon: tcxLut (Color Grading)",
+    "name_ja": "アドオン: tcxLut（カラーグレーディング）",
+    "name_ko": "애드온: tcxLut (컬러 그레이딩)",
+    "order": 46
+  },
+  {
+    "id": "timers",
+    "name": "Timers",
+    "name_ja": "タイマー",
+    "name_ko": "타이머",
+    "order": 47
+  },
+  {
+    "id": "network",
+    "name": "Network",
+    "name_ja": "ネットワーク",
+    "name_ko": "네트워크",
+    "order": 48
+  }
+]
