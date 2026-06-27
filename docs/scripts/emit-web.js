@@ -66,6 +66,9 @@ function simpleParams(params) {                       // "float x, const Vec2& v
         return m ? m[1] : null;
     }).filter(Boolean).join(', ');
 }
+// DISPLAY-only: drop a single trailing "_" from param names (member-shadow
+// convention, e.g. Vec2(float x_, float y_)). reference-data keeps the real name.
+const stripU = (s) => String(s || '').replace(/_(?=\s*(?:,|=|$))/g, '');
 
 function getVersion() {
     try {
@@ -160,20 +163,44 @@ function opCpp(op, owner) {
     if (op.unary) return `${res} operator${op.symbol}()${opIsConst(op.symbol) ? ' const' : ''}`;
     return `${res} operator${op.symbol}(${op.rhs || ''})${opIsConst(op.symbol) ? ' const' : ''}`;
 }
-function mapOperators(src, owner) {
-    const all = [
-        ...(src.operators || []).map(o => ({ ...o })),
-        ...(src.free_operators || []).map(o => ({ ...o, free: true })),
-    ];
-    return all.map(o => ({
-        symbol: o.symbol,
-        signature: opDisplay(o, owner),
-        cpp: opCpp(o, owner),
-        free: !!o.free,
-        desc: o.description,
-        desc_ja: o.description_ja || '',
-        desc_ko: o.description_ko || '',
-    }));
+// Operator schema for a type/enum, DERIVED from the AST operator methods/funcs in
+// reference-data (member operators owned by `owner`, plus free operators where
+// `owner` is one of the two operands). Per-operator prose still comes from the
+// yaml sidecar (matched by symbol) until prose moves to the toml.
+function mapOperators(owner, ym) {
+    const ops = [];
+    for (const e of Object.values(REF)) {
+        const sig = e.signatures && e.signatures[0];
+        if (!sig) continue;
+        const isMember = e.kind === 'method' && e.owner === owner && /^operator/.test(e.name || '');
+        const isFree = e.kind === 'func' && /^operator/.test(e.name || '');
+        if (!isMember && !isFree) continue;
+        const symbol = (e.name || '').slice(8);                  // after "operator"
+        if (!symbol || /^[a-zA-Z\s(]/.test(symbol)) continue;    // skip conversion / call operators
+        const args = sig.args || [];
+        if (isMember) {
+            const op = { symbol, result: sig.ret };
+            if (args.length === 0) op.unary = true; else op.rhs = args[0].type;
+            ops.push(op);
+        } else {
+            if (args.length !== 2 || !args.some(a => _bare(a.type) === owner)) continue;
+            ops.push({ symbol, lhs: args[0].type, rhs: args[1].type, result: sig.ret, free: true });
+        }
+    }
+    const ymDesc = new Map();
+    for (const o of [...(ym && ym.operators || []), ...(ym && ym.free_operators || [])]) ymDesc.set(o.symbol, o);
+    return ops.map(o => {
+        const yo = ymDesc.get(o.symbol) || {};
+        return {
+            symbol: o.symbol,
+            signature: opDisplay(o, owner),
+            cpp: opCpp(o, owner),
+            free: !!o.free,
+            desc: yo.description || '',
+            desc_ja: yo.description_ja || '',
+            desc_ko: yo.description_ko || '',
+        };
+    });
 }
 
 // Optional platform-support annotation: the platform LIST comes from the C++
@@ -296,8 +323,8 @@ function build(examplesMap) {
                 const { desc, desc_ja, desc_ko } = prose;
                 const entry = {
                     name: sym.name,
-                    params: simpleParams(sig.params),
-                    params_typed: sig.params || '',
+                    params: stripU(simpleParams(sig.params)),
+                    params_typed: stripU(sig.params || ''),
                     return_type: (sig.ret !== undefined ? sig.ret : returnType) ?? null,
                     desc,
                     keywords,
@@ -375,7 +402,7 @@ function build(examplesMap) {
         const out = {
             name: sym.name,
             return: (sym.signatures[0] && sym.signatures[0].ret) ?? (ym && ym.return) ?? '',
-            signatures: (sym.signatures.length ? sym.signatures : [{ params: '' }]).map(s => s.params || ''),
+            signatures: (sym.signatures.length ? sym.signatures : [{ params: '' }]).map(s => stripU(s.params || '')),
             desc: descTrio(refId, ym).desc,
         };
         const dep = mergeDeprecated(refId, ym);
@@ -394,11 +421,12 @@ function build(examplesMap) {
         if (ym && Array.isArray(ym.related) && ym.related.length) typeData.related = ym.related;
         attachPlatforms(typeData, sym, ym);
 
-        // constructor: yaml-only (reference-data does not model constructors).
-        if (ym && ym.constructor && ym.constructor.signatures) {
+        // constructor signatures: from the AST (reference-data) now; the yaml
+        // sidecar only supplies an optional example snippet.
+        if (sym.constructors && sym.constructors.length) {
             typeData.constructor = {
-                signatures: ym.constructor.signatures.map(s => s.params || ''),
-                snippet: ym.constructor.snippet,
+                signatures: sym.constructors.map(c => stripU(c.params)),
+                snippet: ym && ym.constructor && ym.constructor.snippet,
             };
         }
         // properties (data members). Type comes from the yaml sidecar when known.
@@ -416,7 +444,7 @@ function build(examplesMap) {
         if (instance.length) typeData.methods = instance.map(memberEntry);
         if (statics.length) typeData.static_methods = statics.map(memberEntry);
         // operators: yaml schema only.
-        if (ym && (ym.operators || ym.free_operators)) typeData.operators = mapOperators(ym, typeName);
+        const typeOps = mapOperators(typeName, ym); if (typeOps.length) typeData.operators = typeOps;
         types.push(typeData);
     }
 
@@ -429,20 +457,21 @@ function build(examplesMap) {
         // value numbers + per-value descriptions come from yaml when authored;
         // otherwise the value name is taken from reference-data's `members` array.
         const ymVals = new Map((ym && ym.values || []).map(v => [v.name, v]));
-        const memberNames = Array.isArray(sym.members) && sym.members.length
+        // members carry {name, value} from the AST now; yaml only adds per-value prose.
+        const memberList = (Array.isArray(sym.members) && sym.members.length)
             ? sym.members
-            : [...ymVals.keys()];
+            : [...ymVals.keys()].map((name, i) => ({ name, value: i }));
         const out = {
             name: sym.name,
             desc, keywords: refKeywords(sym.id, ym),
-            values: memberNames.map((vn, i) => {
-                const yv = ymVals.get(vn);
-                return { name: vn, value: yv ? yv.value : i, desc: yv ? yv.description : '' };
+            values: memberList.map(m => {
+                const yv = ymVals.get(m.name);
+                return { name: m.name, value: m.value, desc: yv ? yv.description : '' };
             }),
             desc_ja, desc_ko,
         };
         if (ym && Array.isArray(ym.related) && ym.related.length) out.related = ym.related;
-        if (ym && (ym.operators || ym.free_operators)) out.operators = mapOperators(ym, sym.name);
+        const enumOps = mapOperators(sym.name, ym); if (enumOps.length) out.operators = enumOps;
         enums.push(out);
     }
 

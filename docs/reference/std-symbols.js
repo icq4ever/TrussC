@@ -2,6 +2,7 @@
 // re-exported into trussc::) but available to user code via `using namespace std`.
 // structure.js merges these with provider:"std" so they appear in the reference
 // (people expect sin/cos/lerp). Prose lives in api-reference.toml, keyed by id.
+// luagen: bind these via std:: (provider=="std"), NOT trussc::name.
 module.exports = [
   {
     "id": "lerp",
@@ -12,7 +13,24 @@ module.exports = [
       {
         "ret": "float",
         "params": "float a, float b, float t",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "a",
+            "hasDefault": false
+          },
+          {
+            "type": "float",
+            "name": "b",
+            "hasDefault": false
+          },
+          {
+            "type": "float",
+            "name": "t",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -25,7 +43,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -38,7 +63,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -51,7 +83,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -64,7 +103,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -77,7 +123,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -90,7 +143,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -103,7 +163,19 @@ module.exports = [
       {
         "ret": "float",
         "params": "float y, float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "y",
+            "hasDefault": false
+          },
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -116,7 +188,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -129,7 +208,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -142,7 +228,19 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x, float y",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          },
+          {
+            "type": "float",
+            "name": "y",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -155,7 +253,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -168,7 +273,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -181,7 +293,19 @@ module.exports = [
       {
         "ret": "float",
         "params": "float a, float b",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "a",
+            "hasDefault": false
+          },
+          {
+            "type": "float",
+            "name": "b",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -194,7 +318,19 @@ module.exports = [
       {
         "ret": "float",
         "params": "float a, float b",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "a",
+            "hasDefault": false
+          },
+          {
+            "type": "float",
+            "name": "b",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -207,7 +343,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -220,7 +363,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -233,7 +383,14 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   },
@@ -246,7 +403,19 @@ module.exports = [
       {
         "ret": "float",
         "params": "float x, float y",
-        "const": false
+        "const": false,
+        "args": [
+          {
+            "type": "float",
+            "name": "x",
+            "hasDefault": false
+          },
+          {
+            "type": "float",
+            "name": "y",
+            "hasDefault": false
+          }
+        ]
       }
     ]
   }

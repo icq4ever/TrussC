@@ -43,6 +43,7 @@ for (const id in structure) {
         id, kind: s.kind, owner: s.owner, name: s.name, ns: s.ns,
         signatures: s.signatures, static: s.static || undefined, tparams: s.tparams,
         members: s.members,                                // enum values (enums only)
+        constructors: s.constructors,                      // public ctor signatures (types only)
         provider: s.provider,                              // 'std' for curated std:: symbols
         platforms: s.platforms, lua_bind: s.lua_bind,      // from TC_PLATFORMS / TC_LUA_BIND
 
