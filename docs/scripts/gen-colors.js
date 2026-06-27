@@ -1,10 +1,8 @@
-// Generate the `colors:` section of api-definition.yaml from tcColor.h's
-// `namespace colors` block. Textual insert (no js-yaml dump — preserve the
-// curated file's formatting/comments).
+// Generate docs/reference/colors.json (the grouped swatch palette consumed by
+// the web reference) from tcColor.h's `namespace colors` block.
 const fs = require('fs');
 const TR = '/Users/toru/Nextcloud/Make/TrussC/trussc';
 const HEADER = TR + '/core/include/tcColor.h';
-const YAML = TR + '/docs/api-definition.yaml';
 
 // --- parse the namespace colors block ---
 const lines = fs.readFileSync(HEADER, 'utf8').split('\n');
