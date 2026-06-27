@@ -22,17 +22,13 @@ node luagen.js ../../../../docs/reference/reference-data.json > ../../src/genera
     or C-array arg; skip a fn with `tparams` (template)
   - `hasDefault` expands trailing defaults into arity overloads (Lua optional args)
   - reference returns (`ret` ends in `&`) use `-> decltype(auto)`
-  - calls are qualified `trussc::name` (unambiguous — no std clash)
+  - calls are qualified: `provider:"std"` symbols (sin/cos/min…) → `std::name`,
+    everything else → `trussc::name` (unambiguous, no std clash)
+  - signatures flagged `tmpl:true` (template-derived phantom overloads) are skipped
 
-## Known reference-data.json gaps (surfaced by the witness — for the structure.js owner)
-- **~19 std-math re-exports lack `args[]`** (`sin cos tan asin acos atan atan2 abs
-  sqrt pow log exp min max floor ceil round fmod`): they're `using namespace std`
-  visible, so structure.js sees no `ParmVarDecl`. They also aren't `trussc::`
-  members, so even with args a `trussc::sin` call wouldn't resolve. These need
-  to become real `trussc::` declarations (or be marked) to bind. **Essential for a
-  sketch playground — worth fixing.**
-- **`typeName`** has a phantom 0-arg overload (`args: []`) → `trussc::typeName()`
-  doesn't exist. Likely a structure.js artifact.
-
-Until those land, ~390 functions bind & compile clean; fixing them restores the
-math functions and reaches full green with the generator unchanged.
+## Status
+**Witness green** — 410 free functions generated from reference-data.json compile
+clean against the real headers (`cmake --build … --target tcxLua`). Skipped:
+type members (Phase 2), sub-namespaced fns (`ns` → Lua tables, Phase 2),
+templates, and unbindable args (out-params / raw pointers / C arrays). Zero
+heuristics, zero denylist — every decision is read from the data.

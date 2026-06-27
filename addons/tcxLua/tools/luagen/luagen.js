@@ -50,12 +50,13 @@ function variantsOf(args) {
 
 function emit(e) {
     if (e.tparams && e.tparams.length) { skip.template++; return ''; }
-    const callName = `trussc::${e.name}`;        // qualified -> unambiguous (no std clash)
+    // `provider:"std"` symbols (sin/cos/min…) are std's, not trussc:: members —
+    // call them qualified as std::. Everything else is a trussc:: free function.
+    const callName = e.provider === 'std' ? `std::${e.name}` : `trussc::${e.name}`;
     const lambdas = [];
     for (const sig of (e.signatures || [])) {
-        // structure.js didn't emit args[] for this signature (e.g. std re-exports
-        // like sin/cos — params string present but no ParmVarDecls). Can't bind
-        // deterministically; skip + report rather than fall back to string parsing.
+        if (sig.tmpl) { skip.template++; continue; }   // template-derived phantom sig (e.g. typeName<T>())
+        // No structured args[] — can't bind deterministically; skip + report.
         if (!sig.args) { skip.noargs++; noargsFns.push(e.name); continue; }
         const vs = variantsOf(sig.args);
         if (!vs) continue;                        // unbindable arg in this overload
