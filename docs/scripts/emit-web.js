@@ -507,13 +507,17 @@ function build(examplesMap) {
     }
 
     // --- macros (yaml only — not C++ symbols) ---
-    const macros = (EXTRAS.macros || []).map(m => ({
-        name: m.name,
-        signature: m.signature || m.name,
-        desc: m.description,
-        desc_ja: m.description_ja || '',
-        desc_ko: m.description_ko || '',
-    }));
+    const macros = (EXTRAS.macros || []).map(m => {
+        const e = {
+            name: m.name,
+            signature: m.signature || m.name,
+            desc: m.description,
+            desc_ja: m.description_ja || '',
+            desc_ko: m.description_ko || '',
+        };
+        if (m.details) { e.details = m.details; e.details_ja = m.details_ja || ''; e.details_ko = m.details_ko || ''; }
+        return e;
+    });
 
     return {
         version,
