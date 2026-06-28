@@ -754,7 +754,7 @@ _Auto-generated C++ API index from `reference-data.json` (structure from the C++
 ### Lifecycle
 
 ```cpp
-int runApp(const WindowSettings & settings = WindowSettings())  // Start the application main loop. Called from main()
+int runApp(const WindowSettings & settings = WindowSettings())  // Start the application main loop with your App subclass. Templated on the app type — call TC_RUN_APP(MyApp) (or runApp<MyApp>()) from main().
 ```
 
 ### Graphics - Color
@@ -953,7 +953,7 @@ Location getLocation() [macos,android,ios]  // Get the most recent GPS / WiFi lo
 float getSystemBrightness() [macos,android,ios]  // Get screen brightness (0.0-1.0). iOS: linear. Android: gamma-corrected (perceptual). Desktop: returns -1 (not supported)
 float getSystemVolume()  // Get system output volume (0.0-1.0)
 ThermalState getThermalState() [macos,ios,android]  // Get the coarse-grained device thermal state (Nominal / Fair / Serious / Critical)
-float getThermalTemperature() [ios]  // Get device temperature in Celsius, or -1 if unavailable
+float getThermalTemperature() []  // Get device temperature in Celsius, or -1 if unavailable
 bool isBatteryCharging() [macos,android,ios]  // Return true if the battery is currently charging
 bool isProximityClose() [android,ios]  // Return true when the proximity sensor detects a nearby object (e.g. phone held to the ear)
 void setImmersiveMode(bool enabled) [android,ios]  // Hide system UI for immersive fullscreen. Android: sticky immersive (status + navigation bars). iOS: hides status bar + home indicator. Desktop: no-op
@@ -971,7 +971,7 @@ void setup()  // Initialize sokol_gfx + sokol_gl (called for you by the app loop
 ### Time - Elapsed
 
 ```cpp
-double getElapsedTime()  // Elapsed seconds (alias for getElapsedTimef)
+double getElapsedTime()  // Elapsed seconds (double) since program start. A separate clock from getElapsedTimef(); it is NOT reset by resetElapsedTimeCounter().
 float getElapsedTimef()  // Elapsed seconds (float)
 uint64_t getElapsedTimeMicros()  // Elapsed microseconds (int64)
 uint64_t getElapsedTimeMillis()  // Elapsed milliseconds (int64)
@@ -1005,7 +1005,7 @@ int getYear()  // Current year
 float fbm(float x, float y, int octaves = 4, float lacunarity = 2.0, float gain = 0.5) [+1]  // Fractal Brownian Motion noise
 float noise(float x) [+6]  // Perlin noise
 float random() [+2]  // Random number
-int randomInt(int max) [+1]  // Random integer
+int randomInt(int max) [+1]  // Random integer. randomInt(max) returns 0 to max-1 (max exclusive); randomInt(min, max) returns min to max (inclusive).
 void randomSeed(unsigned int seed)  // Set random seed
 float signedNoise(float x) [+6]  // Perlin noise (-1.0 to 1.0)
 ```
@@ -1116,9 +1116,9 @@ void toggleFullscreen()  // Toggle fullscreen mode
 ```cpp
 void beep() [+3]  // Play a beep sound
 void closeLogFile()  // Close the current log file
-bool compress(const void * src, std::size_t nbytes, std::vector<std::uint8_t> & out, Codec codec) [+1]  // Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). Resizes out and returns true on success.
+bool compress(const void * src, std::size_t nbytes, std::vector<std::uint8_t> & out, Codec codec) [+1]  // Compress a byte buffer with the given codec (Codec::None or Codec::LZ4). The vector overload resizes out and returns true on success; the raw (dst pointer) overload returns the number of bytes written, or -1 on failure (no resizing).
 std::size_t compressBound(std::size_t nbytes, Codec codec)  // Worst-case compressed size, for sizing a destination buffer
-bool decompress(const void * src, std::size_t nbytes, std::vector<std::uint8_t> & out, std::size_t decompressedSize, Codec codec) [+1]  // Decompress a byte buffer; decompressedSize is the known original byte count. Resizes out and returns true on success (false / cleared out on size mismatch or failure).
+bool decompress(const void * src, std::size_t nbytes, std::vector<std::uint8_t> & out, std::size_t decompressedSize, Codec codec) [+1]  // Decompress a byte buffer; decompressedSize is the known original byte count. The vector overload resizes out and returns true on success (false / cleared out on mismatch or failure); the raw (dst pointer) overload returns the number of bytes written, or -1 on failure.
 Logger & getLogger()  // Access the global logger instance
 std::thread::id getMainThreadId()  // Get the main thread ID. Records the current thread's ID on the first call, so it must first be called from the main thread.
 int hexToInt(const std::string & hexStr)  // Parse a hex string into a signed int
@@ -1276,8 +1276,8 @@ Vec3 worldToScreen(const Vec3 & worldPos)  // Convert a world coordinate to scre
 
 ```cpp
 const Vec3 & getCameraPosition()  // Current camera position used for specular/PBR view vector
-float getFarClip()  // Get far clipping plane distance
-float getNearClip()  // Get near clipping plane distance
+float getFarClip()  // Get the far-clip override (0 = auto-calculate from the camera distance).
+float getNearClip()  // Get the near-clip override (0 = auto-calculate from the camera distance).
 ```
 
 ### Lighting & PBR
