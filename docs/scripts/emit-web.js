@@ -346,6 +346,7 @@ function build(examplesMap) {
                     desc_ja,
                     desc_ko,
                 };
+                if (sym.provider === 'std') entry.std = true;   // provided by std:: (available via `using namespace std`), no TrussC wrapper
                 // authored per-signature prose, matched positionally against yaml
                 const ysig = ym && ym.signatures && ym.signatures[i];
                 if (ysig && ysig.description) {

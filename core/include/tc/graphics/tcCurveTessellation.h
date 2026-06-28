@@ -34,8 +34,8 @@ struct CurveStyle {
 // Lower / upper guards for segment counts. The lower keeps polygons looking
 // like polygons even at tiny radii; the upper prevents pathological vertex
 // floods from bad input (radius=1e9, tolerance=1e-6, ...).
-inline constexpr int kMinCircleSegments = 6;
-inline constexpr int kMaxCircleSegments = 1024;
+TC_INTERNAL inline constexpr int kMinCircleSegments = 6;
+TC_INTERNAL inline constexpr int kMaxCircleSegments = 1024;
 
 // Number of edges to approximate a full circle of `radius` so that the
 // chord-to-arc sagitta stays under `tolerance`. Derivation:
@@ -84,7 +84,7 @@ inline int segmentsForArc(float radius, float angleSpan, float tolerance) {
 // curve (cusp, near-coincident control points) can't run away.
 // =============================================================================
 
-inline constexpr int kBezierMaxDepth = 16;
+TC_INTERNAL inline constexpr int kBezierMaxDepth = 16;
 
 // Hard cap on the order (point count) accepted by the N-th order Bezier
 // tessellator. Each split inside subdivideBezierN does an O(N^2) in-place
@@ -104,7 +104,7 @@ inline constexpr int kBezierMaxDepth = 16;
 // purpose-built tessellator with cached factorials / vectorised inner
 // loops / GPU dispatch. Roll your own and call the underlying primitives
 // from there, or chain cubics.
-inline constexpr int kBezierMaxOrder = 64;
+TC_INTERNAL inline constexpr int kBezierMaxOrder = 64;
 
 namespace internal {
 

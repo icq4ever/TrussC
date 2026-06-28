@@ -13,6 +13,7 @@
 #include "tc/types/tcTweenMod.h"
 #include "tc/sound/tcSound.h"      // AudioEngine + AudioOutBuffer / AudioInBuffer
 #include "tc/events/tcEventListener.h"
+#include "tc/utils/tcAnnotations.h"
 #include <vector>
 #include <string>
 
@@ -181,54 +182,54 @@ public:
     // A higher-priority consumer (e.g. tcxImGui, a BeforeApp listener) sets
     // `consumed` during events().xxx.notify() to claim the event before it
     // reaches the tree. See _event_cb in TrussC.h.
-    void handleKeyPressed(const KeyEventArgs& e) {
+    TC_INTERNAL void handleKeyPressed(const KeyEventArgs& e) {
         keyPressed(e);
         if (!e.consumed) dispatchKeyPress(e);
     }
 
-    void handleKeyReleased(const KeyEventArgs& e) {
+    TC_INTERNAL void handleKeyReleased(const KeyEventArgs& e) {
         keyReleased(e);
         if (!e.consumed) dispatchKeyRelease(e);
     }
 
-    void handleMousePressed(const MouseEventArgs& e) {
+    TC_INTERNAL void handleMousePressed(const MouseEventArgs& e) {
         mousePressed(e);
         if (!e.consumed) dispatchMousePress(e);
     }
 
-    void handleMouseReleased(const MouseEventArgs& e) {
+    TC_INTERNAL void handleMouseReleased(const MouseEventArgs& e) {
         mouseReleased(e);
         if (!e.consumed) dispatchMouseRelease(e);
     }
 
-    void handleMouseMoved(const internal::MouseEventRaw& e) {
+    TC_INTERNAL void handleMouseMoved(const internal::MouseEventRaw& e) {
         mouseMoved(internal::toMoveArgs(e));
         if (!e.consumed) dispatchMouseMove(e);
     }
 
-    void handleMouseDragged(const internal::MouseEventRaw& e) {
+    TC_INTERNAL void handleMouseDragged(const internal::MouseEventRaw& e) {
         mouseDragged(internal::toDragArgs(e));
         if (!e.consumed) dispatchMouseMove(e);  // drag + hover share the node-tree move dispatch
     }
 
-    void handleMouseScrolled(const ScrollEventArgs& e) {
+    TC_INTERNAL void handleMouseScrolled(const ScrollEventArgs& e) {
         mouseScrolled(e);
         if (!e.consumed) dispatchMouseScroll(e);
     }
 
-    void handleWindowResized(int width, int height) {
+    TC_INTERNAL void handleWindowResized(int width, int height) {
         // Update internal size (call RectNode::setSize directly, not our override)
         RectNode::setSize(static_cast<float>(width), static_cast<float>(height));
         // Call user callback
         windowResized(width, height);
     }
 
-    void handleUpdate(int mouseX, int mouseY) {
+    TC_INTERNAL void handleUpdate(int mouseX, int mouseY) {
         updateTree();
         updateHoverState((float)mouseX, (float)mouseY);
     }
 
-    void handleDraw() {
+    TC_INTERNAL void handleDraw() {
         drawTree();
     }
 };

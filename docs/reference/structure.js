@@ -250,7 +250,7 @@ function enumerate(objs) {
                 // the AnnotateAttr (TC_INTERNAL/…) lives on the inner FunctionDecl, not the template decl
                 syms.push({ kind: 'func', ns: p, owner: null, name: c.name, sig: fn && fn.type && fn.type.qualType, params: fn ? paramsOf(fn) : '', args: fn ? argsOf(fn) : [], file: fileOf(c), flags: ['template'], tparams: tparamsOf(c), ann: fn ? annotationsOf(fn, fileOf(c)) : undefined, deprecated: deprecatedOf(c) });
             } else if (c.kind === 'TypedefDecl' || c.kind === 'TypeAliasDecl') { syms.push({ kind: 'typedef', ns: p, owner: null, name: c.name, file: fileOf(c), flags: [], deprecated: deprecatedOf(c) });
-            } else if (c.kind === 'VarDecl') { syms.push({ kind: 'var', ns: p, owner: null, name: c.name, file: fileOf(c), flags: [], deprecated: deprecatedOf(c) });
+            } else if (c.kind === 'VarDecl') { syms.push({ kind: 'var', ns: p, owner: null, name: c.name, file: fileOf(c), flags: [], ann: annotationsOf(c, fileOf(c)), deprecated: deprecatedOf(c) });
             }
         }
     }
