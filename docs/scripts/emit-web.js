@@ -404,10 +404,12 @@ function build(examplesMap) {
     // Index members by owner once.
     const methodsByOwner = new Map();   // owner -> [method symbol, …]
     const fieldsByOwner = new Map();    // owner -> [field symbol, …]
+    const takesInternal = (s) => (s.signatures || []).some(sig => /\binternal::/.test(sig.params || ''));
     for (const sym of REF_VALS) {
         if (sym.access === 'protected') continue;            // protected members are kept in the data but hidden from the public web reference
         if (sym.kind === 'method' && sym.owner) {
             if (isOperator(sym)) continue;                   // operators render via yaml schema
+            if (takesInternal(sym)) continue;                // methods taking internal:: args (handle*, findHitNodeRecursive) aren't user-callable
             if (!methodsByOwner.has(sym.owner)) methodsByOwner.set(sym.owner, []);
             methodsByOwner.get(sym.owner).push(sym);
         } else if (sym.kind === 'field' && sym.owner) {
@@ -435,6 +437,7 @@ function build(examplesMap) {
     const types = [];
     for (const sym of REF_VALS) {
         if (sym.kind !== 'type') continue;
+        if (sym.owner) continue;                             // nested types (ChipSoundBundle::Entry, Font::PlacedGlyph) belong to their owner, not the flat type list
         const typeName = sym.name;
         const ym = YML_TYPE.get(typeName);
         const { desc, desc_ja, desc_ko } = descTrio(sym.id, ym);

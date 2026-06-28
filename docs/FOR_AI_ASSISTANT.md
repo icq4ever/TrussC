@@ -1825,7 +1825,6 @@ HeadlessSettings & HeadlessSettings::setFps(float fps)  // Set the target update
 ### HitResult — Result of a node hit test (this is Node::HitResult). Returned by Node::findHitNode() / findHitNodeFromScreen(); call hit() to check whether anything was hit.
 
 ```cpp
-bool HitResult::hit() const  // Whether a node was hit (node is non-null).
 ```
 
 ### IVec2 — 2D integer vector (x, y)
@@ -2268,6 +2267,12 @@ void Node::setX(float x)  // Set local X position (C++ only)
 void Node::setY(float y)  // Set local Y position (C++ only)
 void Node::setZ(float z)  // Set local Z position (C++ only)
 void Node::update()  // Called every frame before draw
+```
+
+### Node::HitResult
+
+```cpp
+bool Node::HitResult::hit() const  // Whether a node was hit (node is non-null).
 ```
 
 ### Path — Path/Polyline for lines and curves

@@ -2467,29 +2467,29 @@ description.en = "Target update rate (default 60)"
 description.ja = "目標 update レート (デフォルト 60)"
 description.ko = "목표 update 레이트 (기본값 60)"
 
-["HitResult"]
+["Node::HitResult"]
 keywords = ["hit", "pick", "raycast", "collision", "test", "select"]
 description.en = "Result of a node hit test (this is Node::HitResult). Returned by Node::findHitNode() / findHitNodeFromScreen(); call hit() to check whether anything was hit."
 description.ja = "ノードのヒットテスト結果 (Node::HitResult)。Node::findHitNode() / findHitNodeFromScreen() が返す。何かにヒットしたかは hit() で確認"
 description.ko = "노드 히트 테스트 결과 (Node::HitResult). Node::findHitNode() / findHitNodeFromScreen()가 반환. 무언가에 맞았는지는 hit()으로 확인"
 related = ["Ray", "Node"]
 
-["HitResult::distance"]
+["Node::HitResult::distance"]
 description.en = "Distance from the ray origin to the hit point."
 description.ja = "レイの原点からヒット点までの距離"
 description.ko = "레이 원점에서 히트 지점까지의 거리"
 
-["HitResult::hit"]
+["Node::HitResult::hit"]
 description.en = "Whether a node was hit (node is non-null)."
 description.ja = "ノードがヒットしたか (node が非 null)"
 description.ko = "노드가 맞았는지 (node가 non-null)"
 
-["HitResult::localPoint"]
+["Node::HitResult::localPoint"]
 description.en = "Hit position in the hit node's local coordinates."
 description.ja = "ヒットしたノードのローカル座標でのヒット位置"
 description.ko = "맞은 노드의 로컬 좌표 기준 히트 위치"
 
-["HitResult::node"]
+["Node::HitResult::node"]
 description.en = "The hit node (shared_ptr), or null if nothing was hit."
 description.ja = "ヒットしたノード (shared_ptr)、何もヒットしなければ null"
 description.ko = "맞은 노드 (shared_ptr), 아무것도 맞지 않으면 null"
@@ -4851,7 +4851,7 @@ keywords = ["pick", "raycast", "hit test", "ray"]
 description.en = "Hit test the whole tree with a global ray, returning the frontmost node (C++ only)"
 description.ja = "グローバルRayでツリー全体をヒットテストし、最前面のノードを返す（C++のみ）"
 description.ko = "글로벌 Ray로 트리 전체를 히트 테스트하여 가장 앞쪽 노드를 반환 (C++ 전용)"
-related = ["Node::findHitNodeFromScreen", "HitResult", "Ray"]
+related = ["Node::findHitNodeFromScreen", "Ray"]
 
 ["Node::findHitNodeFromScreen"]
 category = "scene_graph"
@@ -4859,7 +4859,7 @@ keywords = ["pick", "screen", "hit test", "camera"]
 description.en = "Hit test the whole tree from a screen point, using each node's own camera context (C++ only)"
 description.ja = "スクリーン座標からツリー全体をヒットテスト（各ノード自身のカメラコンテキストを使用）（C++のみ）"
 description.ko = "스크린 좌표에서 트리 전체를 히트 테스트 (각 노드 자신의 카메라 컨텍스트 사용) (C++ 전용)"
-related = ["Node::findHitNode", "HitResult"]
+related = ["Node::findHitNode"]
 
 ["Node::getActive"]
 category = "scene_graph"
@@ -5848,44 +5848,44 @@ description.en = "Copy from external pixel data"
 description.ja = "外部ピクセルデータからコピー"
 description.ko = "외부 픽셀 데이터에서 복사"
 
-["PlacedGlyph"]
+["Font::PlacedGlyph"]
 keywords = ["glyph", "layout", "font", "position", "character", "typeset"]
 description.en = "One laid-out glyph emitted by Font::forEachGlyph (nested as Font::PlacedGlyph). Carries the final codepoint and pen position so visitors can render quads, build vector paths, or hit-test independently of the layout pass"
 description.ja = "Font::forEachGlyph が出力するレイアウト済みグリフ 1 個（Font::PlacedGlyph としてネスト）。最終的な codepoint とペン位置を持ち、ビジターがレイアウトパスとは独立に quad 描画・ベクターパス生成・ヒットテストを行える"
 description.ko = "Font::forEachGlyph가 출력하는 배치 완료된 글리프 하나(Font::PlacedGlyph로 중첩). 최종 codepoint와 펜 위치를 담아, 비지터가 레이아웃 패스와 독립적으로 quad 렌더링, 벡터 경로 생성, 히트 테스트를 수행 가능"
 related = ["Font", "Font::getStringPath"]
 
-["PlacedGlyph::baselineY"]
+["Font::PlacedGlyph::baselineY"]
 description.en = "Baseline Y position; the glyph's own yoffset is added on top"
 description.ja = "ベースラインの Y 位置。グリフ自身の yoffset がさらに加算される"
 description.ko = "베이스라인의 Y 위치. 글리프 자체의 yoffset이 추가로 더해짐"
 
-["PlacedGlyph::codepoint"]
+["Font::PlacedGlyph::codepoint"]
 description.en = "Final codepoint after vertical-form mapping"
 description.ja = "縦書きフォームマッピング後の最終 codepoint"
 description.ko = "세로쓰기 폼 매핑 후의 최종 codepoint"
 
-["PlacedGlyph::drawX"]
+["Font::PlacedGlyph::drawX"]
 description.en = "Pen X position; the glyph's own xoffset is added on top"
 description.ja = "ペンの X 位置。グリフ自身の xoffset がさらに加算される"
 description.ko = "펜의 X 위치. 글리프 자체의 xoffset이 추가로 더해짐"
 
-["PlacedGlyph::pivotX"]
+["Font::PlacedGlyph::pivotX"]
 description.en = "Rotation center X (used only when rotationCw is non-zero)"
 description.ja = "回転中心 X（rotationCw が 0 でない場合のみ使用）"
 description.ko = "회전 중심 X(rotationCw가 0이 아닐 때만 사용)"
 
-["PlacedGlyph::pivotY"]
+["Font::PlacedGlyph::pivotY"]
 description.en = "Rotation center Y (used only when rotationCw is non-zero)"
 description.ja = "回転中心 Y（rotationCw が 0 でない場合のみ使用）"
 description.ko = "회전 중심 Y(rotationCw가 0이 아닐 때만 사용)"
 
-["PlacedGlyph::rotationCw"]
+["Font::PlacedGlyph::rotationCw"]
 description.en = "Clockwise rotation in radians: 0 (upright) or TAU/4 (90 degrees, vertical text)"
 description.ja = "時計回りの回転（ラジアン）: 0（正立）または TAU/4（90 度、縦書き）"
 description.ko = "시계 방향 회전(라디안): 0(정립) 또는 TAU/4(90도, 세로쓰기)"
 
-["PlacedGlyph::scaleX"]
+["Font::PlacedGlyph::scaleX"]
 description.en = "Horizontal scale (1.0 normally, less than 1 for TCY combine)"
 description.ja = "水平スケール（通常 1.0、TCY 合成では 1 未満）"
 description.ko = "수평 스케일(보통 1.0, TCY 합성 시 1 미만)"
@@ -6166,7 +6166,7 @@ keywords = ["ray", "raycast", "pick", "hittest", "line", "direction"]
 description.en = "A ray with an origin and a normalized direction, used for unified hit testing and picking"
 description.ja = "原点と正規化された方向を持つ Ray。統一されたヒットテストとピッキングに使用"
 description.ko = "원점과 정규화된 방향을 가진 Ray. 통합된 히트 테스트와 피킹에 사용"
-related = ["HitResult", "EasyCam", "screenToWorld"]
+related = ["EasyCam", "screenToWorld"]
 
 ["Ray::at"]
 description.en = "Get the point along the ray at distance t: origin + direction * t"
@@ -12016,7 +12016,7 @@ category = "memory"
 keywords = ["ram", "allocation", "heap", "usage", "footprint"]
 description.en = "Total bytes allocated by sokol libraries"
 description.ja = "sokolライブラリの総メモリ使用量（バイト）"
-description.ko = "sokol 라이브러리로부터 할단된 총 바이트"
+description.ko = "sokol 라이브러리로부터 할당된 총 바이트"
 related = ["getSokolMemoryAllocs", "getMemoryUsage"]
 
 ["getStrokeCap"]
@@ -12040,7 +12040,7 @@ category = "graphics_style"
 keywords = ["line width", "thickness", "weight"]
 description.en = "Get current stroke width"
 description.ja = "現在のストロークの太さを取得"
-description.ko = "현재 storke 두께를 얻음"
+description.ko = "현재 stroke 두께를 얻음"
 related = ["setStrokeWeight"]
 
 ["getSystemBrightness"]
@@ -13112,7 +13112,7 @@ keywords = ["unproject", "screen to world", "pick", "raycast", "coordinate", "of
 description.en = "Convert screen coordinate to world coordinate on Z plane"
 description.ja = "スクリーン座標をワールド座標に変換（Z平面上）"
 description.ko = "스크린 좌표를 Z 평면상의 월드 좌표로 변환"
-related = ["worldToScreen", "Ray", "HitResult"]
+related = ["worldToScreen", "Ray"]
 
 ["setBeepVolume"]
 category = "sound"

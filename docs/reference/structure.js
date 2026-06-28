@@ -197,13 +197,15 @@ function annotationsOf(node, file) {
 function enumerate(objs) {
     const syms = []; let sticky = '(unknown)';
     const fileOf = (node) => { if (node.loc && node.loc.file) sticky = node.loc.file; return sticky; };
-    function walkRecord(rec, nsPath, extraFlags, tps) {
+    function walkRecord(rec, nsPath, extraFlags, tps, enclosing) {
         // skip forward declarations (`struct Color;`) — only the complete
         // definition carries members/constructors. Without this, a forward decl
         // seen before the definition wins the "first id" race and loses the ctors.
         if (rec.completeDefinition !== true) return;
         const recFile = fileOf(rec);
-        const typeSym = { kind: 'type', ns: nsPath, owner: null, name: rec.name, file: recFile, flags: [...(extraFlags || [])], tparams: tps, ann: annotationsOf(rec, recFile), deprecated: deprecatedOf(rec) };
+        // qualified owner for members + nested types (Entry -> ChipSoundBundle::Entry)
+        const qn = enclosing ? enclosing + '::' + rec.name : rec.name;
+        const typeSym = { kind: 'type', ns: nsPath, owner: enclosing || null, name: rec.name, file: recFile, flags: [...(extraFlags || [])], tparams: tps, ann: annotationsOf(rec, recFile), deprecated: deprecatedOf(rec) };
         syms.push(typeSym);
         let access = rec.tagUsed === 'class' ? 'private' : 'public';
         for (const m of (rec.inner || [])) {
@@ -219,13 +221,13 @@ function enumerate(objs) {
             if (m.kind === 'CXXMethodDecl') {
                 const flags = [/operator/.test(m.name || '') ? 'operator' : null, m.storageClass === 'static' ? 'static' : null,
                     m.isImplicit ? 'implicit' : null, m.explicitlyDeleted ? 'deleted' : null, m.explicitlyDefaulted ? 'defaulted' : null].filter(Boolean);
-                syms.push({ kind: 'method', ns: nsPath, owner: rec.name, name: m.name, sig: m.type && m.type.qualType, params: paramsOf(m), args: argsOf(m), file: fileOf(m), access, flags: [...(extraFlags || []), ...flags], ann: annotationsOf(m, fileOf(m)), deprecated: deprecatedOf(m) });
+                syms.push({ kind: 'method', ns: nsPath, owner: qn, name: m.name, sig: m.type && m.type.qualType, params: paramsOf(m), args: argsOf(m), file: fileOf(m), access, flags: [...(extraFlags || []), ...flags], ann: annotationsOf(m, fileOf(m)), deprecated: deprecatedOf(m) });
             } else if (m.kind === 'FieldDecl') {
-                syms.push({ kind: 'field', ns: nsPath, owner: rec.name, name: m.name, ftype: m.type && m.type.qualType, file: fileOf(m), access, flags: [], deprecated: deprecatedOf(m) });
+                syms.push({ kind: 'field', ns: nsPath, owner: qn, name: m.name, ftype: m.type && m.type.qualType, file: fileOf(m), access, flags: [], deprecated: deprecatedOf(m) });
             } else if (m.kind === 'EnumDecl' && m.name) {
-                syms.push({ kind: 'enum', ns: nsPath, owner: rec.name, name: m.name, file: fileOf(m), access, flags: ['nested'], members: enumMembersOf(m), ann: annotationsOf(m, fileOf(m)), deprecated: deprecatedOf(m) });
+                syms.push({ kind: 'enum', ns: nsPath, owner: qn, name: m.name, file: fileOf(m), access, flags: ['nested'], members: enumMembersOf(m), ann: annotationsOf(m, fileOf(m)), deprecated: deprecatedOf(m) });
             } else if (m.kind === 'CXXRecordDecl' && m.name && access === 'public') {
-                walkRecord(m, nsPath, extraFlags);              // nested public type (e.g. Node::HitResult) — keyed by its bare name
+                walkRecord(m, nsPath, extraFlags, undefined, qn);   // nested public type -> keyed Owner::Name (Ray::HitResult, ChipSoundBundle::Entry)
             }
         }
     }
@@ -270,7 +272,7 @@ function symbolId(s) {
     switch (s.kind) {
         case 'method': case 'field': return s.owner + '::' + s.name;
         case 'enum': return s.owner ? s.owner + '::' + s.name : q(s.name);
-        case 'type': { const b = q(s.name); return s.tparams && s.tparams.length ? `${b}<${s.tparams.join(', ')}>` : b; }
+        case 'type': { const b = s.owner ? s.owner + '::' + s.name : q(s.name); return s.tparams && s.tparams.length ? `${b}<${s.tparams.join(', ')}>` : b; }
         case 'func': case 'var': case 'typedef': return q(s.name);
         default: return null;
     }
