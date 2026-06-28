@@ -474,6 +474,7 @@ function build(examplesMap) {
     const enums = [];
     for (const sym of REF_VALS) {
         if (sym.kind !== 'enum') continue;
+        if (sym.owner) continue;                             // nested enums (ScrollBar::Direction, CurveStyle::Mode, …) collide with bare names in the flat list; they belong to their owning type
         const ym = YML_ENUM.get(sym.name);
         const { desc, desc_ja, desc_ko } = descTrio(sym.id, ym);
         // members carry {name, value} from the AST; per-value prose from reference-data's value_desc.
