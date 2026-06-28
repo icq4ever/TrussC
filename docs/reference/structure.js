@@ -198,6 +198,10 @@ function enumerate(objs) {
     const syms = []; let sticky = '(unknown)';
     const fileOf = (node) => { if (node.loc && node.loc.file) sticky = node.loc.file; return sticky; };
     function walkRecord(rec, nsPath, extraFlags, tps) {
+        // skip forward declarations (`struct Color;`) — only the complete
+        // definition carries members/constructors. Without this, a forward decl
+        // seen before the definition wins the "first id" race and loses the ctors.
+        if (rec.completeDefinition !== true) return;
         const recFile = fileOf(rec);
         const typeSym = { kind: 'type', ns: nsPath, owner: null, name: rec.name, file: recFile, flags: [...(extraFlags || [])], tparams: tps, ann: annotationsOf(rec, recFile), deprecated: deprecatedOf(rec) };
         syms.push(typeSym);
