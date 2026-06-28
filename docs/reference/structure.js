@@ -257,7 +257,7 @@ function enumerate(objs) {
 }
 
 // --- 3. visibility + symbol-id grammar --------------------------------------
-const HIDDEN = ['internal', 'mcp', 'headless', 'hot_reload', 'console', 'bitmapfont'];
+const HIDDEN = ['internal', 'mcp', 'headless', 'hot_reload', 'console', 'bitmapfont', 'colors'];   // colors:: is rendered as the swatch palette, not the flat symbol list
 const nsSegs = (ns) => (ns || '').split('::').filter(x => x && x !== 'trussc' && x !== '(anon)');
 const isHidden = (s) => nsSegs(s.ns).some(seg => HIDDEN.includes(seg));   // hidden namespace (internal::, mcp::, …); per-symbol hide is doc-side (`hide = true`)
 const nsPrefix = (s) => nsSegs(s.ns).join('::');

@@ -1355,6 +1355,10 @@ float atanh(float x) [std]  // Inverse hyperbolic tangent
 Baseline  // Direction shorthand for Direction::Baseline (text baseline)
 Bottom  // Direction shorthand for Direction::Bottom
 Center  // Direction shorthand for Direction::Center
+const char * enumLabel(E value)  // Return the display string for one enum value (TC_ENUM_LABELS override, else reflected name).
+const std::array<std::string_view, internal::enumValidCount<E> enumNames()  // Return a compile-time array of all valid enumerator names of E.
+EnumLabelSpan enumReflectedSpan()  // Return an EnumLabelSpan synthesized from reflection (valid for contiguous zero-based enums).
+const std::array<E, internal::enumValidCount<E> enumValues()  // Return a compile-time array of all valid enumerator values of E, parallel to enumNames.
 EVENT_DRIVEN  // Frame-rate sentinel: only redraw on demand (event-driven)
 float exp2(float x) [std]  // Base-2 exponential (2^x)
 HALF_TAU  // Half circle (PI)
@@ -1654,6 +1658,11 @@ void EasyCam::setUpAxis(const Vec3 & up) [+1]  // Set the camera up axis (defaul
 void EasyCam::setZoomSensitivity(float s)  // Set zoom sensitivity
 ```
 
+### EnumLabelSpan — Label table for one enum type: a view over its human-readable enumerator names.
+
+```cpp
+```
+
 ### Environment — IBL environment map for PBR ambient lighting (irradiance + prefilter + BRDF LUT)
 
 ```cpp
@@ -1747,10 +1756,16 @@ FileWriter & FileWriter::writeLine(const std::string & text = std::string(""))  
 ### Font — TrueType font for text rendering
 
 ```cpp
+Vec2 Font::calcAlignOffset(const std::string & text, Direction h, Direction v) const  // Compute the alignment offset for text given horizontal and vertical alignment.
 void Font::clearAtlas()  // Clear font atlas (GPU memory freed, glyphs re-rasterized on next draw)
 void Font::drawString(const std::string & text, float x, float y) const [+1]  // Draw text
+void Font::drawStringInternal(const std::string & text, float x, float y, Direction h, Direction v) const  // Draw pre-wrapped text in horizontal writing mode (internal layout + atlas emit).
+void Font::drawStringVerticalInternal(const std::string & text, float x, float y, Direction h, Direction v) const  // Draw pre-wrapped text in vertical writing mode (internal layout + atlas emit).
+void Font::emitPlacedGlyphsToAtlas(const std::vector<PlacedGlyph> & placed) const  // Emit atlas quads for a stream of placed glyphs (shared by horizontal and vertical layout).
 void Font::enableWrap(bool enabled)  // Enable or disable line wrapping (default off)
 void Font::forEachGlyph(const std::string & text, float x, float y, Direction h, Direction v, const GlyphVisitor & visitor) const [+1]  // Invoke a visitor once per laid-out glyph (positions follow writing mode, wrap, kinsoku, and TCY). Backend-agnostic layout pass shared by drawing, vector outlines, and hit testing
+void Font::forEachGlyphHorizontal(const std::string & text, float x, float y, Direction h, Direction v, const GlyphVisitor & visitor) const  // Run the horizontal-writing layout pass over pre-wrapped text, invoking the visitor per placed glyph.
+void Font::forEachGlyphVertical(const std::string & text, float x, float y, Direction h, Direction v, const GlyphVisitor & visitor) const  // Run the vertical-writing layout pass over pre-wrapped text, invoking the visitor per placed glyph.
 Direction Font::getAlignH() const  // Get current horizontal text alignment
 Direction Font::getAlignV() const  // Get current vertical text alignment
 float Font::getAscent() const  // Get the font ascent (distance from baseline to top)
@@ -1779,6 +1794,8 @@ float Font::getWidth(const std::string & text) const  // Get text width
 WritingMode Font::getWritingMode() const  // Current writing mode
 bool Font::isLoaded() const  // Check if loaded
 bool Font::isWrapEnabled() const  // Check if line wrapping is enabled
+bool Font::kinsokuLineEnd(uint32_t cp) const  // Return whether a codepoint is forbidden at the end of a line (kinsoku rule).
+bool Font::kinsokuLineStart(uint32_t cp) const  // Return whether a codepoint is forbidden at the start of a line (kinsoku rule).
 bool Font::load(const std::string & nameOrPath, int size)  // Load font file
 void Font::resetLineHeight()  // Reset line height to the font default
 void Font::setAlign(Direction h, Direction v) [+1]  // Set horizontal (and optional vertical) text alignment
@@ -1792,6 +1809,9 @@ void Font::setTcyDigits(int maxDigits, TcyMode inMode, TcyMode overflowMode)  //
 void Font::setTcyLatin(TcyMode mode)  // Tate-chu-yoko mode for Latin letter runs in vertical text. Default is Rotate (whole run rotated 90 CW).
 void Font::setWritingMode(WritingMode mode)  // Switch between horizontal and vertical (tategaki) writing. Default is Horizontal (existing behavior unchanged).
 float Font::stringWidth(const std::string & text) const  // Pixel width of the text (alias of getWidth)
+std::string Font::wrapTextHorizontal(const std::string & text) const  // Insert hard newlines into text for horizontal word wrapping at maxLineLength.
+std::string Font::wrapTextIfEnabled(const std::string & text) const  // Wrap text per the current writing mode when wrapping is enabled, else return it unchanged.
+std::string Font::wrapTextVertical(const std::string & text) const  // Insert hard newlines into text for vertical wrapping by column-height budget.
 ```
 
 ### FpsSettings — FPS configuration returned by getFpsSettings(). Rates use VSYNC (-1) and EVENT_DRIVEN (0) sentinels, or a fixed fps
@@ -1802,6 +1822,8 @@ float Font::stringWidth(const std::string & text) const  // Pixel width of the t
 ### FullscreenShader — Shader specialization for fullscreen post-processing effects (position + texcoord quad). Set uniforms via setParams, then call draw to render a fullscreen quad.
 
 ```cpp
+sg_pipeline_desc FullscreenShader::createPipelineDesc()  // Build the fullscreen-quad pipeline descriptor (overrides Shader's).
+void FullscreenShader::createVertexBuffer()  // Create the fullscreen-quad vertex/index buffers (overrides Shader's).
 void FullscreenShader::draw()  // Draw a fullscreen quad with this shader applied
 ```
 
@@ -1900,7 +1922,7 @@ void Image::setDirty()  // Mark image as needing update
 void Image::update()  // Apply pixel changes to GPU texture
 ```
 
-### JsonReadReflector
+### JsonReadReflector — Reflector backend that applies a JSON object onto reflected members through their setters.
 
 ```cpp
 void JsonReadReflector::beginGroup(const char * name)  // Descend into the nested JSON object for a composite member.
@@ -1909,7 +1931,7 @@ std::vector<std::string> JsonReadReflector::unknownKeys() const  // Return the s
 bool JsonReadReflector::visit(const char * name, float & v) [+7]  // Apply the JSON value for one member through its setter, recording applied/skipped/read-only.
 ```
 
-### JsonWriteReflector
+### JsonWriteReflector — Reflector backend that writes reflected members into a JSON object.
 
 ```cpp
 void JsonWriteReflector::beginGroup(const char * name)  // Open a nested JSON object for a composite member.
@@ -1925,6 +1947,8 @@ bool JsonWriteReflector::visit(const char * name, float & v) [+7]  // Write one 
 ### LayoutMod — Layout modifier (Mod) that auto-arranges child RectNodes in a vertical or horizontal stack with spacing, padding and axis sizing
 
 ```cpp
+bool LayoutMod::canAttachTo(Node * node)  // Restrict attachment to RectNode owners.
+void LayoutMod::earlyUpdate()  // Mod lifecycle: early-update hook (relayout point).
 AxisMode LayoutMod::getCrossAxis() const  // Get the cross-axis sizing mode (LayoutMod method) (C++ only)
 LayoutDirection LayoutMod::getDirection() const  // Get the layout direction (Vertical/Horizontal) (LayoutMod method) (C++ only)
 AxisMode LayoutMod::getMainAxis() const  // Get the main-axis sizing mode (LayoutMod method) (C++ only)
@@ -1933,6 +1957,7 @@ float LayoutMod::getPaddingLeft() const  // Get the left padding (LayoutMod meth
 float LayoutMod::getPaddingRight() const  // Get the right padding (LayoutMod method) (C++ only)
 float LayoutMod::getPaddingTop() const  // Get the top padding (LayoutMod method) (C++ only)
 float LayoutMod::getSpacing() const  // Get the spacing between children (LayoutMod method) (C++ only)
+bool LayoutMod::isExclusive() const  // Return true: only one LayoutMod may attach per node.
 LayoutMod & LayoutMod::setCrossAxis(AxisMode mode)  // Set the cross-axis sizing mode and re-layout (LayoutMod method) (C++ only)
 LayoutMod & LayoutMod::setDirection(LayoutDirection dir)  // Set the layout direction and re-layout (LayoutMod method) (C++ only)
 LayoutMod & LayoutMod::setMainAxis(AxisMode mode)  // Set the main-axis sizing mode and re-layout (LayoutMod method) (C++ only)
@@ -1942,6 +1967,7 @@ LayoutMod & LayoutMod::setPaddingLeft(float v)  // Set the left padding and re-l
 LayoutMod & LayoutMod::setPaddingRight(float v)  // Set the right padding and re-layout (LayoutMod method) (C++ only)
 LayoutMod & LayoutMod::setPaddingTop(float v)  // Set the top padding and re-layout (LayoutMod method) (C++ only)
 LayoutMod & LayoutMod::setSpacing(float spacing)  // Set the spacing between children and re-layout (LayoutMod method) (C++ only)
+void LayoutMod::setup()  // Mod lifecycle: lay out the children once when attached.
 void LayoutMod::updateLayout()  // Recalculate layout (call after adding/removing children) (C++ only)
 ```
 
@@ -2230,6 +2256,7 @@ const std::string & NetworkInterface::getNetmask() const  // Subnet mask
 
 ```cpp
 void Node::addChild(Ptr child, bool keepGlobalPosition = false)  // Add a child node (C++ only)
+void Node::beginDraw()  // Hook called before draw() and drawChildren(); override for clipping etc.
 uint64_t Node::callAfter(double delay, std::function<void ()> callback)  // Run callback once after delay seconds. Fired from the update loop (frame-quantized). Returns a timer id.
 uint64_t Node::callAfterAsync(double delay, std::function<void ()> callback) [macos,windows,linux,android,ios]  // Like callAfter, but fired by a precise background scheduler thread (no frame jitter). The callback runs OFF the main thread: guard shared state with a mutex, never draw from it, and don't cancel while holding that mutex. Native only (uses a real thread). Returns a timer id.
 uint64_t Node::callEvery(double interval, std::function<void ()> callback)  // Run callback repeatedly every interval seconds. Fired from the update loop (frame-quantized). Returns a timer id.
@@ -2242,10 +2269,13 @@ void Node::cleanup()  // Called once before exit (optional user callback for cle
 void Node::destroy()  // Mark node for deferred removal from scene graph (C++ only)
 void Node::disableEvents()  // Disable mouse/key events for this node (C++ only)
 void Node::draw()  // Called every frame after update
+void Node::drawChildren()  // Draw the child nodes (overridable, e.g. for clipping).
 void Node::enableEvents()  // Enable mouse/key events for this node (C++ only)
+void Node::endDraw()  // Hook called after draw() and drawChildren().
 Node * Node::findByInstanceId(uint64_t id)  // Find a node in this subtree (self included) by instance id, depth-first (null if not found) (C++ only)
 HitResult Node::findHitNode(const Ray & globalRay)  // Hit test the whole tree with a global ray, returning the frontmost node (C++ only)
 HitResult Node::findHitNodeFromScreen(float screenX, float screenY)  // Hit test the whole tree from a screen point, using each node's own camera context (C++ only)
+HitResult Node::findHitNodeRecursive(internal::PickRaySource & pick, const CameraContext * inheritedCtx, Ray globalRay, const Mat4 & parentInverseMatrix)  // Recursive hit test in reverse draw order; override for clipping-aware picking.
 bool Node::getActive() const ⚠️deprecated  // Deprecated alias for isActive()
 std::shared_ptr<const CameraContext> Node::getCameraContext() const  // Return the camera context this node was last drawn under (null if never drawn).
 size_t Node::getChildCount() const  // Get the number of child nodes (C++ only)
@@ -2283,6 +2313,7 @@ float Node::getY() const  // Get local Y position (C++ only)
 float Node::getZ() const  // Get local Z position (C++ only)
 Vec3 Node::globalToLocal(const Vec3 & global) const [+1] ⚠️deprecated  // Convert a global coordinate to this node's local space (C++ only)
 bool Node::hasName() const  // Whether an instance name has been set (C++ only)
+bool Node::hitTest(const Ray & localRay, float & outDistance) [+1]  // Geometric hit-test predicate in local space; override to make a node pickable.
 int Node::indexOfChild(const Node * child) const  // Index of the given child among this node's children (-1 if not a child) (C++ only)
 void Node::insertChild(size_t index, Ptr child, bool keepGlobalPosition = false)  // Insert a child node at a specific index (C++ only)
 bool Node::isActive() const  // Whether the node is active (inactive: update and draw are skipped) (C++ only)
@@ -2293,10 +2324,24 @@ bool Node::isVisible() const  // Whether the node is visible (invisible: only dr
 Vec3 Node::localToGlobal(const Vec3 & local) const [+1] ⚠️deprecated  // Convert a local coordinate to global space (C++ only)
 void Node::moveToBack()  // Move this node to the beginning of its parent's child list — drawn first, beneath siblings. No-op if no parent or already first (C++ only)
 void Node::moveToFront()  // Move this node to the end of its parent's child list — drawn last, on top of siblings. No-op if no parent or already last (C++ only)
+void Node::onActiveChanged(bool active)  // Callback invoked when the node's active state changes.
 void Node::onChildAdded(Ptr child)  // Callback fired when a child is added (overridable) (C++ only)
 void Node::onChildRemoved(Ptr child)  // Callback fired when a child is removed (overridable) (C++ only)
+bool Node::onKeyPress(const KeyEventArgs & e) [+1]  // Handle a key press (broadcast to all nodes); return true to consume.
+bool Node::onKeyRelease(const KeyEventArgs & e) [+1]  // Handle a key release (broadcast to all nodes); return true to consume.
+void Node::onLocalMatrixChanged()  // Hook for custom behavior when the local matrix changes.
+bool Node::onMouseDrag(const MouseDragEventArgs & e) [+1]  // Handle a mouse drag (event localized to this node); return true to consume.
+void Node::onMouseEnter()  // Hook called when the pointer enters this node (hover begins).
+void Node::onMouseLeave()  // Hook called when the pointer leaves this node (hover ends).
+bool Node::onMouseMove(const MouseMoveEventArgs & e) [+1]  // Handle mouse movement (event localized to this node); return true to consume.
+bool Node::onMousePress(const MouseEventArgs & e) [+1]  // Handle a mouse press (event localized to this node); return true to consume.
+bool Node::onMouseRelease(const MouseEventArgs & e) [+1]  // Handle a mouse release (event localized to this node); return true to consume.
+bool Node::onMouseScroll(const ScrollEventArgs & e) [+1]  // Handle a scroll event (event localized to this node); return true to consume.
+void Node::onVisibleChanged(bool visible)  // Callback invoked when the node's visible state changes.
+void Node::processTimers()  // Process due timers (callAfter / callEvery), invoked within the update pass.
 void Node::removeAllChildren()  // Remove all child nodes (C++ only)
 void Node::removeChild(Ptr child)  // Remove a child node (C++ only)
+std::pair<const CameraContext *, Ray> Node::resolvePickRay(internal::PickRaySource & pick, const CameraContext * inheritedCtx, const Ray & globalRay) const  // Resolve this node's effective camera context and the global ray to hit-test it with.
 void Node::setActive(bool active)  // Set the active state (inactive: update and draw are skipped) (C++ only)
 void Node::setCameraContext(std::shared_ptr<const CameraContext> ctx)  // Set the camera context for a manually-managed node (normally set automatically by drawTree).
 void Node::setEuler(const Vec3 & euler) [+1]  // Set rotation from Euler angles in radians (pitch=X, yaw=Y, roll=Z) (C++ only)
@@ -2462,7 +2507,13 @@ Rect & Rect::set(float x, float y, float w, float h) [+1]  // Set rectangle boun
 ### RectNode — 2D UI rectangle node: size, clipping and ray-based hit testing, plus subscribable mouse Event members
 
 ```cpp
+void RectNode::beginDraw()  // Begin the draw scope, pushing the rect's clip region.
 void RectNode::draw()  // Draw the rectangle node; override in derived classes (draws nothing by default).
+void RectNode::drawRectFill()  // Helper that draws the rectangle filled.
+void RectNode::drawRectFillAndStroke()  // Helper that draws the rectangle with both fill and stroke.
+void RectNode::drawRectStroke()  // Helper that draws the rectangle outline.
+void RectNode::endDraw()  // End the draw scope, popping the clip region.
+HitResult RectNode::findHitNodeRecursive(internal::PickRaySource & pick, const CameraContext * inheritedCtx, Ray globalRay, const Mat4 & parentInverseMatrix)  // Clipping-aware recursive hit test (overrides Node's to respect the rect bounds).
 float RectNode::getBottom() const  // Local bottom edge (equals height) (RectNode method) (C++ only)
 float RectNode::getHeight() const  // Get the node height (RectNode method) (C++ only)
 float RectNode::getLeft() const  // Local left edge (always 0) (RectNode method) (C++ only)
@@ -2472,6 +2523,11 @@ float RectNode::getTop() const  // Local top edge (always 0) (RectNode method) (
 float RectNode::getWidth() const  // Get the node width (RectNode method) (C++ only)
 bool RectNode::hitTest(const Ray & localRay, float & outDistance) [+1]  // Hit-test the rectangle against a ray (with out distance) or a 2D point (RectNode method) (C++ only)
 bool RectNode::isClipping() const  // Whether scissor clipping is enabled (RectNode method) (C++ only)
+bool RectNode::onMouseDrag(const MouseDragEventArgs & e)  // Fire the mouseDragged event and forward to the legacy simple-form hook.
+bool RectNode::onMousePress(const MouseEventArgs & e)  // Fire the mousePressed event and forward to the legacy simple-form hook.
+bool RectNode::onMouseRelease(const MouseEventArgs & e)  // Fire the mouseReleased event and forward to the legacy simple-form hook.
+bool RectNode::onMouseScroll(const ScrollEventArgs & e)  // Fire the scroll event; returns false to allow bubbling to a parent (e.g. ScrollContainer).
+void RectNode::onSizeChanged()  // Callback invoked when the rect's size changes.
 void RectNode::setClipping(bool enabled)  // Enable/disable scissor clipping for RectNode (C++ only)
 void RectNode::setHeight(float h)  // Set the node height (RectNode method) (C++ only)
 void RectNode::setRect(float x, float y, float w, float h)  // Set position and size at once (RectNode method) (C++ only)
@@ -2484,9 +2540,11 @@ void RectNode::setWidth(float w)  // Set the node width (RectNode method) (C++ o
 ```cpp
 void RectNodeButton::draw()  // Draw the button: fills the rect with the state-dependent color and draws the centered label. (override)
 bool RectNodeButton::isPressed() const  // Whether the button is currently pressed.
+bool RectNodeButton::onMousePress(const MouseEventArgs & e)  // Set the pressed state, then fire the base RectNode press handling.
+bool RectNodeButton::onMouseRelease(const MouseEventArgs & e)  // Clear the pressed state, then fire the base RectNode release handling.
 ```
 
-### Reflector
+### Reflector — Visitor base for the TC_REFLECT reflection system; backends (inspector, JSON, codec) subclass it with one visit() per supported type.
 
 ```cpp
 void Reflector::beginGroup(const char * name)  // Enter a nested composite group of reflected members (no-op for flat backends).
@@ -2516,14 +2574,22 @@ VideoWriter & ScreenRecorder::writer()  // Access the underlying VideoWriter for
 ### ScrollBar — Visual scroll indicator RectNode that syncs with a ScrollContainer and supports drag scrolling
 
 ```cpp
+void ScrollBar::draw()  // Draw the scrollbar as a rounded-cap stroked slot.
 Color ScrollBar::getBarColor() const  // Get the scroll-bar color (ScrollBar method) (C++ only)
 float ScrollBar::getBarWidth() const  // Get the scroll-bar thickness (ScrollBar method) (C++ only)
 float ScrollBar::getMargin() const  // Get the margin between the bar and the container edge (ScrollBar method) (C++ only)
 float ScrollBar::getOffset() const  // Get the rounded-cap draw offset (round(barWidth/2)) (ScrollBar method) (C++ only)
+void ScrollBar::handleHorizontalDrag(float localX)  // Map a horizontal drag position to the container's scrollX.
+void ScrollBar::handleVerticalDrag(float localY)  // Map a vertical drag position to the container's scrollY.
+bool ScrollBar::onMouseDrag(const MouseDragEventArgs & e)  // Translate a drag into a scroll position via the vertical or horizontal handler.
+bool ScrollBar::onMousePress(const MouseEventArgs & e)  // Begin dragging the bar, recording the grab offset.
+bool ScrollBar::onMouseRelease(const MouseEventArgs & e)  // End dragging the bar.
 void ScrollBar::setBarColor(const Color & color)  // Set the scroll-bar color (ScrollBar method) (C++ only)
 void ScrollBar::setBarWidth(float width)  // Set the scroll-bar thickness (ScrollBar method) (C++ only)
 void ScrollBar::setMargin(float margin)  // Set the margin between the bar and the container edge (ScrollBar method) (C++ only)
 void ScrollBar::updateFromContainer()  // Resync the bar size and position from its ScrollContainer (ScrollBar method) (C++ only)
+void ScrollBar::updateHorizontal()  // Size and position the bar for a horizontal scroll container (or hide it).
+void ScrollBar::updateVertical()  // Size and position the bar for a vertical scroll container (or hide it).
 ```
 
 ### ScrollContainer — Scrollable RectNode that clips and scrolls a single content node when it overflows the container bounds
@@ -2539,6 +2605,8 @@ float ScrollContainer::getScrollX() const  // Get the horizontal scroll position
 float ScrollContainer::getScrollY() const  // Get the vertical scroll position (ScrollContainer method) (C++ only)
 bool ScrollContainer::isHorizontalScrollEnabled() const  // Whether horizontal scrolling is enabled (ScrollContainer method) (C++ only)
 bool ScrollContainer::isVerticalScrollEnabled() const  // Whether vertical scrolling is enabled (ScrollContainer method) (C++ only)
+bool ScrollContainer::onMouseScroll(const ScrollEventArgs & e)  // Accumulate the scroll delta for processing in update(); consume if scrollable.
+void ScrollContainer::onSizeChanged()  // Recompute scroll bounds when the container's size changes.
 void ScrollContainer::setContent(Node::Ptr newContent)  // Set content node for ScrollContainer (C++ only)
 void ScrollContainer::setHorizontalScrollEnabled(bool enabled)  // Enable or disable horizontal scrolling (ScrollContainer method) (C++ only)
 void ScrollContainer::setScroll(float x, float y) [+1]  // Set the scroll position from x/y or a Vec2 (clamped) (ScrollContainer method) (C++ only)
@@ -2546,6 +2614,7 @@ void ScrollContainer::setScrollSpeed(float speed)  // Set the scroll speed (whee
 void ScrollContainer::setScrollX(float x)  // Set the horizontal scroll position (clamped) (ScrollContainer method) (C++ only)
 void ScrollContainer::setScrollY(float y)  // Set vertical scroll position (C++ only)
 void ScrollContainer::setVerticalScrollEnabled(bool enabled)  // Enable or disable vertical scrolling (ScrollContainer method) (C++ only)
+void ScrollContainer::update()  // Apply accumulated scroll deltas to the content position.
 void ScrollContainer::updateScrollBounds()  // Recalculate scroll bounds from the content size (ScrollContainer method) (C++ only)
 ```
 
@@ -2587,13 +2656,21 @@ const std::string & SerialDeviceInfo::getDevicePath() const  // Device path
 ### Shader — GPU shader program (vertex + fragment) with a begin/end/setUniform API for custom-shaded drawing
 
 ```cpp
+void Shader::applyUniforms()  // Apply all stored uniforms to the bound shader.
 void Shader::begin()  // Begin shader (pushes to stack)
 void Shader::clear()  // Destroy the shader's GPU resources and reset it to the unloaded state.
+sg_pipeline_desc Shader::createPipelineDesc()  // Build the pipeline descriptor (standard vertex layout); overridable by subclasses.
+void Shader::createVertexBuffer()  // Create the dynamic vertex/index buffers; overridable by subclasses.
 void Shader::end()  // End shader (pops from stack)
 bool Shader::isLoaded() const  // Check if shader is loaded
 bool Shader::load(const sg_shader_desc *(*)(sg_backend) descFn)  // Load from sokol-shdc generated function
+void Shader::onBegin()  // Hook called when the shader scope begins; override to set up bindings.
+void Shader::onEnd()  // Hook called when the shader scope ends.
+sg_pipeline Shader::pipelineForCurrentTarget()  // Return the pipeline matching the current render target, building and caching one per (format, sampleCount).
 void Shader::setTexture(int slot, sg_image image, sg_sampler sampler) [+1]  // Bind texture to slot
 void Shader::setUniform(int slot, float value) [+9]  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void Shader::setupBindings(sg_bindings & bind)  // Hook to populate the sg_bindings before a draw; override for custom inputs.
+void Shader::storeUniform(int slot, const void * data, size_t size)  // Store raw uniform bytes for the given slot, to be applied at draw time.
 void Shader::submitVertices(const ShaderVertex * data, int count, PrimitiveType type)  // Submit a batch of vertices for deferred drawing with this shader (lines are unsupported).
 ```
 
@@ -2714,6 +2791,7 @@ std::string TcpClient::getRemoteHost() const  // Remote host name
 int TcpClient::getRemotePort() const  // Remote port
 bool TcpClient::isConnected() const  // Whether currently connected
 bool TcpClient::isUsingThread() const  // Whether threading is in use
+void TcpClient::notifyError(const std::string & msg, int code = 0)  // Report an error (message + code) from a derived class.
 void TcpClient::processNetwork()  // Pump pending TCP I/O; normally auto-driven by the update event, but can be called manually for synchronous polling.
 bool TcpClient::send(const void * data, size_t size) [+2]  // Send data to the server
 void TcpClient::setBlocking(bool blocking)  // Set blocking mode
@@ -2905,6 +2983,7 @@ Tween<T> & Tween::yoyo(bool enable = true)  // Reverse direction on each loop it
 ```cpp
 TweenMod & TweenMod::delay(float seconds)  // Set delay before animation starts (TweenMod method) (C++ only)
 TweenMod & TweenMod::duration(float seconds)  // Set animation duration (TweenMod method) (C++ only)
+void TweenMod::earlyUpdate()  // Mod lifecycle: advance the tween each frame in the early-update phase.
 TweenMod & TweenMod::ease(EaseType type, EaseMode mode = InOut)  // Set easing function (TweenMod method). Types: Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce. Modes: In, Out, InOut (C++ only)
 float TweenMod::getDelay() const  // Get the start delay in seconds (TweenMod method) (C++ only)
 float TweenMod::getDuration() const  // Get the animation duration in seconds (TweenMod method) (C++ only)
@@ -3091,10 +3170,18 @@ bool VideoPlayer::hasAudio() const  // Check if the loaded video has an audio tr
 bool VideoPlayer::isUsingHwAccel() const  // Check if hardware decoding is currently active (after load)
 bool VideoPlayer::load(const std::string & path)  // Load a video file
 void VideoPlayer::nextFrame()  // Advance to the next frame
+void VideoPlayer::playImpl()  // Backend implementation of playImpl for this platform's video player.
 void VideoPlayer::previousFrame()  // Go back to the previous frame
 void VideoPlayer::setFrame(int frame)  // Seek to a specific frame number
 void VideoPlayer::setGammaCorrection(float gamma)  // Set gamma correction (1.0 = none). Use ~0.45 to brighten on platforms with dark output (e.g. macOS AVFoundation)
+void VideoPlayer::setLoopImpl(bool loop)  // Backend implementation of setLoopImpl for this platform's video player.
+void VideoPlayer::setPanImpl(float pan)  // Backend implementation of setPanImpl for this platform's video player.
+void VideoPlayer::setPausedImpl(bool paused)  // Backend implementation of setPausedImpl for this platform's video player.
+void VideoPlayer::setPositionImpl(float pct)  // Backend implementation of setPositionImpl for this platform's video player.
+void VideoPlayer::setSpeedImpl(float speed)  // Backend implementation of setSpeedImpl for this platform's video player.
 void VideoPlayer::setUseHwAccel(bool enable)  // Enable/disable hardware decoding. Must be called before load(). Default: true. When enabled, the player probes available HW backends (VAAPI, V4L2M2M, CUDA, etc.) and falls back to software if none are available. Currently affects the Linux backend only.
+void VideoPlayer::setVolumeImpl(float vol)  // Backend implementation of setVolumeImpl for this platform's video player.
+void VideoPlayer::stopImpl()  // Backend implementation of stopImpl for this platform's video player.
 void VideoPlayer::update()  // Update the video frame. Call once per frame in update()
 ```
 
@@ -3130,19 +3217,29 @@ bool VideoPlayerBase::isPaused() const  // Check if video is paused
 bool VideoPlayerBase::isPlaying() const  // Check if video is currently playing (not paused)
 bool VideoPlayerBase::isUsingHwAccel() const  // Return true if hardware-accelerated decoding is currently active.
 bool VideoPlayerBase::load(const std::string & path)  // Load a video from the given file path; return true on success.
+void VideoPlayerBase::markDone()  // Mark playback as done, clearing playing unless looping.
+void VideoPlayerBase::markFrameNew()  // Mark that a new frame has arrived (sets frameNew and firstFrameReceived).
 void VideoPlayerBase::nextFrame()  // Advance to the next frame.
 void VideoPlayerBase::play()  // Start or resume playback
+void VideoPlayerBase::playImpl()  // Platform hook: start playback. Pure virtual, implemented per backend.
 void VideoPlayerBase::previousFrame()  // Step back to the previous frame.
 void VideoPlayerBase::setCurrentTime(float seconds)  // Seek to a specific time in seconds
 void VideoPlayerBase::setFrame(int frame)  // Seek to the given frame index.
 void VideoPlayerBase::setLoop(bool loop)  // Enable/disable looping
+void VideoPlayerBase::setLoopImpl(bool loop)  // Platform hook: set looping. Pure virtual, implemented per backend.
 void VideoPlayerBase::setPan(float pan)  // Set stereo pan (-1.0 left, 0.0 center, 1.0 right)
+void VideoPlayerBase::setPanImpl(float pan)  // Platform hook: set stereo pan. Pure virtual, implemented per backend.
 void VideoPlayerBase::setPaused(bool paused)  // Pause or resume playback
+void VideoPlayerBase::setPausedImpl(bool paused)  // Platform hook: set paused state. Pure virtual, implemented per backend.
 void VideoPlayerBase::setPosition(float pct)  // Seek to a playback position given as a fraction (0-1).
+void VideoPlayerBase::setPositionImpl(float pct)  // Platform hook: seek to a normalized position. Pure virtual, implemented per backend.
 void VideoPlayerBase::setResyncThreshold(float seconds)  // Set the maximum video/audio drift before hard re-sync. When drift exceeds this threshold, video seeks to match audio position instead of catching up frame-by-frame. Set to 0 to disable. Default: 0.5s. Primarily affects Linux (FFmpeg) backend.
 void VideoPlayerBase::setSpeed(float speed)  // Set playback speed (1.0 = normal, 2.0 = double speed)
+void VideoPlayerBase::setSpeedImpl(float speed)  // Platform hook: set playback speed. Pure virtual, implemented per backend.
 void VideoPlayerBase::setVolume(float vol)  // Set audio volume (0.0 to 1.0)
+void VideoPlayerBase::setVolumeImpl(float vol)  // Platform hook: set volume. Pure virtual, implemented per backend.
 void VideoPlayerBase::stop()  // Stop playback and reset to beginning
+void VideoPlayerBase::stopImpl()  // Platform hook: stop playback. Pure virtual, implemented per backend.
 void VideoPlayerBase::togglePause()  // Toggle pause state
 void VideoPlayerBase::update()  // Decode the next frame and refresh internal state; call once per frame.
 ```
@@ -3205,7 +3302,6 @@ std::string Xml::toString(const std::string & indent = std::string("  ")) const 
 enum AxisMode { None, Fill, Content }  // Layout axis sizing: None (fixed), Fill (expand to the parent), Content (fit children).
 enum Beep { ping, success, complete, coin, error, warning, cancel, click, typing, notify, sweep }  // Built-in system beep sounds (ping, success, error, …) for beep().
 enum BlendMode { Alpha, Add, Multiply, Screen, Subtract, Disabled }  // Color blend mode: Alpha, Add, Multiply, Screen, Subtract, Disabled.
-enum ChipSoundNote::Wave { Sin, Square, Triangle, Sawtooth, Noise, PinkNoise, Silent }
 enum Codec { None, LZ4 }  // Compression codec: None (raw) or LZ4.
 enum Cursor { Default, Arrow, IBeam, Crosshair, Hand, ResizeEW, ResizeNS, ResizeNWSE, ResizeNESW, ResizeAll, NotAllowed, Custom0, Custom1, Custom2, Custom3, Custom4, Custom5, Custom6, Custom7, Custom8, Custom9, Custom10, Custom11, Custom12, Custom13, Custom14, Custom15 }  // Mouse cursor shape (Default, Arrow, IBeam, Crosshair, Hand, resize cursors, …).
 enum CurveStyle::Mode { Tolerance, Resolution }  // Curve tessellation mode: adaptive tolerance or fixed resolution
@@ -3213,7 +3309,6 @@ enum Deliver { Inline, Main }  // Event delivery timing: Inline fires synchronou
 enum Direction { Left, Center, Right, Top, Bottom, Baseline }  // Alignment / direction: Left, Center, Right, Top, Bottom, Baseline.
 enum EaseMode { In, Out, InOut }  // Easing direction: In, Out, or InOut.
 enum EaseType { Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce }  // Easing function family (Linear, Quad, Cubic, Sine, Expo, …) for tweens.
-enum EasyCam::Modifier { None, Shift, Ctrl, Alt, Super }
 enum ImageType { Color, Grayscale }  // Image type: Color or Grayscale.
 enum KinsokuLevel { Off, PunctuationOnly, Standard }  // Line-breaking (kinsoku) strictness for vertical / Japanese text
 enum LayoutDirection { Vertical, Horizontal }  // Layout axis direction: Vertical or Horizontal.
@@ -3225,7 +3320,6 @@ enum Orientation { Portrait, PortraitUpsideDown, LandscapeLeft, LandscapeRight, 
 enum PixelFormat { U8, F32 }  // CPU pixel data format: U8 (8-bit) or F32 (float).
 enum PrimitiveMode { Triangles, TriangleStrip, TriangleFan, Lines, LineStrip, LineLoop, Points }  // Draw primitive mode: Triangles, TriangleStrip, TriangleFan, Lines, LineStrip, LineLoop, Points.
 enum PrimitiveType { Points, Lines, LineStrip, Triangles, TriangleStrip, Quads }  // Geometry primitive type: Points, Lines, LineStrip, Triangles, TriangleStrip, Quads.
-enum ScrollBar::Direction { Vertical, Horizontal }
 enum SoundSource::Kind { Eager, Stream }  // Source kind tag on SoundSource, letting the mixer dispatch without a per-frame virtual call: Eager (SoundBuffer, full PCM in RAM) vs Stream (SoundStream, decoded on demand).
 enum StrokeCap { Butt, Round, Square }  // Line cap style for strokes: Butt, Round, Square.
 enum StrokeJoin { Miter, Round, Bevel }  // Line join style for strokes: Miter, Round, Bevel.
@@ -3248,6 +3342,8 @@ enum WritingMode { Horizontal, VerticalRL }  // Text writing mode: Horizontal or
 using Json  // Alias for nlohmann::json (using Json = nlohmann::json). Used as the in-memory JSON value type by loadJson, saveJson, parseJson and toJsonString. See the nlohmann/json documentation for its full API.
 using NodePtr  // Shared pointer to a Node (std::shared_ptr<Node>); the standard way to hold and pass scene nodes
 using NodeWeakPtr  // Alias for weak_ptr<Node> (using NodeWeakPtr = weak_ptr<Node>). A non-owning weak reference to a Node; lock() it to obtain a NodePtr if the node still exists.
+using RenderContext ⚠️deprecated  // Deprecated alias for internal::RenderContext; use the free drawing functions instead.
+using Wave  // Alias for ChipSoundNote::Wave, the chip-synth waveform type (Sin, Square, Triangle, ...).
 using XmlAttribute  // Alias for pugi::xml_attribute. A name/value attribute on an XmlNode; see the pugixml documentation for its API.
 using XmlDocument  // Alias for pugi::xml_document. The owning XML document type underlying the Xml wrapper; see the pugixml documentation for its full API.
 using XmlNode  // Alias for pugi::xml_node. A single element/node within an XML document, returned by Xml::root() and Xml::child(); see the pugixml documentation for node query and manipulation methods.
