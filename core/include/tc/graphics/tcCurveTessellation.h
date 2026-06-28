@@ -34,8 +34,8 @@ struct CurveStyle {
 // Lower / upper guards for segment counts. The lower keeps polygons looking
 // like polygons even at tiny radii; the upper prevents pathological vertex
 // floods from bad input (radius=1e9, tolerance=1e-6, ...).
-TC_INTERNAL inline constexpr int kMinCircleSegments = 6;
-TC_INTERNAL inline constexpr int kMaxCircleSegments = 1024;
+inline constexpr int kMinCircleSegments = 6;
+inline constexpr int kMaxCircleSegments = 1024;
 
 // Number of edges to approximate a full circle of `radius` so that the
 // chord-to-arc sagitta stays under `tolerance`. Derivation:
@@ -84,7 +84,7 @@ inline int segmentsForArc(float radius, float angleSpan, float tolerance) {
 // curve (cusp, near-coincident control points) can't run away.
 // =============================================================================
 
-TC_INTERNAL inline constexpr int kBezierMaxDepth = 16;
+inline constexpr int kBezierMaxDepth = 16;
 
 // Hard cap on the order (point count) accepted by the N-th order Bezier
 // tessellator. Each split inside subdivideBezierN does an O(N^2) in-place
@@ -104,7 +104,7 @@ TC_INTERNAL inline constexpr int kBezierMaxDepth = 16;
 // purpose-built tessellator with cached factorials / vectorised inner
 // loops / GPU dispatch. Roll your own and call the underlying primitives
 // from there, or chain cubics.
-TC_INTERNAL inline constexpr int kBezierMaxOrder = 64;
+inline constexpr int kBezierMaxOrder = 64;
 
 namespace internal {
 
@@ -216,7 +216,7 @@ void subdivideBezierN(std::vector<Vec3> pts, float tolSq, int depth, Out& out) {
 // that supports `push_back(Vec3)` (e.g. a std::vector<Vec3>). Includes
 // both endpoints; emits at least two points even for a degenerate curve.
 template <class Out>
-TC_INTERNAL void tessellateCubicBezier(const Vec3& p0, const Vec3& p1,
+void tessellateCubicBezier(const Vec3& p0, const Vec3& p1,
                            const Vec3& p2, const Vec3& p3,
                            float tolerance, Out& out) {
     out.push_back(p0);
@@ -225,7 +225,7 @@ TC_INTERNAL void tessellateCubicBezier(const Vec3& p0, const Vec3& p1,
 }
 
 template <class Out>
-TC_INTERNAL void tessellateQuadBezier(const Vec3& p0, const Vec3& p1, const Vec3& p2,
+void tessellateQuadBezier(const Vec3& p0, const Vec3& p1, const Vec3& p2,
                           float tolerance, Out& out) {
     out.push_back(p0);
     if (tolerance <= 0.0f) tolerance = 0.1f;
@@ -236,7 +236,7 @@ TC_INTERNAL void tessellateQuadBezier(const Vec3& p0, const Vec3& p1, const Vec3
 // n == 3 or n == 4 the dedicated quad/cubic versions above are faster
 // and produce identical results — prefer them when the order is fixed.
 template <class Out>
-TC_INTERNAL void tessellateBezierN(const std::vector<Vec3>& pts, float tolerance, Out& out) {
+void tessellateBezierN(const std::vector<Vec3>& pts, float tolerance, Out& out) {
     if (pts.empty()) return;
     out.push_back(pts.front());
     if (pts.size() < 2) return;

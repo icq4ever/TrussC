@@ -180,15 +180,13 @@ function annotationsOf(node, file) {
         const ln = loc.line;
         if (!ln) continue;
         const text = (lines[ln - 1] || '') + ' ' + (lines[ln] || '');   // macro line (+next, in case the decl wraps)
-        let m = text.match(/\bTC_(INTERNAL|PLATFORMS|LUA_BIND)\b(?:\(\s*"([^"]*)")?/);
+        let m = text.match(/\bTC_(PLATFORMS|LUA_BIND)\b(?:\(\s*"([^"]*)")?/);
         if (m) {
-            if (m[1] === 'INTERNAL') out.internal = true;
-            else if (m[1] === 'PLATFORMS') out.platforms = _csv(m[2] || '');
+            if (m[1] === 'PLATFORMS') out.platforms = _csv(m[2] || '');
             else if (m[1] === 'LUA_BIND') out.lua_bind = _csv(m[2] || '');
         } else if ((m = text.match(/clang::annotate\(\s*"tc:([^"]*)"/))) {
             const s = m[1];
-            if (s === 'internal') out.internal = true;
-            else if (s.startsWith('platforms:')) out.platforms = _csv(s.slice(10));
+            if (s.startsWith('platforms:')) out.platforms = _csv(s.slice(10));
             else if (s.startsWith('lua_bind:')) out.lua_bind = _csv(s.slice(9));
         }
     }
@@ -261,7 +259,7 @@ function enumerate(objs) {
 // --- 3. visibility + symbol-id grammar --------------------------------------
 const HIDDEN = ['internal', 'mcp', 'headless', 'hot_reload', 'console', 'bitmapfont'];
 const nsSegs = (ns) => (ns || '').split('::').filter(x => x && x !== 'trussc' && x !== '(anon)');
-const isHidden = (s) => (s.ann && s.ann.internal) || nsSegs(s.ns).some(seg => HIDDEN.includes(seg));   // TC_INTERNAL or hidden namespace
+const isHidden = (s) => nsSegs(s.ns).some(seg => HIDDEN.includes(seg));   // hidden namespace (internal::, mcp::, …); per-symbol hide is doc-side (`hide = true`)
 const nsPrefix = (s) => nsSegs(s.ns).join('::');
 const isTc = (f) => /core\/include\/(tc\/|tc[A-Z]\w*\.h|TrussC\.h)/.test(f || '');
 const noise = (s) => (s.flags || []).some(f => ['implicit', 'defaulted', 'deleted'].includes(f))

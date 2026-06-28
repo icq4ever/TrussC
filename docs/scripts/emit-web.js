@@ -190,7 +190,7 @@ function opCpp(op, owner) {
 // yaml sidecar (matched by symbol) until prose moves to the toml.
 function mapOperators(owner, ym) {
     const ops = [];
-    for (const e of Object.values(REF)) {
+    for (const e of Object.values(REF).filter(x => !x.hidden)) {
         const sig = e.signatures && e.signatures[0];
         if (!sig) continue;
         const isMember = e.kind === 'method' && e.owner === owner && /^operator/.test(e.name || '');
@@ -253,7 +253,7 @@ function buildExamplesMap() {
         return {};
     }
     const funcs = new Set(), types = new Set(), excluded = new Set();
-    for (const e of Object.values(REF)) {
+    for (const e of Object.values(REF).filter(x => !x.hidden)) {
         if (e.kind === 'func') {
             if (e.category === 'lifecycle' || e.category === 'events') excluded.add(e.name);
             else funcs.add(e.name);
@@ -298,7 +298,7 @@ function buildExamplesMap() {
 // language keywords and the color palette. The output JSON shape is unchanged.
 function build(examplesMap) {
     const version = getVersion();
-    const REF_VALS = Object.values(REF);
+    const REF_VALS = Object.values(REF).filter(e => !e.hidden);   // `hide = true` symbols: in the data for CI/luagen, never in the public reference
 
     // operator member/free fns are rendered via the yaml operator schema (under
     // their owning type/enum), never as plain function/method entries.

@@ -255,7 +255,7 @@ inline void appendCatmullRomSegment_(const Vec3& p0, const Vec3& p1,
 // thousands. If you really need more, your art tool is doing something
 // the framework wasn't designed for; split into multiple appendCurve
 // calls, or batch-tessellate yourself.
-TC_INTERNAL inline constexpr int kAppendCurveMaxPoints = 100000;
+inline constexpr int kAppendCurveMaxPoints = 100000;
 
 // Append a chained Catmull-Rom curve through `points`. Emits (N-3)
 // segments; needs N >= 4. Tangent points (first and last) are NOT

@@ -261,7 +261,7 @@ public:
     }
 
     // Execute a deferred draw (called from present())
-    TC_INTERNAL void executeDeferredDraw(const std::vector<ShaderVertex>& vertices, PrimitiveType type) {
+    void executeDeferredDraw(const std::vector<ShaderVertex>& vertices, PrimitiveType type) {
         if (vertices.empty()) return;
 
         // Ensure pipeline and uniforms are applied (FBO-aware: deferred draws run

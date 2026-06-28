@@ -14810,3 +14810,108 @@ description.ko = "정규 pos/delta 값을 폐기 예정인 x/y/deltaX/deltaY 미
 description.en = "Copy the canonical scroll field into the deprecated scrollX/scrollY mirror fields (legacy mirrors scheduled for removal in v1.0)."
 description.ja = "正規の scroll を非推奨の scrollX/scrollY ミラーフィールドにコピーする（レガシーミラーは v1.0 で削除予定）。"
 description.ko = "정규 scroll 값을 폐기 예정인 scrollX/scrollY 미러 필드로 복사한다(레거시 미러는 v1.0에서 제거 예정)."
+
+# ── hide = true: public C++ but not user API (internal plumbing). Kept in the
+# data so CI/luagen still see the symbol; excluded from the rendered reference.
+
+["beginFrame"]
+hide = true
+
+["ensureSwapchainPass"]
+hide = true
+
+["present"]
+hide = true
+
+["isInSwapchainPass"]
+hide = true
+
+["suspendSwapchainPass"]
+hide = true
+
+["resumeSwapchainPass"]
+hide = true
+
+["restoreBlendPipeline"]
+hide = true
+
+["ensureFontAtlas"]
+hide = true
+
+["ensureFontAtlasForText"]
+hide = true
+
+["buildAppDescriptor"]
+hide = true
+
+["toSokolFormat"]
+hide = true
+
+["tessellateCubicBezier"]
+hide = true
+
+["tessellateQuadBezier"]
+hide = true
+
+["tessellateBezierN"]
+hide = true
+
+["reflectOneBase"]
+hide = true
+
+["reflectBases"]
+hide = true
+
+["reflectValue"]
+hide = true
+
+["tcEnumLabelsAdl"]
+hide = true
+
+["App::handleKeyPressed"]
+hide = true
+
+["App::handleKeyReleased"]
+hide = true
+
+["App::handleMousePressed"]
+hide = true
+
+["App::handleMouseReleased"]
+hide = true
+
+["App::handleMouseMoved"]
+hide = true
+
+["App::handleMouseDragged"]
+hide = true
+
+["App::handleMouseScrolled"]
+hide = true
+
+["App::handleWindowResized"]
+hide = true
+
+["App::handleUpdate"]
+hide = true
+
+["App::handleDraw"]
+hide = true
+
+["Shader::executeDeferredDraw"]
+hide = true
+
+["kMinCircleSegments"]
+hide = true
+
+["kMaxCircleSegments"]
+hide = true
+
+["kBezierMaxDepth"]
+hide = true
+
+["kBezierMaxOrder"]
+hide = true
+
+["kAppendCurveMaxPoints"]
+hide = true

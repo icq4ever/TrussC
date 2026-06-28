@@ -380,7 +380,7 @@ namespace internal {
     void resizeSgl(int newMaxVertices, int newMaxCommands);
 }
 
-TC_INTERNAL inline void beginFrame() {
+inline void beginFrame() {
     // Skip in headless mode (no graphics context)
     if (headless::isActive()) return;
 
@@ -421,19 +421,19 @@ namespace internal { void flushDeferredShaderDraws(); }
 
 // Ensure swapchain pass is active (starts if needed)
 // Safe to call multiple times — only starts once.
-TC_INTERNAL void ensureSwapchainPass();
+void ensureSwapchainPass();
 
 // End pass and commit (call at end of draw)
-TC_INTERNAL void present();
+void present();
 
 // Get swapchain pass state (for FBO)
-TC_INTERNAL bool isInSwapchainPass();
+bool isInSwapchainPass();
 
 // Suspend swapchain pass (for FBO begin/end during draw)
-TC_INTERNAL void suspendSwapchainPass();
+void suspendSwapchainPass();
 
 // Resume swapchain pass (for FBO)
-TC_INTERNAL void resumeSwapchainPass();
+void resumeSwapchainPass();
 
 // ---------------------------------------------------------------------------
 // Color settings (delegated to RenderContext)
@@ -608,7 +608,7 @@ inline void resetBlendMode() {
 }
 
 // Restore current blend mode pipeline (use after temporary pipeline changes)
-TC_INTERNAL inline void restoreBlendPipeline() {
+inline void restoreBlendPipeline() {
     internal::loadPipeline(internal::active2D(internal::currentBlendMode));
 }
 
@@ -1083,7 +1083,7 @@ inline void getBitmapStringBounds(const std::string& text, float& width, float& 
 // The image is created with `usage.dynamic_update = true` so sg_update_image
 // is allowed.
 uint64_t getFrameCount();  // forward decl — defined in Time section below
-TC_INTERNAL inline void ensureFontAtlas(int rows) {
+inline void ensureFontAtlas(int rows) {
     if (rows <= 0) return;
     if (!internal::fontInitialized) return;  // pipeline/sampler not ready yet
     const uint64_t curRegistry = bitmapfont::internal::registryVersion;
@@ -1154,7 +1154,7 @@ TC_INTERNAL inline void ensureFontAtlas(int rows) {
 
 // Grow the atlas to fit every glyph used by `text`. No-op if already large
 // enough. Called automatically by drawBitmapString implementations.
-TC_INTERNAL inline void ensureFontAtlasForText(const std::string& text) {
+inline void ensureFontAtlasForText(const std::string& text) {
     int needed = bitmapfont::textRequiredRows(text.data(), text.data() + text.size());
     if (needed > 0) ensureFontAtlas(needed);
 }
@@ -2532,7 +2532,7 @@ namespace internal {
 // Build sapp_desc without starting the event loop.
 // Used by runApp() on desktop and by sokol_main() on Android.
 template<typename AppClass>
-TC_INTERNAL sapp_desc buildAppDescriptor(const WindowSettings& settings = WindowSettings()) {
+sapp_desc buildAppDescriptor(const WindowSettings& settings = WindowSettings()) {
     // Set pixel perfect mode
     internal::pixelPerfectMode = settings.pixelPerfect;
 

@@ -105,6 +105,7 @@ let body = '', count = 0;
 for (const id of Object.keys(data)) {
     const e = data[id];
     if (e.kind !== 'func') continue;
+    if (e.hidden) { skip.hidden = (skip.hidden || 0) + 1; continue; }   // `hide = true`: public C++ but not API, don't bind
     if (e.owner) { skip.member++; continue; }    // type member -> Phase 2
     if (e.ns) { skip.ns++; continue; }           // sub-namespaced -> Phase 2 (Lua tables)
     const s = emit(e);
