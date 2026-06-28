@@ -211,18 +211,21 @@ public:
         storeUniform(slot, data, size);
     }
 
+protected:
+    // Internal uniform plumbing — protected so Shader subclasses can reuse it.
     // Store uniform data for later application
-    TC_INTERNAL void storeUniform(int slot, const void* data, size_t size) {
+    void storeUniform(int slot, const void* data, size_t size) {
         pendingUniforms[slot].assign((const uint8_t*)data, (const uint8_t*)data + size);
     }
 
     // Apply all stored uniforms
-    TC_INTERNAL void applyUniforms() {
+    void applyUniforms() {
         for (auto& [slot, data] : pendingUniforms) {
             sg_range range = { data.data(), data.size() };
             sg_apply_uniforms(slot, &range);
         }
     }
+public:
 
     // -------------------------------------------------------------------------
     // Texture binding
