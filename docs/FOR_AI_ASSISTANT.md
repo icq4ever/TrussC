@@ -754,18 +754,18 @@ _Auto-generated C++ API index from `reference-data.json` (structure from the C++
 ### Lifecycle
 
 ```cpp
-int runApp(const WindowSettings & settings = …)  // Start the application main loop. Called from main()
+int runApp(const WindowSettings & settings = WindowSettings())  // Start the application main loop. Called from main()
 ```
 
 ### Graphics - Color
 
 ```cpp
-void clear(float r, float g, float b, float a = …) [+3]  // Clear screen. No args = transparent black (0,0,0,0)
+void clear(float r, float g, float b, float a = 1.0) [+3]  // Clear screen. No args = transparent black (0,0,0,0)
 float linearToSrgb(float x)  // Convert a single linear RGB channel value to sRGB
-void setColor(float r, float g, float b, float a = …) [+2]  // Set drawing color (0.0-1.0)
-void setColorHSB(float h, float s, float b, float a = …)  // Set color from HSB (H: 0-1)
-void setColorOKLab(float L, float a_lab, float b_lab, float alpha = …)  // Set color from OKLab
-void setColorOKLCH(float L, float C, float H, float alpha = …)  // Set color from OKLCH
+void setColor(float r, float g, float b, float a = 1.0) [+2]  // Set drawing color (0.0-1.0)
+void setColorHSB(float h, float s, float b, float a = 1.0)  // Set color from HSB (H: 0-1)
+void setColorOKLab(float L, float a_lab, float b_lab, float alpha = 1.0)  // Set color from OKLab
+void setColorOKLCH(float L, float C, float H, float alpha = 1.0)  // Set color from OKLCH
 float srgbToLinear(float x)  // Convert a single sRGB channel value to linear RGB
 ```
 
@@ -779,11 +779,11 @@ void beginShape()  // Begin drawing a shape
 void beginStroke()  // Begin drawing a stroke (uses StrokeMesh internally)
 void drawArc(Vec3 center, float radius, float angleBegin, float angleEnd) [+1]  // Draw arc (partial circle, angles in radians)
 void drawBezier(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) [+2]  // Draw bezier curve (cubic with 4 points, quadratic with 3, or N-th order via vector)
-void drawBitmapString(const std::string & text, Vec3 pos, bool screenFixed = …) [+5]  // Draw text
-void drawBitmapStringHighlight(const std::string & text, float x, float y, const Color & background = …, const Color & foreground = …)  // Draw text with background highlight
+void drawBitmapString(const std::string & text, Vec3 pos, bool screenFixed = true) [+5]  // Draw text
+void drawBitmapStringHighlight(const std::string & text, float x, float y, const Color & background = Color(0, 0, 0), const Color & foreground = Color(1, 1, 1))  // Draw text with background highlight
 void drawBox(float w, float h, float d) [+5]  // Draw 3D box (respects fill/noFill)
 void drawCircle(Vec3 center, float radius) [+1]  // Draw circle
-void drawCone(float radius, float height, int resolution = …) [+2]  // Draw 3D cone (respects fill/noFill)
+void drawCone(float radius, float height, int resolution = 16) [+2]  // Draw 3D cone (respects fill/noFill)
 void drawCurve(Vec3 p0, Vec3 p1, Vec3 p2, Vec3 p3) [+2]  // Draw Catmull-Rom curve (4 control points draw p1->p2; vector chains segments passing through interior points; closed=true wraps around)
 void drawEllipse(Vec3 center, Vec2 radii) [+2]  // Draw ellipse
 void drawLine(Vec3 p1, Vec3 p2) [+2]  // Draw line (2D or 3D)
@@ -791,12 +791,12 @@ void drawPoint(Vec3 pos) [+1]  // Draw a single point
 void drawRect(Vec3 pos, Vec2 size) [+2]  // Draw rectangle
 void drawRectRounded(Vec3 pos, Vec2 size, float radius) [+1]  // Draw rounded rectangle (circular arc corners)
 void drawRectSquircle(Vec3 pos, Vec2 size, float radius) [+1]  // Draw squircle rectangle (curvature-continuous corners, iOS-style)
-void drawSphere(float radius, int resolution = …) [+2]  // Draw 3D sphere (respects fill/noFill)
+void drawSphere(float radius, int resolution = 16) [+2]  // Draw 3D sphere (respects fill/noFill)
 void drawStroke(float x1, float y1, float x2, float y2) [+1]  // Draw a single stroke segment (thick line with cap/join)
 void drawTriangle(Vec3 p1, Vec3 p2, Vec3 p3) [+1]  // Draw triangle
 void endLines()  // End batch line drawing and render all accumulated line segments
-void endShape(bool close = …)  // End drawing a shape
-void endStroke(bool close = …)  // End drawing a stroke
+void endShape(bool close = false)  // End drawing a shape
+void endStroke(bool close = false)  // End drawing a stroke
 float getBitmapFontHeight()  // Get bitmap font height
 float getBitmapLineHeight()  // Get line height for bitmap string newlines
 Rect getBitmapStringBBox(const std::string & text)  // Get text bounding box
@@ -873,8 +873,8 @@ void translate(Vec3 pos) [+2]  // Move origin
 
 ```cpp
 void alertDialog(const std::string & title, const std::string & message) [macos,windows,linux,android,web]  // Show alert dialog with OK button
-void alertDialogAsync(const std::string & title, const std::string & message, std::function<void ()> callback = …)  // Show alert dialog asynchronously. Callback is called when dismissed
-void bindCursorImage(Cursor cursor, int width, int height, const unsigned char * pixels, int hotspotX = …, int hotspotY = …) [+1]  // Bind a custom image to a cursor slot (RGBA pixels or Image)
+void alertDialogAsync(const std::string & title, const std::string & message, std::function<void ()> callback = std::function<void ()>(nullptr))  // Show alert dialog asynchronously. Callback is called when dismissed
+void bindCursorImage(Cursor cursor, int width, int height, const unsigned char * pixels, int hotspotX = 0, int hotspotY = 0) [+1]  // Bind a custom image to a cursor slot (RGBA pixels or Image)
 bool confirmDialog(const std::string & title, const std::string & message) [macos,windows,linux,android,web]  // Show Yes/No confirmation dialog. Returns true if Yes clicked
 void confirmDialogAsync(const std::string & title, const std::string & message, std::function<void (bool)> callback)  // Show Yes/No dialog asynchronously. Callback receives true if Yes clicked
 CoreEvents & events()  // Get the global CoreEvents hub holding all framework events (setup, update, draw, keyPressed, mousePressed, etc.); use events().eventName.listen(callback) to subscribe
@@ -902,10 +902,10 @@ bool isOverlayFocused()  // True when an overlay currently owns keyboard focus (
 bool isOverlayHovered()  // True when an overlay currently has the pointer over it (e.g. cursor over a tcxImGui panel); guard raw mouse input so clicks on UI panels are not also handled by the app
 bool isShiftPressed()  // True while either Shift key (left or right) is held
 bool isSuperPressed()  // True while either Super / Cmd / Win key (left or right) is held
-FileDialogResult loadDialog(const std::string & title = …, const std::string & message = …, const std::string & defaultPath = …, bool folderSelection = …) [macos,windows,linux,android]  // Show file open dialog. Returns FileDialogResult with filePath, fileName, success
+FileDialogResult loadDialog(const std::string & title = std::string(""), const std::string & message = std::string(""), const std::string & defaultPath = std::string(""), bool folderSelection = false) [macos,windows,linux,android]  // Show file open dialog. Returns FileDialogResult with filePath, fileName, success
 void loadDialogAsync(const std::string & title, const std::string & message, const std::string & defaultPath, bool folderSelection, std::function<void (const FileDialogResult &)> callback)  // Show file open dialog asynchronously. Callback receives FileDialogResult
 void requestExitApp()  // Request application exit. Can be cancelled by listening to events().exitRequested and setting args.cancel = true
-FileDialogResult saveDialog(const std::string & title = …, const std::string & message = …, const std::string & defaultPath = …, const std::string & defaultName = …) [macos,windows,linux,android]  // Show file save dialog. Returns FileDialogResult with filePath, fileName, success
+FileDialogResult saveDialog(const std::string & title = std::string(""), const std::string & message = std::string(""), const std::string & defaultPath = std::string(""), const std::string & defaultName = std::string("")) [macos,windows,linux,android]  // Show file save dialog. Returns FileDialogResult with filePath, fileName, success
 void saveDialogAsync(const std::string & title, const std::string & message, const std::string & defaultPath, const std::string & defaultName, std::function<void (const FileDialogResult &)> callback)  // Show file save dialog asynchronously. Callback receives FileDialogResult
 void setCursor(Cursor cursor)  // Set the mouse cursor shape
 void setTouchAsMouse(bool enabled)  // Enable/disable touch events firing as mouse events (for Android/iOS)
@@ -1002,7 +1002,7 @@ int getYear()  // Current year
 ### Math - Random & Noise
 
 ```cpp
-float fbm(float x, float y, int octaves = …, float lacunarity = …, float gain = …) [+1]  // Fractal Brownian Motion noise
+float fbm(float x, float y, int octaves = 4, float lacunarity = 2.0, float gain = 0.5) [+1]  // Fractal Brownian Motion noise
 float noise(float x) [+6]  // Perlin noise
 float random() [+2]  // Random number
 int randomInt(int max) [+1]  // Random integer
@@ -1093,8 +1093,8 @@ bool isFullscreen()  // Check if window is fullscreen
 bool isRecording()  // Check whether a recording is in progress
 int recordingFrameCount()  // Number of frames captured so far in the current recording
 const std::string & recordingPath()  // Output file path of the current recording
-void redraw(int count = …)  // Request extra redraws (useful for event-driven rendering)
-int runHeadlessApp(const HeadlessSettings & settings = …)  // Run an app class without a window or graphics context (update loop only). Template on the app type; returns the process exit code
+void redraw(int count = 1)  // Request extra redraws (useful for event-driven rendering)
+int runHeadlessApp(const HeadlessSettings & settings = HeadlessSettings())  // Run an app class without a window or graphics context (update loop only). Template on the app type; returns the process exit code
 bool saveScreenshot(const std::filesystem::path & path)  // Save a screenshot of the rendered frame (png/jpg/bmp). Safe to call from anywhere; capture is deferred to after present(). Returns true when the destination was prepared and the capture queued (parent dir created/writable), not that the file is already written.
 void setClipboardString(const std::string & text)  // Copy text to clipboard
 void setFullscreen(bool full)  // Set fullscreen mode
@@ -1106,7 +1106,7 @@ void setWindowPosition(int x, int y) [macos,windows]  // Set window position in 
 void setWindowSize(int width, int height)  // Set window size
 void setWindowSizeLogical(int width, int height)  // Resize the window to the given logical size (logical pixels)
 void setWindowTitle(const std::string & title)  // Set window title
-bool startRecording(const std::string & path, const VideoRecordSettings & settings = …) [macos,windows,linux,android,ios]  // Start recording the window to a video file (native encoder, no ffmpeg)
+bool startRecording(const std::string & path, const VideoRecordSettings & settings = {}) [macos,windows,linux,android,ios]  // Start recording the window to a video file (native encoder, no ffmpeg)
 void stopRecording()  // Stop the current recording and finalize the file
 void toggleFullscreen()  // Toggle fullscreen mode
 ```
@@ -1127,13 +1127,13 @@ void intersectRect(float x1, float y1, float w1, float h1, float x2, float y2, f
 bool isMainThread()  // Whether the calling thread is the main (scene) thread. The main thread ID is recorded on the first call to getMainThreadId().
 bool isStringInString(const std::string & haystack, const std::string & needle)  // Check whether one string contains another
 std::string joinString(const std::vector<std::string> & stringElements, const std::string & delimiter)  // Join strings with delimiter
-LogStream logAt(LogLevel level = …)  // Stream-based log output at a runtime-selected level
-LogStream logError(const std::string & module = …)  // Stream-based error-level log output
-LogStream logFatal(const std::string & module = …)  // Stream-based fatal-level log output
+LogStream logAt(LogLevel level = Notice)  // Stream-based log output at a runtime-selected level
+LogStream logError(const std::string & module = std::string(""))  // Stream-based error-level log output
+LogStream logFatal(const std::string & module = std::string(""))  // Stream-based fatal-level log output
 const char * logLevelToString(LogLevel level)  // Return the uppercase name of a log level (e.g. "NOTICE", "WARNING") 
-LogStream logNotice(const std::string & module = …)  // Print to console
-LogStream logVerbose(const std::string & module = …)  // Stream-based verbose-level log output
-LogStream logWarning(const std::string & module = …)  // Stream-based warning-level log output
+LogStream logNotice(const std::string & module = std::string(""))  // Print to console
+LogStream logVerbose(const std::string & module = std::string(""))  // Stream-based verbose-level log output
+LogStream logWarning(const std::string & module = std::string(""))  // Stream-based warning-level log output
 Json nodeToJson(Node & node, int maxDepth)  // Serialize a node (and its subtree up to maxDepth; -1 = unlimited) to JSON via reflection
 Json parseJson(const std::string & str)  // Parse a JSON string into a Json object; returns an empty Json on parse error.
 Xml parseXml(const std::string & str)  // Parse an XML string into an Xml object.
@@ -1144,17 +1144,17 @@ void setConsoleLogLevel(LogLevel level)  // Set the minimum log level printed to
 void setFileLogLevel(LogLevel level)  // Set the minimum log level written to the log file
 bool setLogFile(const std::string & path)  // Open a file to receive log output
 const std::string & shortTypeName(const std::type_info & ti)  // Short (unqualified) readable name for a type, cached per type
-std::vector<std::string> splitString(const std::string & source, const std::string & delimiter, bool ignoreEmpty = …, bool trim = …)  // Split string by delimiter
+std::vector<std::string> splitString(const std::string & source, const std::string & delimiter, bool ignoreEmpty = false, bool trim = false)  // Split string by delimiter
 void stringReplace(std::string & input, const std::string & searchStr, const std::string & replaceStr)  // Replace substring in place
 std::size_t stringTimesInString(const std::string & haystack, const std::string & needle)  // Count occurrences of a substring in a string
 void tcCloseLogFile() ⚠️deprecated  // Deprecated alias for closeLogFile()
 Logger & tcGetLogger() ⚠️deprecated  // Deprecated alias for getLogger()
-LogStream tcLog(LogLevel level = …) ⚠️deprecated  // Deprecated alias for logAt()
-LogStream tcLogError(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logError()
-LogStream tcLogFatal(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logFatal()
-LogStream tcLogNotice(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logNotice()
-LogStream tcLogVerbose(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logVerbose()
-LogStream tcLogWarning(const std::string & module = …) ⚠️deprecated  // Deprecated alias for logWarning()
+LogStream tcLog(LogLevel level = Notice) ⚠️deprecated  // Deprecated alias for logAt()
+LogStream tcLogError(const std::string & module = std::string("")) ⚠️deprecated  // Deprecated alias for logError()
+LogStream tcLogFatal(const std::string & module = std::string("")) ⚠️deprecated  // Deprecated alias for logFatal()
+LogStream tcLogNotice(const std::string & module = std::string("")) ⚠️deprecated  // Deprecated alias for logNotice()
+LogStream tcLogVerbose(const std::string & module = std::string("")) ⚠️deprecated  // Deprecated alias for logVerbose()
+LogStream tcLogWarning(const std::string & module = std::string("")) ⚠️deprecated  // Deprecated alias for logWarning()
 void tcSetConsoleLogLevel(LogLevel level) ⚠️deprecated  // Deprecated alias for setConsoleLogLevel()
 void tcSetFileLogLevel(LogLevel level) ⚠️deprecated  // Deprecated alias for setFileLogLevel()
 bool tcSetLogFile(const std::string & path) ⚠️deprecated  // Deprecated alias for setLogFile()
@@ -1166,7 +1166,7 @@ float toFloat(const std::string & str)  // Convert string to float
 std::string toHex(const T & value) [+2]  // Convert an integer (zero-padded to width) or string bytes to a hexadecimal string
 int toInt(const std::string & str)  // Convert string to int
 int64_t toInt64(const std::string & str)  // Parse a string into a 64-bit integer
-std::string toJsonString(const Json & j, int indent = …)  // Serialize a Json object to a string. indent sets the pretty-print width (negative for compact).
+std::string toJsonString(const Json & j, int indent = 2)  // Serialize a Json object to a string. indent sets the pretty-print width (negative for compact).
 std::string toLower(const std::string & src)  // Convert to lower case
 std::string toString(const T & value) [+4]  // Convert to string
 std::string toUpper(const std::string & src)  // Convert to upper case
@@ -1199,7 +1199,7 @@ Json loadJson(const std::string & path)  // Load a JSON file and return it as a 
 std::string loadTextFile(const std::string & path)  // Load entire text file
 Xml loadXml(const std::string & path)  // Load an XML file and return it as an Xml object. Relative paths are resolved via getDataPath.
 bool removeFile(const std::string & path)  // Remove file
-bool saveJson(const Json & j, const std::string & path, int indent = …)  // Write a Json object to a file. Relative paths are resolved via getDataPath. indent sets the pretty-print width (negative for compact). Returns true on success.
+bool saveJson(const Json & j, const std::string & path, int indent = 2)  // Write a Json object to a file. Relative paths are resolved via getDataPath. indent sets the pretty-print width (negative for compact). Returns true on success.
 bool saveTextFile(const std::string & path, const std::string & content)  // Save string to text file
 void setDataPathRoot(const std::string & path)  // Set the root directory used to resolve relative data paths. A relative path is resolved against the executable directory; an absolute path (starting with /) is used as-is. A trailing slash is added automatically.
 void setDataPathToResources() [macos,ios]  // Point the data path root at the macOS app bundle's Contents/Resources/data folder for distribution. No-op on non-macOS platforms.
@@ -1241,10 +1241,10 @@ float easeOut(float t, EaseType type)  // Apply ease-out to value (0-1)
 ### Types - Color
 
 ```cpp
-Color colorFromHSB(float h, float s, float b, float a = …) ⚠️deprecated  // Create Color from HSB (alias for Color::fromHSB)
-Color colorFromLinear(float r, float g, float b, float a = …) ⚠️deprecated  // Deprecated alias for Color::fromLinear()
-Color colorFromOKLab(float L, float a_lab, float b_lab, float alpha = …) ⚠️deprecated  // Deprecated alias for Color::fromOKLab()
-Color colorFromOKLCH(float L, float C, float H, float a = …) ⚠️deprecated  // Deprecated alias for Color::fromOKLCH()
+Color colorFromHSB(float h, float s, float b, float a = 1.0) ⚠️deprecated  // Create Color from HSB (alias for Color::fromHSB)
+Color colorFromLinear(float r, float g, float b, float a = 1.0) ⚠️deprecated  // Deprecated alias for Color::fromLinear()
+Color colorFromOKLab(float L, float a_lab, float b_lab, float alpha = 1.0) ⚠️deprecated  // Deprecated alias for Color::fromOKLab()
+Color colorFromOKLCH(float L, float C, float H, float a = 1.0) ⚠️deprecated  // Deprecated alias for Color::fromOKLCH()
 ```
 
 ### Scene Graph
@@ -1260,15 +1260,15 @@ void setSelectedNode(Node * n)  // Set the currently selected node. Pass nullptr
 ```cpp
 void disable3D() ⚠️deprecated  // Deprecated alias for setupScreenOrtho()
 void enable3D() ⚠️deprecated  // Deprecated alias for setupScreenPerspective()
-void enable3DPerspective(float fovY = …, float nearZ = …, float farZ = …) ⚠️deprecated  // Deprecated alias for setupScreenPerspective()
+void enable3DPerspective(float fovY = 0.785000026, float nearZ = 0.100000001, float farZ = 1000.0) ⚠️deprecated  // Deprecated alias for setupScreenPerspective()
 float getDefaultScreenFov()  // Get current default screen FOV
-Vec3 screenToWorld(const Vec2 & screenPos, float worldZ = …)  // Convert screen coordinate to world coordinate on Z plane
+Vec3 screenToWorld(const Vec2 & screenPos, float worldZ = 0.0)  // Convert screen coordinate to world coordinate on Z plane
 void setDefaultScreenFov(float fovDeg)  // Set default screen FOV (applied at frame start)
 void setFarClip(float farDist)  // Set the default-screen far clipping plane (0 = auto-calculate)
 void setNearClip(float nearDist)  // Set the default-screen near clipping plane (0 = auto-calculate)
-void setupScreenFov(float fovDeg, float nearDist = …, float farDist = …)  // Set up screen projection with specified FOV (0 = ortho, >0 = perspective)
+void setupScreenFov(float fovDeg, float nearDist = 0.0, float farDist = 0.0)  // Set up screen projection with specified FOV (0 = ortho, >0 = perspective)
 void setupScreenOrtho()  // Set up orthographic projection (2D mode)
-void setupScreenPerspective(float fovDeg = …, float nearDist = …, float farDist = …)  // Set up perspective projection (oF-style default 3D)
+void setupScreenPerspective(float fovDeg = 45.0, float nearDist = 0.0, float farDist = 0.0)  // Set up perspective projection (oF-style default 3D)
 Vec3 worldToScreen(const Vec3 & worldPos)  // Convert a world coordinate to screen coordinate (x, y = screen pixels, z = depth 0-1)
 ```
 
@@ -1303,13 +1303,13 @@ void shadowDraw(const Mesh & mesh)  // Draw a mesh into the shadow depth pass (d
 
 ```cpp
 Mesh createBox(float width, float height, float depth) [+1]  // Create a box mesh
-Mesh createCapsule(float radius, float cylinderHeight, int resolution = …)  // Create a capsule mesh (Y-up: cylinder capped by two hemispheres)
-Mesh createCone(float radius, float height, int resolution = …)  // Create a cone mesh
-Mesh createCylinder(float radius, float height, int resolution = …)  // Create a cylinder mesh
-Mesh createIcoSphere(float radius, int subdivisions = …)  // Create an icosphere mesh (geodesic sphere with uniform triangles)
-Mesh createPlane(float width, float height, int cols = …, int rows = …)  // Create a plane mesh (subdivided quad on the XY plane)
-Mesh createSphere(float radius, int resolution = …)  // Create a sphere mesh
-Mesh createTorus(float radius, float tubeRadius, int sides = …, int rings = …)  // Create a torus (donut) mesh
+Mesh createCapsule(float radius, float cylinderHeight, int resolution = 16)  // Create a capsule mesh (Y-up: cylinder capped by two hemispheres)
+Mesh createCone(float radius, float height, int resolution = 16)  // Create a cone mesh
+Mesh createCylinder(float radius, float height, int resolution = 16)  // Create a cylinder mesh
+Mesh createIcoSphere(float radius, int subdivisions = 2)  // Create an icosphere mesh (geodesic sphere with uniform triangles)
+Mesh createPlane(float width, float height, int cols = 2, int rows = 2)  // Create a plane mesh (subdivided quad on the XY plane)
+Mesh createSphere(float radius, int resolution = 16)  // Create a sphere mesh
+Mesh createTorus(float radius, float tubeRadius, int sides = 24, int rings = 16)  // Create a torus (donut) mesh
 ```
 
 ### Graphics - Texture & GPU
@@ -1522,20 +1522,20 @@ float ChipSoundNote::getTotalDuration() const  // Total note duration in seconds
 
 ```cpp
 Color Color::clamped() const  // Get clamped copy (0.0-1.0)
-Color Color::fromBytes(int r, int g, int b, int a = …)  // Create from 0-255 values
-Color Color::fromHex(uint32_t hex, bool hasAlpha = …)  // Create from hex value
-Color Color::fromHSB(float h, float s, float b, float a = …)  // Create from HSB (H: 0-1)
-Color Color::fromLinear(float r, float g, float b, float a = …)  // Create from linear RGB
-Color Color::fromOKLab(float L, float a_lab, float b_lab, float alpha = …)  // Create from OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
-Color Color::fromOKLCH(float L, float C, float H, float a = …)  // Create from OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
+Color Color::fromBytes(int r, int g, int b, int a = 255)  // Create from 0-255 values
+Color Color::fromHex(uint32_t hex, bool hasAlpha = false)  // Create from hex value
+Color Color::fromHSB(float h, float s, float b, float a = 1.0)  // Create from HSB (H: 0-1)
+Color Color::fromLinear(float r, float g, float b, float a = 1.0)  // Create from linear RGB
+Color Color::fromOKLab(float L, float a_lab, float b_lab, float alpha = 1.0)  // Create from OKLab (L: 0-1, a: ~-0.4-0.4, b: ~-0.4-0.4)
+Color Color::fromOKLCH(float L, float C, float H, float a = 1.0)  // Create from OKLCH (L: 0-1, C: 0-0.4, H: 0-1)
 Color Color::lerp(const Color & target, float t) const  // Interpolate in OKLab space
 Color Color::lerpHSB(const Color & target, float t) const  // Interpolate in HSB space
 Color Color::lerpLinear(const Color & target, float t) const  // Interpolate in linear RGB space
 Color Color::lerpOKLab(const Color & target, float t) const  // Interpolate in OKLab space (perceptually uniform)
 Color Color::lerpOKLCH(const Color & target, float t) const  // Interpolate in OKLCH space (shortest hue path)
 Color Color::lerpRGB(const Color & target, float t) const  // Interpolate in RGB space
-Color & Color::set(float r, float g, float b, float a = …) [+2]  // Set color components
-uint32_t Color::toHex(bool includeAlpha = …) const  // Convert to hex value
+Color & Color::set(float r, float g, float b, float a = 1.0) [+2]  // Set color components
+uint32_t Color::toHex(bool includeAlpha = false) const  // Convert to hex value
 ColorHSB Color::toHSB() const  // Convert to HSB (H: 0-1, S: 0-1, B: 0-1)
 ColorLinear Color::toLinear() const  // Convert to linear RGB color space
 ColorOKLab Color::toOKLab() const  // Convert to OKLab (perceptually uniform)
@@ -1545,7 +1545,7 @@ ColorOKLCH Color::toOKLCH() const  // Convert to OKLCH (L: 0-1, C: 0-0.4, H: 0-1
 ### ColorHSB — HSB color space (H/S/B: 0-1)
 
 ```cpp
-ColorHSB ColorHSB::lerp(const ColorHSB & target, float t, bool shortestPath = …) const  // Interpolate in HSB space (shortest hue path)
+ColorHSB ColorHSB::lerp(const ColorHSB & target, float t, bool shortestPath = true) const  // Interpolate in HSB space (shortest hue path)
 ColorLinear ColorHSB::toLinear() const  // Convert to linear RGB color space
 ColorOKLab ColorHSB::toOKLab() const  // Convert to OKLab color space
 ColorOKLCH ColorHSB::toOKLCH() const  // Convert to OKLCH color space
@@ -1567,7 +1567,7 @@ Color ColorLinear::toSRGB() const  // Convert to sRGB (gamma-encoded) Color
 ### ColorOKLCH — Perceptually uniform OKLCH color
 
 ```cpp
-ColorOKLCH ColorOKLCH::lerp(const ColorOKLCH & target, float t, bool shortestPath = …) const  // Interpolate in OKLCH space (shortest hue path, perceptually uniform)
+ColorOKLCH ColorOKLCH::lerp(const ColorOKLCH & target, float t, bool shortestPath = true) const  // Interpolate in OKLCH space (shortest hue path, perceptually uniform)
 ColorHSB ColorOKLCH::toHSB() const  // Convert to HSB color space
 ColorLinear ColorOKLCH::toLinear() const  // Convert to linear RGB color space
 ColorOKLab ColorOKLCH::toOKLab() const  // Convert to OKLab color space
@@ -1669,7 +1669,7 @@ void Environment::release()  // Release GPU resources
 
 ```cpp
 void Event::clear()  // Remove all listeners
-EventListener Event::listen(Callback callback, int priority = …) [+2] ⚠️deprecated  // Register a listener callback and return an EventListener token; lower priority runs first, and Deliver::Main runs the callback on the main thread
+EventListener Event::listen(Callback callback, int priority = App) [+2] ⚠️deprecated  // Register a listener callback and return an EventListener token; lower priority runs first, and Deliver::Main runs the callback on the main thread
 size_t Event::listenerCount() const  // Number of currently registered listeners
 void Event::notify(T & arg)  // Fire the event, calling all listeners in priority order (no argument for Event<void>); stops early if a listener marks an input arg consumed
 ```
@@ -1689,7 +1689,7 @@ bool EventListener::isConnected() const  // True while the listener is still con
 ### Fbo — Framebuffer object for offscreen rendering
 
 ```cpp
-void Fbo::allocate(int w, int h, int sampleCount = …, TextureFormat format = …, bool mipmaps = …)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
+void Fbo::allocate(int w, int h, int sampleCount = 1, TextureFormat format = RGBA8, bool mipmaps = false)  // Allocate framebuffer. `mipmaps=true` builds a full mip chain that is refreshed automatically at end().
 void Fbo::begin() [+1]  // Begin rendering to FBO
 void Fbo::clear()  // Release FBO resources
 void Fbo::clearColor(float r, float g, float b, float a)  // Clear the FBO with a solid color
@@ -1734,9 +1734,9 @@ size_t FileReader::tell()  // Get current position
 void FileWriter::close()  // Close file
 void FileWriter::flush()  // Flush buffer to disk
 bool FileWriter::isOpen() const  // Check if file is open
-bool FileWriter::open(const std::string & path, bool append = …)  // Open file for writing
+bool FileWriter::open(const std::string & path, bool append = false)  // Open file for writing
 FileWriter & FileWriter::write(const std::string & text) [+2]  // Write data to file
-FileWriter & FileWriter::writeLine(const std::string & text = …)  // Write line with newline
+FileWriter & FileWriter::writeLine(const std::string & text = std::string(""))  // Write line with newline
 ```
 
 ### Font — TrueType font for text rendering
@@ -1855,7 +1855,7 @@ bool IesProfile::loadFromString(const std::string & data)  // Load IES profile f
 ### Image — Image with CPU pixels and GPU texture
 
 ```cpp
-void Image::allocate(int width, int height, int channels = …, bool mipmaps = …)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
+void Image::allocate(int width, int height, int channels = 4, bool mipmaps = false)  // Allocate empty image for dynamic updates. `mipmaps=true` builds a chain refreshed on every update().
 void Image::clear()  // Release image resources
 void Image::crop(int x, int y, int w, int h)  // Crop to (w x h) region starting at (x, y). Out-of-bounds samples use clamp-to-edge.
 int Image::getChannels() const  // Get number of channels
@@ -1867,8 +1867,8 @@ Texture & Image::getTexture() [+1]  // Get internal texture
 int Image::getWidth() const  // Get width
 void Image::halve()  // Replace with 2x2 box-averaged half. Gamma-correct for U8.
 bool Image::isAllocated() const  // Check if allocated
-bool Image::load(const fs::path & path, bool mipmaps = …)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
-bool Image::loadFromMemory(const unsigned char * buffer, int len, bool mipmaps = …)  // Load image from memory. `mipmaps=true` builds a mip chain.
+bool Image::load(const fs::path & path, bool mipmaps = false)  // Load image from file. `mipmaps=true` builds a mip chain — recommended when the image will be sampled at varying scales (e.g. mapped onto a 3D surface).
+bool Image::loadFromMemory(const unsigned char * buffer, int len, bool mipmaps = false)  // Load image from memory. `mipmaps=true` builds a mip chain.
 void Image::mirror(bool horizontal, bool vertical)  // Flip the image. `horizontal=true` mirrors left-right; `vertical=true` mirrors top-bottom; both true is 180°.
 void Image::mirrorH()  // Mirror horizontally (alias for mirror(true, false))
 void Image::mirrorV()  // Mirror vertically (alias for mirror(false, true))
@@ -1911,11 +1911,11 @@ void LayoutMod::updateLayout()  // Recalculate layout (call after adding/removin
 
 ```cpp
 Color Light::calculate(const Vec3 & worldPos, const Vec3 & worldNormal, const Material & material, const Vec3 & viewPos) const  // Compute the CPU Phong lighting contribution at a world position/normal for a material
-Mat4 Light::computeProjectorViewProj(float nearClip = …, float farClip = …) const  // Build the projector's view-projection matrix from spot params and lens shift
+Mat4 Light::computeProjectorViewProj(float nearClip = 0.100000001, float farClip = 10000.0) const  // Build the projector's view-projection matrix from spot params and lens shift
 void Light::disable()  // Disable this light
 void Light::disableShadow()  // Disable shadow casting
 void Light::enable()  // Enable this light
-void Light::enableShadow(int resolution = …)  // Enable shadow casting (depth map at given resolution)
+void Light::enableShadow(int resolution = 1024)  // Enable shadow casting (depth map at given resolution)
 const Color & Light::getAmbient() const  // Get ambient light color
 float Light::getConstantAttenuation() const  // Get constant attenuation factor
 const Color & Light::getDiffuse() const  // Get diffuse (main) light color
@@ -1951,7 +1951,7 @@ void Light::setProjectionTexture(const Texture * tex)  // Set texture for projec
 void Light::setProjectorAspect(float a)  // Set projector aspect ratio
 void Light::setShadowBias(float bias)  // Set shadow depth bias in world units
 void Light::setSpecular(const Color & c) [+1]  // Set specular light color
-void Light::setSpot(const Vec3 & position, const Vec3 & direction, float innerHalfAngle = …, float outerHalfAngle = …) [+1]  // Set as spot light with cone angles
+void Light::setSpot(const Vec3 & position, const Vec3 & direction, float innerHalfAngle = 0.0, float outerHalfAngle = 0.785399973) [+1]  // Set as spot light with cone angles
 ```
 
 ### Location — GPS / WiFi location fix returned by getLocation()
@@ -2018,7 +2018,7 @@ Mat4 Mat4::transposed() const  // Get transposed matrix
 Material Material::bronze()  // Bronze material preset
 Material Material::copper()  // Copper material preset
 Material Material::emerald()  // Emerald material preset
-Material Material::fromPhong(const Color & diffuse, const Color & specular, float shininess, const Color & emissive = …)  // Convert Phong material parameters to PBR (roughness from shininess, metallic estimated from specular luminance)
+Material Material::fromPhong(const Color & diffuse, const Color & specular, float shininess, const Color & emissive = Color(0, 0, 0))  // Convert Phong material parameters to PBR (roughness from shininess, metallic estimated from specular luminance)
 float Material::getAo() const  // Get ambient occlusion factor
 const Color & Material::getBaseColor() const  // Get base color (albedo)
 const Texture * Material::getBaseColorTexture() const  // Get base color texture
@@ -2037,7 +2037,7 @@ bool Material::hasMetallicRoughnessTexture() const  // Check if a metallic-rough
 bool Material::hasNormalMap() const  // Check if a normal map is set
 bool Material::hasOcclusionTexture() const  // Check if an occlusion texture is set
 Material Material::iron()  // Iron material preset
-Material Material::plastic(const Color & baseColor, float roughness = …)  // Plastic material preset
+Material Material::plastic(const Color & baseColor, float roughness = 0.5)  // Plastic material preset
 Material Material::rubber(const Color & baseColor)  // Rubber material preset
 Material Material::ruby()  // Ruby material preset
 Material & Material::setAo(float ao)  // Set ambient occlusion factor
@@ -2063,10 +2063,10 @@ Mesh & Mesh::addIndex(unsigned int index)  // Add an index
 Mesh & Mesh::addIndices(const std::vector<unsigned int> & inds)  // Add multiple indices
 Mesh & Mesh::addNormal(float nx, float ny, float nz) [+1]  // Add a normal vector
 Mesh & Mesh::addNormals(const std::vector<Vec3> & norms)  // Add multiple normals
-Mesh & Mesh::addTangent(float tx, float ty, float tz, float tw = …) [+2]  // Add a tangent vector (xyz direction + w handedness)
+Mesh & Mesh::addTangent(float tx, float ty, float tz, float tw = 1.0) [+2]  // Add a tangent vector (xyz direction + w handedness)
 Mesh & Mesh::addTexCoord(float u, float v) [+1]  // Add a texture coordinate
 Mesh & Mesh::addTriangle(unsigned int i0, unsigned int i1, unsigned int i2)  // Add a triangle (3 indices)
-Mesh & Mesh::addVertex(float x, float y, float z = …) [+2]  // Add a vertex
+Mesh & Mesh::addVertex(float x, float y, float z = 0.0) [+2]  // Add a vertex
 Mesh & Mesh::addVertices(const std::vector<Vec3> & verts)  // Add multiple vertices
 Mesh & Mesh::append(const Mesh & other)  // Append another mesh
 Mesh & Mesh::clear()  // Clear all mesh data
@@ -2122,7 +2122,7 @@ void Mesh::uploadToGpu() const  // Upload mesh data to GPU buffers now
 size_t MicInput::getBuffer(float * outBuffer, size_t numSamples)  // Copy the latest captured samples into outBuffer. numSamples is capped at the ring buffer size (4096). Returns the number of samples written.
 int MicInput::getSampleRate() const  // Sample rate the microphone was opened at.
 bool MicInput::isRunning() const  // True while the microphone device is open and capturing.
-bool MicInput::start(int sampleRate = …)  // Open the microphone device at the given sample rate and begin capturing. Returns false on failure.
+bool MicInput::start(int sampleRate = DEFAULT_SAMPLE_RATE)  // Open the microphone device at the given sample rate and begin capturing. Returns false on failure.
 void MicInput::stop()  // Stop capture and close the microphone device.
 ```
 
@@ -2180,7 +2180,7 @@ const std::string & NetworkInterface::getNetmask() const  // Subnet mask
 ### Node — Base scene-graph node: transform hierarchy with parent/children, update/draw, input events and attachable Mods (C++ only, managed via shared_ptr / NodePtr)
 
 ```cpp
-void Node::addChild(Ptr child, bool keepGlobalPosition = …)  // Add a child node (C++ only)
+void Node::addChild(Ptr child, bool keepGlobalPosition = false)  // Add a child node (C++ only)
 uint64_t Node::callAfter(double delay, std::function<void ()> callback)  // Run callback once after delay seconds. Fired from the update loop (frame-quantized). Returns a timer id.
 uint64_t Node::callAfterAsync(double delay, std::function<void ()> callback) [macos,windows,linux,android,ios]  // Like callAfter, but fired by a precise background scheduler thread (no frame jitter). The callback runs OFF the main thread: guard shared state with a mutex, never draw from it, and don't cancel while holding that mutex. Native only (uses a real thread). Returns a timer id.
 uint64_t Node::callEvery(double interval, std::function<void ()> callback)  // Run callback repeatedly every interval seconds. Fired from the update loop (frame-quantized). Returns a timer id.
@@ -2234,7 +2234,7 @@ float Node::getZ() const  // Get local Z position (C++ only)
 Vec3 Node::globalToLocal(const Vec3 & global) const [+1] ⚠️deprecated  // Convert a global coordinate to this node's local space (C++ only)
 bool Node::hasName() const  // Whether an instance name has been set (C++ only)
 int Node::indexOfChild(const Node * child) const  // Index of the given child among this node's children (-1 if not a child) (C++ only)
-void Node::insertChild(size_t index, Ptr child, bool keepGlobalPosition = …)  // Insert a child node at a specific index (C++ only)
+void Node::insertChild(size_t index, Ptr child, bool keepGlobalPosition = false)  // Insert a child node at a specific index (C++ only)
 bool Node::isActive() const  // Whether the node is active (inactive: update and draw are skipped) (C++ only)
 bool Node::isDead() const  // Check if node is marked for destruction (C++ only)
 bool Node::isEventsEnabled() const  // Whether events are enabled (only such nodes are hit-test targets) (C++ only)
@@ -2275,7 +2275,7 @@ void Node::update()  // Called every frame before draw
 ```cpp
 void Path::addVertex(float x, float y) [+3]  // Add a vertex
 void Path::addVertices(const std::vector<Vec2> & verts) [+1]  // Add multiple vertices
-void Path::arc(const Vec3 & center, float radiusX, float radiusY, float angleBegin, float angleEnd, bool clockwise = …, int circleResolution = …) [+5]  // Add an arc (angles in radians)
+void Path::arc(const Vec3 & center, float radiusX, float radiusY, float angleBegin, float angleEnd, bool clockwise = true, int circleResolution = 20) [+5]  // Add an arc (angles in radians)
 void Path::bezierTo(const Vec3 & cp1, const Vec3 & cp2, const Vec3 & to, int resolution) [+2]  // Add cubic bezier curve (resolution=-1 uses current curve style)
 std::vector<std::array<float, 2>> Path::buildFillTriangles() const  // Triangulate the path interior into a flat list of 2D triangle vertices
 void Path::clear()  // Clear all vertices
@@ -2292,8 +2292,8 @@ std::pair<size_t, size_t> Path::getSubpathRange(size_t i) const  // Vertex index
 const std::vector<Vec3> & Path::getVertices() const [+1]  // Get all vertices
 bool Path::isClosed() const  // Check if path is closed
 bool Path::isSubpathClosed(size_t i) const  // Whether subpath i is closed
-void Path::lineTo(float x, float y, float z = …) [+2]  // Add line segment to point
-void Path::moveTo(float x, float y, float z = …) [+2]  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
+void Path::lineTo(float x, float y, float z = 0) [+2]  // Add line segment to point
+void Path::moveTo(float x, float y, float z = 0) [+2]  // Start a new subpath at (x, y). A single Path can hold multiple disjoint contours (think SVG `<path>` with `M ... M ...`) — used by Font::getGlyphPath to keep an outer ring and its holes in one Path so drawFill can detect holes.
 void Path::quadBezierTo(const Vec3 & cp, const Vec3 & to, int resolution) [+2]  // Add quadratic bezier curve (resolution=-1 uses current curve style)
 Path & Path::reverseWinding(size_t i) [+1]  // Reverse the winding direction (vertex order) of all subpaths, or of one subpath. Under drawFill's non-zero winding rule, reversing a subpath toggles it between filling and cutting — e.g. build a circle contour, then reverseWinding(i) it into a hole punch. Reversing ALL subpaths leaves the render unchanged (only relative direction matters) — handy for imported outlines using the opposite convention.
 void Path::setClosed(bool closed)  // Set closed state
@@ -2304,7 +2304,7 @@ Mesh Path::toFillMesh() const  // Build a fillable Mesh from the path interior
 ### Pixels — Pixel buffer for image manipulation
 
 ```cpp
-void Pixels::allocate(int width, int height, int channels = …, PixelFormat format = …)  // Allocate pixel buffer
+void Pixels::allocate(int width, int height, int channels = 4, PixelFormat format = U8)  // Allocate pixel buffer
 void Pixels::clear()  // Release pixel buffer
 Pixels Pixels::clone() const  // Return a deep copy of the pixel buffer
 void Pixels::copyTo(unsigned char * dst) const  // Copy to external buffer
@@ -2381,7 +2381,7 @@ Mat4 Quaternion::toMatrix() const  // Convert to rotation matrix
 
 ```cpp
 Vec3 Ray::at(float t) const  // Get the point along the ray at distance t: origin + direction * t
-Ray Ray::fromScreenPoint2D(float screenX, float screenY, float startZ = …)  // Build an orthographic Z-parallel ray from a 2D screen point
+Ray Ray::fromScreenPoint2D(float screenX, float screenY, float startZ = 1000.0)  // Build an orthographic Z-parallel ray from a 2D screen point
 bool Ray::intersectAABB(const Vec3 & boxMin, const Vec3 & boxMax, float & outT) const  // Intersect an axis-aligned bounding box; writes distance, returns whether it hit
 bool Ray::intersectPlane(const Vec3 & planeNormal, float planeD, float & outT, Vec3 & outPoint) const  // Intersect an arbitrary plane; writes distance and hit point, returns whether it hit
 bool Ray::intersectSphere(float radius, float & outT) const  // Intersect a sphere centered at the origin; writes distance, returns whether it hit
@@ -2439,7 +2439,7 @@ bool RectNodeButton::isPressed() const  // Whether the button is currently press
 int ScreenRecorder::getFrameCount() const  // Number of frames captured so far
 const std::string & ScreenRecorder::getPath() const  // Output file path of the current recording
 bool ScreenRecorder::isRecording() const  // Check if the screen recorder is currently capturing
-bool ScreenRecorder::start(const std::string & path, const VideoRecordSettings & settings = …) [+1]  // Start live capture (window, or an Fbo for clean GUI-free output); size is taken automatically
+bool ScreenRecorder::start(const std::string & path, const VideoRecordSettings & settings = {}) [+1]  // Start live capture (window, or an Fbo for clean GUI-free output); size is taken automatically
 void ScreenRecorder::stop()  // Stop live capture and finalize the file
 VideoWriter & ScreenRecorder::writer()  // Access the underlying VideoWriter for advanced introspection
 ```
@@ -2545,8 +2545,8 @@ bool Sound::isPlaying() const  // Check if playing
 bool Sound::isStreaming() const  // True if this Sound was loaded via loadStream() (vs eager load())
 bool Sound::load(const std::string & path)  // Load audio file. Format auto-detected by extension: .wav .mp3 .ogg .flac .aac .m4a
 void Sound::loadFromBuffer(const SoundBuffer & buf) [+1]  // Load PCM directly from a pre-generated SoundBuffer (e.g. from ChipSound or a procedural waveform), copying it or adopting the shared_ptr.
-bool Sound::loadStream(const std::string & path, int maxPolyphony = …) [macos,windows,linux,android,ios]  // Stream sound from disk (WAV/MP3/FLAC). Best for long files; cuts memory. maxPolyphony = simultaneous play() count.
-void Sound::loadTestTone(float frequency = …, float duration = …)  // Load a generated sine test tone (no file needed). Handy for verifying audio output.
+bool Sound::loadStream(const std::string & path, int maxPolyphony = 1) [macos,windows,linux,android,ios]  // Stream sound from disk (WAV/MP3/FLAC). Best for long files; cuts memory. maxPolyphony = simultaneous play() count.
+void Sound::loadTestTone(float frequency = 440.0, float duration = 1.0)  // Load a generated sine test tone (no file needed). Handy for verifying audio output.
 void Sound::pause()  // Pause playback
 void Sound::play()  // Play audio
 void Sound::resume()  // Resume playback
@@ -2566,14 +2566,14 @@ void Sound::stop()  // Stop audio
 ```cpp
 void SoundBuffer::applyADSR(float attack, float decay, float sustainLevel, float release)  // Apply an ADSR amplitude envelope to the buffer in place (attack / decay / release in seconds, sustainLevel 0-1).
 void SoundBuffer::clip()  // Hard-clip all samples into the -1.0 .. 1.0 range.
-void SoundBuffer::createAdtsHeader(uint8_t * header, int frameLength, int sampleRate, int channels, int profile = …)  // Write a 7-byte ADTS header for one raw AAC frame into header (AAC-in-MOV container helper).
-void SoundBuffer::generateNoise(float duration, float volume = …, int sr = …)  // Fill the buffer with mono white noise.
-void SoundBuffer::generatePinkNoise(float duration, float volume = …, int sr = …)  // Fill the buffer with mono pink noise (1/f spectrum, Paul Kellet's method).
-void SoundBuffer::generateSawtoothWave(float frequency, float duration, float volume = …, int sr = …)  // Fill the buffer with a mono sawtooth wave.
-void SoundBuffer::generateSilence(float duration, int sr = …)  // Fill the buffer with silence of the given duration (useful as a base for mixFrom).
-void SoundBuffer::generateSineWave(float frequency, float duration, float volume = …, int sr = …)  // Fill the buffer with a mono sine wave of the given frequency (Hz) and duration (seconds).
-void SoundBuffer::generateSquareWave(float frequency, float duration, float volume = …, int sr = …)  // Fill the buffer with a mono square wave.
-void SoundBuffer::generateTriangleWave(float frequency, float duration, float volume = …, int sr = …)  // Fill the buffer with a mono triangle wave.
+void SoundBuffer::createAdtsHeader(uint8_t * header, int frameLength, int sampleRate, int channels, int profile = 2)  // Write a 7-byte ADTS header for one raw AAC frame into header (AAC-in-MOV container helper).
+void SoundBuffer::generateNoise(float duration, float volume = 0.5, int sr = 44100)  // Fill the buffer with mono white noise.
+void SoundBuffer::generatePinkNoise(float duration, float volume = 0.5, int sr = 44100)  // Fill the buffer with mono pink noise (1/f spectrum, Paul Kellet's method).
+void SoundBuffer::generateSawtoothWave(float frequency, float duration, float volume = 0.5, int sr = 44100)  // Fill the buffer with a mono sawtooth wave.
+void SoundBuffer::generateSilence(float duration, int sr = 44100)  // Fill the buffer with silence of the given duration (useful as a base for mixFrom).
+void SoundBuffer::generateSineWave(float frequency, float duration, float volume = 0.5, int sr = 44100)  // Fill the buffer with a mono sine wave of the given frequency (Hz) and duration (seconds).
+void SoundBuffer::generateSquareWave(float frequency, float duration, float volume = 0.5, int sr = 44100)  // Fill the buffer with a mono square wave.
+void SoundBuffer::generateTriangleWave(float frequency, float duration, float volume = 0.5, int sr = 44100)  // Fill the buffer with a mono triangle wave.
 int SoundBuffer::getAdtsSampleRateIndex(int sampleRate)  // ADTS sample-rate index for the given rate (AAC-in-MOV container helper).
 float SoundBuffer::getDuration() const  // Duration in seconds (numSamples / sampleRate).
 bool SoundBuffer::load(const std::string & path)  // Decode a file into PCM, auto-detecting format from the extension (.wav .mp3 .ogg .flac .aac .m4a, case-insensitive). Returns false on failure.
@@ -2585,10 +2585,10 @@ bool SoundBuffer::loadMp3(const std::string & path)  // Decode an MP3 file into 
 bool SoundBuffer::loadMp3FromMemory(const void * data, size_t dataSize)  // Decode MP3 data from a memory buffer.
 bool SoundBuffer::loadOgg(const std::string & path)  // Decode an OGG Vorbis file into PCM (via stb_vorbis).
 bool SoundBuffer::loadOggFromMemory(const void * data, size_t dataSize)  // Decode OGG Vorbis data from a memory buffer.
-bool SoundBuffer::loadPcmFromMemory(const void * data, size_t dataSize, int numChannels, int rate, int bitsPerSample = …, bool bigEndian = …)  // Load raw interleaved PCM (16-bit signed or 32-bit float) from memory with explicit format. Returns false for unsupported bit depths.
+bool SoundBuffer::loadPcmFromMemory(const void * data, size_t dataSize, int numChannels, int rate, int bitsPerSample = 16, bool bigEndian = false)  // Load raw interleaved PCM (16-bit signed or 32-bit float) from memory with explicit format. Returns false for unsupported bit depths.
 bool SoundBuffer::loadWav(const std::string & path)  // Decode a WAV file into PCM.
 bool SoundBuffer::loadWavFromMemory(const void * data, size_t dataSize)  // Decode WAV data from a memory buffer.
-void SoundBuffer::mixFrom(const SoundBuffer & other, size_t offsetSamples, float volume = …)  // Additively mix another buffer into this one starting at offsetSamples, growing this buffer if needed.
+void SoundBuffer::mixFrom(const SoundBuffer & other, size_t offsetSamples, float volume = 1.0)  // Additively mix another buffer into this one starting at offsetSamples, growing this buffer if needed.
 ```
 
 ### SoundSource — Abstract base for anything Sound::play() can consume. Two concrete subclasses: SoundBuffer (eager, full PCM in RAM) and SoundStream (decoded on demand from disk). Holds the shared channels / sampleRate fields and the kind() / getDuration() interface.
@@ -2604,13 +2604,13 @@ Kind SoundSource::kind() const  // Source kind (Eager for SoundBuffer, Stream fo
 float SoundStream::getDuration() const  // Decoded file duration in seconds.
 int SoundStream::getMaxPolyphony() const  // Number of concurrent decoder slots reserved at loadStream().
 const std::string & SoundStream::getPath() const  // Path the stream was opened from.
-bool SoundStream::loadStream(const std::string & path, int maxPolyphony = …)  // Open the file, validate format (.wav .mp3 .flac .ogg), and populate channels / sampleRate / duration. maxPolyphony reserves that many concurrent decoder slots. Returns false if the file can't be opened or the format is unsupported.
+bool SoundStream::loadStream(const std::string & path, int maxPolyphony = 1)  // Open the file, validate format (.wav .mp3 .flac .ogg), and populate channels / sampleRate / duration. maxPolyphony reserves that many concurrent decoder slots. Returns false if the file can't be opened or the format is unsupported.
 ```
 
 ### StrokeMesh — Variable-width polyline stroke geometry with caps, joins and miter limit; build it from points or a Path, then update() and draw()
 
 ```cpp
-StrokeMesh & StrokeMesh::addVertex(float x, float y, float z = …) [+2]  // Append a vertex to the stroke path
+StrokeMesh & StrokeMesh::addVertex(float x, float y, float z = 0) [+2]  // Append a vertex to the stroke path
 StrokeMesh & StrokeMesh::addVertexWithWidth(float x, float y, float width) [+1]  // Append a vertex with a per-vertex width
 StrokeMesh & StrokeMesh::clear()  // Remove all vertices
 void StrokeMesh::draw()  // Draw the stroke mesh
@@ -2686,7 +2686,7 @@ int TcpServer::getPort() const  // The listening port
 bool TcpServer::isRunning() const  // Whether the server is running
 bool TcpServer::send(int clientId, const void * data, size_t size) [+2]  // Send data to a specific client
 void TcpServer::setReceiveBufferSize(size_t size)  // Set the receive buffer size
-bool TcpServer::start(int port, int maxClients = …)  // Start listening on a port
+bool TcpServer::start(int port, int maxClients = 10)  // Start listening on a port
 void TcpServer::stop()  // Stop the server
 ```
 
@@ -2711,8 +2711,8 @@ int TcpServerClient::getPort() const  // Client port
 ### Texture — GPU texture for rendering
 
 ```cpp
-void Texture::allocate(int width, int height, int channels = …, TextureUsage usage = …, int sampleCount = …) [+2]  // Allocate texture
-void Texture::allocateCubemap(int sideSize, TextureFormat format, TextureUsage usage = …, int mipLevels = …)  // Allocate a cubemap texture without initial data
+void Texture::allocate(int width, int height, int channels = 4, TextureUsage usage = Immutable, int sampleCount = 1) [+2]  // Allocate texture
+void Texture::allocateCubemap(int sideSize, TextureFormat format, TextureUsage usage = RenderTarget, int mipLevels = 1)  // Allocate a cubemap texture without initial data
 void Texture::bind() const  // Bind texture for rendering
 void Texture::clear()  // Release texture resources
 void Texture::draw(float x, float y) const [+1]  // Draw texture
@@ -2757,7 +2757,7 @@ void Thread::sleep(unsigned long milliseconds)  // Pause the current thread for 
 void Thread::startThread()  // Start the background thread (runs threadedFunction). No-op if already running.
 void Thread::stopThread()  // Send the stop signal: isThreadRunning() returns false inside threadedFunction so a while-loop can exit. Does not block.
 void Thread::threadedFunction()  // Override this with the work to run on the thread; recommended pattern is while (isThreadRunning()) { ... }. (protected, pure virtual)
-void Thread::waitForThread(bool callStopThread = …)  // Wait (join) for the thread to finish. If callStopThread is true (default), calls stopThread() first.
+void Thread::waitForThread(bool callStopThread = true)  // Wait (join) for the thread to finish. If callStopThread is true (default), calls stopThread() first.
 void Thread::yield()  // Yield execution to other threads.
 ```
 
@@ -2792,7 +2792,7 @@ float TouchEventArgs::y() const  // Convenience: Y position of the first touch p
 ```cpp
 Tween<T> & Tween::delay(float seconds)  // Delay before the animation starts, in seconds (chainable)
 Tween<T> & Tween::duration(float seconds)  // Set the animation duration in seconds (chainable)
-Tween<T> & Tween::ease(EaseType type, EaseMode mode = …) [+1]  // Set the easing curve; the two-type overload uses an asymmetric ease (one curve in, another out)
+Tween<T> & Tween::ease(EaseType type, EaseMode mode = InOut) [+1]  // Set the easing curve; the two-type overload uses an asymmetric ease (one curve in, another out)
 Tween<T> & Tween::finish()  // Jump immediately to the end value and fire the complete event
 Tween<T> & Tween::from(T value)  // Set the start value (chainable)
 float Tween::getDuration() const  // Return the configured duration in seconds
@@ -2810,7 +2810,7 @@ Tween<T> & Tween::reset()  // Stop the animation and reset progress to the start
 Tween<T> & Tween::resume()  // Resume a paused animation
 Tween<T> & Tween::start()  // Start (or restart) the animation and begin auto-updating each frame
 Tween<T> & Tween::to(T value)  // Set the end value (chainable)
-Tween<T> & Tween::yoyo(bool enable = …)  // Reverse direction on each loop iteration (chainable)
+Tween<T> & Tween::yoyo(bool enable = true)  // Reverse direction on each loop iteration (chainable)
 ```
 
 ### TweenMod — Animation modifier (Mod) that tweens a Node's position, scale and rotation with easing; exposes a complete Event
@@ -2818,7 +2818,7 @@ Tween<T> & Tween::yoyo(bool enable = …)  // Reverse direction on each loop ite
 ```cpp
 TweenMod & TweenMod::delay(float seconds)  // Set delay before animation starts (TweenMod method) (C++ only)
 TweenMod & TweenMod::duration(float seconds)  // Set animation duration (TweenMod method) (C++ only)
-TweenMod & TweenMod::ease(EaseType type, EaseMode mode = …)  // Set easing function (TweenMod method). Types: Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce. Modes: In, Out, InOut (C++ only)
+TweenMod & TweenMod::ease(EaseType type, EaseMode mode = InOut)  // Set easing function (TweenMod method). Types: Linear, Quad, Cubic, Quart, Quint, Sine, Expo, Circ, Back, Elastic, Bounce. Modes: In, Out, InOut (C++ only)
 float TweenMod::getDelay() const  // Get the start delay in seconds (TweenMod method) (C++ only)
 float TweenMod::getDuration() const  // Get the animation duration in seconds (TweenMod method) (C++ only)
 EaseMode TweenMod::getEaseMode() const  // Get the current easing mode (In/Out/InOut) (TweenMod method) (C++ only)
@@ -2826,9 +2826,9 @@ EaseType TweenMod::getEaseType() const  // Get the current easing type (TweenMod
 float TweenMod::getProgress() const  // Current progress in 0..1 (TweenMod method) (C++ only)
 bool TweenMod::isComplete() const  // Whether the tween has finished (TweenMod method) (C++ only)
 bool TweenMod::isPlaying() const  // Whether the tween is currently playing (TweenMod method) (C++ only)
-TweenMod & TweenMod::moveBy(float dx, float dy, float dz = …) [+2]  // Animate position by relative amount (TweenMod method) (C++ only)
-TweenMod & TweenMod::moveFrom(float x, float y, float z = …) [+1]  // Set an explicit start position for the position tween (TweenMod method) (C++ only)
-TweenMod & TweenMod::moveTo(float x, float y, float z = …) [+2]  // Animate position to target (TweenMod method) (C++ only)
+TweenMod & TweenMod::moveBy(float dx, float dy, float dz = 0.0) [+2]  // Animate position by relative amount (TweenMod method) (C++ only)
+TweenMod & TweenMod::moveFrom(float x, float y, float z = 0.0) [+1]  // Set an explicit start position for the position tween (TweenMod method) (C++ only)
+TweenMod & TweenMod::moveTo(float x, float y, float z = 0.0) [+2]  // Animate position to target (TweenMod method) (C++ only)
 TweenMod & TweenMod::pause()  // Pause playback, keeping the current progress (TweenMod method) (C++ only)
 TweenMod & TweenMod::reset()  // Reset progress to the start and stop playback (TweenMod method) (C++ only)
 TweenMod & TweenMod::resume()  // Resume a paused tween (TweenMod method) (C++ only)
@@ -2862,7 +2862,7 @@ TweenMod & TweenMod::start()  // Start (or restart) the tween from its configure
 ### UdpSocket — UDP socket (send/receive datagrams, broadcast, multicast)
 
 ```cpp
-bool UdpSocket::bind(int port, bool startReceiving = …)  // Bind a port for receiving (startReceiving auto-starts the receive thread)
+bool UdpSocket::bind(int port, bool startReceiving = true)  // Bind a port for receiving (startReceiving auto-starts the receive thread)
 void UdpSocket::close()  // Close the socket
 bool UdpSocket::connect(const std::string & host, int port)  // Set the destination for send()
 bool UdpSocket::create()  // Create the socket explicitly (usually auto-created by bind/connect)
@@ -2871,8 +2871,8 @@ int UdpSocket::getConnectedPort() const  // Destination port from connect()
 int UdpSocket::getLocalPort() const  // The bound local port
 bool UdpSocket::isReceiving() const  // Whether the receive thread is active
 bool UdpSocket::isValid() const  // Whether the socket is valid
-bool UdpSocket::joinMulticastGroup(const std::string & groupAddr, const std::string & interfaceAddr = …)  // Join a multicast group for receiving (call after bind; "" = default route) 
-bool UdpSocket::leaveMulticastGroup(const std::string & groupAddr, const std::string & interfaceAddr = …)  // Leave a previously joined multicast group
+bool UdpSocket::joinMulticastGroup(const std::string & groupAddr, const std::string & interfaceAddr = std::string(""))  // Join a multicast group for receiving (call after bind; "" = default route) 
+bool UdpSocket::leaveMulticastGroup(const std::string & groupAddr, const std::string & interfaceAddr = std::string(""))  // Leave a previously joined multicast group
 int UdpSocket::receive(void * buffer, size_t bufferSize) [+1]  // Blocking receive (for non-event use); returns byte count or -1
 bool UdpSocket::send(const void * data, size_t size) [+1]  // Send to the destination set by connect()
 bool UdpSocket::sendTo(const std::string & host, int port, const void * data, size_t size) [+1]  // Send data to a specific host and port
@@ -2899,7 +2899,7 @@ float Vec2::cross(const Vec2 & v) const  // Cross product (z component)
 float Vec2::distance(const Vec2 & v) const  // Distance to another vector
 float Vec2::distanceSquared(const Vec2 & v) const  // Squared distance (faster)
 float Vec2::dot(const Vec2 & v) const  // Dot product
-Vec2 Vec2::fromAngle(float radians, float length = …)  // Create Vec2 from angle
+Vec2 Vec2::fromAngle(float radians, float length = 1.0)  // Create Vec2 from angle
 float Vec2::length() const  // Get vector length
 float Vec2::lengthSquared() const  // Get squared length (faster, no sqrt)
 Vec2 Vec2::lerp(const Vec2 & v, float t) const  // Linear interpolation
@@ -2974,7 +2974,7 @@ std::vector<VideoDeviceInfo> VideoGrabber::listDevices()  // Return the list of 
 void VideoGrabber::requestCameraPermission()  // Request camera access asynchronously (macOS)
 void VideoGrabber::setDesiredFrameRate(int fps)  // Request a capture frame rate; call before setup()
 void VideoGrabber::setDeviceID(int deviceId)  // Select which camera to use; call before setup()
-bool VideoGrabber::setup(int width = …, int height = …)  // Start the camera at the requested size. Returns false if permission is not yet granted (it is requested asynchronously); keep calling update() and capture begins once granted
+bool VideoGrabber::setup(int width = 640, int height = 480)  // Start the camera at the requested size. Returns false if permission is not yet granted (it is requested asynchronously); keep calling update() and capture begins once granted
 void VideoGrabber::setVerbose(bool verbose)  // Enable or disable verbose logging
 void VideoGrabber::update()  // Poll for a new frame and upload it to the texture. Call every frame; also completes a setup() that was waiting on permission
 ```
@@ -2984,7 +2984,7 @@ void VideoGrabber::update()  // Poll for a new frame and upload it to the textur
 ```cpp
 void VideoPlayer::close()  // Close the video and release resources
 void VideoPlayer::draw(float x, float y) const [+1]  // Draw the current video frame at (x, y), optionally scaled to w x h
-bool VideoPlayer::extractFrame(const std::string & path, Pixels & outPixels, float timeSec = …, float * outDuration = …)  // Extract a single frame from a video file without loading the full video. Useful for thumbnails
+bool VideoPlayer::extractFrame(const std::string & path, Pixels & outPixels, float timeSec = 1.0, float * outDuration = nullptr)  // Extract a single frame from a video file without loading the full video. Useful for thumbnails
 int VideoPlayer::getAudioChannels() const [macos,windows,linux,ios]  // Number of audio channels (0 if no audio)
 uint32_t VideoPlayer::getAudioCodec() const [macos,windows,linux,ios]  // FourCC of the audio codec in the loaded video (0 if none)
 std::vector<uint8_t> VideoPlayer::getAudioData() const [macos,windows,linux,ios]  // Raw decoded audio data for the loaded video
@@ -3057,7 +3057,7 @@ const VideoRecordSettings & VideoWriter::getSettings() const  // Encoder setting
 int VideoWriter::getWidth() const  // Encoder output width in pixels
 bool VideoWriter::isOpen() const  // Check if the encoder is open and accepting frames
 unsigned char * VideoWriter::lockFrame(int & strideOut)  // Lock and return the encoder's frame buffer for zero-copy fills; strideOut receives the row stride. Pair with submitFrame
-bool VideoWriter::open(const std::string & path, int width, int height, const VideoRecordSettings & settings = …)  // Open the encoder at the given size (path resolved via getDataPath)
+bool VideoWriter::open(const std::string & path, int width, int height, const VideoRecordSettings & settings = {})  // Open the encoder at the given size (path resolved via getDataPath)
 bool VideoWriter::submitFrame(double timeSec)  // Append the previously locked frame at the given presentation time (seconds)
 ```
 
@@ -3078,7 +3078,7 @@ WindowSettings & WindowSettings::setTitle(const std::string & t)  // Set window 
 ### Xml — XML document wrapper around pugixml. Loads, saves and queries XML; node-level access is via XmlNode returned from root() and child().
 
 ```cpp
-void Xml::addDeclaration(const std::string & version = …, const std::string & encoding = …)  // Prepend an XML declaration (<?xml ...?>) with the given version and encoding.
+void Xml::addDeclaration(const std::string & version = std::string("1.0"), const std::string & encoding = std::string("UTF-8"))  // Prepend an XML declaration (<?xml ...?>) with the given version and encoding.
 XmlNode Xml::addRoot(const std::string & name)  // Append a new root element with the given name and return it.
 XmlNode Xml::child(const std::string & name)  // Find a direct child node of the document by name.
 XmlDocument & Xml::document() [+1]  // Access the underlying pugixml document for advanced operations.
@@ -3086,8 +3086,8 @@ bool Xml::empty() const  // Return true if the document has no content.
 bool Xml::load(const std::string & path)  // Load an XML document from a file. Relative paths are resolved via getDataPath. Returns true on success.
 bool Xml::parse(const std::string & str)  // Parse an XML document from a string. Returns true on success.
 XmlNode Xml::root() [+1]  // Get the document's root element node.
-bool Xml::save(const std::string & path, const std::string & indent = …) const  // Save the document to a file. Relative paths are resolved via getDataPath. indent sets the per-level indentation string. Returns true on success.
-std::string Xml::toString(const std::string & indent = …) const  // Serialize the document to an XML string. indent sets the per-level indentation string.
+bool Xml::save(const std::string & path, const std::string & indent = std::string("  ")) const  // Save the document to a file. Relative paths are resolved via getDataPath. indent sets the per-level indentation string. Returns true on success.
+std::string Xml::toString(const std::string & indent = std::string("  ")) const  // Serialize the document to an XML string. indent sets the per-level indentation string.
 ```
 
 ## Enums

@@ -83,22 +83,61 @@ const tparamsOf = (node) => (node.inner || [])
 // param names come from ParmVarDecl children (the qualType carries types only).
 // "const Vec2 &" + name "v" -> "const Vec2 & v"; a ParmVarDecl with a default
 // expr child gets a trailing " = …" marker (value not reconstructed).
-const _hasDefault = (x) => (x.inner || []).some(c => /Expr|Literal|InitListExpr/.test(c.kind || ''));
+const _defExprKind = (k) => /Expr|Literal|InitListExpr/.test(k || '');
+const _hasDefault = (x) => (x.inner || []).some(c => _defExprKind(c.kind));
+// Reconstruct a parameter's default-argument value from the AST when it is a
+// simple constant (literal / enum ref / default-ctor / brace-init); returns null
+// for expressions we can't render faithfully, so paramsOf falls back to "= …".
+const _fmtFloat = (v) => { const f = parseFloat(v); if (!isFinite(f)) return v; return Number.isInteger(f) ? f.toFixed(1) : String(f); };
+const _bareType = (t) => (t || '').replace(/^const\s+/, '').replace(/\s*[&*]+\s*$/, '').trim();
+function _evalExpr(e) {
+    if (!e) return null;
+    const inner1 = () => _evalExpr((e.inner || []).find(c => _defExprKind(c.kind)));
+    switch (e.kind) {
+        case 'IntegerLiteral': return e.value;
+        case 'FloatingLiteral': return _fmtFloat(e.value);
+        case 'CXXBoolLiteralExpr': return String(e.value);
+        case 'StringLiteral': return e.value;
+        case 'CXXNullPtrLiteralExpr': case 'GNUNullExpr': return 'nullptr';
+        case 'DeclRefExpr': return (e.referencedDecl && e.referencedDecl.name) || null;
+        case 'UnaryOperator': { const v = inner1(); return v != null ? (e.opcode || '') + v : null; }
+        case 'CXXConstructExpr': case 'CXXTemporaryObjectExpr': {   // Type() / Type(args) temporaries (WindowSettings(), Color(...))
+            const args = (e.inner || []).filter(c => _defExprKind(c.kind) && c.kind !== 'CXXDefaultInitExpr' && c.kind !== 'CXXDefaultArgExpr');
+            const tn = _bareType(e.type && e.type.qualType);
+            if (!args.length) return tn ? tn + '()' : null;
+            const vs = args.map(_evalExpr); return vs.every(v => v != null) ? `${tn}(${vs.join(', ')})` : null;
+        }
+        case 'InitListExpr': {   // brace init; all-defaulted members (= {}) render as "{}"
+            const items = (e.inner || []).filter(c => _defExprKind(c.kind) && c.kind !== 'CXXDefaultInitExpr');
+            if (!items.length) return '{}';
+            const vs = items.map(_evalExpr); return vs.every(v => v != null) ? `{${vs.join(', ')}}` : null;
+        }
+        case 'ImplicitCastExpr': case 'CXXStaticCastExpr': case 'ConstantExpr':
+        case 'CXXFunctionalCastExpr': case 'MaterializeTemporaryExpr':
+        case 'CXXBindTemporaryExpr': case 'ExprWithCleanups': case 'ParenExpr':
+        case 'ImplicitValueInitExpr': return inner1();
+        default: return null;
+    }
+}
+const _defaultOf = (x) => { const e = (x.inner || []).find(c => _defExprKind(c.kind)); return e ? _evalExpr(e) : null; };
 const paramsOf = (node) => (node.inner || [])
     .filter(x => x.kind === 'ParmVarDecl')
     .map(x => {
         const t = (x.type && x.type.qualType) || 'auto';
-        return (x.name ? `${t} ${x.name}` : t) + (_hasDefault(x) ? ' = …' : '');
+        const base = x.name ? `${t} ${x.name}` : t;
+        if (!_hasDefault(x)) return base;
+        const dv = _defaultOf(x);
+        return base + (dv != null ? ` = ${dv}` : ' = …');
     }).join(', ');
 
-// structured args for a signature — parsed {type,name,hasDefault} (+ cheap flags
-// from the spelled type) for downstream binding generators (tcxLua). The default
-// EXPRESSION is still not reconstructed (hasDefault only).
+// structured args for a signature — {type,name,hasDefault,default?} (+ cheap flags
+// from the spelled type) for downstream binding generators (tcxLua).
 const argsOf = (node) => (node.inner || [])
     .filter(x => x.kind === 'ParmVarDecl')
     .map(x => {
         const type = (x.type && x.type.qualType) || 'auto';
         const a = { type, name: x.name || '', hasDefault: _hasDefault(x) };
+        if (a.hasDefault) { const dv = _defaultOf(x); if (dv != null) a.default = dv; }
         if (/&\s*$/.test(type)) a.isRef = true;            // lvalue or rvalue reference
         if (/\bconst\b/.test(type)) a.isConst = true;
         if (/\*\s*$/.test(type)) a.isPointer = true;
@@ -178,7 +217,7 @@ function enumerate(objs) {
                     m.isImplicit ? 'implicit' : null, m.explicitlyDeleted ? 'deleted' : null, m.explicitlyDefaulted ? 'defaulted' : null].filter(Boolean);
                 syms.push({ kind: 'method', ns: nsPath, owner: rec.name, name: m.name, sig: m.type && m.type.qualType, params: paramsOf(m), args: argsOf(m), file: fileOf(m), access, flags: [...(extraFlags || []), ...flags], ann: annotationsOf(m, fileOf(m)), deprecated: deprecatedOf(m) });
             } else if (m.kind === 'FieldDecl') {
-                syms.push({ kind: 'field', ns: nsPath, owner: rec.name, name: m.name, file: fileOf(m), access, flags: [], deprecated: deprecatedOf(m) });
+                syms.push({ kind: 'field', ns: nsPath, owner: rec.name, name: m.name, ftype: m.type && m.type.qualType, file: fileOf(m), access, flags: [], deprecated: deprecatedOf(m) });
             } else if (m.kind === 'EnumDecl' && m.name) {
                 syms.push({ kind: 'enum', ns: nsPath, owner: rec.name, name: m.name, file: fileOf(m), access, flags: ['nested'], members: enumMembersOf(m), ann: annotationsOf(m, fileOf(m)), deprecated: deprecatedOf(m) });
             } else if (m.kind === 'CXXRecordDecl' && m.name && access === 'public') {
@@ -248,7 +287,7 @@ const pub = syms.filter(s => isTc(s.file) && !isHidden(s) && !noise(s) && symbol
 const structure = Object.create(null);                          // null proto: ids like "toString"/"constructor" are safe keys
 for (const s of pub) {
     const id = symbolId(s);
-    if (!structure[id]) structure[id] = { id, kind: s.kind, owner: s.owner || undefined, name: s.name, ns: nsPrefix(s) || undefined, signatures: [], static: false, access: s.access && s.access !== 'public' ? s.access : undefined, members: s.members && s.members.length ? s.members : undefined, constructors: s.ctors && s.ctors.length ? s.ctors : undefined, platforms: s.ann && s.ann.platforms, lua_bind: s.ann && s.ann.lua_bind, deprecated: s.deprecated || undefined, tparams: s.tparams && s.tparams.length ? s.tparams : undefined };
+    if (!structure[id]) structure[id] = { id, kind: s.kind, owner: s.owner || undefined, name: s.name, ns: nsPrefix(s) || undefined, signatures: [], static: false, type: s.ftype || undefined, access: s.access && s.access !== 'public' ? s.access : undefined, members: s.members && s.members.length ? s.members : undefined, constructors: s.ctors && s.ctors.length ? s.ctors : undefined, platforms: s.ann && s.ann.platforms, lua_bind: s.ann && s.ann.lua_bind, deprecated: s.deprecated || undefined, tparams: s.tparams && s.tparams.length ? s.tparams : undefined };
     const e = structure[id];
     if ((s.flags || []).includes('static')) e.static = true;
     if (s.deprecated && !e.deprecated) e.deprecated = s.deprecated;

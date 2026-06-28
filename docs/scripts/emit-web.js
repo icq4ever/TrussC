@@ -451,12 +451,12 @@ function build(examplesMap) {
                 snippet: ym && ym.constructor && ym.constructor.snippet,
             };
         }
-        // properties (data members). Type comes from the yaml sidecar when known.
+        // properties (data members). Type comes from the C++ AST (reference-data).
         const fields = fieldsByOwner.get(typeName);
         if (fields && fields.length) {
             typeData.properties = fields.map(f => {
-                const yp = YML_PROP.get(f.id);
-                return { name: f.name, type: yp ? yp.type : '', desc: descTrio(f.id, yp).desc };
+                const d = descTrio(f.id, null);
+                return { name: f.name, type: f.type || '', desc: d.desc, desc_ja: d.desc_ja, desc_ko: d.desc_ko };
             });
         }
         // methods: reference-data members, split into instance vs static.
