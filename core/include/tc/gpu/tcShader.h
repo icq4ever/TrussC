@@ -28,6 +28,7 @@
 #include <vector>
 #include <unordered_map>
 #include <cstring>
+#include "../utils/tcAnnotations.h"
 
 namespace trussc {
 
@@ -211,12 +212,12 @@ public:
     }
 
     // Store uniform data for later application
-    void storeUniform(int slot, const void* data, size_t size) {
+    TC_INTERNAL void storeUniform(int slot, const void* data, size_t size) {
         pendingUniforms[slot].assign((const uint8_t*)data, (const uint8_t*)data + size);
     }
 
     // Apply all stored uniforms
-    void applyUniforms() {
+    TC_INTERNAL void applyUniforms() {
         for (auto& [slot, data] : pendingUniforms) {
             sg_range range = { data.data(), data.size() };
             sg_apply_uniforms(slot, &range);
@@ -257,7 +258,7 @@ public:
     }
 
     // Execute a deferred draw (called from present())
-    void executeDeferredDraw(const std::vector<ShaderVertex>& vertices, PrimitiveType type) {
+    TC_INTERNAL void executeDeferredDraw(const std::vector<ShaderVertex>& vertices, PrimitiveType type) {
         if (vertices.empty()) return;
 
         // Ensure pipeline and uniforms are applied (FBO-aware: deferred draws run

@@ -1456,6 +1456,7 @@ int AudioEngine::getSampleRate() const  // Current engine output sample rate (Hz
 bool AudioEngine::init() [+1]  // Initialize the engine with defaults, or with an AudioSettings override. Re-init on a running engine migrates active voices to the new settings. Returns true on success.
 bool AudioEngine::isInitialized() const  // True after a successful init().
 std::vector<AudioDeviceInfo> AudioEngine::listDevices()  // Enumerate available playback devices (name + isDefault). Empty if unsupported on the platform.
+void AudioEngine::mixAudio(float * buffer, int num_frames, int num_channels)  // Audio output callback: mix all playing sounds into the buffer (internal, called from the audio thread).
 std::shared_ptr<PlayingSound> AudioEngine::play(std::shared_ptr<SoundSource> source) [+1]  // Start a new mixer voice for the given source (eager SoundBuffer or streaming SoundStream) and return its live PlayingSound handle. Usually called indirectly via Sound::play().
 void AudioEngine::shutdown()  // Stop and close the audio device.
 ```
@@ -1493,6 +1494,7 @@ int BuildInfo::year()  // Build year (e.g. 2026)
 ### CameraContext — A snapshot of the camera (view / projection / viewport) that a part of the scene was drawn under. One is registered per camera scope (screen setup, EasyCam::begin, Fbo::begin) and stamped on each node at draw time, so mouse picking unprojects the cursor through the same camera the node was rendered with.
 
 ```cpp
+Ray CameraContext::screenPointToRay(float screenX, float screenY) const  // Unproject a screen point (pixels, top-left origin) into a world-space ray.
 Vec3 CameraContext::worldToScreen(const Vec3 & worldPos) const  // Convert world coordinate to screen coordinate (x, y = screen pos, z = depth 0-1)
 ```
 
@@ -1696,10 +1698,13 @@ void Fbo::clearColor(float r, float g, float b, float a)  // Clear the FBO with 
 bool Fbo::copyTo(Image & image) const  // Copy FBO contents to Image
 void Fbo::draw(float x, float y) const [+1]  // Draw FBO contents
 void Fbo::end()  // End rendering to FBO
+sg_image Fbo::getColorImage() const  // Return the underlying sokol-gfx color image handle (advanced interop).
 int Fbo::getHeight() const  // Get height
 int Fbo::getSampleCount() const  // Get MSAA sample count
+sg_sampler Fbo::getSampler() const  // Return the underlying sokol-gfx sampler handle (advanced interop).
 Texture & Fbo::getTexture() [+1]  // Get FBO texture
 TextureFormat Fbo::getTextureFormat() const  // Get the FBO's color texture format
+sg_view Fbo::getTextureView() const  // Return the underlying sokol-gfx color texture view handle (advanced interop).
 int Fbo::getWidth() const  // Get width
 bool Fbo::isActive() const  // Check if currently rendering to FBO
 bool Fbo::isAllocated() const  // Check if allocated
@@ -1749,6 +1754,7 @@ void Font::forEachGlyph(const std::string & text, float x, float y, Direction h,
 Direction Font::getAlignH() const  // Get current horizontal text alignment
 Direction Font::getAlignV() const  // Get current vertical text alignment
 float Font::getAscent() const  // Get the font ascent (distance from baseline to top)
+const internal::AtlasState * Font::getAtlas(size_t index) const  // Return the atlas page at the given index for debug visualization, or nullptr if out of range.
 size_t Font::getAtlasCount() const  // Get number of atlas pages
 size_t Font::getAtlasMemoryUsage() const  // Get atlas memory usage in bytes (alias of getMemoryUsage)
 Rect Font::getBBox(const std::string & text) const  // Get the bounding box of the text (top-left origin)
@@ -1763,6 +1769,7 @@ float Font::getLineHeight() const  // Get line height
 size_t Font::getLoadedGlyphCount() const  // Get number of loaded glyphs
 float Font::getMaxLineLength() const  // Get the current wrap length
 size_t Font::getMemoryUsage() const  // Get atlas memory usage in bytes
+sg_sampler Font::getSampler()  // Return the shared sokol-gfx sampler used for atlas rendering (advanced interop).
 int Font::getSize() const  // Get font size
 Path Font::getStringPath(const std::string & text, float x, float y, Direction h, Direction v) const [+1]  // Vector outline of the whole string at (x, y) as one Path containing every glyph's contours (one subpath each). Uses the same layout pipeline as drawString (writing mode, alignment, wrap, kinsoku, TCY). Logical pixels — drawStroke / drawFill / transform freely.
 int Font::getTcyDigitMax() const  // Get the maximum digit-run length that uses tate-chu-yoko combine mode
@@ -1813,7 +1820,20 @@ const char * GraphicsBackend::name()  // Short backend name: "opengl" / "gles3" 
 ### HasTexture — Base class for objects that own a texture (e.g. Image, Fbo, VideoPlayer); exposes getTexture().
 
 ```cpp
+void HasTexture::draw(float x, float y) const [+1]  // Draw the texture at the given position (and optional size).
+TextureFilter HasTexture::getMagFilter() const  // Return the texture magnification filter.
+TextureFilter HasTexture::getMinFilter() const  // Return the texture minification filter.
 Texture & HasTexture::getTexture() [+1]  // Get internal texture
+TextureWrap HasTexture::getWrapU() const  // Return the texture wrap mode on the U axis.
+TextureWrap HasTexture::getWrapV() const  // Return the texture wrap mode on the V axis.
+bool HasTexture::hasTexture() const  // Return true if the underlying texture is allocated.
+bool HasTexture::save(const fs::path & path) const  // Save the texture contents to a file; return true on success.
+void HasTexture::setFilter(TextureFilter filter)  // Set both the minification and magnification filters.
+void HasTexture::setMagFilter(TextureFilter filter)  // Set the texture magnification filter.
+void HasTexture::setMinFilter(TextureFilter filter)  // Set the texture minification filter.
+void HasTexture::setWrap(TextureWrap wrap)  // Set the texture wrap mode on both the U and V axes.
+void HasTexture::setWrapU(TextureWrap wrap)  // Set the texture wrap mode on the U (horizontal) axis.
+void HasTexture::setWrapV(TextureWrap wrap)  // Set the texture wrap mode on the V (vertical) axis.
 ```
 
 ### HeadlessSettings — Settings for runHeadlessApp() (no window / graphics). Currently just the target update rate
@@ -1845,7 +1865,9 @@ IVec2 IVec3::xy() const  // Get XY components as IVec2
 ```cpp
 float IesProfile::getMaxCandela() const  // Get maximum candela value in the profile
 float IesProfile::getMaxVerticalAngle() const  // Get maximum vertical angle in the profile (radians)
+sg_sampler IesProfile::getSampler() const  // Return the sokol-gfx sampler of the IES profile for pipeline binding (advanced interop).
 int IesProfile::getTextureWidth() const  // Get width of the generated 1D lookup texture
+sg_view IesProfile::getView() const  // Return the sokol-gfx texture view of the IES profile for pipeline binding (advanced interop).
 bool IesProfile::isLoaded() const  // Check if profile is loaded
 bool IesProfile::load(const std::string & path)  // Load IES profile from file
 bool IesProfile::loadFromString(const std::string & data)  // Load IES profile from inline string data
@@ -1876,6 +1898,23 @@ bool Image::save(const fs::path & path) const  // Save image to file
 void Image::setColor(int x, int y, const Color & c)  // Set pixel color at position (marks image as dirty)
 void Image::setDirty()  // Mark image as needing update
 void Image::update()  // Apply pixel changes to GPU texture
+```
+
+### JsonReadReflector
+
+```cpp
+void JsonReadReflector::beginGroup(const char * name)  // Descend into the nested JSON object for a composite member.
+void JsonReadReflector::endGroup()  // Return from the nested JSON object.
+std::vector<std::string> JsonReadReflector::unknownKeys() const  // Return the source keys that matched no reflected member (typos etc.); valid after reflectMembers runs.
+bool JsonReadReflector::visit(const char * name, float & v) [+7]  // Apply the JSON value for one member through its setter, recording applied/skipped/read-only.
+```
+
+### JsonWriteReflector
+
+```cpp
+void JsonWriteReflector::beginGroup(const char * name)  // Open a nested JSON object for a composite member.
+void JsonWriteReflector::endGroup()  // Close the current nested JSON object.
+bool JsonWriteReflector::visit(const char * name, float & v) [+7]  // Write one reflected member into the output JSON object.
 ```
 
 ### KeyEventArgs — Arguments for keyPressed / keyReleased events
@@ -2087,7 +2126,9 @@ void Mesh::drawNoLightingWithTexture(const Texture & texture) const  // Draw the
 void Mesh::drawWireframe() const  // Draw mesh as wireframe
 void Mesh::drawWithLighting() const  // Draw the mesh with lighting
 std::vector<Color> & Mesh::getColors() [+1]  // Get all vertex colors
+sg_buffer Mesh::getGpuIndexBuffer() const  // Return the underlying sokol-gfx index buffer handle (advanced interop).
 int Mesh::getGpuIndexCount() const  // Number of indices currently uploaded to the GPU
+sg_buffer Mesh::getGpuVertexBuffer() const  // Return the underlying sokol-gfx vertex buffer handle (advanced interop).
 int Mesh::getGpuVertexCount() const  // Number of vertices currently uploaded to the GPU
 std::vector<unsigned int> & Mesh::getIndices() [+1]  // Get all indices
 PrimitiveMode Mesh::getMode() const  // Get current primitive mode
@@ -2126,6 +2167,7 @@ void Mesh::uploadToGpu() const  // Upload mesh data to GPU buffers now
 size_t MicInput::getBuffer(float * outBuffer, size_t numSamples)  // Copy the latest captured samples into outBuffer. numSamples is capped at the ring buffer size (4096). Returns the number of samples written.
 int MicInput::getSampleRate() const  // Sample rate the microphone was opened at.
 bool MicInput::isRunning() const  // True while the microphone device is open and capturing.
+void MicInput::onAudioData(const float * input, size_t frameCount)  // Mic input callback: receive captured input samples (internal, called from the audio thread).
 bool MicInput::start(int sampleRate = DEFAULT_SAMPLE_RATE)  // Open the microphone device at the given sample rate and begin capturing. Returns false on failure.
 void MicInput::stop()  // Stop capture and close the microphone device.
 ```
@@ -2157,16 +2199,19 @@ void Mod::update()  // Override: called every frame AFTER Node::update(). Use fo
 ### MouseDragEventArgs — Arguments for mouseDragged (cursor moving with a button held)
 
 ```cpp
+void MouseDragEventArgs::syncLegacy()  // Copy the canonical pos/delta fields into the deprecated x/y/deltaX/deltaY mirror fields (legacy mirrors scheduled for removal in v1.0).
 ```
 
 ### MouseEventArgs — Arguments for mousePressed / mouseReleased events. pos is local space, globalPos is screen space (equal at app level)
 
 ```cpp
+void MouseEventArgs::syncLegacy()  // Copy the canonical pos field into the deprecated x/y mirror fields (legacy mirrors scheduled for removal in v1.0).
 ```
 
 ### MouseMoveEventArgs — Arguments for mouseMoved (cursor moving with no button held)
 
 ```cpp
+void MouseMoveEventArgs::syncLegacy()  // Copy the canonical pos/delta fields into the deprecated x/y/deltaX/deltaY mirror fields (legacy mirrors scheduled for removal in v1.0).
 ```
 
 ### NetworkInterface — One address entry of a network interface (returned by listNetworkInterfaces)
@@ -2202,6 +2247,7 @@ Node * Node::findByInstanceId(uint64_t id)  // Find a node in this subtree (self
 HitResult Node::findHitNode(const Ray & globalRay)  // Hit test the whole tree with a global ray, returning the frontmost node (C++ only)
 HitResult Node::findHitNodeFromScreen(float screenX, float screenY)  // Hit test the whole tree from a screen point, using each node's own camera context (C++ only)
 bool Node::getActive() const ⚠️deprecated  // Deprecated alias for isActive()
+std::shared_ptr<const CameraContext> Node::getCameraContext() const  // Return the camera context this node was last drawn under (null if never drawn).
 size_t Node::getChildCount() const  // Get the number of child nodes (C++ only)
 int Node::getChildIndex() const  // This node's index among its parent's children (-1 if no parent) (C++ only)
 std::vector<Ptr> Node::getChildren() const  // Get a copy of the child node list (safe to iterate while modifying) (C++ only)
@@ -2252,6 +2298,7 @@ void Node::onChildRemoved(Ptr child)  // Callback fired when a child is removed 
 void Node::removeAllChildren()  // Remove all child nodes (C++ only)
 void Node::removeChild(Ptr child)  // Remove a child node (C++ only)
 void Node::setActive(bool active)  // Set the active state (inactive: update and draw are skipped) (C++ only)
+void Node::setCameraContext(std::shared_ptr<const CameraContext> ctx)  // Set the camera context for a manually-managed node (normally set automatically by drawTree).
 void Node::setEuler(const Vec3 & euler) [+1]  // Set rotation from Euler angles in radians (pitch=X, yaw=Y, roll=Z) (C++ only)
 void Node::setEulerDeg(const Vec3 & deg)  // Set rotation from Euler angles in degrees (C++ only)
 void Node::setGlobalPos(const Vec3 & global) [+1]  // Set the node's position in global (world) space (C++ only)
@@ -2415,6 +2462,7 @@ Rect & Rect::set(float x, float y, float w, float h) [+1]  // Set rectangle boun
 ### RectNode — 2D UI rectangle node: size, clipping and ray-based hit testing, plus subscribable mouse Event members
 
 ```cpp
+void RectNode::draw()  // Draw the rectangle node; override in derived classes (draws nothing by default).
 float RectNode::getBottom() const  // Local bottom edge (equals height) (RectNode method) (C++ only)
 float RectNode::getHeight() const  // Get the node height (RectNode method) (C++ only)
 float RectNode::getLeft() const  // Local left edge (always 0) (RectNode method) (C++ only)
@@ -2436,6 +2484,17 @@ void RectNode::setWidth(float w)  // Set the node width (RectNode method) (C++ o
 ```cpp
 void RectNodeButton::draw()  // Draw the button: fills the rect with the state-dependent color and draws the centered label. (override)
 bool RectNodeButton::isPressed() const  // Whether the button is currently pressed.
+```
+
+### Reflector
+
+```cpp
+void Reflector::beginGroup(const char * name)  // Enter a nested composite group of reflected members (no-op for flat backends).
+void Reflector::endGroup()  // Leave the current nested group.
+bool Reflector::isReadOnly() const  // Return true if the current reflection scope is read-only.
+void Reflector::popReadOnly()  // Leave the current read-only scope.
+void Reflector::pushReadOnly()  // Enter a read-only scope (members visited inside cannot be written).
+bool Reflector::visit(const char * name, float & v) [+7]  // Handle one reflected member by name and value; return true if it was edited.
 ```
 
 ### ResizeEventArgs — Arguments for windowResized events
@@ -2493,6 +2552,7 @@ void ScrollContainer::updateScrollBounds()  // Recalculate scroll bounds from th
 ### ScrollEventArgs — Arguments for mouseScrolled events
 
 ```cpp
+void ScrollEventArgs::syncLegacy()  // Copy the canonical scroll field into the deprecated scrollX/scrollY mirror fields (legacy mirrors scheduled for removal in v1.0).
 ```
 
 ### Serial — Cross-platform serial port (USB/COM): connect, read/write bytes
@@ -2528,11 +2588,13 @@ const std::string & SerialDeviceInfo::getDevicePath() const  // Device path
 
 ```cpp
 void Shader::begin()  // Begin shader (pushes to stack)
+void Shader::clear()  // Destroy the shader's GPU resources and reset it to the unloaded state.
 void Shader::end()  // End shader (pops from stack)
 bool Shader::isLoaded() const  // Check if shader is loaded
 bool Shader::load(const sg_shader_desc *(*)(sg_backend) descFn)  // Load from sokol-shdc generated function
 void Shader::setTexture(int slot, sg_image image, sg_sampler sampler) [+1]  // Bind texture to slot
 void Shader::setUniform(int slot, float value) [+9]  // Set uniform variable by slot (vector overloads send arrays; Vec3 array is padded to Vec4 per std140)
+void Shader::submitVertices(const ShaderVertex * data, int count, PrimitiveType type)  // Submit a batch of vertices for deferred drawing with this shader (lines are unsupported).
 ```
 
 ### ShaderVertex — Standard vertex format for shader drawing (position, normal, texcoord, color).
@@ -2652,6 +2714,7 @@ std::string TcpClient::getRemoteHost() const  // Remote host name
 int TcpClient::getRemotePort() const  // Remote port
 bool TcpClient::isConnected() const  // Whether currently connected
 bool TcpClient::isUsingThread() const  // Whether threading is in use
+void TcpClient::processNetwork()  // Pump pending TCP I/O; normally auto-driven by the update event, but can be called manually for synchronous polling.
 bool TcpClient::send(const void * data, size_t size) [+2]  // Send data to the server
 void TcpClient::setBlocking(bool blocking)  // Set blocking mode
 void TcpClient::setReceiveBufferSize(size_t size)  // Set the receive buffer size
@@ -2727,19 +2790,28 @@ int TcpServerClient::getPort() const  // Client port
 
 ```cpp
 void Texture::allocate(int width, int height, int channels = 4, TextureUsage usage = Immutable, int sampleCount = 1) [+2]  // Allocate texture
+void Texture::allocateCompressed(int width, int height, sg_pixel_format format, const void * data, size_t dataSize)  // Allocate an immutable compressed texture (BC1/BC3/BC7 etc.) from the given data.
 void Texture::allocateCubemap(int sideSize, TextureFormat format, TextureUsage usage = RenderTarget, int mipLevels = 1)  // Allocate a cubemap texture without initial data
 void Texture::bind() const  // Bind texture for rendering
 void Texture::clear()  // Release texture resources
 void Texture::draw(float x, float y) const [+1]  // Draw texture
 void Texture::drawFlippedY(float x, float y, float w, float h) const  // Draw the texture vertically flipped
 void Texture::drawSubsection(float x, float y, float w, float h, float sx, float sy, float sw, float sh) const  // Draw subsection of texture
+sg_view Texture::getAttachmentView() const  // Return the sokol-gfx color attachment view used to render into this RenderTarget (advanced interop).
+sg_view Texture::getAttachmentViewForMip(int level) const  // Return the sokol-gfx color attachment view for the given mip level (advanced interop).
 int Texture::getChannels() const  // Get number of channels
+sg_view Texture::getCubemapFaceAttachmentView(int face, int mipLevel)  // Return (lazily creating) the sokol-gfx attachment view for one (face, mip) of this cubemap (advanced interop).
 int Texture::getHeight() const  // Get height
+sg_image Texture::getImage() const  // Return the underlying sokol-gfx image handle (advanced interop).
 TextureFilter Texture::getMagFilter() const  // Get magnification filter
 TextureFilter Texture::getMinFilter() const  // Get minification filter
 int Texture::getNumMipLevels() const  // Number of mip levels
+sg_pixel_format Texture::getPixelFormat() const  // Return the texture's sokol-gfx pixel format.
 int Texture::getSampleCount() const  // Get MSAA sample count
+sg_sampler Texture::getSampler() const  // Return the underlying sokol-gfx sampler handle (advanced interop).
 TextureUsage Texture::getUsage() const  // Get texture usage mode
+sg_view Texture::getView() const  // Return the underlying sokol-gfx texture view handle (advanced interop).
+sg_view Texture::getViewForMip(int level) const  // Return the sokol-gfx texture view for sampling a single mip level (advanced interop).
 int Texture::getWidth() const  // Get width
 TextureWrap Texture::getWrapU() const  // Get horizontal wrap mode
 TextureWrap Texture::getWrapV() const  // Get vertical wrap mode
@@ -2888,6 +2960,7 @@ bool UdpSocket::isReceiving() const  // Whether the receive thread is active
 bool UdpSocket::isValid() const  // Whether the socket is valid
 bool UdpSocket::joinMulticastGroup(const std::string & groupAddr, const std::string & interfaceAddr = std::string(""))  // Join a multicast group for receiving (call after bind; "" = default route) 
 bool UdpSocket::leaveMulticastGroup(const std::string & groupAddr, const std::string & interfaceAddr = std::string(""))  // Leave a previously joined multicast group
+void UdpSocket::processNetwork()  // Pump pending UDP I/O; normally auto-driven by the update event, but can be called manually for synchronous polling.
 int UdpSocket::receive(void * buffer, size_t bufferSize) [+1]  // Blocking receive (for non-event use); returns byte count or -1
 bool UdpSocket::send(const void * data, size_t size) [+1]  // Send to the destination set by connect()
 bool UdpSocket::sendTo(const std::string & host, int port, const void * data, size_t size) [+1]  // Send data to a specific host and port
@@ -3028,29 +3101,50 @@ void VideoPlayer::update()  // Update the video frame. Call once per frame in up
 ### VideoPlayerBase — Abstract base class for video playback. Use VideoPlayer for the concrete implementation.
 
 ```cpp
+void VideoPlayerBase::close()  // Close the video and release its resources.
 void VideoPlayerBase::firstFrame()  // Go to the first frame
+int VideoPlayerBase::getAudioChannels() const  // Return the number of audio channels, or 0 if no audio.
+uint32_t VideoPlayerBase::getAudioCodec() const  // Return the audio codec as a FourCC ('aac ', 'mp3 ', ...), or 0 if no audio.
+std::vector<uint8_t> VideoPlayerBase::getAudioData() const  // Return the raw (undecoded) audio data, or an empty vector if no audio.
+int VideoPlayerBase::getAudioSampleRate() const  // Return the audio sample rate in Hz, or 0 if no audio.
+int VideoPlayerBase::getCurrentFrame() const  // Return the index of the current frame.
 float VideoPlayerBase::getCurrentTime() const  // Get current playback time in seconds
+float VideoPlayerBase::getDuration() const  // Return the video duration in seconds.
 float VideoPlayerBase::getHeight() const  // Get video height in pixels
+std::string VideoPlayerBase::getHwAccelName() const  // Return the name of the active decode backend (e.g. "videotoolbox", "software", "none").
 float VideoPlayerBase::getPan() const  // Get current stereo pan
+unsigned char * VideoPlayerBase::getPixels() [+1]  // Return raw RGBA pixel data of the current frame, or nullptr if none decoded yet.
+float VideoPlayerBase::getPosition() const  // Return the current playback position as a fraction (0-1).
 float VideoPlayerBase::getResyncThreshold() const  // Get the current resync threshold in seconds
 float VideoPlayerBase::getSpeed() const  // Get current playback speed
+Texture & VideoPlayerBase::getTexture() [+1]  // Return the texture holding the current video frame.
+int VideoPlayerBase::getTotalFrames() const  // Return the total number of frames in the video.
 float VideoPlayerBase::getVolume() const  // Get current volume
 float VideoPlayerBase::getWidth() const  // Get video width in pixels
+bool VideoPlayerBase::hasAudio() const  // Return true if the video has an audio track.
 bool VideoPlayerBase::isDone() const  // Check if playback has reached the end
+bool VideoPlayerBase::isFrameNew() const  // Return true if a new frame was decoded since the last update.
 bool VideoPlayerBase::isLoaded() const  // Check if a video is loaded
 bool VideoPlayerBase::isLoop() const  // Check if looping is enabled
 bool VideoPlayerBase::isPaused() const  // Check if video is paused
 bool VideoPlayerBase::isPlaying() const  // Check if video is currently playing (not paused)
+bool VideoPlayerBase::isUsingHwAccel() const  // Return true if hardware-accelerated decoding is currently active.
+bool VideoPlayerBase::load(const std::string & path)  // Load a video from the given file path; return true on success.
+void VideoPlayerBase::nextFrame()  // Advance to the next frame.
 void VideoPlayerBase::play()  // Start or resume playback
+void VideoPlayerBase::previousFrame()  // Step back to the previous frame.
 void VideoPlayerBase::setCurrentTime(float seconds)  // Seek to a specific time in seconds
+void VideoPlayerBase::setFrame(int frame)  // Seek to the given frame index.
 void VideoPlayerBase::setLoop(bool loop)  // Enable/disable looping
 void VideoPlayerBase::setPan(float pan)  // Set stereo pan (-1.0 left, 0.0 center, 1.0 right)
 void VideoPlayerBase::setPaused(bool paused)  // Pause or resume playback
+void VideoPlayerBase::setPosition(float pct)  // Seek to a playback position given as a fraction (0-1).
 void VideoPlayerBase::setResyncThreshold(float seconds)  // Set the maximum video/audio drift before hard re-sync. When drift exceeds this threshold, video seeks to match audio position instead of catching up frame-by-frame. Set to 0 to disable. Default: 0.5s. Primarily affects Linux (FFmpeg) backend.
 void VideoPlayerBase::setSpeed(float speed)  // Set playback speed (1.0 = normal, 2.0 = double speed)
 void VideoPlayerBase::setVolume(float vol)  // Set audio volume (0.0 to 1.0)
 void VideoPlayerBase::stop()  // Stop playback and reset to beginning
 void VideoPlayerBase::togglePause()  // Toggle pause state
+void VideoPlayerBase::update()  // Decode the next frame and refresh internal state; call once per frame.
 ```
 
 ### VideoRecordSettings — Encoder settings passed to VideoWriter::open(), ScreenRecorder::start(), and startRecording()

@@ -14415,3 +14415,398 @@ keywords = ["log", "stream", "output"]
 description.en = "Stream-based log output — the object returned by logNotice() / logWarning() / logError(), accepting values via operator<<."
 description.ja = "ストリーム形式のログ出力。logNotice() / logWarning() / logError() が返すオブジェクトで、operator<< で値を流し込む。"
 description.ko = "스트림 기반 로그 출력. logNotice() / logWarning() / logError()가 반환하는 객체이며 operator<< 로 값을 흘려보낸다."
+
+["VideoPlayerBase::load"]
+description.en = "Load a video from the given file path; return true on success."
+description.ja = "指定したパスから動画を読み込む。成功したら true を返す。"
+description.ko = "주어진 경로에서 비디오를 로드하고 성공하면 true를 반환한다."
+
+["VideoPlayerBase::close"]
+description.en = "Close the video and release its resources."
+description.ja = "動画を閉じてリソースを解放する。"
+description.ko = "비디오를 닫고 리소스를 해제한다."
+
+["VideoPlayerBase::update"]
+description.en = "Decode the next frame and refresh internal state; call once per frame."
+description.ja = "次のフレームをデコードして内部状態を更新する。毎フレーム呼ぶ。"
+description.ko = "다음 프레임을 디코드하고 내부 상태를 갱신한다. 매 프레임 호출한다."
+
+["VideoPlayerBase::isFrameNew"]
+description.en = "Return true if a new frame was decoded since the last update."
+description.ja = "前回の update 以降に新しいフレームが来たら true を返す。"
+description.ko = "마지막 update 이후 새 프레임이 디코드되었으면 true를 반환한다."
+
+["VideoPlayerBase::getDuration"]
+description.en = "Return the video duration in seconds."
+description.ja = "動画の長さを秒で返す。"
+description.ko = "비디오 길이를 초 단위로 반환한다."
+
+["VideoPlayerBase::getPosition"]
+description.en = "Return the current playback position as a fraction (0-1)."
+description.ja = "現在の再生位置を 0-1 の割合で返す。"
+description.ko = "현재 재생 위치를 0-1 비율로 반환한다."
+
+["VideoPlayerBase::setPosition"]
+description.en = "Seek to a playback position given as a fraction (0-1)."
+description.ja = "0-1 の割合で指定した再生位置にシークする。"
+description.ko = "0-1 비율로 지정한 재생 위치로 이동한다."
+
+["VideoPlayerBase::getCurrentFrame"]
+description.en = "Return the index of the current frame."
+description.ja = "現在のフレーム番号を返す。"
+description.ko = "현재 프레임 인덱스를 반환한다."
+
+["VideoPlayerBase::getTotalFrames"]
+description.en = "Return the total number of frames in the video."
+description.ja = "動画の総フレーム数を返す。"
+description.ko = "비디오의 전체 프레임 수를 반환한다."
+
+["VideoPlayerBase::setFrame"]
+description.en = "Seek to the given frame index."
+description.ja = "指定したフレーム番号にシークする。"
+description.ko = "지정한 프레임 인덱스로 이동한다."
+
+["VideoPlayerBase::nextFrame"]
+description.en = "Advance to the next frame."
+description.ja = "次のフレームへ進む。"
+description.ko = "다음 프레임으로 이동한다."
+
+["VideoPlayerBase::previousFrame"]
+description.en = "Step back to the previous frame."
+description.ja = "前のフレームへ戻る。"
+description.ko = "이전 프레임으로 돌아간다."
+
+["VideoPlayerBase::getPixels"]
+description.en = "Return raw RGBA pixel data of the current frame, or nullptr if none decoded yet."
+description.ja = "現在フレームの生 RGBA ピクセルデータを返す。未デコードなら nullptr。"
+description.ko = "현재 프레임의 원본 RGBA 픽셀 데이터를 반환한다. 디코드 전이면 nullptr."
+
+["VideoPlayerBase::hasAudio"]
+description.en = "Return true if the video has an audio track."
+description.ja = "動画が音声トラックを持つなら true を返す。"
+description.ko = "비디오에 오디오 트랙이 있으면 true를 반환한다."
+
+["VideoPlayerBase::getAudioCodec"]
+description.en = "Return the audio codec as a FourCC ('aac ', 'mp3 ', ...), or 0 if no audio."
+description.ja = "音声コーデックを FourCC ('aac ', 'mp3 ' 等) で返す。音声がなければ 0。"
+description.ko = "오디오 코덱을 FourCC('aac ', 'mp3 ' 등)로 반환한다. 오디오가 없으면 0."
+
+["VideoPlayerBase::getAudioData"]
+description.en = "Return the raw (undecoded) audio data, or an empty vector if no audio."
+description.ja = "生（未デコード）の音声データを返す。音声がなければ空の vector。"
+description.ko = "원본(디코드 전) 오디오 데이터를 반환한다. 오디오가 없으면 빈 벡터."
+
+["VideoPlayerBase::getAudioSampleRate"]
+description.en = "Return the audio sample rate in Hz, or 0 if no audio."
+description.ja = "音声のサンプルレートを Hz で返す。音声がなければ 0。"
+description.ko = "오디오 샘플레이트를 Hz로 반환한다. 오디오가 없으면 0."
+
+["VideoPlayerBase::getAudioChannels"]
+description.en = "Return the number of audio channels, or 0 if no audio."
+description.ja = "音声のチャンネル数を返す。音声がなければ 0。"
+description.ko = "오디오 채널 수를 반환한다. 오디오가 없으면 0."
+
+["VideoPlayerBase::isUsingHwAccel"]
+description.en = "Return true if hardware-accelerated decoding is currently active."
+description.ja = "ハードウェアアクセラレーションによるデコードが有効なら true を返す。"
+description.ko = "하드웨어 가속 디코딩이 활성화되어 있으면 true를 반환한다."
+
+["VideoPlayerBase::getHwAccelName"]
+description.en = "Return the name of the active decode backend (e.g. \"videotoolbox\", \"software\", \"none\")."
+description.ja = "有効なデコードバックエンド名を返す（\"videotoolbox\"、\"software\"、\"none\" 等）。"
+description.ko = "활성 디코드 백엔드 이름을 반환한다(\"videotoolbox\", \"software\", \"none\" 등)."
+
+["VideoPlayerBase::getTexture"]
+description.en = "Return the texture holding the current video frame."
+description.ja = "現在の動画フレームを保持するテクスチャを返す。"
+description.ko = "현재 비디오 프레임을 담은 텍스처를 반환한다."
+
+["HasTexture::hasTexture"]
+description.en = "Return true if the underlying texture is allocated."
+description.ja = "内部テクスチャが確保済みなら true を返す。"
+description.ko = "내부 텍스처가 할당되어 있으면 true를 반환한다."
+
+["HasTexture::draw"]
+description.en = "Draw the texture at the given position (and optional size)."
+description.ja = "指定した位置（および任意のサイズ）にテクスチャを描画する。"
+description.ko = "지정한 위치(및 선택적 크기)에 텍스처를 그린다."
+
+["HasTexture::setMinFilter"]
+description.en = "Set the texture minification filter."
+description.ja = "テクスチャの縮小フィルタを設定する。"
+description.ko = "텍스처 축소 필터를 설정한다."
+
+["HasTexture::setMagFilter"]
+description.en = "Set the texture magnification filter."
+description.ja = "テクスチャの拡大フィルタを設定する。"
+description.ko = "텍스처 확대 필터를 설정한다."
+
+["HasTexture::setFilter"]
+description.en = "Set both the minification and magnification filters."
+description.ja = "縮小・拡大フィルタの両方を設定する。"
+description.ko = "축소와 확대 필터를 모두 설정한다."
+
+["HasTexture::getMinFilter"]
+description.en = "Return the texture minification filter."
+description.ja = "テクスチャの縮小フィルタを返す。"
+description.ko = "텍스처 축소 필터를 반환한다."
+
+["HasTexture::getMagFilter"]
+description.en = "Return the texture magnification filter."
+description.ja = "テクスチャの拡大フィルタを返す。"
+description.ko = "텍스처 확대 필터를 반환한다."
+
+["HasTexture::setWrapU"]
+description.en = "Set the texture wrap mode on the U (horizontal) axis."
+description.ja = "テクスチャの U（水平）軸のラップモードを設定する。"
+description.ko = "텍스처의 U(수평) 축 래핑 모드를 설정한다."
+
+["HasTexture::setWrapV"]
+description.en = "Set the texture wrap mode on the V (vertical) axis."
+description.ja = "テクスチャの V（垂直）軸のラップモードを設定する。"
+description.ko = "텍스처의 V(수직) 축 래핑 모드를 설정한다."
+
+["HasTexture::setWrap"]
+description.en = "Set the texture wrap mode on both the U and V axes."
+description.ja = "テクスチャの U・V 両軸のラップモードを設定する。"
+description.ko = "텍스처의 U와 V 축 래핑 모드를 모두 설정한다."
+
+["HasTexture::getWrapU"]
+description.en = "Return the texture wrap mode on the U axis."
+description.ja = "テクスチャの U 軸のラップモードを返す。"
+description.ko = "텍스처의 U 축 래핑 모드를 반환한다."
+
+["HasTexture::getWrapV"]
+description.en = "Return the texture wrap mode on the V axis."
+description.ja = "テクスチャの V 軸のラップモードを返す。"
+description.ko = "텍스처의 V 축 래핑 모드를 반환한다."
+
+["HasTexture::save"]
+description.en = "Save the texture contents to a file; return true on success."
+description.ja = "テクスチャの内容をファイルに保存する。成功したら true を返す。"
+description.ko = "텍스처 내용을 파일로 저장하고 성공하면 true를 반환한다."
+
+["Texture::allocateCompressed"]
+description.en = "Allocate an immutable compressed texture (BC1/BC3/BC7 etc.) from the given data."
+description.ja = "指定データから不変の圧縮テクスチャ（BC1/BC3/BC7 等）を確保する。"
+description.ko = "주어진 데이터로 불변 압축 텍스처(BC1/BC3/BC7 등)를 할당한다."
+
+["Texture::getPixelFormat"]
+description.en = "Return the texture's sokol-gfx pixel format."
+description.ja = "テクスチャの sokol-gfx ピクセルフォーマットを返す。"
+description.ko = "텍스처의 sokol-gfx 픽셀 포맷을 반환한다."
+
+["Texture::getImage"]
+description.en = "Return the underlying sokol-gfx image handle (advanced interop)."
+description.ja = "内部の sokol-gfx image ハンドルを返す（高度な相互運用向け）。"
+description.ko = "내부 sokol-gfx image 핸들을 반환한다(고급 상호운용용)."
+
+["Texture::getView"]
+description.en = "Return the underlying sokol-gfx texture view handle (advanced interop)."
+description.ja = "内部の sokol-gfx テクスチャ view ハンドルを返す（高度な相互運用向け）。"
+description.ko = "내부 sokol-gfx 텍스처 view 핸들을 반환한다(고급 상호운용용)."
+
+["Texture::getSampler"]
+description.en = "Return the underlying sokol-gfx sampler handle (advanced interop)."
+description.ja = "内部の sokol-gfx sampler ハンドルを返す（高度な相互運用向け）。"
+description.ko = "내부 sokol-gfx sampler 핸들을 반환한다(고급 상호운용용)."
+
+["Texture::getAttachmentView"]
+description.en = "Return the sokol-gfx color attachment view used to render into this RenderTarget (advanced interop)."
+description.ja = "この RenderTarget へ描画するための sokol-gfx カラーアタッチメント view を返す（高度な相互運用向け）。"
+description.ko = "이 RenderTarget에 렌더링하기 위한 sokol-gfx 컬러 어태치먼트 view를 반환한다(고급 상호운용용)."
+
+["Texture::getAttachmentViewForMip"]
+description.en = "Return the sokol-gfx color attachment view for the given mip level (advanced interop)."
+description.ja = "指定したミップレベルの sokol-gfx カラーアタッチメント view を返す（高度な相互運用向け）。"
+description.ko = "지정한 밉 레벨의 sokol-gfx 컬러 어태치먼트 view를 반환한다(고급 상호운용용)."
+
+["Texture::getViewForMip"]
+description.en = "Return the sokol-gfx texture view for sampling a single mip level (advanced interop)."
+description.ja = "単一のミップレベルをサンプリングするための sokol-gfx テクスチャ view を返す（高度な相互運用向け）。"
+description.ko = "단일 밉 레벨을 샘플링하기 위한 sokol-gfx 텍스처 view를 반환한다(고급 상호운용용)."
+
+["Texture::getCubemapFaceAttachmentView"]
+description.en = "Return (lazily creating) the sokol-gfx attachment view for one (face, mip) of this cubemap (advanced interop)."
+description.ja = "このキューブマップの (face, mip) 用 sokol-gfx アタッチメント view を返す（必要時に生成、高度な相互運用向け）。"
+description.ko = "이 큐브맵의 (face, mip)에 대한 sokol-gfx 어태치먼트 view를 반환한다(지연 생성, 고급 상호운용용)."
+
+["Fbo::getColorImage"]
+description.en = "Return the underlying sokol-gfx color image handle (advanced interop)."
+description.ja = "内部のカラー sokol-gfx image ハンドルを返す（高度な相互運用向け）。"
+description.ko = "내부 컬러 sokol-gfx image 핸들을 반환한다(고급 상호운용용)."
+
+["Fbo::getTextureView"]
+description.en = "Return the underlying sokol-gfx color texture view handle (advanced interop)."
+description.ja = "内部のカラーテクスチャ sokol-gfx view ハンドルを返す（高度な相互運用向け）。"
+description.ko = "내부 컬러 텍스처 sokol-gfx view 핸들을 반환한다(고급 상호운용용)."
+
+["Fbo::getSampler"]
+description.en = "Return the underlying sokol-gfx sampler handle (advanced interop)."
+description.ja = "内部の sokol-gfx sampler ハンドルを返す（高度な相互運用向け）。"
+description.ko = "내부 sokol-gfx sampler 핸들을 반환한다(고급 상호운용용)."
+
+["Mesh::getGpuVertexBuffer"]
+description.en = "Return the underlying sokol-gfx vertex buffer handle (advanced interop)."
+description.ja = "内部の sokol-gfx 頂点バッファハンドルを返す（高度な相互運用向け）。"
+description.ko = "내부 sokol-gfx 정점 버퍼 핸들을 반환한다(고급 상호운용용)."
+
+["Mesh::getGpuIndexBuffer"]
+description.en = "Return the underlying sokol-gfx index buffer handle (advanced interop)."
+description.ja = "内部の sokol-gfx インデックスバッファハンドルを返す（高度な相互運用向け）。"
+description.ko = "내부 sokol-gfx 인덱스 버퍼 핸들을 반환한다(고급 상호운용용)."
+
+["Font::getAtlas"]
+description.en = "Return the atlas page at the given index for debug visualization, or nullptr if out of range."
+description.ja = "デバッグ表示用に指定インデックスのアトラスページを返す。範囲外なら nullptr。"
+description.ko = "디버그 시각화용으로 지정 인덱스의 아틀라스 페이지를 반환한다. 범위를 벗어나면 nullptr."
+
+["Font::getSampler"]
+description.en = "Return the shared sokol-gfx sampler used for atlas rendering (advanced interop)."
+description.ja = "アトラス描画に使う共有 sokol-gfx sampler を返す（高度な相互運用向け）。"
+description.ko = "아틀라스 렌더링에 쓰이는 공유 sokol-gfx sampler를 반환한다(고급 상호운용용)."
+
+["IesProfile::getView"]
+description.en = "Return the sokol-gfx texture view of the IES profile for pipeline binding (advanced interop)."
+description.ja = "パイプラインバインド用に IES プロファイルの sokol-gfx テクスチャ view を返す（高度な相互運用向け）。"
+description.ko = "파이프라인 바인딩용으로 IES 프로파일의 sokol-gfx 텍스처 view를 반환한다(고급 상호운용용)."
+
+["IesProfile::getSampler"]
+description.en = "Return the sokol-gfx sampler of the IES profile for pipeline binding (advanced interop)."
+description.ja = "パイプラインバインド用に IES プロファイルの sokol-gfx sampler を返す（高度な相互運用向け）。"
+description.ko = "파이프라인 바인딩용으로 IES 프로파일의 sokol-gfx sampler를 반환한다(고급 상호운용용)."
+
+["Node::getCameraContext"]
+description.en = "Return the camera context this node was last drawn under (null if never drawn)."
+description.ja = "このノードが最後に描画されたカメラコンテキストを返す（未描画なら null）。"
+description.ko = "이 노드가 마지막으로 그려진 카메라 컨텍스트를 반환한다(그려진 적 없으면 null)."
+
+["Node::setCameraContext"]
+description.en = "Set the camera context for a manually-managed node (normally set automatically by drawTree)."
+description.ja = "手動管理ノードのカメラコンテキストを設定する（通常は drawTree が自動設定）。"
+description.ko = "수동 관리 노드의 카메라 컨텍스트를 설정한다(보통 drawTree가 자동 설정)."
+
+["CameraContext::screenPointToRay"]
+description.en = "Unproject a screen point (pixels, top-left origin) into a world-space ray."
+description.ja = "スクリーン座標（ピクセル、左上原点）をワールド空間のレイに逆投影する。"
+description.ko = "화면 좌표(픽셀, 좌상단 원점)를 월드 공간 광선으로 역투영한다."
+
+["RectNode::draw"]
+description.en = "Draw the rectangle node; override in derived classes (draws nothing by default)."
+description.ja = "矩形ノードを描画する。派生クラスでオーバーライドする（デフォルトは何も描かない）。"
+description.ko = "사각형 노드를 그린다. 파생 클래스에서 재정의한다(기본은 아무것도 그리지 않음)."
+
+["Shader::clear"]
+description.en = "Destroy the shader's GPU resources and reset it to the unloaded state."
+description.ja = "シェーダの GPU リソースを破棄して未ロード状態にリセットする。"
+description.ko = "셰이더의 GPU 리소스를 파괴하고 미로드 상태로 초기화한다."
+
+["Shader::submitVertices"]
+description.en = "Submit a batch of vertices for deferred drawing with this shader (lines are unsupported)."
+description.ja = "このシェーダで遅延描画する頂点バッチを送る（ラインは非対応）。"
+description.ko = "이 셰이더로 지연 렌더링할 정점 배치를 제출한다(라인은 미지원)."
+
+["Reflector::visit"]
+description.en = "Handle one reflected member by name and value; return true if it was edited."
+description.ja = "名前と値で 1 つの反映メンバを処理する。編集されたら true を返す。"
+description.ko = "이름과 값으로 반영된 멤버 하나를 처리한다. 편집되었으면 true를 반환한다."
+
+["Reflector::isReadOnly"]
+description.en = "Return true if the current reflection scope is read-only."
+description.ja = "現在の反映スコープが読み取り専用なら true を返す。"
+description.ko = "현재 반영 범위가 읽기 전용이면 true를 반환한다."
+
+["Reflector::pushReadOnly"]
+description.en = "Enter a read-only scope (members visited inside cannot be written)."
+description.ja = "読み取り専用スコープに入る（内側で訪れるメンバは書き込み不可）。"
+description.ko = "읽기 전용 범위로 진입한다(내부에서 방문하는 멤버는 쓸 수 없음)."
+
+["Reflector::popReadOnly"]
+description.en = "Leave the current read-only scope."
+description.ja = "現在の読み取り専用スコープを抜ける。"
+description.ko = "현재 읽기 전용 범위를 벗어난다."
+
+["Reflector::beginGroup"]
+description.en = "Enter a nested composite group of reflected members (no-op for flat backends)."
+description.ja = "反映メンバのネストしたグループに入る（フラットなバックエンドでは何もしない）。"
+description.ko = "반영된 멤버의 중첩 그룹으로 진입한다(평면 백엔드에서는 동작 없음)."
+
+["Reflector::endGroup"]
+description.en = "Leave the current nested group."
+description.ja = "現在のネストグループを抜ける。"
+description.ko = "현재 중첩 그룹을 벗어난다."
+
+["JsonReadReflector::unknownKeys"]
+description.en = "Return the source keys that matched no reflected member (typos etc.); valid after reflectMembers runs."
+description.ja = "どの反映メンバにも一致しなかったソースキー（タイポ等）を返す。reflectMembers 実行後に有効。"
+description.ko = "어떤 반영 멤버와도 일치하지 않은 소스 키(오타 등)를 반환한다. reflectMembers 실행 후 유효."
+
+["JsonReadReflector::visit"]
+description.en = "Apply the JSON value for one member through its setter, recording applied/skipped/read-only."
+description.ja = "1 メンバの JSON 値をセッター経由で適用し、適用／スキップ／読取専用を記録する。"
+description.ko = "한 멤버의 JSON 값을 세터를 통해 적용하고 적용/건너뜀/읽기전용을 기록한다."
+
+["JsonReadReflector::beginGroup"]
+description.en = "Descend into the nested JSON object for a composite member."
+description.ja = "複合メンバ用にネストした JSON オブジェクトへ降りる。"
+description.ko = "복합 멤버를 위해 중첩된 JSON 객체로 내려간다."
+
+["JsonReadReflector::endGroup"]
+description.en = "Return from the nested JSON object."
+description.ja = "ネストした JSON オブジェクトから戻る。"
+description.ko = "중첩된 JSON 객체에서 돌아온다."
+
+["JsonWriteReflector::visit"]
+description.en = "Write one reflected member into the output JSON object."
+description.ja = "1 つの反映メンバを出力 JSON オブジェクトに書き込む。"
+description.ko = "반영된 멤버 하나를 출력 JSON 객체에 기록한다."
+
+["JsonWriteReflector::beginGroup"]
+description.en = "Open a nested JSON object for a composite member."
+description.ja = "複合メンバ用にネストした JSON オブジェクトを開く。"
+description.ko = "복합 멤버를 위해 중첩된 JSON 객체를 연다."
+
+["JsonWriteReflector::endGroup"]
+description.en = "Close the current nested JSON object."
+description.ja = "現在のネストした JSON オブジェクトを閉じる。"
+description.ko = "현재 중첩된 JSON 객체를 닫는다."
+
+["UdpSocket::processNetwork"]
+description.en = "Pump pending UDP I/O; normally auto-driven by the update event, but can be called manually for synchronous polling."
+description.ja = "保留中の UDP I/O を処理する。通常は update イベントで自動駆動されるが、同期ポーリングのため手動呼び出しも可能。"
+description.ko = "대기 중인 UDP I/O를 처리한다. 보통 update 이벤트로 자동 구동되지만 동기 폴링을 위해 수동 호출도 가능하다."
+
+["TcpClient::processNetwork"]
+description.en = "Pump pending TCP I/O; normally auto-driven by the update event, but can be called manually for synchronous polling."
+description.ja = "保留中の TCP I/O を処理する。通常は update イベントで自動駆動されるが、同期ポーリングのため手動呼び出しも可能。"
+description.ko = "대기 중인 TCP I/O를 처리한다. 보통 update 이벤트로 자동 구동되지만 동기 폴링을 위해 수동 호출도 가능하다."
+
+["AudioEngine::mixAudio"]
+description.en = "Audio output callback: mix all playing sounds into the buffer (internal, called from the audio thread)."
+description.ja = "音声出力コールバック。再生中の全サウンドをバッファにミックスする（内部用、音声スレッドから呼ばれる）。"
+description.ko = "오디오 출력 콜백. 재생 중인 모든 사운드를 버퍼에 믹스한다(내부용, 오디오 스레드에서 호출)."
+
+["MicInput::onAudioData"]
+description.en = "Mic input callback: receive captured input samples (internal, called from the audio thread)."
+description.ja = "マイク入力コールバック。キャプチャした入力サンプルを受け取る（内部用、音声スレッドから呼ばれる）。"
+description.ko = "마이크 입력 콜백. 캡처된 입력 샘플을 받는다(내부용, 오디오 스레드에서 호출)."
+
+["MouseEventArgs::syncLegacy"]
+description.en = "Copy the canonical pos field into the deprecated x/y mirror fields (legacy mirrors scheduled for removal in v1.0)."
+description.ja = "正規の pos を非推奨の x/y ミラーフィールドにコピーする（レガシーミラーは v1.0 で削除予定）。"
+description.ko = "정규 pos 값을 폐기 예정인 x/y 미러 필드로 복사한다(레거시 미러는 v1.0에서 제거 예정)."
+
+["MouseMoveEventArgs::syncLegacy"]
+description.en = "Copy the canonical pos/delta fields into the deprecated x/y/deltaX/deltaY mirror fields (legacy mirrors scheduled for removal in v1.0)."
+description.ja = "正規の pos/delta を非推奨の x/y/deltaX/deltaY ミラーフィールドにコピーする（レガシーミラーは v1.0 で削除予定）。"
+description.ko = "정규 pos/delta 값을 폐기 예정인 x/y/deltaX/deltaY 미러 필드로 복사한다(레거시 미러는 v1.0에서 제거 예정)."
+
+["MouseDragEventArgs::syncLegacy"]
+description.en = "Copy the canonical pos/delta fields into the deprecated x/y/deltaX/deltaY mirror fields (legacy mirrors scheduled for removal in v1.0)."
+description.ja = "正規の pos/delta を非推奨の x/y/deltaX/deltaY ミラーフィールドにコピーする（レガシーミラーは v1.0 で削除予定）。"
+description.ko = "정규 pos/delta 값을 폐기 예정인 x/y/deltaX/deltaY 미러 필드로 복사한다(레거시 미러는 v1.0에서 제거 예정)."
+
+["ScrollEventArgs::syncLegacy"]
+description.en = "Copy the canonical scroll field into the deprecated scrollX/scrollY mirror fields (legacy mirrors scheduled for removal in v1.0)."
+description.ja = "正規の scroll を非推奨の scrollX/scrollY ミラーフィールドにコピーする（レガシーミラーは v1.0 で削除予定）。"
+description.ko = "정규 scroll 값을 폐기 예정인 scrollX/scrollY 미러 필드로 복사한다(레거시 미러는 v1.0에서 제거 예정)."
