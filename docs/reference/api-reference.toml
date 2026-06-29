@@ -13004,7 +13004,16 @@ of = ["ofExit"]
 description.en = "Request application exit. Can be cancelled by listening to events().exitRequested and setting args.cancel = true"
 description.ja = "アプリケーション終了を要求。events().exitRequestedをリッスンしてargs.cancel = trueでキャンセル可能"
 description.ko = "어플리케이션 종료를 요청. events().exitRequested를 수신하고 args.cancel = true로 설정하면 취소 가능"
-related = ["exitApp", "events"]
+related = ["exitApp", "events", "ExitRequestEventArgs"]
+details = '''
+Fires events().exitRequested (an Event<ExitRequestEventArgs>) before quitting. A
+listener can veto the exit by setting args.cancel = true — useful for "save before
+quit?" prompts. Use exitApp() instead for an immediate, non-cancellable quit.
+
+    listener_ = events().exitRequested.listen([this](ExitRequestEventArgs& e){
+        if (hasUnsavedChanges) e.cancel = true;   // stops the exit
+    });
+'''
 
 ["resetBlendMode"]
 category = "graphics_style"

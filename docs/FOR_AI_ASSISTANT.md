@@ -641,9 +641,9 @@ void draw() override {
 
 EasyCam provides orbit controls automatically (drag to rotate, scroll to zoom, right-drag to pan).
 
-### 3D Lighting & PBR
+### How do I light and shade 3D objects? (PBR: Light + Material)
 
-TrussC uses GPU-based PBR (Physically Based Rendering) with metallic-roughness workflow.
+TrussC uses GPU-based PBR (Physically Based Rendering) with metallic-roughness workflow (glTF 2.0 compatible). Flow: add lights → activate a material → draw meshes.
 
 ```cpp
 Light light;
@@ -684,8 +684,7 @@ void draw() override {
 
 **Key concepts:**
 - `Light`: Directional, Point, or Spot (with cone falloff). Also supports projector texture and IES profiles
-- `Material`: PBR properties — `setBaseColor()`, `setMetallic()`, `setRoughness()`, `setNormalMap()`, etc.
-- `Environment`: IBL (Image-Based Lighting) for ambient reflections. `loadProcedural()` or `loadFromHDR()`. **Auto-skipped on iOS/iPadOS Safari (wasm)** — cube-face render targets break the canvas there, so PBR falls back to flat ambient + direct lights (works on native, desktop web, Android). Don't rely on IBL reflections if you target iOS web.
+- `Material`: presets (`Material::gold()`, silver, copper, iron, bronze, emerald, ruby; `plastic(color, roughness)`, `rubber(color)`) or custom via `setBaseColor()` / `setMetallic()` (0–1) / `setRoughness()` (0.045–1) / `setNormalMap()`. Colors are 0–1. Up to 8 lights.
 - `setMaterial()` activates PBR for all subsequent `mesh.draw()` calls until `clearMaterial()`
 
 **Shadow mapping:**
@@ -716,6 +715,22 @@ light.setLensShift(0.0f, 1.0f);                            // Projector lens shi
 light.setIesProfile(&iesProfile);                           // Photometric profile
 ```
 
+### How do I use IBL (environment lighting / reflections)?
+
+Environment-based lighting — metal reflections and ambient — uses IBL. Load an `Environment` and call `setEnvironment()`:
+
+```cpp
+Environment env;
+env.loadProcedural();          // simple sky + sun + ground (or env.loadFromHDR("x.hdr"))
+setEnvironment(env);
+```
+
+Internally it bakes irradiance (diffuse) + prefilter (specular) + a BRDF LUT and applies them via split-sum. Metal materials need IBL (or an environment) to reflect. Clear with `clearEnvironment()`.
+
+### Why doesn't IBL work on iOS / iPadOS Safari? (Apple-wasm caveat)
+
+Known bug: on iOS/iPadOS Safari (WebKit) wasm builds, **IBL baking is skipped automatically** — cube-face render targets freeze the WebKit canvas (one frame, then black). The `Environment` load returns false and the scene falls back to **flat ambient (~3% of albedo on non-metals) + direct lights**. Direct lighting, shadows, and all material parameters (metallic / roughness / normal map) still work. This is iOS-Safari only (detected via UserAgent + maxTouchPoints); desktop web, Android web, and native are unaffected. **Don't rely on IBL reflections when targeting iOS web.**
+
 ## Hot Reload
 
 TrussC supports live code reloading during development. Add one line to your app's `.cpp` file:
@@ -741,6 +756,442 @@ exposes screenshots, input injection, and live node-tree read/write over HTTP �
 AI agents can drive and verify the running app directly. As a chat assistant you
 won't use this yourself; just know it exists so you can point users to it
 (details: docs/AI_AUTOMATION.md, agent workflows: the trussc-dev-skill repo).
+
+## Why TrussC & Licensing
+
+### Can I use TrussC commercially / in client work?
+
+Yes. The core is **MIT-licensed**, and every dependency and every official bundled addon is permissive (MIT / zlib / BSD / Apache-2.0 / Public Domain) — **no GPL or LGPL anywhere in the dependency tree**. So projects with a "no GPL" delivery clause are fine. Ship distributed apps, one-off installations, server-side apps, or WebAssembly builds — the delivery form doesn't matter.
+
+### What are the dependency licenses? Any GPL?
+
+No GPL, no LGPL. Breakdown:
+- **core**: MIT
+- **sokol**: zlib
+- **stb / dr_libs / miniaudio**: Public Domain or MIT-0
+- **Dear ImGui / nlohmann-json / pugixml / cpp-httplib**: MIT
+- **official bundled addons (16)**: all MIT / BSD / Apache-2.0 / zlib / Public Domain
+- **mbedTLS (tcxTls) only** is dual Apache-2.0 / GPL → the **Apache-2.0 option is chosen**, so no contamination.
+
+Sample assets are CC0 etc. Full inventory: `docs/LICENSE.md`.
+
+### Do external addons change the licensing?
+
+If you add an addon that is **not** one of the official bundled ones, **check its license individually**. Addons that wrap a vendor SDK (commercial depth cameras, video-transport SDKs, …) may carry a different or proprietary license. Such SDKs are not bundled into TrussC — they are fetched separately at build time. For anything legal, read each library's / SDK's own license text.
+
+### What can I ship made with TrussC?
+
+License-wise, effectively any form: distributed desktop/mobile apps, one-off installations and digital content, server-side apps, WebAssembly (web) builds. It's also a good fit for education. The bar is not "MIT purism" but **"can I use it at work as-is"** — that's why a mix of MIT core, zlib libraries and CC0 assets is consistent: all are permissive and never block distribution.
+
+### What's the one guiding principle behind TrussC?
+
+The thread through everything is: **nothing should ever block you from shipping a deliverable.** Permissive-only licensing, coverage across native / mobile / web, and thinness (performance + portability) all point at that single goal. When a design decision is unclear, the test is "can this be used at work as-is, and does it avoid blocking distribution?"
+
+### Can I read and modify TrussC's internals? (all-source escape hatch)
+
+Yes — **all of TrussC's source is visible** (no binary-only libraries in the foundation; core and its dependencies are header/source you can read). So behavior is easy to trace, and when needed you can **patch it yourself or override via inheritance**. Unlike a proprietary dev environment, this works well as an "escape hatch" when you get stuck. Core itself does this — it ships `sokol_gl_tc.h`, a fork of `sokol_gl.h`. (The exception is a few addons that wrap a vendor SDK and depend on its binary.)
+
+### Is the API stable before 1.0?
+
+Be aware: **while the version is below 1.0**, the API is still stabilizing — additions, and occasionally removals, can happen. Methods marked `[[deprecated]]` are **scheduled for removal at v1.0.0**, so when you see a deprecation warning at build time, migrate to the new API early.
+
+## Built on sokol
+
+### Why sokol instead of OpenGL?
+
+OpenGL is winding down — Apple in particular has long signaled dropping it — so betting on it gives no guarantee that what you build keeps running commercially. TrussC instead runs on whatever native API each OS pushes, abstracting several backends thinly via **sokol (sokol_gfx)**. The backend is chosen automatically per platform: **Metal** on macOS/iOS, **Direct3D 11** on Windows, **OpenGL (GLCORE)** on Linux, **GLES3** on Android / Raspberry Pi, **WebGPU** on web (GLES3 fallback). The point is not being locked to one API — Metal on Apple, D3D11 on Windows, and OpenGL/GLES only where it's still the right choice. (Vulkan is not used yet; possible future support.) Result: apps survive platform shifts and ship to the web (WebAssembly) as-is.
+
+### Why sokol over bgfx / wgpu / others?
+
+The constraints were "C++ + thin + header-only." TrussC's own layer aims for an openFrameworks-like feel, and underneath it wanted a library that **does backend abstraction and not much else**. Comparing candidates, sokol fit best. The clincher is **sokol-shdc** — it compiles one GLSL source into each backend's shader form (Metal MSL / D3D11 HLSL / GLSL / WGSL), which is excellent and a strong reason to stay on sokol.
+
+### What do you gain (and give up) with header-only sokol?
+
+Being header-only gives high portability (a nice side benefit for TrussC's generality), and — bigger — **you can fix the foundation yourself**. The trade-off is that sokol isn't fully battle-tested; but TrussC itself is even newer, so that's acceptable, and header-only means "fixable" beats "mature." In practice TrussC keeps `sokol_gl_tc.h`, a modified `sokol_gl.h`, with its own fixes and added features.
+
+### Can TrussC open multiple windows?
+
+Not directly, by default. The foundation, sokol (sokol_app), assumes "one process = one window," so TrussC can't open multiple windows directly. This is something given up by adopting sokol (it's wanted but hard to implement). Workaround: **share a texture / output to a second app and run a separate process for the second window.** Depending on the need, use **tcxSyphon** (macOS), **tcxNDI** (cross-platform video transport), **tcxNozzle** (GPU texture sharing), or **tcxVirtualCam** (virtual camera output). (Windows' Spout equivalent exists as a concept, but there's no dedicated addon yet.)
+
+### How does one C++ codebase run on every platform?
+
+One C++ codebase builds for macOS / Windows / Linux / iOS / Android / web (WebAssembly). The foundation is two layers: **sokol_app** abstracts window creation and input across platforms, and **sokol_gfx** maps drawing to each OS's native graphics API (backend auto-selected: macOS/iOS=Metal, Windows=Direct3D 11, Linux=OpenGL, Android/RPi=GLES3, web=WebGPU). OS-specific code lives in `core/platform/{mac,ios,win,linux,android,web}/` (`.mm` Objective-C++ on mac/ios, `.cpp` elsewhere). CMake detects the platform at configure time and links the right sources / backend defines / frameworks, so your app code is platform-agnostic.
+
+### How do shaders work across all backends? (sokol-shdc)
+
+Write a shader once in GLSL; at build time **sokol-shdc** translates it to each backend's form: Metal=MSL, Direct3D 11=HLSL, OpenGL=GLSL, WebGPU=WGSL. So one shader source covers every platform. Put `.glsl` files in `src/shaders/` and compile them to a C header.
+
+## Coming from openFrameworks
+
+### Coming from openFrameworks — what's different first?
+
+The surface (`setup`/`update`/`draw`, `drawCircle`-style calls) resembles oF, but the foundation differs. First things to know:
+- **Colors are 0–1.0** (not 0–255). **Angles are radians + `TAU`** by default (degrees via `rotateDeg()`).
+- Function names mostly **drop `of` and lowercase the first letter** (`ofDrawRectangle` → `drawRect`).
+- **A scene graph (`Node`) is standard** — parent/child transforms are automatic (vs oF's flat + manual ofNode).
+- **Memory is `shared_ptr`** (manual new/delete rarely needed). Concurrency starts with **`callAfter`/`callEvery` (main thread)**, not raw ofThread.
+- The foundation is **sokol (not OpenGL)**, the build is **trusscli + CMake**, and addons use a **`tcx` prefix**.
+
+### What do oF functions / types map to?
+
+Mostly "drop `of`, lowercase the first letter." Common ones:
+- Drawing: `ofDrawRectangle`→`drawRect`, `ofDrawCircle`→`drawCircle`, `ofSetColor`→`setColor` (**0–1**), `ofSetLineWidth`→`setStrokeWeight`
+- Transform: `ofPushMatrix`/`ofPopMatrix`→`pushMatrix`/`popMatrix`, `ofTranslate`→`translate`, `ofRotateDeg`→`rotateDeg` (default is `rotate(radians)`)
+- Math: `ofMap`→`remap`, `ofLerp`→`lerp`, `ofRandom`→`random`, `ofNoise`→`noise`
+- Queries: `ofGetWidth`/`ofGetHeight`→`getWindowWidth`/`getWindowHeight`, `ofGetMouseX`/`Y`→`getMouseX`/`getMouseY`
+- Types: `ofVec2f`/`ofVec3f`→`Vec2`/`Vec3`, `ofColor`→`Color`, `ofMesh`→`Mesh`, `ofImage`→`Image`, `ofTexture`→`Texture`, `ofFbo`→`Fbo`, `ofTrueTypeFont`→`Font`, `ofSoundPlayer`→`Sound`, `ofMatrix4x4`→`Mat4`, `ofQuaternion`→`Quaternion`
+
+(Full table at the web reference; ~90 oF→TrussC mappings exist.)
+
+### Are setup / update / draw the same as oF?
+
+The lifecycle is **the same** — `setup()` / `update()` / `draw()` (all `void`, no args, override). Input callbacks come in two forms: an **oF-compatible simple form `mousePressed(Vec2 pos, int button)`** and a **rich form `mousePressed(const MouseEventArgs& e)`** with modifiers — override either (the rich default forwards to the simple one). Mind only the 0–1 colors and radians, and drawing code ports over almost directly.
+
+### Equivalents of ofParameter / ofxGui?
+
+- **ofParameter / ofParameterGroup: no direct equivalent.** Its save/restore role can be covered by reflection (`TC_REFLECT`) + JSON, but that's an **advanced feature** — not something everyone will wield easily (don't treat it as a drop-in ofParameter replacement).
+- **For GUI (ofxGui), use `tcxImGui`** — the full Dear ImGui API, a bundled addon; bind values straight to sliders etc. For scene inspection/editing, `tcxNodeInspector` (hierarchy + reflected member editing) is handy too.
+
+### What happens to oF's new/delete / ofPtr / ofThread?
+
+TrussC uses **`shared_ptr` / `weak_ptr` throughout**. Create nodes with `make_shared<>()` and `addChild` them; **when a parent goes away, its children are freed automatically** — you rarely think about delete. Instead of raw `ofThread`, reach first for **`callAfter` / `callEvery` (safe, main-thread)**; if you genuinely need concurrency, `Thread` / `ThreadChannel` (ofThread / ofThreadChannel compatible) exist. `ofEvent` maps to `Event<T>`, `ofNode` to `Node`.
+
+### How do addons (ofxXxx) and addons.make compare?
+
+Very similar. The prefix is **`ofx` → `tcx`**, the namespace is **`tcx::`** (e.g. `tcxBox2d` contains `tcx::box2d::World`). You add one **addon name per line in `addons.make`** (as in oF), or `trusscli addon add tcxOsc`. The big difference is **automatic dependency resolution** — if `tcxA` depends on `tcxB`, just list `tcxA` and `tcxB` links automatically (oF needed manual ordering in addons.make). The projectGenerator becomes `trusscli` (GUI included).
+
+### What's the equivalent of oF's projectGenerator? (trusscli GUI)
+
+It exists. Launching `trusscli` **with no arguments (double-clicking the executable) opens the GUI "TrussC Project Generator."** Like oF's projectGenerator, it creates projects, adds addons, enables platforms, and generates IDE files. CLI fans can do the same with `trusscli new` / `trusscli update`. To run a sample, drag the sample folder (the one containing `src`) onto the GUI.
+
+## Building & the toolchain
+
+### How do I build for Android?
+
+Beta. Needs Android SDK (`ANDROID_HOME`) / NDK (`ANDROID_NDK_HOME`) / Java (`JAVA_HOME`, for APK signing).
+```bash
+trusscli update -p path/to/myProject --android   # adds the android preset
+cmake --preset android
+cmake --build --preset android                    # → bin/android/<project>.apk
+```
+Backend is GLES3. APK signing uses `~/.android/debug.keystore` (without it, only the `.so` is built). Use `adb install -r ...` to deploy, `adb push` for data files. Permissions: the bundled manifest is all-inclusive, so for store builds drop an `android/AndroidManifest.xml.in` and strip the permissions you don't use.
+
+### How do I build for iOS?
+
+Beta. Needs a full Xcode install + (for on-device) an Apple Developer account.
+```bash
+trusscli update -p path/to/myProject --ios   # adds the ios preset
+cmake --preset ios                            # generates xcode-ios/*.xcodeproj
+open xcode-ios/*.xcodeproj
+```
+In Xcode: pick a device/simulator → **set a Development Team under Signing & Capabilities (required; build fails without it)** → ⌘R. Backend is Metal. First launch may show a black screen for up to ~30s during Metal/GPU init (known). Sensors are available via `getAccelerometer()` etc.
+
+### How does the build system work? (trusscli + CMake)
+
+Two layers. The core is built once as `libTrussC.a` and shared across all projects; apps only recompile their own delta (fast). `trusscli` (the project generator) handles create / update / IDE-file generation / per-platform enabling. `CMakeLists.txt` and `CMakePresets.json` are auto-generated, so **don't hand-edit them** — put addons in `addons.make` and project-specific CMake in `local.cmake`. Build with `trusscli build` (auto-selects native), or `cmake --preset <os>` + `cmake --build --preset <os>` (os = macos / windows / linux / web / android / ios).
+
+### trusscli command reference
+
+`trusscli` with no args launches the GUI (TrussC Project Generator). Main commands:
+```
+trusscli new <path>            Create a project (--web / --android / --ios to enable builds, -a <addon> to include addons)
+trusscli cp <src> <dst>        Copy an existing project
+trusscli update                Regenerate build files for the project in CWD (-p <path> to target another)
+trusscli upgrade               Upgrade TrussC (git pull + rebuild trusscli)
+trusscli addon add|remove <a>  Add / remove addons (also clone / list / search / pull — see `trusscli addon --help`)
+trusscli info [section]        Project / framework info
+trusscli doctor                Check the dev environment
+trusscli clean                 Delete build directories
+trusscli build                 Build (auto-selects native)
+trusscli run                   Build and launch
+trusscli version               Show version (trusscli + current TrussC)
+```
+Common options: `-p, --path <path>`, `--tc-root <path>`, `-h, --help` (per-command help).
+Examples: `trusscli new myApp -a tcxOsc -a tcxIME` / `trusscli new ./apps/myApp --web` / `trusscli update -p ./apps/myApp`.
+
+### VSCode / Cursor won't build (no preset selected)
+
+With the CMake Tools extension in VSCode / Cursor, **you can't build until you select a Configure Preset.** Open the command palette → **"CMake: Select Configure Preset"** → pick the preset for your OS (**macos / windows / linux**). **Don't pick the `xcode` / `vs` (Visual Studio) presets** — those are for generating IDE projects, not for building inside VSCode / Cursor. After selecting the right preset, F5 (or build) works.
+
+## Performance & Power
+
+### What makes TrussC fast and lightweight?
+
+The foundation — a thin wrapper over each OS's native API + C++ — gives a **high performance ceiling, and lets you reach down into the native layer when needed** (high optimization freedom). Commercial frameworks with license fees or OS limits tend to hit a ceiling on optimization; TrussC leaves that open. At the same time you can **deliberately build low-memory apps** — again, thanks to being low-level. Defaults lean toward a small footprint (e.g. the bitmap-font atlas is lazily allocated — 0KB GPU if you never call `drawBitmapString`; IBL/PBR allocate only when used), and you can lower the draw rate with `setFps` / `EVENT_DRIVEN` / `setIndependentFps` (which also saves power and extends runtime). "Thinness" feeds all of this: optimization freedom, low memory, and portability.
+
+### Can I make a console / headless app (no draw)?
+
+Yes. You can run `update()` only without ever calling `draw()`, or use the window-less `runHeadlessApp()`. Good for server-side, CI, and headless tests. It's similar to oF's nowindow mode, but **most graphics-focused frameworks lack such a mode** — TrussC manages update and draw independently, so this falls out naturally (see event-driven).
+
+### Do heavy features bloat build time / the core?
+
+Heavy dependencies are **split into addons.** Even official features that are heavy (physics, various SDK wrappers, …) live in addons rather than core, so if you don't use them they're neither linked nor built — **shorter build times and a smaller binary.** Core is built once and shared across projects. The plan is to keep moving heavy dependencies into addons.
+
+### Are physics / many objects too heavy?
+
+Heavy compute lives in addons and leans on C++ speed. For example **tcxPhysics** (Jolt Physics) is fast even on the CPU because it's C++, and **handles hundreds of objects on wasm (web) without falling over.** Avoiding "web is slow" is possible because of the thin native layer + C++ foundation.
+
+### Can I run for hours / keep power low on mobile? (FPS control)
+
+TrussC keeps resource use small, so power draw is low — lightness helps battery, not just frame rate. Lowering draw frequency helps most:
+- `setFps(60)` for a fixed rate; `setFps(EVENT_DRIVEN)` for "draw only when `redraw()` is called."
+- `setIndependentFps(updateFps, drawFps)` separates update and draw rates. e.g. `setIndependentFps(60, EVENT_DRIVEN)` runs logic/timers steadily at 60fps but draws only when the screen changes via `redraw()` — an idle UI barely touches the GPU.
+- Sentinels: `VSYNC` (-1, monitor sync = default) and `EVENT_DRIVEN` (0). `redraw(count = 1)` requests a draw; `getFpsSettings()` reads the current rate.
+A barely-redrawing UI can run for many hours on mobile.
+
+### Screen won't update in event-driven mode? (forgot redraw)
+
+The top power-saving recommendation is **event-driven** (`setFps(EVENT_DRIVEN)` or `setIndependentFps(update, EVENT_DRIVEN)`). The catch: in this mode `draw()` only runs **when you call `redraw()`.** So if you change UI state but forget `redraw()`, the screen won't change and you'll go "huh, nothing happened" (a common trap). Make it a habit to **call `redraw()` on every change that affects appearance.** Do that consistently and an idle UI uses near-zero GPU.
+
+### Optimizing / reusing shaders? (sokol-shdc)
+
+Offloading heavy work to the GPU is the standard move. Thanks to **sokol-shdc**, writing and **reusing shaders is very easy** — one GLSL source runs on every backend, so effects compose into reusable parts. For instance a LUT color-grader (something like `tcxLut`) is simple to build yourself.
+
+### Optimizations possible because it's low-level?
+
+Because TrussC is header-only and all-source, **you can optimize the foundation itself.** Real examples: changing the (deferred) draw buffer from a fixed size to **dynamic growth**, and adding a **10-bit color** render target. Such sokol-derived modifications are collected in `sokol_gl_tc.h` (a fork of sokol_gl). These are parts you can't touch in a proprietary environment — TrussC's escape-hatch strength.
+
+### How low-end can it run? (target floor + power evidence)
+
+The floor target is the **Raspberry Pi Zero** (defaults like small draw buffers are tuned for it). On Raspberry Pi, **native-API video playback** works too. For always-on UI tools, event-driven brings idle power to near zero — e.g. TrussC's own "TrussC Project Generator" (the trusscli GUI) barely uses battery when left running. Always-on display apps on a 2025-era phone, and wearable-tracking-style apps, have run for nearly a day / ~10 hours on mid-range devices. Low-level + C++ + small defaults is what makes it "scale down."
+
+## Node & Mod patterns
+
+### What's the overall architecture?
+
+App itself is the scene-graph root Node. The basic loop is `setup()` (once) → `update()` → `draw()` each frame. Nodes form a parent/child transform hierarchy; input is dispatched depth-first and stops propagating once `consumed` (children receive events in their parent's local coordinates). Drawing is sokol_gl-based — a procedural, "immediate-mode-style" API (`setColor()` → `drawRect()`), but internally deferred (vertices accumulate into buffers and are submitted later, so nothing is drawn the instant you call it). Each Node's `draw()` starts from a clean default style (white, fill, no stroke — parent style does not cascade, favoring predictability). Behavior can be added by subclassing or by attaching `Mod`s (`addMod<T>()`). The tree and GPU resources (Texture / Fbo) are main-thread-owned; hand work from other threads via `runOnMainThread()`.
+
+### Subclass a Node, or attach a Mod?
+
+TrussC's app structure is openFrameworks-like on the surface but **Unity-like** in intent — Node subclasses (≈ GameObjects, owning their own state/draw/input) with Mods (≈ Components, cross-cutting behavior) attached. The rule:
+- **"What it *is*" (identity) → subclass Node.** Buttons, enemies, panels.
+- **"What it *can also do*" (capability) → Mod.** Animation, layout, drag-to-move — especially if unrelated node types want it.
+If you start copy-pasting the same block into two nodes' `update()`, that block wants to be a Mod. `addMod<T>()` runs `setup()` synchronously and returns `T*` (chainable: `node->addMod<LayoutMod>()->setPadding(5)`). Look up with `getMod<T>()`, detach with `removeMod<T>()`.
+
+### Constructor vs setup() in a Node? (common trap)
+
+Put **plain state only** in the constructor. Calling `addChild()` / `addMod()` / `callEvery()` in the constructor crashes (`weak_from_this()` isn't ready yet). Do tree work in `setup()` — it's auto-deferred to just before the node's first update/draw (safe even when added mid-frame). Always create nodes with `make_shared<>()` (otherwise `addChild()` fails). Draw in **local coordinates** around (0,0) and move via `setPos / setRot / setScale` — never compute "where am I on screen"; children inherit the parent transform automatically.
+
+### How do I structure a whole scene?
+
+App itself is the scene-graph root (App inherits RectNode and is window-sized). Make each element a Node subclass, compose with `addChild()`, and write almost nothing in `tcApp::update()` (the tree updates itself recursively). **Draw order = sibling order.** For scene switching, keep scenes as siblings and toggle `setActive(false)` (an inactive subtree costs nothing and gets no events). Remove nodes with `destroy()` (sets a flag, removed safely outside update/draw; `isDead()` is true immediately after). To see the structure while building, use the bundled **tcxNodeInspector** (one line in `setup()` → hierarchy + inspector + gizmo).
+
+### Disable / hide / remove a node? (setActive / setVisible / destroy)
+
+Three different things:
+- **`setActive(false)`**: **stops** the node entirely (disable) — neither `update()` nor `draw()` runs, no mouse events. **Children stop too** (an inactive subtree costs nothing). For pausing or scene switching. Resume with `setActive(true)`.
+- **`setVisible(false)`**: **hides the visuals only.** `draw()` is skipped but `update()` and events still run.
+- **`destroy()`**: actually **removes** the node. It is generally **thread-safe and callable any time**, setting a flag so removal is **deferred** to outside update/draw — safe to call mid-traversal. `isDead()` is true right after.
+So: setActive / setVisible to temporarily stop/hide, destroy when you're done with it.
+
+### Delayed / repeated calls? (callAfter/callEvery vs async)
+
+`callAfter(sec, fn)` / `callEvery(sec, fn)` are Node features, and **since App is a Node you can use them directly inside `update()`** etc. They run **synchronously on the main thread** — same flow as update/draw — so state collisions are unlikely and they're easy to use (no mutex). When you truly need async (frame-independent precise timing), `callAfterAsync` / `callEveryAsync` run on a background thread: guard shared state with a mutex (and never touch GPU/drawing). Reach for the sync versions first.
+
+### Custom-looking button — is click handling provided?
+
+You don't write event handling from scratch. **RectNode has subscribable mouse events built in**, so you only custom-draw the look. RectNode exposes public Event members `mousePressed` / `mouseReleased` / `mouseDragged` / `mouseScrolled` (`Event<MouseEventArgs>` etc.), uses rectangle hit-testing, and **has `enableEvents()` already called in its constructor (events on by default).** Two ways to use it:
+- **Subscribe from outside (no subclass)**: `listener_ = button->mousePressed.listen([this](MouseEventArgs& e){ ... });` (keep the returned `EventListener` as a member).
+- **Subclass and override**: `bool onMousePress(const MouseEventArgs& e) override { ...; return true; }`.
+Draw freely in local coordinates around (0,0) — rounded corners, image, shader, fully your own. (A plain `Node`, not a RectNode, needs `enableEvents()`. For a ready-made look, `RectNodeButton` — a simple color-on-press button — is built in.)
+
+## Events (loose coupling)
+
+### How do I keep components loosely coupled? (Event<T>)
+
+The rule is "**dependencies point downward only**" — a parent knows its children; a child never knows its parent's type or its siblings. Anything a child needs to tell the outside goes out through a public `Event<T>` member, and whoever cares calls `listen()`.
+```cpp
+class PauseButton : public RectNode {
+public:
+    Event<void> pressed;                  // public event
+    bool onMousePress(const MouseEventArgs& e) override { pressed.notify(); return true; }
+};
+// listener side:
+EventListener pauseListener_;             // keep as a member (auto-disconnects on destruction)
+pauseListener_ = btn->pressed.listen([this]() { /* ... */ });
+```
+**Always store the `EventListener` returned by `listen()` as a member** (it disconnects the moment it goes out of scope). Safer than raw `function<>` callbacks — auto-disconnect, multiple listeners, thread-safe, and safe to remove during notify. Don't call parent methods from a child.
+
+### Bubble events up, don't broadcast?
+
+Yes. Each layer **listens to its children's events and re-fires a semantically coarser event of its own** (`PauseButton::pressed` → `Hud::pauseRequested` → the app pauses the scene). That keeps every layer swappable. The framework itself works the same way (`RectNode::mousePressed`, `TweenMod::complete`, etc. are all `Event<T>`), so app wiring and framework wiring read identically.
+
+### App-wide events and shared state? (AppEvents)
+
+Signals that many unrelated listeners across the app need belong in a Meyers-singleton struct (e.g. an `AppEvents`) holding `Event<T>` members. **That header becomes the app's interaction map** (comment each event with who fires it and who reacts). Rule: **events are the write path, flags are the read path** — if state lives on the bus, sync it via a self-listener in the constructor, and have code fire the event rather than assign the flag directly. Don't put local events (a button's `pressed` belongs to the button) on the bus — the bus is only for signals with multiple unrelated listeners. (TrussC's own `events()` uses the Meyers-singleton pattern, so it's a good one to copy.)
+
+## Addons
+
+### What is an addon and how do I use one?
+
+An addon is a reusable module (`tcx` + PascalCase: headers + sources + examples) placed under `addons/`. Its namespace is `tcx::` (core is `tc::`). To use one, just list its name, one per line, in your project's `addons.make`:
+```
+tcxBox2d
+tcxOsc
+```
+CMake's `trussc_app()` reads `addons.make` and auto-links each addon (`use_addon.cmake` propagates sources and include paths from `src/`・`libs/`; addon headers are treated as system includes so `-Wall` only warns on your code). You don't hand-write `CMakeLists.txt` — `trusscli addon add tcxBox2d` works too.
+
+### What's the minimal addon?
+
+To just make it work, **`src/` is all you need.** Put `src/tcxMyAddon.h` (and `.cpp` if needed) under `addons/tcxMyAddon/`, list `tcxMyAddon` in the consuming project's `addons.make`, and it works. **You don't write build config (`CMakeLists.txt`)** — TrussC auto-collects `src/`・`libs/*/`, wires include paths, and links against TrussC (a header-only addon with no sources becomes an `INTERFACE` target). Class in `namespace tcx::myaddon { ... }`, files named `tcxXxx.h / .cpp`. You only add your own `CMakeLists.txt` for what auto-collection can't do: FetchContent, special flags, codegen, platform-specific linking. To ship a runtime DLL / dylib / metallib, use `tc_addon_bundle_file(<path>)`.
+
+### How do I publish/distribute my addon?
+
+To publish so others can `trusscli addon clone / add` it, add to the working `src/`: a root **`addon.json`** (at minimum description / author / license / category / keywords — an empty `{}` is still discoverable), a **`LICENSES.md`** inventory, a runnable **`example-basic/`**, and a README. Then on GitHub make it **public**, name the repo **`tcx…`**, and add the topic **`trussc-addon`** — a daily crawl lists it in the registry within ~a day (`git tag v0.1.0` sets the version). Starting from `addons/tcxTemplate` via "Use this template" is fastest (it ships a CI workflow that goes green after a rename by building the example).
+
+### Which addons are bundled (official)?
+
+The official addons shipped in the TrussC repo (bundled) are defined by the `.gitignore` whitelist — currently these 16:
+**tcxBox2d** (2D physics) / **tcxMidi** / **tcxCurl** (HTTPS) / **tcxImGui** / **tcxNodeInspector** / **tcxHap** (video codec) / **tcxLua** / **tcxLut** / **tcxOsc** / **tcxQuadWarp** (projection mapping) / **tcxTls** (TLS) / **tcxWebSocket** / **tcxGltf** / **tcxObj** / **tcxDepthCamera** / **tcxDepthRecord**.
+These + core are all permissive-licensed. Anything else (even if it sits under `addons/`, it's gitignored) is an external addon and needs an individual license check.
+
+### How do I publish my addon to the registry? (crawl conditions)
+
+No PR needed — discovery is by GitHub topic. Three conditions: ① the repo has the GitHub topic **`trussc-addon`**, ② it's **public** (not archived), ③ it has a readable **`addon.json`** at the root (empty `{}` is fine). The repo name is `tcx…`. A GitHub Actions crawl on `TrussC-org/trussc-addons` regenerates the registry daily, so it appears in `trusscli addon search` / `addon list --remote` within ~a day. Forks don't inherit topics, so a fork only shows up if its owner adds the topic.
+
+## Media & data
+
+### What's good about TrussC's font support? (dynamic atlas / vertical / paths)
+
+`Font` builds its glyph atlas **dynamically (lazily)**, so **memory stays small** — only the glyphs you use are loaded, and it's 0KB of GPU if you never call `drawBitmapString`. It supports **vertical writing (tategaki, `WritingMode::VerticalRL`)** with fairly rich Japanese typesetting (kinsoku, hanging punctuation, tate-chu-yoko / TCY). You can also extract strings or glyphs as **vector paths (`tc::Path`)** (`getStringPath` / `getGlyphPath`) for animation, scaling, stroke/fill, and hit-testing. And `load()` accepts a system font name directly (no need to bundle a `.ttf`).
+
+### How do I list / select audio devices?
+
+`AudioEngine` handles devices. `AudioEngine::listDevices()` returns the available devices (`vector<AudioDeviceInfo>`). Select the output device by passing `AudioSettings` (with `deviceName`, sample rate, etc.) to `AudioEngine::getInstance().init(settings)`. An empty `deviceName` selects the system default playback device.
+
+### Per-buffer synthesis / processing? (audioIn / audioOut)
+
+Real-time synthesis/processing is done through `AudioEngine` events. Listening to `audioOut` gives you one callback's output buffer (`AudioOutBuffer`, mutable — **ADD** to the already-mixed audio), where you write oscillators etc. Listening to `audioIn` gives mic input (`AudioInBuffer`, read-only). The callback runs on the audio thread, so avoid heavy work or engine-API calls and return quickly.
+
+### Output channel mapping? (setChannelMap)
+
+`Sound` can route to output channels:
+- `setChannelMap(const vector<int>& map)` — 1:1 routing per output channel.
+- `setChannelMap(vector<vector<int>> map)` — sum multiple sources into one output channel.
+Use it for multichannel output (multi-speaker, installations). `clearChannelMap()` to reset.
+
+### Ordering audioOut: generator → effect → monitor?
+
+Pass a **priority** to `audioOut.listen(...)` and listeners compose in a fixed order regardless of instantiation order. `audio::priority::Generator` (100, default) / `Effect` (500) / `Monitor` (900):
+- **Generator** (oscillators / synths) adds audio into the buffer,
+- **Effect** (reverb / filter / EQ) reads + writes to process it,
+- **Monitor** (scope / FFT / record) **reads last** — it sees the finished buffer, so it's **ideal for visualization.**
+Adding a Generator later never moves it behind Effect / Monitor — order is fixed by priority.
+
+### Abstract anything drawable with HasTexture?
+
+`Image` / `Fbo` / `VideoPlayer` / `VideoGrabber` all **inherit `HasTexture`** and have `getTexture()`. So you can **abstract "owns a texture = drawable"** behind a `HasTexture` (pointer/reference) and draw images, video, or FBOs with the same code. **Note: `Pixels` is NOT a HasTexture** — it's a CPU-side pixel buffer (no GPU texture), so it doesn't fit this abstraction. (Often surprising, so worth flagging.)
+
+### Use depth cameras without device lock-in? (tcxDepthCamera)
+
+**tcxDepthCamera** abstracts depth cameras. The abstraction line is "a camera that provides **depth image, point cloud, RGB image, IR image**" — against the `DepthCamera` base you use a common API (`getDepthImage()` / `getColorImage()` / point cloud, etc.). Current implementation addons are **tcxAzureKinect** and **tcxOrbbec** (more expected). With **tcxDepthRecord** you can record and replay them as a **virtual device** (handy for debugging). **Note: device-specific features like bone tracking are outside the abstraction** — for those, use the device addon's class directly (query capabilities via `as<>()` / `is<>()`).
+
+### Why is a point cloud just a Mesh?
+
+A point cloud isn't a dedicated class — it uses **`tc::Mesh` directly.** The reasons: a point cloud renders fine in **points mode**, and unused attributes like normals add no overhead if you simply don't put them in the Mesh. "A Mesh as a point cloud" may seem surprising, but that's the rationale. In fact PLY I/O (**tcxPly**) reads/writes point clouds as Mesh too.
+
+### How do I record video? (startRecording / VideoWriter)
+
+Two ways:
+- **Screen recording (easy)**: `startRecording("out.mp4")` to start, `stopRecording()` to stop, `isRecording()` for status. Records the on-screen output directly.
+- **Write arbitrary frames**: use `VideoWriter` — `open(path, w, h, settings)` → `addFrame(fbo)` / `addFrame(pixels)` (timestamped via `addFrameAt(frame, timeSec)`) → `close()`. For writing offscreen (FBO) content at a steady rate.
+Encoder settings: `VideoRecordSettings`. Platforms: macOS / Windows / Linux / Android / iOS.
+
+## Networking
+
+### TCP / UDP networking? (brief)
+
+Core has `TcpClient` / `TcpServer` / `UdpSocket`. It's event-driven — `listen()` to `onReceive` / `onConnect` / `onDisconnect` / `onError` (`Event<T>`), and `connect` / `send` to transmit.
+- TCP: `client.connectAsync(host, port)` → `client.send("...")`. Server: `server.start(port)`, `broadcast(...)` to all clients.
+- UDP: `udp.bind(port)` (receive thread auto-starts) → `udp.sendTo(host, port, data)`. Broadcast (`setBroadcast`) and multicast (`joinMulticastGroup` / `setMulticastTTL`) supported.
+
+### Send/receive OSC? (tcxOsc: polling vs callback)
+
+The **tcxOsc** addon. To send, `OscSender::connect(host, port)` and send messages built via chaining:
+```cpp
+OscMessage m("/fader"); m.addInt(1).addFloat(0.75f);
+sender.send(m);                 // to registered destinations (sendTo(host, port, m) for a specific one)
+```
+Two receive patterns, pick by use:
+- **Polling (sync)**: in `update()`, `while (receiver.hasNewMessage()) { OscMessage msg; receiver.getNextMessage(msg); ... }`. **Main thread, no mutex needed** — easy to use.
+- **Callback (async)**: `listener_ = receiver.onMessageReceived.listen([this](OscMessage& m){ ... });`. This **fires on the receive thread**, so guard shared data with a mutex.
+
+(Not knowing these two options makes OSC hard to use well.)
+
+### Does OSC/UDP work on wasm? (async caveat)
+
+Yes. But wasm (Emscripten) has **no background threads**, so the "async" callback (`onMessageReceived` etc.) actually **fires on the main thread during the update loop** (the socket is polled non-blockingly each frame). It is **not broken** — the same code as native runs, and no mutex is needed on wasm. Only where the work happens (which thread) differs.
+
+### Stand up an HTTP server (settings/log panel from a phone)?
+
+TrussC has no dedicated HTTP-server class, but **cpp-httplib (`httplib.h`) is bundled**, so you can stand up a server with it directly. A common use is **serving a settings or log page and viewing/operating it from a phone on the same LAN.** (The MCP automation server also embeds an HTTP/JSON-RPC server, but that's for agents — a different purpose.)
+
+## Pitfalls & troubleshooting
+
+### My 2D drawing disappears behind 3D? (default is 3D space)
+
+TrussC is "2D-looking but actually 3D space" by default (same philosophy as oF). The screen is a perspective 3D projection, and 2D drawing also sits on the z=0 plane under depth testing. So **drawing 2D after 3D can put the 2D behind a 3D object** (depending on its z) and make it disappear. It often happens when you draw 3D with `EasyCam` and then draw 2D (HUD, text) after `cam.end()`. If your HUD vanishes, suspect this. The default FOV is set by **`setupScreenPerspective(fovDeg)` (default 45°)**, and for fully-2D situations use **`setupScreenOrtho()`**.
+
+### Centering bitmap text? (default is left / baseline)
+
+Text alignment defaults to **left / baseline**, shared by `Font` and `drawBitmapString`. So to center, you don't need to compute an offset by hand — call **`setTextAlign(Direction::Center, Direction::Center)`** before drawing (it applies to bitmap text too).
+
+### Why doesn't fill work on a stroke? (fill/noFill apply to beginShape only)
+
+`fill()` / `noFill()` **apply to `beginShape`** (and its shapes) but **not to `beginStroke`.** A stroke is a line (StrokeMesh) with no notion of fill, so `fill` / `noFill` are ignored there. Use `beginShape` or `Path::drawFill()` for filled shapes, and `beginStroke` / `drawStroke()` for thick lines — split by role.
+
+### How do I quit the app? (exitApp vs requestExitApp)
+
+Two options:
+- **`requestExitApp()`**: *requests* exit. Listen to `events().exitRequested` (`Event<ExitRequestEventArgs>`) and set `args.cancel = true` to **cancel** it (for a "save before quit?" prompt). Equivalent to oF's `ofExit`.
+- **`exitApp()`**: exits immediately (not cancellable).
+```cpp
+listener_ = events().exitRequested.listen([this](ExitRequestEventArgs& e){
+    if (hasUnsavedChanges) e.cancel = true;   // stops the exit
+});
+```
+
+## "I want to X" — which API?
+
+### "I want to save / load / communicate" → which API?
+
+- Save an image: `Image::save(path)` / FBO contents: `Fbo::save(path)`
+- Save a screenshot: `saveScreenshot(path)` (raw pixels: `grabScreen(Pixels&)`)
+- Record video: `startRecording(path)` / `stopRecording()`
+- JSON read/write: `loadJson(path)` / `saveJson(j, path)` / `parseJson(str)` / `toJsonString(j)` (the type `Json` = nlohmann/json)
+- XML read/write: `Xml` (pugixml wrapper)
+- Save/restore settings: JSON + reflection (`TC_REFLECT`)
+- HTTP request: addon **tcxCurl** / OSC: addon **tcxOsc** / serial: `Serial`
+- File picker dialog: `loadDialog()` / `saveDialog()` (→ `FileDialogResult`)
+- Receive dropped files: `events().filesDropped` (`DragDropEventArgs`)
+- Clipboard: `setClipboardString(text)` (paste arrives via the `clipboardPasted` event)
+
+### "Window / media / basics" → which API?
+
+- Window: `setWindowTitle()` / `setWindowSize()` / `setFullscreen(bool)` / `toggleFullscreen()`
+- Quit: `requestExitApp()` (cancellable) / `exitApp()` (immediate)
+- Play a sound: `Sound` (a quick blip: `beep()`) / mic input: `MicInput`
+- Play video: `VideoPlayer` / webcam: `VideoGrabber` (both unsupported on Android)
+- Draw text: `Font` (TTF / system fonts) / `drawBitmapString` (built-in bitmap)
+- Random / noise: `random()` / `noise()` / `signedNoise()`
+- Time (elapsed seconds): `getElapsedTime()` (double) / frame rate: `getFrameRate()`
+- Delay / repeat: `callAfter()` / `callEvery()` (main-thread, synchronous)
+
+## AI-native (MCP)
+
+### What makes TrussC "AI-native"?
+
+Every TrussC app can become an **MCP server.** Launch with `TRUSSC_MCP=1` and the app exposes screenshots, input injection, and **live read/write of the Node tree** over HTTP / JSON-RPC. An AI agent can both **drive and verify** a running app (the app screenshots itself, so no X11 or screen-recording permission is needed). The key is that state comes out as **queryable numbers** (pos / rotation / color …), not pixels. This is built into the design from the start, not bolted on.
+
+### How does an AI tune/verify a running app over MCP?
+
+A rebuild-free loop: launch (`TRUSSC_MCP=1`) → `get_screenshot` to see the current state → `get_node_tree` to read pos / rotation (degrees) / color as numbers → `set_node_members` to nudge them directly → screenshot to check → repeat → finally bake the values into C++ source. Main tools: `get_node_tree` / `get_selected_node` / `select_node` / `set_node_members`. Mouse/key injection is opt-in via `mcp::registerDebuggerTools()` in `setup()`. Drive ImGui UIs with dedicated tools (`imgui_get_widgets` / `imgui_click` / `imgui_input` / `imgui_checkbox`) — raw `mouse_click` doesn't reach ImGui. Expose your own state with `TC_REFLECT`, or return JSON via `mcp::tool` / `mcp::resource`. This enables a closed AI development loop, so you can hand off long, autonomous development sessions.
+
+## Community & support
+
+### Where do I ask questions / report issues?
+
+TrussC **welcomes community participation.** For questions, sharing work, and chat, **Discord** is fastest (invite: https://discord.gg/7MRRny56VQ ). For bug reports, feature requests, and fixes, **open an Issue / PR on GitHub at `TrussC-org/TrussC`** without hesitation — the author, tettou771, makes an effort to respond actively. "It doesn't work like this" and "I'd like this API" are welcome too.
 
 ## API Index
 
