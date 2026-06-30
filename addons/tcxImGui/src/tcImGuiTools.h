@@ -13,8 +13,7 @@
 #include "tc/utils/tcMCP.h"
 #include "tc/utils/tcLog.h"
 
-namespace tcx {
-namespace imgui_tools {
+namespace tcx::imgui {
 
 // ---------------------------------------------------------------------------
 // Widget lookup helpers
@@ -266,14 +265,13 @@ inline void registerImGuiTools() {
     tc::logNotice() << "[MCP] ImGui tools registered (imgui_get_widgets, imgui_click, imgui_input, imgui_checkbox)";
 }
 
-} // namespace imgui_tools
-} // namespace tcx
+} // namespace tcx::imgui
 
 // -----------------------------------------------------------------------------
 // Backward compatibility: tcxImGui's integration helpers historically lived in
-// `trussc::imgui_tools`. Canonical is now `tcx::imgui_tools`. DEPRECATED — removed in v1.0.0.
+// `trussc::imgui_tools`. Canonical is now `tcx::imgui`. DEPRECATED — removed in v1.0.0.
 // (No [[deprecated]]: under `using namespace tc;` it would warn on idiomatic use.)
 // -----------------------------------------------------------------------------
 namespace trussc { namespace imgui_tools {
-using tcx::imgui_tools::registerImGuiTools;   // one per public symbol
+using tcx::imgui::registerImGuiTools;   // one per public symbol
 } }  // namespace trussc::imgui_tools

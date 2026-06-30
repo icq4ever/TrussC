@@ -7,7 +7,7 @@
 using namespace std;
 using namespace tc;
 
-namespace tcx {
+namespace tcx::websocket {
 
 // =============================================================================
 // SHA-1 Implementation (Minimal for WebSocket handshake)
@@ -415,4 +415,4 @@ EM_BOOL WebSocketClient::onEmscriptenError(int eventType, const EmscriptenWebSoc
 }
 #endif
 
-}  // namespace tcx
+}  // namespace tcx::websocket
