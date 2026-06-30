@@ -23,7 +23,7 @@
 using namespace std;
 
 void tcApp::setup() {
-    fbo_.allocate(getWindowWidth(), getWindowHeight());
+    fbo_.allocate(getWidth(), getHeight());
     logNotice("tcApp") << "videoRecAdvancedExample - r: window  f: fbo  e: offline export";
 }
 
@@ -51,12 +51,12 @@ void tcApp::draw() {
     // --- The window: blit the Fbo, then draw the WHITE layer in draw() ---------
     clear(0.04f);
     setColor(1.0f);
-    fbo_.draw(0, 0, getWindowWidth(), getWindowHeight());
+    fbo_.draw(0, 0, getWidth(), getHeight());
 
     setColor(1.0f);                      // white
-    drawSpinBox(getWindowWidth() * 0.67f, getWindowHeight() * 0.5f, 150.0f);
+    drawSpinBox(getWidth() * 0.67f, getHeight() * 0.5f, 150.0f);
     drawBitmapString("drawn in draw()",
-                     getWindowWidth() * 0.67f - 52, getWindowHeight() * 0.5f + 120);
+                     getWidth() * 0.67f - 52, getHeight() * 0.5f + 120);
 
     setColor(colors::yellow);
     drawBitmapString(statusLine(), 12, 22);
@@ -91,15 +91,15 @@ string tcApp::statusLine() {
 void tcApp::keyPressed(int key) {
     if (exporting_) return;  // busy
 
-    if (key == 'r' || key == 'R') {
+    if (key == 'R') {
         // ScreenRecorder instance, source = whole window (white + green).
         if (rec_.isRecording()) rec_.stop();
         else                    rec_.start("advanced_window.mp4", { .fps = fps_ });
-    } else if (key == 'f' || key == 'F') {
+    } else if (key == 'F') {
         // ScreenRecorder instance, source = the Fbo (green only, GUI-free).
         if (rec_.isRecording()) rec_.stop();
         else                    rec_.start(fbo_, "advanced_fbo.mp4", { .fps = fps_ });
-    } else if (key == 'e' || key == 'E') {
+    } else if (key == 'E') {
         // VideoWriter, offline deterministic export of the Fbo.
         if (!rec_.isRecording()) startExport();
     }

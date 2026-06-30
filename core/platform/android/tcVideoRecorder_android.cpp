@@ -44,6 +44,7 @@ static constexpr ssize_t  kInfoOutputBuffersChanged = -3;
 static constexpr uint32_t kFlagCodecConfig          = 2;
 static constexpr uint32_t kFlagEndOfStream          = 4;
 
+namespace internal {
 struct VideoWriterPlatformData {
     AMediaCodec* codec = nullptr;
     AMediaMuxer* muxer = nullptr;
@@ -58,6 +59,8 @@ struct VideoWriterPlatformData {
     bool    failed = false;
     std::vector<uint8_t> nv12;  // reusable conversion scratch (stride-padded)
 };
+}  // namespace internal
+using internal::VideoWriterPlatformData;
 
 // ---------------------------------------------------------------------------
 // RGBA8 (top-down) -> NV12 (Y plane, then interleaved U,V). BT.601 limited.

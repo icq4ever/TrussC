@@ -150,6 +150,8 @@ struct ScrollEventArgs {
 // App -> node tree); the public move/drag boundary builds the specific type
 // from it. This is internal: press/release never carry movement, so they use
 // the lean public MouseEventArgs directly and never touch this type.
+namespace internal {
+
 struct MouseEventRaw {
     Vec2 pos;                 // Local position (== globalPos at app level)
     Vec2 globalPos;           // Screen position
@@ -184,6 +186,8 @@ inline MouseDragEventArgs toDragArgs(const MouseEventRaw& m) {
     a.syncLegacy();
     return a;
 }
+
+} // namespace internal
 
 // ---------------------------------------------------------------------------
 // Window resize event arguments

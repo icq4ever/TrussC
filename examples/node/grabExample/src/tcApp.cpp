@@ -34,7 +34,7 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'c' || key == 'C') {
+    if (key == 'C') {
         canvas_->clear();
     }
 }

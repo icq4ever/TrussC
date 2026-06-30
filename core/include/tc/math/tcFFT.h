@@ -92,6 +92,8 @@ inline int nextPowerOfTwo(int n) {
     return p;
 }
 
+namespace internal {
+
 // Bit reverse
 inline int bitReverse(int x, int bits) {
     int result = 0;
@@ -109,6 +111,8 @@ inline int getBits(int n) {
     return bits;
 }
 
+} // namespace internal
+
 // ---------------------------------------------------------------------------
 // FFT (Cooley-Tukey radix-2 decimation-in-time)
 // ---------------------------------------------------------------------------
@@ -124,11 +128,11 @@ inline void fft(std::vector<std::complex<float>>& data) {
         return;
     }
 
-    int bits = getBits(n);
+    int bits = internal::getBits(n);
 
     // Bit reverse permutation
     for (int i = 0; i < n; i++) {
-        int j = bitReverse(i, bits);
+        int j = internal::bitReverse(i, bits);
         if (i < j) {
             std::swap(data[i], data[j]);
         }

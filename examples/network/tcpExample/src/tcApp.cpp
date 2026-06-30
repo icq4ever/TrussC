@@ -126,7 +126,7 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'S' || key == 's') {
+    if (key == 'S') {
         // Start server
         if (!server.isRunning()) {
             if (server.start(9001)) {
@@ -135,7 +135,7 @@ void tcApp::keyPressed(int key) {
         } else {
             addLog("[Server] Already running");
         }
-    } else if (key == 'C' || key == 'c') {
+    } else if (key == 'C') {
         // Client connect
         if (!client.isConnected()) {
             addLog("[Client] Connecting to 127.0.0.1:9001...");
@@ -165,7 +165,7 @@ void tcApp::keyPressed(int key) {
             client.send(oss.str());
             addLog("[Client] Sent: " + oss.str());
         }
-    } else if (key == 'D' || key == 'd') {
+    } else if (key == 'D') {
         // Disconnect
         if (client.isConnected()) {
             client.disconnect();
@@ -175,7 +175,7 @@ void tcApp::keyPressed(int key) {
             server.stop();
             addLog("[Server] Stopped");
         }
-    } else if (key == 'X' || key == 'x') {
+    } else if (key == 'X') {
         {
             lock_guard<mutex> lock(logMutex);
             logMessages.clear();

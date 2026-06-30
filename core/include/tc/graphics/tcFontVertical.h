@@ -36,6 +36,8 @@ enum class TcyMode {
 // ---------------------------------------------------------------------------
 // UAX #50 simplified orientation classes
 // ---------------------------------------------------------------------------
+namespace internal {
+
 enum class VertOrient : uint8_t {
     U,   // Upright (CJK ideographs, kana, fullwidth forms)
     R,   // Rotated 90° CW (Latin letters/digits, halfwidth kana)
@@ -222,6 +224,8 @@ inline bool isCjkChar(uint32_t cp) {
     return false;
 }
 
+} // namespace internal
+
 // ---------------------------------------------------------------------------
 // Kinsoku level — picks which subset of the prohibition tables is active.
 //   Off              : ignore tables entirely (every CJK boundary is breakable)
@@ -238,6 +242,8 @@ enum class KinsokuLevel {
 // Narrow subset used by KinsokuLevel::PunctuationOnly. CJK + halfwidth/fullwidth
 // commas / periods / colons / semicolons / question / exclamation, plus the
 // horizontal-ellipsis forms.
+namespace internal {
+
 inline bool isPunctuationOnlyLineStart(uint32_t cp) {
     switch (cp) {
         case 0x002C: case 0x002E:                            // , .
@@ -298,6 +304,8 @@ inline bool isLineEndProhibited(uint32_t cp) {
     }
     return false;
 }
+
+} // namespace internal
 
 } // namespace trussc
 

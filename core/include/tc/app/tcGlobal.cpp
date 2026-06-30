@@ -266,7 +266,7 @@ void present() {
 
     ensureSwapchainPass();
 
-    flushDeferredShaderDraws();
+    internal::flushDeferredShaderDraws();
 
     events().onRender.notify();
 
@@ -375,7 +375,7 @@ ElapsedTimeClock& getElapsedClock() {
 }
 } // namespace internal
 
-Logger& tcGetLogger() {
+Logger& getLogger() {
     static Logger logger;
     return logger;
 }

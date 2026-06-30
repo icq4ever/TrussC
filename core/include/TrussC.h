@@ -31,6 +31,9 @@
 #include <fstream>
 #include <unordered_set>
 
+// Reference-generator annotation macros (no-op except under Clang)
+#include "tc/utils/tcAnnotations.h"
+
 // Headless mode state (must be included early for graphics skip checks)
 #include "tc/app/tcHeadlessState.h"
 
@@ -411,7 +414,7 @@ inline void clear(const Color& c) {
 }
 
 // Forward declaration (implemented in tcShader.h after Shader class)
-void flushDeferredShaderDraws();
+namespace internal { void flushDeferredShaderDraws(); }
 
 // パス管理関数（non-inline: Hot Reload時にHost/Guest間で同じグローバル状態を参照するため）
 // 実装は tc/app/tcGlobal.cpp
@@ -1277,7 +1280,7 @@ inline void drawBitmapStringHighlight(const std::string& text, float x, float y,
     }
 
     // Convert local coordinates to world coordinates (including offset)
-    Mat4 currentMat = getCurrentMatrix();
+    Mat4 currentMat = getMatrix();
     float worldX = currentMat.m[0]*(x + offsetX) + currentMat.m[1]*(y + offsetY) + currentMat.m[3];
     float worldY = currentMat.m[4]*(x + offsetX) + currentMat.m[5]*(y + offsetY) + currentMat.m[7];
 
@@ -1487,7 +1490,7 @@ inline void toggleFullscreen() {
 // ---------------------------------------------------------------------------
 // Orientation control (iOS only, no-op on other platforms)
 // ---------------------------------------------------------------------------
-enum class Orientation : uint32_t {
+enum class TC_PLATFORMS("android,ios") Orientation : uint32_t {
     Portrait            = (1 << 1),  // UIInterfaceOrientationMaskPortrait
     PortraitUpsideDown  = (1 << 2),  // UIInterfaceOrientationMaskPortraitUpsideDown
     LandscapeLeft       = (1 << 4),  // UIInterfaceOrientationMaskLandscapeLeft
@@ -1510,7 +1513,7 @@ inline Orientation operator&(Orientation a, Orientation b) {
 // Android: Activity.setRequestedOrientation via JNI
 // Desktop / Web: no-op
 // (Implementation lives in core/platform/<plat>/tcPlatform_<plat>.{cpp,mm})
-void setOrientation(Orientation mask);
+TC_PLATFORMS("android,ios") void setOrientation(Orientation mask);
 
 // ---------------------------------------------------------------------------
 // Window information (size corresponding to coordinate system)
@@ -1999,8 +2002,8 @@ namespace internal {
     inline void (*appKeyReleasedFunc)(const KeyEventArgs&) = nullptr;
     inline void (*appMousePressedFunc)(const MouseEventArgs&) = nullptr;
     inline void (*appMouseReleasedFunc)(const MouseEventArgs&) = nullptr;
-    inline void (*appMouseMovedFunc)(const MouseEventRaw&) = nullptr;
-    inline void (*appMouseDraggedFunc)(const MouseEventRaw&) = nullptr;
+    inline void (*appMouseMovedFunc)(const internal::MouseEventRaw&) = nullptr;
+    inline void (*appMouseDraggedFunc)(const internal::MouseEventRaw&) = nullptr;
     inline void (*appMouseScrolledFunc)(const ScrollEventArgs&) = nullptr;
     inline void (*appWindowResizedFunc)(int, int) = nullptr;
     inline void (*appFilesDroppedFunc)(const std::vector<std::string>&) = nullptr;
@@ -2126,7 +2129,7 @@ namespace internal {
         // Run work marshalled from worker threads (runOnMainThread, Event
         // Deliver::Main). Done before update/draw so queued tree edits land
         // while no traversal is in flight.
-        drainMainThreadQueue();
+        internal::drainMainThreadQueue();
 
         // Process console input (fire events)
         console::processQueue();
@@ -2357,9 +2360,9 @@ namespace internal {
                 mouseX = ev->mouse_x * scale;
                 mouseY = ev->mouse_y * scale;
 
-                // Rich carrier (MouseEventRaw); the per-kind public type is
-                // built from it at the boundary (toDragArgs / toMoveArgs).
-                MouseEventRaw args;
+                // Rich carrier (internal::MouseEventRaw); the per-kind public type is
+                // built from it at the boundary (internal::toDragArgs / internal::toMoveArgs).
+                internal::MouseEventRaw args;
                 args.pos = args.globalPos = Vec2(mouseX, mouseY);
                 args.delta = args.globalDelta = Vec2(mouseX - prevX, mouseY - prevY);
                 args.shift = hasModShift;
@@ -2369,14 +2372,14 @@ namespace internal {
 
                 if (currentMouseButton >= 0) {
                     args.button = currentMouseButton;
-                    MouseDragEventArgs dragArgs = toDragArgs(args);
+                    MouseDragEventArgs dragArgs = internal::toDragArgs(args);
                     events().mouseDragged.notify(dragArgs);
                     // The public typed arg carries `consumed`; copy it back to the
                     // raw carrier so handleMouseDragged can gate the tree dispatch.
                     args.consumed = dragArgs.consumed;
                     if (appMouseDraggedFunc) appMouseDraggedFunc(args);
                 } else {
-                    MouseMoveEventArgs moveArgs = toMoveArgs(args);
+                    MouseMoveEventArgs moveArgs = internal::toMoveArgs(args);
                     events().mouseMoved.notify(moveArgs);
                     args.consumed = moveArgs.consumed;
                     if (appMouseMovedFunc) appMouseMovedFunc(args);
@@ -2445,11 +2448,11 @@ namespace internal {
                         float prevX = mouseX, prevY = mouseY;
                         mouseX = tx; mouseY = ty;
 
-                        MouseEventRaw margs;
+                        internal::MouseEventRaw margs;
                         margs.pos = margs.globalPos = Vec2(tx, ty);
                         margs.delta = margs.globalDelta = Vec2(tx - prevX, ty - prevY);
                         margs.button = MOUSE_BUTTON_LEFT;
-                        MouseDragEventArgs dragArgs = toDragArgs(margs);
+                        MouseDragEventArgs dragArgs = internal::toDragArgs(margs);
                         events().mouseDragged.notify(dragArgs);
                         margs.consumed = dragArgs.consumed;
                         if (appMouseDraggedFunc) appMouseDraggedFunc(margs);
@@ -2579,10 +2582,10 @@ sapp_desc buildAppDescriptor(const WindowSettings& settings = WindowSettings()) 
     internal::appMouseReleasedFunc = [](const MouseEventArgs& e) {
         if (app) app->handleMouseReleased(e);
     };
-    internal::appMouseMovedFunc = [](const MouseEventRaw& e) {
+    internal::appMouseMovedFunc = [](const internal::MouseEventRaw& e) {
         if (app) app->handleMouseMoved(e);
     };
-    internal::appMouseDraggedFunc = [](const MouseEventRaw& e) {
+    internal::appMouseDraggedFunc = [](const internal::MouseEventRaw& e) {
         if (app) app->handleMouseDragged(e);
     };
     internal::appMouseScrolledFunc = [](const ScrollEventArgs& e) {

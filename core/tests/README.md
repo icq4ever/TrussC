@@ -16,7 +16,7 @@ the API still compiles/links/instantiates but do not assert runtime behaviour.
   (that's what `AllFeaturesExample` is for).
 - **Fast and headless** — no window/GPU. Use plain `main()` for pure-logic checks,
   or `runHeadlessApp<App>()` when you need a realistic `setup()`/`update()` runtime
-  (it runs the per-frame `drainMainThreadQueue()`, so `runOnMainThread` works).
+  (it runs the per-frame `internal::drainMainThreadQueue()`, so `runOnMainThread` works).
 - **Assertion-based**, clear names, exit code = pass/fail.
 
 ## Two test shapes

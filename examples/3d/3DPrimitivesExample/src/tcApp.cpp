@@ -103,7 +103,7 @@ void tcApp::draw() {
     };
 
     // Grid spacing based on window size (with padding for visibility)
-    float baseSize = min(getWindowWidth(), getWindowHeight());
+    float baseSize = min(getWidth(), getHeight());
     float spacingX = baseSize * 0.4f;   // Horizontal spacing
     float spacingY = baseSize * 0.4f;   // Vertical spacing
 
@@ -119,8 +119,8 @@ void tcApp::draw() {
     };
 
     // Center of screen
-    float cx = getWindowWidth() / 2.0f;
-    float cy = getWindowHeight() / 2.0f;
+    float cx = getWidth() / 2.0f;
+    float cy = getHeight() / 2.0f;
 
     // Lighting settings
     if (bLighting) {
@@ -204,15 +204,15 @@ void tcApp::keyPressed(int key) {
         resolution = 4;
         rebuildPrimitives();
     }
-    else if (key == 's' || key == 'S') {
+    else if (key == 'S') {
         bFill = !bFill;
         logNotice("tcApp") << "Fill: " << (bFill ? "ON" : "OFF");
     }
-    else if (key == 'w' || key == 'W') {
+    else if (key == 'W') {
         bWireframe = !bWireframe;
         logNotice("tcApp") << "Wireframe: " << (bWireframe ? "ON" : "OFF");
     }
-    else if (key == 'l' || key == 'L') {
+    else if (key == 'L') {
         bLighting = !bLighting;
         logNotice("tcApp") << "Lighting: " << (bLighting ? "ON" : "OFF");
     }

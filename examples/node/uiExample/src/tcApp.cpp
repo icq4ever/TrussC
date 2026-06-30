@@ -86,11 +86,11 @@ void tcApp::draw() {
     drawBitmapString(format("Background: R={:.2f} G={:.2f}", bgColor_.r, bgColor_.g), 50, 350);
 
     setColor(0.5f, 0.5f, 0.5f);
-    drawBitmapString(format("FPS: {:.1f}", getFrameRate()), getWindowWidth() - 100, 30);
+    drawBitmapString(format("FPS: {:.1f}", getFrameRate()), getWidth() - 100, 30);
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'r' || key == 'R') {
+    if (key == 'R') {
         bgColor_ = Color(0.1f, 0.1f, 0.12f);
         slider1_->setValue(0.1f);
         slider2_->setValue(0.1f);

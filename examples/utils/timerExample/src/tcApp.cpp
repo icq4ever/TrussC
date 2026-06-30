@@ -147,11 +147,11 @@ void tcApp::draw() {
 
     // Control instructions
     drawBitmapStringHighlight("Press R to reset",
-        10, getWindowHeight() - 20, Color(0, 0, 0, 0.7f), colors::white);
+        10, getHeight() - 20, Color(0, 0, 0, 0.7f), colors::white);
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'r' || key == 'R') {
+    if (key == 'R') {
         // Reset: recreate nodes
         removeAllChildren();
         balls_.clear();

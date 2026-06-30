@@ -21,6 +21,7 @@ namespace trussc {
 // ---------------------------------------------------------------------------
 // Platform state (ARC manages the strong ObjC members of this C++ struct)
 // ---------------------------------------------------------------------------
+namespace internal {
 struct VideoWriterPlatformData {
     AVAssetWriter* writer = nil;
     AVAssetWriterInput* input = nil;
@@ -32,6 +33,8 @@ struct VideoWriterPlatformData {
     bool failed = false;
     CVPixelBufferRef pendingPB = NULL;   // locked buffer between lockFrame/submitFrame
 };
+}  // namespace internal
+using internal::VideoWriterPlatformData;
 
 // ---------------------------------------------------------------------------
 // openPlatform - create the encoder and begin a session

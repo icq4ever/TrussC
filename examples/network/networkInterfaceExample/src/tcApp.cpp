@@ -67,6 +67,6 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'r' || key == 'R') refresh();
-    if (key == 'p' || key == 'P') printNetworkInterfaces();
+    if (key == 'R') refresh();
+    if (key == 'P') printNetworkInterfaces();
 }

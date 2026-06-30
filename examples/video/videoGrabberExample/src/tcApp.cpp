@@ -46,12 +46,12 @@ void tcApp::draw() {
     }
 
     // Draw camera image fitted to window (letterbox/pillarbox)
-    float s = std::min(getWindowWidth() / (float)grabber_.getWidth(),
-                       getWindowHeight() / (float)grabber_.getHeight());
+    float s = std::min(getWidth() / (float)grabber_.getWidth(),
+                       getHeight() / (float)grabber_.getHeight());
     float w = grabber_.getWidth() * s;
     float h = grabber_.getHeight() * s;
-    float x = (getWindowWidth() - w) / 2;
-    float y = (getWindowHeight() - h) / 2;
+    float x = (getWidth() - w) / 2;
+    float y = (getHeight() - h) / 2;
 
     setColor(1.0f);
     if (flipH_) {
@@ -74,7 +74,7 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'f' || key == 'F') {
+    if (key == 'F') {
         flipH_ = !flipH_;
     }
 }

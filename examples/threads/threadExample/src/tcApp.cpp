@@ -63,16 +63,16 @@ void tcApp::keyPressed(int key) {
         logNotice("tcApp") << "[keyPressed] processed in other thread";
     }
 
-    if (key == 'a' || key == 'A') {
+    if (key == 'A') {
         threadedObject.start();
         logNotice("tcApp") << "Thread started";
-    } else if (key == 's' || key == 'S') {
+    } else if (key == 'S') {
         threadedObject.stop();
         logNotice("tcApp") << "Thread stopped";
-    } else if (key == 'n' || key == 'N') {
+    } else if (key == 'N') {
         doLock = false;
         logNotice("tcApp") << "Lock OFF - may see tearing";
-    } else if (key == 'l' || key == 'L') {
+    } else if (key == 'L') {
         doLock = true;
         logNotice("tcApp") << "Lock ON - safe mode";
     }

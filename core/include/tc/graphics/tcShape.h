@@ -4,20 +4,20 @@
 // To access variables in internal namespace
 
 #include <vector>
+#include "../utils/tcAnnotations.h"
 
 namespace trussc {
 
-// ---------------------------------------------------------------------------
-// Stroke vertex (position + color + width)
-// ---------------------------------------------------------------------------
-struct StrokeVertex {
-    Vec3 pos;
-    Color color;
-    float width;
-};
-
 // Internal state for shape/stroke drawing
 namespace internal {
+
+    // Stroke vertex (position + color + width)
+    struct StrokeVertex {
+        Vec3 pos;
+        Color color;
+        float width;
+    };
+
     // Shape (polygon) vertices
     inline std::vector<Vec3> shapeVertices;
     inline bool shapeStarted = false;
@@ -228,7 +228,7 @@ inline void appendCatmullRomSegment_(const Vec3& p0, const Vec3& p1,
     if (ctx.getCurveMode() == CurveStyle::Mode::Tolerance) {
         std::vector<Vec3> tmp;
         tessellateCubicBezier(p1, b1, b2, p2,
-                              ctx.getCurveTolerance() / ctx.getCurrentScale(),
+                              ctx.getCurveTolerance() / ctx.getScale(),
                               tmp);
         for (auto& q : tmp) vertex(q.x, q.y, q.z);
     } else {

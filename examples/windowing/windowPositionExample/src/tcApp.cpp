@@ -32,7 +32,7 @@ void tcApp::keyPressed(int key) {
     if (key == KEY_RIGHT) setWindowPosition(pos.x + step, pos.y);
     if (key == KEY_UP)    setWindowPosition(pos.x, pos.y - step);
     if (key == KEY_DOWN)  setWindowPosition(pos.x, pos.y + step);
-    if (key == 'R' || key == 'r') setWindowPosition(100, 100);
+    if (key == 'R') setWindowPosition(100, 100);
 }
 
 void tcApp::keyReleased(int key) {}

@@ -242,6 +242,7 @@ public:
 
     std::vector<Vec2>& getTexCoords() { return texCoords_; }
     const std::vector<Vec2>& getTexCoords() const { return texCoords_; }
+    int getNumTexCoords() const { return static_cast<int>(texCoords_.size()); }
     bool hasTexCoords() const { return !texCoords_.empty(); }
     bool hasValidTexCoords() const {
         return hasTexCoords() && texCoords_.size() >= vertices_.size();
@@ -504,7 +505,7 @@ public:
 
         bool useColors = hasColors() && colors_.size() >= vertices_.size();
         bool useIndices = hasIndices();
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
         auto& writer = internal::getActiveWriter();
 
         // Convert PrimitiveMode to PrimitiveType and begin
@@ -572,7 +573,7 @@ public:
         }
 
         // Get current transformation matrix
-        Mat4 modelMatrix = getDefaultContext().getCurrentMatrix();
+        Mat4 modelMatrix = getDefaultContext().getMatrix();
 
         const Material& baseMaterial = *internal::currentMaterial;
         bool useVertexColors = hasColors() && colors_.size() >= vertices_.size();
@@ -648,7 +649,7 @@ public:
         bool useColors = hasColors() && colors_.size() >= vertices_.size();
         bool useIndices = hasIndices();
         bool useTexCoords = hasValidTexCoords();
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
 
         // Enable texture
         texture.bind();
@@ -725,7 +726,7 @@ public:
             return;
         }
 
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
         sgl_begin_lines();
 
         if (hasIndices()) {
@@ -778,7 +779,7 @@ private:
     void drawTriangleFan(bool useColors, bool useIndices) const {
         if (vertices_.size() < 3) return;
 
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
         auto& writer = internal::getActiveWriter();
         writer.begin(PrimitiveType::Triangles);
 
@@ -821,7 +822,7 @@ private:
     void drawLineLoop(bool useColors, bool useIndices) const {
         if (vertices_.size() < 2) return;
 
-        Color defColor = getDefaultContext().getColor();
+        Color defColor = getColor();
         auto& writer = internal::getActiveWriter();
         writer.begin(PrimitiveType::LineStrip);
 

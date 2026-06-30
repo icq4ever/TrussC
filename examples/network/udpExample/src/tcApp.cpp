@@ -87,7 +87,7 @@ void tcApp::keyPressed(int key) {
         if (sender.send(msg)) {
             logNotice("tcApp") << "Sent: " << msg;
         }
-    } else if (key == 'C' || key == 'c') {
+    } else if (key == 'C') {
         lock_guard<mutex> lock(messagesMutex);
         receivedMessages.clear();
         sendCount = 0;

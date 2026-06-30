@@ -223,18 +223,18 @@ inline void registerDebuggerTools() {
             int button = a.value("button", -1);
             // If button is pressed, treat as drag
             if (button >= 0) {
-                MouseEventRaw args;
+                internal::MouseEventRaw args;
                 args.pos = args.globalPos = Vec2(x, y);
                 args.button = button;
-                MouseDragEventArgs dragArgs = toDragArgs(args);
+                MouseDragEventArgs dragArgs = internal::toDragArgs(args);
                 events().mouseDragged.notify(dragArgs);
 
                 if (::trussc::internal::appMouseDraggedFunc)
                     ::trussc::internal::appMouseDraggedFunc(args);
             } else {
-                MouseEventRaw args;
+                internal::MouseEventRaw args;
                 args.pos = args.globalPos = Vec2(x, y);
-                MouseMoveEventArgs moveArgs = toMoveArgs(args);
+                MouseMoveEventArgs moveArgs = internal::toMoveArgs(args);
                 events().mouseMoved.notify(moveArgs);
 
                 if (::trussc::internal::appMouseMovedFunc)

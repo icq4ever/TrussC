@@ -266,141 +266,140 @@ Reference for oF users finding equivalent features in TrussC.
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofGetWidth` | `getWindowWidth()` |  |
-| `ofGetHeight` | `getWindowHeight()` |  |
-| `ofGetWindowSize` | `getWindowSize()` |  |
-| `ofExit` | `requestExitApp()` |  |
-| `ofSystemLoadDialog` | `loadDialog(title, message, defaultPath, folderSelection)` |  |
-| `ofSystemSaveDialog` | `saveDialog(title, message, defaultPath, defaultName)` |  |
 | `ofSystemAlertDialog` | `alertDialog(title, message)` |  |
 | `ofGetMouseX` | `getMouseX()` |  |
 | `ofGetMouseY` | `getMouseY()` |  |
-| `ofGetMousePressed` | `isMousePressed()` |  |
-| `ofGetKeyPressed` | `isKeyPressed(key)` |  |
-| `ofShowCursor` | `showCursor()` |  |
+| `ofGetHeight` | `getWindowHeight()` |  |
+| `ofGetWindowSize` | `getWindowSize()` |  |
+| `ofGetWidth` | `getWindowWidth()` |  |
 | `ofHideCursor` | `hideCursor()` |  |
 | `ofGetWindowMode` | `isFullscreen()` |  |
-| `ofSetFullscreen` | `setFullscreen(fullscreen)` |  |
+| `ofGetKeyPressed` | `isKeyPressed(key)` |  |
+| `ofGetMousePressed` | `isMousePressed()` |  |
+| `ofSystemLoadDialog` | `loadDialog(title, message, defaultPath, folderSelection)` |  |
+| `ofExit` | `requestExitApp()` |  |
+| `ofSystemSaveDialog` | `saveDialog(title, message, defaultPath, defaultName)` |  |
+| `ofSetFullscreen` | `setFullscreen(full)` |  |
+| `ofShowCursor` | `showCursor()` |  |
 
 ### **Graphics**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofClear / ofBackground` | `clear()` |  |
-| `ofSetColor` | `setColor(gray)` | Range 0-1 instead of 0-255 |
-| `ofDrawRectangle` | `drawRect(x, y, w, h)` |  |
-| `ofDrawRectRounded` | `drawRectRounded(x, y, w, h, radius)` |  |
-| `ofDrawCircle` | `drawCircle(x, y, radius)` |  |
-| `ofDrawEllipse` | `drawEllipse(x, y, w, h)` |  |
-| `ofDrawLine` | `drawLine(x1, y1, x2, y2)` |  |
-| `ofDrawTriangle` | `drawTriangle(x1, y1, x2, y2, x3, y3)` |  |
-| `ofDrawBox` | `drawBox(size)` |  |
-| `ofDrawSphere` | `drawSphere(radius)` |  |
-| `ofDrawCone` | `drawCone(radius, height)` |  |
 | `ofBeginShape` | `beginShape()` |  |
-| `ofVertex` | `vertex(x, y)` |  |
-| `ofEndShape` | `endShape(close)` |  |
-| `ofDrawBitmapString` | `drawBitmapString(text, x, y)` |  |
+| `ofClear / ofBackground` | `clear(r, g, b, a)` |  |
+| `ofDrawBitmapString` | `drawBitmapString(text, pos, screenFixed)` |  |
 | `ofDrawBitmapStringHighlight` | `drawBitmapStringHighlight(text, x, y, background, foreground)` |  |
-| `ofSetFrameRate` | `setFps(fps)` |  |
+| `ofDrawBox` | `drawBox(w, h, d)` |  |
+| `ofDrawCircle` | `drawCircle(center, radius)` |  |
+| `ofDrawCone` | `drawCone(radius, height, resolution)` |  |
+| `ofDrawEllipse` | `drawEllipse(center, radii)` |  |
+| `ofDrawLine` | `drawLine(p1, p2)` |  |
+| `ofDrawRectangle` | `drawRect(pos, size)` |  |
+| `ofDrawRectRounded` | `drawRectRounded(pos, size, radius)` |  |
+| `ofDrawSphere` | `drawSphere(radius, resolution)` |  |
+| `ofDrawTriangle` | `drawTriangle(p1, p2, p3)` |  |
+| `ofEndShape` | `endShape(close)` |  |
 | `ofFill` | `fill()` |  |
 | `ofNoFill` | `noFill()` |  |
-| `ofSetLineWidth` | `setStrokeWeight(weight)` |  |
-| `ofPushStyle` | `pushStyle()` |  |
 | `ofPopStyle` | `popStyle()` |  |
+| `ofPushStyle` | `pushStyle()` |  |
 | `ofEnableBlendMode` | `setBlendMode(mode)` |  |
-| `ofPushStyle` | `pushStyle()` |  |
-| `ofPopStyle` | `popStyle()` |  |
+| `ofSetColor` | `setColor(r, g, b, a)` | Range 0-1 instead of 0-255 |
+| `ofSetFrameRate` | `setFps(fps)` |  |
+| `ofSetLineWidth` | `setStrokeWeight(weight)` |  |
+| `ofVertex` | `vertex(x, y, z)` |  |
 
 ### **Transform**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofTranslate` | `translate(x, y)` |  |
+| `ofPopMatrix` | `popMatrix()` |  |
+| `ofPushMatrix` | `pushMatrix()` |  |
 | `ofRotateRad` | `rotate(radians)` | Always radians (not degrees like oF default) |
 | `ofRotateDeg` | `rotateDeg(degrees)` |  |
 | `ofScale` | `scale(s)` |  |
-| `ofPushMatrix` | `pushMatrix()` |  |
-| `ofPopMatrix` | `popMatrix()` |  |
+| `ofTranslate` | `translate(pos)` |  |
 
 ### **Math**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofRandom` | `random()` |  |
-| `ofSeedRandom` | `randomSeed(seed)` |  |
-| `ofNoise` | `noise(x)` |  |
-| `ofSignedNoise` | `signedNoise(x)` |  |
-| `ofLerp` | `lerp(a, b, t)` | std::lerp (C++20) |
-| `ofClamp` | `clamp(v, min, max)` |  |
-| `ofMap` | `remap(v, inMin, inMax, outMin, outMax)` |  |
-| `ofDegToRad` | `deg2rad(degrees)` |  |
-| `ofRadToDeg` | `rad2deg(radians)` |  |
-| `ofSign` | `sign(x)` |  |
-| `ofWrap` | `wrap(value, min, max)` |  |
 | `ofAngleDifferenceRadians` | `angleDifference(angle1, angle2)` |  |
 | `ofAngleDifferenceDegrees` | `angleDifferenceDeg(deg1, deg2)` |  |
+| `ofClamp` | `clamp(value, min, max)` |  |
+| `ofDegToRad` | `deg2rad(deg)` |  |
 | `ofDist` | `dist(x1, y1, x2, y2)` |  |
 | `ofDistSquared` | `distSquared(x1, y1, x2, y2)` |  |
+| `ofLerp` | `lerp(a, b, t)` | std::lerp (C++20) |
+| `ofNoise` | `noise(x)` |  |
+| `ofRadToDeg` | `rad2deg(rad)` |  |
+| `ofRandom` | `random()` |  |
+| `ofSeedRandom` | `randomSeed(seed)` |  |
+| `ofMap` | `remap(value, inMin, inMax, outMin, outMax)` |  |
+| `ofSign` | `sign(value)` |  |
+| `ofSignedNoise` | `signedNoise(x)` |  |
+| `ofWrap` | `wrap(value, min, max)` |  |
 
 ### **Font**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
 | `ofTrueTypeFont` | `Font` |  |
-| `font.load("font.ttf", size)` | `font.load("font.ttf", size)` | Same |
 | `font.drawString(text, x, y)` | `font.drawString(text, x, y)` | Same |
+| `font.load("font.ttf", size)` | `font.load("font.ttf", size)` | Same |
 
 ### **3D Primitives**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofSetupScreenPerspective` | `setupScreenPerspective()` |  |
 | `ofSetupScreenOrtho` | `setupScreenOrtho()` |  |
+| `ofSetupScreenPerspective` | `setupScreenPerspective(fovDeg, nearDist, farDist)` |  |
+| `ofWorldToScreen` | `worldToScreen(worldPos)` |  |
 
 ### **Video**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofVideoGrabber` | `VideoGrabber` |  |
-| `grabber.setup(w, h)` | `grabber.setup(w, h)` |  |
-| `grabber.update()` | `grabber.update()` |  |
 | `grabber.draw(x, y)` | `grabber.draw(x, y)` |  |
 | `grabber.isFrameNew()` | `grabber.isFrameNew()` |  |
+| `grabber.setup(w, h)` | `grabber.setup(w, h)` |  |
+| `grabber.update()` | `grabber.update()` |  |
+| `ofVideoGrabber` | `VideoGrabber` |  |
 
 ### **Time**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofGetLastFrameTime` | `getDeltaTime()` |  |
-| `ofGetFrameRate` | `getFrameRate()` |  |
-| `ofGetFrameNum` | `getFrameCount()` |  |
-| `ofGetElapsedTimef` | `getElapsedTimef()` |  |
-| `ofGetElapsedTimeMillis` | `getElapsedTimeMillis()` |  |
-| `ofGetElapsedTimeMicros` | `getElapsedTimeMicros()` |  |
-| `ofResetElapsedTimeCounter` | `resetElapsedTimeCounter()` |  |
-| `ofGetSystemTimeMillis` | `getSystemTimeMillis()` |  |
-| `ofGetTimestampString` | `getTimestampString()` |  |
-| `ofGetSeconds` | `getSeconds()` |  |
-| `ofGetMinutes` | `getMinutes()` |  |
-| `ofGetHours` | `getHours()` |  |
-| `ofGetYear` | `getYear()` |  |
-| `ofGetMonth` | `getMonth()` |  |
 | `ofGetDay` | `getDay()` |  |
+| `ofGetLastFrameTime` | `getDeltaTime()` |  |
+| `ofGetElapsedTimef` | `getElapsedTimef()` |  |
+| `ofGetElapsedTimeMicros` | `getElapsedTimeMicros()` |  |
+| `ofGetElapsedTimeMillis` | `getElapsedTimeMillis()` |  |
+| `ofGetFrameNum` | `getFrameCount()` |  |
+| `ofGetFrameRate` | `getFrameRate()` |  |
+| `ofGetHours` | `getHours()` |  |
+| `ofGetMinutes` | `getMinutes()` |  |
+| `ofGetMonth` | `getMonth()` |  |
+| `ofGetSeconds` | `getSeconds()` |  |
+| `ofGetSystemTimeMillis` | `getSystemTimeMillis()` |  |
+| `ofGetTimestampString` | `getTimestampString(timestampFormat)` |  |
 | `ofGetWeekday` | `getWeekday()` |  |
+| `ofGetYear` | `getYear()` |  |
+| `ofResetElapsedTimeCounter` | `resetElapsedTimeCounter()` |  |
 
 ### **Utility**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofLog` | `logNotice(message)` |  |
-| `ofToString` | `toString(value)` |  |
-| `ofToInt` | `toInt(str)` |  |
+| `ofJoinString` | `joinString(stringElements, delimiter)` |  |
+| `ofLog` | `logNotice(module)` |  |
+| `ofSplitString` | `splitString(source, delimiter, ignoreEmpty, trim)` |  |
+| `ofStringReplace` | `stringReplace(input, searchStr, replaceStr)` |  |
 | `ofToFloat` | `toFloat(str)` |  |
-| `ofSplitString` | `splitString(source, delimiter)` |  |
-| `ofJoinString` | `joinString(elements, delimiter)` |  |
-| `ofStringReplace` | `stringReplace(input, search, replace)` |  |
+| `ofToInt` | `toInt(str)` |  |
 | `ofToLower` | `toLower(src)` |  |
+| `ofToString` | `toString(value)` |  |
 | `ofToUpper` | `toUpper(src)` |  |
 
 ### **GUI**
@@ -413,10 +412,10 @@ Reference for oF users finding equivalent features in TrussC.
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofSystemLoadDialog()` | `systemLoadDialog()` |  |
-| `ofSystemSaveDialog()` | `systemSaveDialog()` |  |
 | `ofLoadJson(path)` | `loadJson(path)` | nlohmann/json |
 | `-` | `loadXml(path)` | pugixml |
+| `ofSystemLoadDialog()` | `systemLoadDialog()` |  |
+| `ofSystemSaveDialog()` | `systemSaveDialog()` |  |
 
 ### **Network**
 
@@ -428,15 +427,15 @@ Reference for oF users finding equivalent features in TrussC.
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
+| `ofLogError()` | `logError()` |  |
 | `ofLog()` | `logNotice()` |  |
 | `ofLogWarning()` | `logWarning()` |  |
-| `ofLogError()` | `logError()` |  |
 
 ### **Thread**
 
 | openFrameworks | TrussC | Notes |
 |:---|:---|:---|
-| `ofThread` | `std::thread + MainThreadRunner` | Safe sync |
 | `-` | `MainThreadRunner::run(func)` | Execute on main thread |
+| `ofThread` | `std::thread + MainThreadRunner` | Safe sync |
 
 <!-- AUTO-GENERATED-END -->

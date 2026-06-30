@@ -73,8 +73,8 @@ void tcApp::update() {
 void tcApp::draw() {
     clear(0.08f);
 
-    float windowW = getWindowWidth();
-    float windowH = getWindowHeight();
+    float windowW = getWidth();
+    float windowH = getHeight();
 
     // Title
     setColor(colors::white);
@@ -188,11 +188,11 @@ void tcApp::keyPressed(int key) {
             logNotice("tcApp") << "Music playing";
         }
     }
-    else if (key == 'w' || key == 'W') {
+    else if (key == 'W') {
         showWaveform = !showWaveform;
         logNotice("tcApp") << "Waveform: " << (showWaveform ? "ON" : "OFF");
     }
-    else if (key == 'l' || key == 'L') {
+    else if (key == 'L') {
         useLogScale = !useLogScale;
         logNotice("tcApp") << "Log scale: " << (useLogScale ? "ON" : "OFF");
     }

@@ -147,7 +147,7 @@ void tcApp::draw() {
     drawBitmapString("Status: " + sfxStatus, 50, y);
 
     setColor(0.4f);
-    drawBitmapString("FPS: " + std::to_string((int)getFrameRate()), 50, getWindowHeight() - 40);
+    drawBitmapString("FPS: " + std::to_string((int)getFrameRate()), 50, getHeight() - 40);
 }
 
 void tcApp::keyPressed(int key) {
@@ -162,7 +162,7 @@ void tcApp::keyPressed(int key) {
             }
         }
     }
-    else if (key == 'p' || key == 'P') {
+    else if (key == 'P') {
         if (musicLoaded) {
             if (music.isPaused()) {
                 music.resume();
@@ -173,7 +173,7 @@ void tcApp::keyPressed(int key) {
             }
         }
     }
-    else if (key == 's' || key == 'S') {
+    else if (key == 'S') {
         if (sfxLoaded) {
             sfx.play();
             logNotice("tcApp") << "SFX playing";

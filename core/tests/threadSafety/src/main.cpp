@@ -88,7 +88,7 @@ int main() {
         });
         t.join();   // worker has submitted; closure must NOT have run yet
         check("runOnMainThread: deferred (not run before drain)", !ran.load());
-        drainMainThreadQueue();
+        internal::drainMainThreadQueue();
         check("runOnMainThread: runs after drain", ran.load());
         check("runOnMainThread: ran on the main thread", onMain.load());
     }
@@ -117,7 +117,7 @@ int main() {
         const int N = 500;
         thread t([&] { for (int i = 0; i < N; ++i) { int v = i; ev.notify(v); } });
         t.join();
-        drainMainThreadQueue();   // run the marshalled listeners on main
+        internal::drainMainThreadQueue();   // run the marshalled listeners on main
         check("Event Deliver::Main: delivered every notify", delivered.load() == N);
         check("Event Deliver::Main: every listener ran on main", allOnMain.load());
     }

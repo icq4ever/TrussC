@@ -28,6 +28,7 @@
 #include <vector>
 #include <unordered_map>
 #include <cstring>
+#include "../utils/tcAnnotations.h"
 
 namespace trussc {
 
@@ -210,6 +211,8 @@ public:
         storeUniform(slot, data, size);
     }
 
+protected:
+    // Internal uniform plumbing — protected so Shader subclasses can reuse it.
     // Store uniform data for later application
     void storeUniform(int slot, const void* data, size_t size) {
         pendingUniforms[slot].assign((const uint8_t*)data, (const uint8_t*)data + size);
@@ -222,6 +225,7 @@ public:
             sg_apply_uniforms(slot, &range);
         }
     }
+public:
 
     // -------------------------------------------------------------------------
     // Texture binding
@@ -248,7 +252,7 @@ public:
         }
 
         // Defer this draw - will be executed in present() between sokol_gl layers
-        DeferredShaderDraw draw;
+        internal::DeferredShaderDraw draw;
         draw.layerId = internal::sglLayerNext - 1;  // Layer before this shader
         draw.shader = this;
         draw.vertices.assign(data, data + count);
@@ -472,11 +476,11 @@ private:
 // ---------------------------------------------------------------------------
 // ShaderWriter::end() implementation (needs Shader class)
 // ---------------------------------------------------------------------------
-inline void ShaderWriter::end() {
+inline void internal::ShaderWriter::end() {
     Shader* shader = internal::getCurrentShader();
     if (shader && !vertices.empty()) {
         // Apply current transformation matrix to vertices
-        Mat4 mat = getCurrentMatrix();
+        Mat4 mat = getMatrix();
         for (auto& v : vertices) {
             Vec3 transformed = mat * Vec3(v.x, v.y, v.z);
             v.x = transformed.x;
@@ -503,15 +507,14 @@ inline void popShader() {
     }
 }
 
-// Reset shader stack (called at end of frame)
-inline void resetShaderStack() {
-    while (!internal::shaderStack.empty()) {
-        popShader();
-    }
-}
+// NOTE: the frame-end shader-stack reset is internal::resetShaderStack()
+// (defined in tcVertexWriter.h, called from present()). A second public
+// resetShaderStack() that drained the stack via popShader() used to live
+// here but had no callers — removed during the internal:: consolidation.
 
 // Flush deferred shader draws (called from present())
 // Draws sokol_gl layers interleaved with shader draws for correct ordering
+namespace internal {
 inline void flushDeferredShaderDraws() {
     // Check for vertex buffer overflow — skip sgl draw to avoid crash
     // (overflowed commands may contain invalid pipeline IDs)
@@ -550,6 +553,7 @@ inline void flushDeferredShaderDraws() {
     internal::sglLayerNext = 0;
     sgl_layer(0);
 }
+} // namespace internal
 
 // ---------------------------------------------------------------------------
 // FullscreenShader - Fullscreen effect shader (position + texcoord layout)

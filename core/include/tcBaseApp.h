@@ -13,6 +13,7 @@
 #include "tc/types/tcTweenMod.h"
 #include "tc/sound/tcSound.h"      // AudioEngine + AudioOutBuffer / AudioInBuffer
 #include "tc/events/tcEventListener.h"
+#include "tc/utils/tcAnnotations.h"
 #include <vector>
 #include <string>
 
@@ -201,13 +202,13 @@ public:
         if (!e.consumed) dispatchMouseRelease(e);
     }
 
-    void handleMouseMoved(const MouseEventRaw& e) {
-        mouseMoved(toMoveArgs(e));
+    void handleMouseMoved(const internal::MouseEventRaw& e) {
+        mouseMoved(internal::toMoveArgs(e));
         if (!e.consumed) dispatchMouseMove(e);
     }
 
-    void handleMouseDragged(const MouseEventRaw& e) {
-        mouseDragged(toDragArgs(e));
+    void handleMouseDragged(const internal::MouseEventRaw& e) {
+        mouseDragged(internal::toDragArgs(e));
         if (!e.consumed) dispatchMouseMove(e);  // drag + hover share the node-tree move dispatch
     }
 

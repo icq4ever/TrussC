@@ -82,7 +82,7 @@ void tcApp::draw() {
 }
 
 void tcApp::keyPressed(int key) {
-    if (key == 'k' || key == 'K') {
+    if (key == 'K') {
         keyListenerActive = !keyListenerActive;
 
         // Disconnect or reconnect listener
@@ -102,7 +102,7 @@ void tcApp::keyPressed(int key) {
             addLog(">> Key listener DISABLED");
         }
     }
-    else if (key == 'm' || key == 'M') {
+    else if (key == 'M') {
         mouseListenerActive = !mouseListenerActive;
 
         if (mouseListenerActive) {

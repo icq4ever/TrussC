@@ -41,6 +41,7 @@ namespace trussc {
 // ---------------------------------------------------------------------------
 // Platform state (the pipeline owns the encoder + mp4 muxer + file sink)
 // ---------------------------------------------------------------------------
+namespace internal {
 struct VideoWriterPlatformData {
     GstElement* pipeline = nullptr;
     GstElement* appsrc   = nullptr;  // borrowed (owned by pipeline)
@@ -49,6 +50,8 @@ struct VideoWriterPlatformData {
     double fps    = 30.0;
     bool   failed = false;
 };
+}  // namespace internal
+using internal::VideoWriterPlatformData;
 
 namespace {
 

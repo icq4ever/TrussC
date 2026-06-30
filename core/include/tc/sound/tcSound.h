@@ -1,4 +1,5 @@
 #pragma once
+#include "tc/utils/tcAnnotations.h"
 
 // =============================================================================
 // TrussC Sound
@@ -101,11 +102,11 @@ public:
 
     // Load AAC/M4A file (platform-specific implementation)
     // Returns false on unsupported platforms
-    bool loadAac(const std::string& path);
+    TC_PLATFORMS("macos,windows,linux,ios,web") bool loadAac(const std::string& path);
 
     // Load AAC data from memory (platform-specific implementation)
     // Returns false on unsupported platforms
-    bool loadAacFromMemory(const void* data, size_t dataSize);
+    TC_PLATFORMS("macos,windows,linux,ios,web") bool loadAacFromMemory(const void* data, size_t dataSize);
 
     // -------------------------------------------------------------------------
     // ADTS header utilities (for raw AAC from MOV containers)
@@ -393,6 +394,10 @@ public:
 //   - Each polyphony slot costs one open file handle + one decoder +
 //     one ring buffer (default ~16 KB).
 // ---------------------------------------------------------------------------
+// Per-voice decoder + ring-buffer state. Full definition lives in
+// tcAudio_impl.cpp (where miniaudio's headers are visible).
+namespace internal { struct StreamInstance; }
+
 class SoundStream : public SoundSource {
 public:
     SoundStream() : SoundSource(SoundSource::Stream) {}
@@ -417,7 +422,7 @@ private:
                                   // to avoid pulling miniaudio.h into the header.
     float duration_ = 0.0f;
 
-    friend struct StreamInstance;
+    friend struct internal::StreamInstance;
     friend class AudioEngine;
 };
 
@@ -425,9 +430,9 @@ private:
 // Per-PlayingSound stream state. Owns a miniaudio decoder and a ring
 // buffer fed by StreamWorker. Mixer reads from `ring`. Declared as a
 // forward declaration here; full definition is in tcAudio_impl.cpp
-// where miniaudio's headers are visible.
+// where miniaudio's headers are visible (see internal::StreamInstance
+// forward-declared above).
 // ---------------------------------------------------------------------------
-struct StreamInstance;
 
 // ---------------------------------------------------------------------------
 // MixMode — high-level routing preset for how a Sound's source channels
@@ -463,7 +468,7 @@ enum class MixMode {
 // functions, suppressing the deprecation warning locally — when the
 // specialization lands the storage type and accessors auto-switch.
 // ---------------------------------------------------------------------------
-namespace tcsound_detail {
+namespace internal {
 
 #if defined(__cpp_lib_atomic_shared_ptr) && __cpp_lib_atomic_shared_ptr >= 201711L
     // Native C++20 specialization path — lock-free where supported,
@@ -527,7 +532,7 @@ namespace tcsound_detail {
     }
 #endif
 
-} // namespace tcsound_detail
+} // namespace internal
 
 // ---------------------------------------------------------------------------
 // Playing Sound Instance
@@ -541,7 +546,7 @@ struct PlayingSound {
 
     // Per-instance streaming state. Null for eager voices; allocated by
     // AudioEngine::play() when buffer->kind() == Stream.
-    std::shared_ptr<StreamInstance> stream;
+    std::shared_ptr<internal::StreamInstance> stream;
 
     std::atomic<float> volume{1.0f};
     std::atomic<float> pan{0.0f};        // -1.0 (left) ~ 0.0 (center) ~ 1.0 (right)
@@ -552,8 +557,8 @@ struct PlayingSound {
 
     // Routing. mixMode is a plain atomic int (enum value). channelMap /
     // channelGains are atomically-updatable shared_ptr — the UI thread
-    // installs new versions via tcsound_detail::sharedStore and the
-    // audio thread reads via tcsound_detail::sharedLoad each callback.
+    // installs new versions via internal::sharedStore and the
+    // audio thread reads via internal::sharedLoad each callback.
     // The shim type auto-switches between C++20
     // std::atomic<std::shared_ptr<T>> and the deprecated free-function
     // atomic API based on __cpp_lib_atomic_shared_ptr.
@@ -562,8 +567,8 @@ struct PlayingSound {
     // non-null  → map is the source of truth
     // gains entries beyond .size() default to 1.0
     std::atomic<int> mixMode{(int)MixMode::Auto};
-    tcsound_detail::AtomicSharedPtr<const std::vector<std::vector<int>>> channelMap;
-    tcsound_detail::AtomicSharedPtr<const std::vector<float>>            channelGains;
+    internal::AtomicSharedPtr<const std::vector<std::vector<int>>> channelMap;
+    internal::AtomicSharedPtr<const std::vector<float>>            channelGains;
 
     // Playback position (floating-point for speed adjustment)
     double positionF{0.0};
@@ -822,8 +827,8 @@ private:
         // Snapshot routing state once at the top of the callback. Audio
         // thread reads atomically so the UI thread's setChannelMap store
         // sees a happens-before edge.
-        auto map = tcsound_detail::sharedLoad(sound.channelMap);
-        auto gains = tcsound_detail::sharedLoad(sound.channelGains);
+        auto map = internal::sharedLoad(sound.channelMap);
+        auto gains = internal::sharedLoad(sound.channelGains);
         int mm = sound.mixMode.load(std::memory_order_acquire);
         const int srcCh = src.channels;
         const int mapSize = map ? (int)map->size() : 0;
@@ -1092,7 +1097,7 @@ public:
     // user apps portable we fall back to eager load() and log a warning so
     // the developer can branch explicitly with isStreaming() / #ifdef
     // __EMSCRIPTEN__ if they need to know.
-    bool loadStream(const std::string& path, int maxPolyphony = 1) {
+    TC_PLATFORMS("macos,windows,linux,android,ios") bool loadStream(const std::string& path, int maxPolyphony = 1) {
         AudioEngine::getInstance().init();
 #ifdef __EMSCRIPTEN__
         (void)maxPolyphony;
@@ -1167,8 +1172,8 @@ public:
             playing_->speed = speed_;
             playing_->loop = loop_;
             playing_->mixMode.store((int)mixMode_, std::memory_order_release);
-            tcsound_detail::sharedStore(playing_->channelMap,   channelMap_);
-            tcsound_detail::sharedStore(playing_->channelGains, channelGains_);
+            internal::sharedStore(playing_->channelMap,   channelMap_);
+            internal::sharedStore(playing_->channelGains, channelGains_);
         }
     }
 
@@ -1309,7 +1314,7 @@ public:
                 : std::make_shared<const std::vector<std::vector<int>>>(std::move(map));
         channelMap_ = sp;
         if (playing_) {
-            tcsound_detail::sharedStore(playing_->channelMap, sp);
+            internal::sharedStore(playing_->channelMap, sp);
         }
     }
 
@@ -1327,7 +1332,7 @@ public:
                 : std::make_shared<const std::vector<float>>(gains);
         channelGains_ = sp;
         if (playing_) {
-            tcsound_detail::sharedStore(playing_->channelGains, sp);
+            internal::sharedStore(playing_->channelGains, sp);
         }
     }
 
