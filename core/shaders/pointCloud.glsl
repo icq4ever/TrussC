@@ -69,3 +69,39 @@ void main() {
 @end
 
 @program point vs fs
+
+//------------------------------------------------------------------------------
+//  point_prim - true 1px GPU point primitive (PointStyle::Pixel)
+//  Draws the per-point buffer directly as POINTS (one vertex per point, no quad
+//  expansion). Size is fixed at 1 device pixel (GL/Metal honor gl_PointSize;
+//  D3D11/WebGPU clamp to 1px). The lightest path: 1 vertex/point, no instancing.
+//------------------------------------------------------------------------------
+@vs vs_prim
+layout(binding=0) uniform vs_params {
+    mat4 viewProj;
+    vec4 params;     // unused here; kept so the uniform block matches the splat vs
+    vec4 tint;
+};
+
+in vec3 inPos;       // per-vertex: point position (world)
+in vec4 inColor;     // per-vertex: point color (rgba)
+
+out vec4 color;
+
+void main() {
+    gl_Position = viewProj * vec4(inPos, 1.0);
+    gl_PointSize = 1.0;
+    color = inColor * tint;
+}
+@end
+
+@fs fs_prim
+in vec4 color;
+out vec4 frag;
+
+void main() {
+    frag = color;
+}
+@end
+
+@program point_prim vs_prim fs_prim

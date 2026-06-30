@@ -36,7 +36,8 @@ struct PointDrawCommand {
     sg_pipeline               pip;
     sg_bindings               bind;
     tc_pointcloud_vs_params_t vsp;
-    int                       instanceCount;
+    int                       numElements;    // splat: 4 (quad)    point: N
+    int                       numInstances;   // splat: N (points)  point: 1
 };
 struct DeferredPointDraw { int layerId; PointDrawCommand cmd; };
 
@@ -59,7 +60,7 @@ inline void executePointDraw(const PointDrawCommand& c) {
     sg_apply_bindings(&c.bind);
     sg_range vr{ &c.vsp, sizeof(c.vsp) };
     sg_apply_uniforms(UB_tc_pointcloud_vs_params, &vr);
-    sg_draw(0, 4, c.instanceCount);   // triangle strip (4 verts) x N instances
+    sg_draw(0, c.numElements, c.numInstances);
 }
 
 class PointPipeline {
@@ -67,7 +68,8 @@ public:
     // Lazily create the shader and the shared unit-quad buffer. Safe every frame.
     void ensureInit() {
         if (initialized_) return;
-        shader_ = sg_make_shader(tc_pointcloud_point_shader_desc(sg_query_backend()));
+        shader_     = sg_make_shader(tc_pointcloud_point_shader_desc(sg_query_backend()));
+        shaderPrim_ = sg_make_shader(tc_pointcloud_point_prim_shader_desc(sg_query_backend()));
 
         // Unit quad corners as a triangle strip, in [-0.5, 0.5].
         const float corners[8] = {
@@ -115,6 +117,32 @@ public:
         return pip;
     }
 
+    // Pipeline for PointStyle::Pixel: draws the per-point buffer directly as
+    // POINTS (1 device pixel, no quad expansion, no instancing, no a2c).
+    sg_pipeline getPrimPipeline(sg_pixel_format colorFormat, int sampleCount) {
+        int key = static_cast<int>(colorFormat) | (sampleCount << 16);
+        auto it = primPipelineCache_.find(key);
+        if (it != primPipelineCache_.end()) return it->second;
+
+        sg_pipeline_desc pd = {};
+        pd.shader = shaderPrim_;
+        pd.layout.buffers[0].stride = sizeof(float) * 7;                  // pos3 + color4 (per-vertex)
+        pd.layout.attrs[ATTR_tc_pointcloud_point_prim_inPos]   = { 0, 0,                 SG_VERTEXFORMAT_FLOAT3 };
+        pd.layout.attrs[ATTR_tc_pointcloud_point_prim_inColor] = { 0, sizeof(float) * 3, SG_VERTEXFORMAT_FLOAT4 };
+        pd.primitive_type = SG_PRIMITIVETYPE_POINTS;
+        pd.cull_mode = SG_CULLMODE_NONE;
+        pd.depth.compare = SG_COMPAREFUNC_LESS_EQUAL;
+        pd.depth.write_enabled = true;
+        pd.depth.pixel_format = SG_PIXELFORMAT_DEPTH_STENCIL;
+        pd.colors[0].pixel_format = colorFormat;
+        pd.sample_count = sampleCount;
+        pd.label = "tc_mesh_point_prim_pipeline";
+
+        sg_pipeline pip = sg_make_pipeline(&pd);
+        primPipelineCache_[key] = pip;
+        return pip;
+    }
+
     // Draw a Points mesh. Assumes the mesh has uploaded its point instance buffer.
     void drawMesh(const Mesh& mesh) {
         ensureInit();
@@ -133,11 +161,21 @@ public:
         }
 
         PointDrawCommand cmd{};
-        cmd.pip = getPipeline(colorFmt, sampleCount);
-        cmd.bind.vertex_buffers[0] = quadBuf_;
-        cmd.bind.vertex_buffers[1] = mesh.getGpuPointBuffer();
         cmd.vsp = makeParams();
-        cmd.instanceCount = n;
+        if (getPointStyle() == PointStyle::Pixel) {
+            // True 1px point primitive: draw the point buffer's positions directly.
+            cmd.pip = getPrimPipeline(colorFmt, sampleCount);
+            cmd.bind.vertex_buffers[0] = mesh.getGpuPointBuffer();
+            cmd.numElements  = n;
+            cmd.numInstances = 1;
+        } else {
+            // Square / Round: instanced billboard quad splat.
+            cmd.pip = getPipeline(colorFmt, sampleCount);
+            cmd.bind.vertex_buffers[0] = quadBuf_;
+            cmd.bind.vertex_buffers[1] = mesh.getGpuPointBuffer();
+            cmd.numElements  = 4;
+            cmd.numInstances = n;
+        }
 
         // Defer like the PBR meshes: append and bump the sgl layer so 2D drawn
         // after this mesh composites on top. Inside an FBO pass we defer into the
@@ -182,9 +220,11 @@ private:
     }
 
     bool initialized_ = false;
-    sg_shader shader_{};
+    sg_shader shader_{};       // quad splat (Square/Round)
+    sg_shader shaderPrim_{};   // point primitive (Pixel)
     sg_buffer quadBuf_{};
     std::map<int, sg_pipeline> pipelineCache_;
+    std::map<int, sg_pipeline> primPipelineCache_;
 };
 
 // Singleton accessor. The instance lives in the first TU that calls this.

@@ -1,7 +1,7 @@
 #include "tcApp.h"
 
 void tcApp::setup() {
-    setWindowTitle("pointCloudExample - Mesh point splats");
+    setWindowTitle("pointCloudExample");
     view.setTarget(0.0f, 0.0f, 0.0f);
     view.setDistance(360.0f);
     view.enableMouseInput();
@@ -28,26 +28,6 @@ void tcApp::rebuild(int n) {
     }
 }
 
-const char* tcApp::styleName() const {
-    switch (style_) {
-        case PointStyle::Square: return "Square (GPU splat)";
-        case PointStyle::Round:  return "Round (GPU splat, AA)";
-        case PointStyle::Pixel:  return "Pixel (immediate 1px)";
-    }
-    return "";
-}
-
-void tcApp::update() {
-    // Smoothed frame rate from wall-clock delta.
-    const float now = getElapsedTimef();
-    const float dt  = now - lastTime_;
-    lastTime_ = now;
-    if (dt > 0.0f) {
-        const float inst = 1.0f / dt;
-        fps_ = (fps_ <= 0.0f) ? inst : fps_ * 0.92f + inst * 0.08f;
-    }
-}
-
 void tcApp::draw() {
     clear(0.08f, 0.09f, 0.11f);
 
@@ -59,18 +39,17 @@ void tcApp::draw() {
     view.end();
 
     setColor(1.0f);
-    const int f10 = (int)(fps_ * 10.0f + 0.5f);
-    string hud;
-    hud  = string(styleName()) + "\n";
-    hud += to_string(n_) + " points, size " + to_string((int)pointSize_) + "px\n";
-    hud += to_string(f10 / 10) + "." + to_string(f10 % 10) + " fps\n";
-    hud += "\nG: style   1-6: N (50k/100k/250k/500k/1M/2M)   [ ]: size   drag: orbit";
+    string hud = string(enumLabel(style_)) + "\n";
+    hud += toString(n_) + " points";
+    if (style_ != PointStyle::Pixel) hud += ", size " + toString((int)pointSize_) + "px";
+    hud += "\n" + toString(getFps(), 1) + " fps\n";
+    hud += "\nG: shape   1-6: N (50k/100k/250k/500k/1M/2M)   [ ]: size   drag: orbit";
     drawBitmapString(hud, 20, 20);
 }
 
 void tcApp::keyPressed(int key) {
     switch (key) {
-        case 'g': case 'G':
+        case 'G':
             style_ = (style_ == PointStyle::Square) ? PointStyle::Round
                    : (style_ == PointStyle::Round)  ? PointStyle::Pixel
                                                     : PointStyle::Square;

@@ -488,12 +488,10 @@ public:
     void draw() const {
         if (vertices_.empty()) return;
 
-        // GPU point splat path: a Points-mode mesh drawn with a non-Pixel point
-        // style lives in a GPU instance buffer and is drawn as billboarded
-        // splats (see tcMeshPointPipeline.h). PointStyle::Pixel falls through to
-        // the immediate 1px path below.
-        if (mode_ == PrimitiveMode::Points &&
-            getPointStyle() != PointStyle::Pixel) {
+        // GPU point path: a Points-mode mesh lives in a GPU buffer and is drawn
+        // GPU-resident (see tcMeshPointPipeline.h) — Square/Round as billboarded
+        // splats, Pixel as a true 1px point primitive.
+        if (mode_ == PrimitiveMode::Points) {
             drawGpuPoints();
             return;
         }
