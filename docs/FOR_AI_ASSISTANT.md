@@ -715,6 +715,23 @@ light.setLensShift(0.0f, 1.0f);                            // Projector lens shi
 light.setIesProfile(&iesProfile);                           // Photometric profile
 ```
 
+### How do I draw a point cloud / lots of points fast?
+
+Put the points in a `Mesh` with `PrimitiveMode::Points` and call `draw()`. A Points-mode mesh is **GPU-resident**: the positions + per-vertex colors are uploaded to a GPU buffer once and drawn with a single draw call, so the per-frame CPU cost is ~constant no matter how many points (millions are fine). Build the cloud once — only rebuild (or `markGpuDirty()`) when the data actually changes, not every frame.
+
+```cpp
+Mesh cloud;
+cloud.setMode(PrimitiveMode::Points);
+for (...) { cloud.addVertex(p); cloud.addColor(c); }   // build once
+
+// in draw():
+setPointSize(8.0f);                 // draw state, logical px (like strokeWeight)
+setPointStyle(PointStyle::Round);   // Square | Round | Pixel
+cloud.draw();                       // GPU-resident, one draw call
+```
+
+`PointStyle` controls the shape only (all are GPU-resident): `Square` and `Round` are billboarded splats sized by `setPointSize()` (`Round` is anti-aliased via alpha-to-coverage); `Pixel` is a true 1px GPU point primitive (ignores size). `setPointSize` / `setPointStyle` are draw state wrapped by `pushStyle`/`popStyle`. Points share the 3D depth buffer, so they occlude and are occluded correctly. See `examples/3d/pointCloudExample`.
+
 ### How do I use IBL (environment lighting / reflections)?
 
 Environment-based lighting — metal reflections and ambient — uses IBL. Load an `Environment` and call `setEnvironment()`:
