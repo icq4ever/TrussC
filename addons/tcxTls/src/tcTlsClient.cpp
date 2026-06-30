@@ -29,7 +29,7 @@
 
 using namespace tc;
 
-namespace tcx {
+namespace tcx::tls {
 
 // Forward declarations for the generated bundle (see cmake/tcTlsCaBundle.cpp.in).
 namespace tls_internal {
@@ -685,4 +685,4 @@ std::string TlsClient::getTlsVersion() const {
     return ver ? ver : "";
 }
 
-}  // namespace tcx
+}  // namespace tcx::tls
