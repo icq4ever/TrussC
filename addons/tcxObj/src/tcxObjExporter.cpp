@@ -5,7 +5,7 @@
 
 using namespace std;
 
-namespace tcx {
+namespace tcx::obj {
 
 // =============================================================================
 // Check if entry needs a material
@@ -417,4 +417,4 @@ Pixels ObjExporter::resizePixels(const Pixels& src, int maxSize) {
     return dst;
 }
 
-} // namespace tcx
+} // namespace tcx::obj

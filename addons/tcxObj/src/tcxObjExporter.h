@@ -9,7 +9,7 @@
 #include <vector>
 #include <filesystem>
 
-namespace tcx {
+namespace tcx::obj {
 
 using namespace tc;  // core types (Mesh, Image, Pixels, Color, ...)
 namespace fs = std::filesystem;
@@ -125,17 +125,14 @@ private:
     static Pixels resizePixels(const Pixels& src, int maxSize);
 };
 
-}  // namespace tcx
+}  // namespace tcx::obj
 
 // -----------------------------------------------------------------------------
-// Backward compatibility: tcxObj historically lived in `trussc` (tc).
-// The canonical namespace is now `tcx`; this alias keeps existing
-// `tc::Xxx` code compiling. DEPRECATED — will be removed in v1.0.0.
+// Backward compatibility. The canonical namespace is now `tcx::obj`. These
+// silent aliases keep older code compiling: flat `tcx::ObjExporter` and legacy
+// `tc::ObjExporter` / `trussc::ObjExporter`. DEPRECATED — removed in v1.0.0.
 // (No [[deprecated]] attribute: under the usual `using namespace tc;` it would
 //  warn on idiomatic unqualified use too. See README for migration.)
 // -----------------------------------------------------------------------------
-namespace trussc {
-using tcx::VertexColorMode;
-using tcx::ObjExportEntry;
-using tcx::ObjExporter;
-}  // namespace trussc
+namespace tcx    { using obj::VertexColorMode; using obj::ObjExportEntry; using obj::ObjExporter; }
+namespace trussc { using tcx::obj::VertexColorMode; using tcx::obj::ObjExportEntry; using tcx::obj::ObjExporter; }
