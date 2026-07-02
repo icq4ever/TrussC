@@ -40,6 +40,7 @@ api-reference.toml  ──────────►  prose      (symbol-id →
 | `emit-forai.js` | injects the C++ API index into `../FOR_AI_ASSISTANT.md` (documented-only, overloads collapsed, enum values, category-grouped). |
 | `emit-of.js`    | the openFrameworks↔TrussC migration guide → `trussc.org/generated/of-mapping.json` + `../TrussC_vs_openFrameworks.md` §5. Grouping/notes from `of-mapping-config.js`. |
 | `../scripts/emit-web.js` | the web reference data → `trussc.org/generated/trussc-api.js` (full public surface, same shape the site consumes). Reads `reference-data.json` + `extras.json` (macros / keywords / constant values / example links) + `colors.json`. |
+| `emit-dash.js` | a **Dash/Zeal offline docset** → `reference/build/TrussC.docset` (self-contained static HTML + `docSet.dsidx` SQLite index + `Info.plist`). Reads `reference-data.json` + `categories.json` + `extras.json` + `colors.json`, and converts the `docs/*.md` guides to HTML. Descriptions are rendered in all three languages (en/ja/ko). Needs `sql.js` + `marked` (`npm install` in `docs/`). Run: `node emit-dash.js` (or `npm run docset`); override the data source with `--data <reference-data.json>`. Load the result by copying the `.docset` into Zeal's docsets directory. |
 
 The legacy `api-definition.yaml` and its `generate-docs.js` / `mine.js` are
 **retired** (deleted). Structure comes from the AST, prose from
