@@ -13,8 +13,12 @@
 // `dashAnchor` markers embedded in each page (DashDocSetFamily = dashtoc).
 //
 //   node emit-dash.js [--data <reference-data.json>] [--out <TrussC.docset>]
-//                     [--docs <docs dir with the *.md guides>] [--dry] [--strict]
+//                     [--docs <docs dir with the *.md guides>]
+//                     [--lang en|ko|ja|all|en,ko] [--dry] [--strict]
 //
+// --lang: which description language(s) to render. Default 'en' (Dash-style,
+//         one language, no per-language chips). 'all' = en,ja,ko; or a comma
+//         list like 'en,ko'. reference-data.json always carries all three.
 // --strict: treat schema-drift warnings as errors (exit 1, write nothing).
 //           Use in CI so a renamed/restructured reference-data.json field is
 //           caught loudly instead of silently producing an empty docset.
@@ -31,6 +35,12 @@ const argv = process.argv.slice(2);
 const argVal = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
 const DRY = argv.includes('--dry');
 const STRICT = argv.includes('--strict');
+// description language(s) to render; default English-only (Dash convention)
+const LANG_LABELS = { en: 'EN', ja: '日本語', ko: '한국어' };
+const _langArg = String(argVal('--lang', 'en')).toLowerCase();
+const LANGS = (_langArg === 'all' ? ['en', 'ja', 'ko'] : _langArg.split(',').map(s => s.trim()))
+    .filter(k => LANG_LABELS[k]);
+if (!LANGS.length) LANGS.push('en');
 
 const REF_DIR = __dirname;
 const DATA = argVal('--data', path.join(REF_DIR, 'reference-data.json'));
@@ -87,28 +97,37 @@ function detailsTrio(det) {
     return { en: _t(det) };
 }
 
-// multilingual description + details block
+// description + details block, in the selected LANGS. Single language → plain
+// (no per-language chip); multiple → one labelled block per language.
 function descBlock(e) {
     const d = e.description || {};
     const det = detailsTrio(e.details);
-    const langs = [['en', 'EN'], ['ja', '日本語'], ['ko', '한국어']];
+    const single = LANGS.length === 1;
     let out = '';
     let any = false;
-    for (const [k, label] of langs) {
+    for (const k of LANGS) {
         const desc = _t(d[k]);
         const detail = _t(det[k]);
         if (!desc && !detail) continue;
         any = true;
-        out += `<div class="lang"><span class="lang-tag">${label}</span>`;
+        if (!single) out += `<div class="lang"><span class="lang-tag">${LANG_LABELS[k]}</span>`;
         if (desc) out += `<p class="desc">${esc(desc)}</p>`;
         if (detail) out += `<p class="detail">${esc(detail)}</p>`;
-        out += `</div>`;
+        if (!single) out += `</div>`;
     }
-    // fallback: en only, or nothing
-    if (!any && _t(d.en)) out = `<p class="desc">${esc(_t(d.en))}</p>`;
-    if (!any && !_t(d.en)) out = `<p class="desc undocumented">No description yet.</p>`;
+    // fallback: any available language (prefer en), else undocumented
+    if (!any) {
+        const fb = _t(d.en) || _t(d[LANGS[0]]) || _t(d.ja) || _t(d.ko);
+        out = fb ? `<p class="desc">${esc(fb)}</p>` : `<p class="desc undocumented">No description yet.</p>`;
+    }
     return out;
 }
+// first available description among the selected LANGS (for compact tables)
+const pickDesc = (e) => {
+    const d = e.description || {};
+    for (const k of LANGS) if (_t(d[k])) return _t(d[k]);
+    return _t(d.en) || '';
+};
 
 function sigLines(e) {
     const sigs = e.signatures || [];
@@ -336,8 +355,7 @@ for (const name of typeNames) {
             body += `<table class="members"><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody>`;
             for (const m of members) {
                 body += `<a name="${anchor('Value', en.name + '.' + m.name)}" class="dashAnchor"></a>`;
-                const d = (m.description && (m.description.en || m.description.ko)) || '';
-                body += `<tr><td><code>${esc(m.name)}</code></td><td>${esc(d)}</td></tr>`;
+                body += `<tr><td><code>${esc(m.name)}</code></td><td>${esc(pickDesc(m))}</td></tr>`;
                 addIndex(`${en.name}::${m.name}`, 'Value', 'enums.html#' + anchor('Value', en.name + '.' + m.name));
             }
             body += `</tbody></table>`;
@@ -504,7 +522,7 @@ files.set('style.css', CSS);
 // write everything
 // ============================================================================
 async function main() {
-    console.log(`emit-dash: ${all.length} public symbols → ${index.length} index entries, ${files.size} files`);
+    console.log(`emit-dash: ${all.length} public symbols → ${index.length} index entries, ${files.size} files (lang: ${LANGS.join(',')})`);
     const byType = {};
     for (const r of index) byType[r.type] = (byType[r.type] || 0) + 1;
     console.log('  by type:', Object.entries(byType).map(([k, v]) => `${k}:${v}`).join(' '));

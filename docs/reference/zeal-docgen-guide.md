@@ -7,7 +7,8 @@
   a `docSet.dsidx` SQLite search index, and an `Info.plist`.
 - **What's inside:** every public C++ symbol (types, methods, fields, operators,
   free functions, enums + values, constants, macros, type aliases) plus the
-  `docs/*.md` guides converted to HTML. Descriptions render in **en / ja / ko**.
+  `docs/*.md` guides converted to HTML. Descriptions render in **English by
+  default**; pass `--lang all` (or e.g. `--lang en,ko`) for the other languages.
 - **Where it fits:** a downstream consumer of the reference pipeline, alongside
   `emit-web.js` / `emit-of.js` / `emit-forai.js`. See [README.md](README.md).
 
@@ -93,6 +94,7 @@ Search `Color::fromHSB`, browse guides, and use the per-page table of contents
 node emit-dash.js [--data <reference-data.json>]  # source data (default: ./reference-data.json)
                   [--out  <TrussC.docset>]        # output bundle (default: ./build/TrussC.docset)
                   [--docs <dir>]                  # dir holding the *.md guides (default: ../)
+                  [--lang en|ko|ja|all|en,ko]     # description language(s) (default: en)
                   [--dry]                         # print the plan, write nothing
                   [--strict]                      # treat schema warnings as errors (exit 1)
 ```
