@@ -13,7 +13,11 @@
 // `dashAnchor` markers embedded in each page (DashDocSetFamily = dashtoc).
 //
 //   node emit-dash.js [--data <reference-data.json>] [--out <TrussC.docset>]
-//                     [--docs <docs dir with the *.md guides>] [--dry]
+//                     [--docs <docs dir with the *.md guides>] [--dry] [--strict]
+//
+// --strict: treat schema-drift warnings as errors (exit 1, write nothing).
+//           Use in CI so a renamed/restructured reference-data.json field is
+//           caught loudly instead of silently producing an empty docset.
 //
 // Prereq: reference-data.json must exist — generate it first with
 //   node --max-old-space-size=8192 generate.js      (needs clang; see README)
@@ -26,6 +30,7 @@ const path = require('path');
 const argv = process.argv.slice(2);
 const argVal = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
 const DRY = argv.includes('--dry');
+const STRICT = argv.includes('--strict');
 
 const REF_DIR = __dirname;
 const DATA = argVal('--data', path.join(REF_DIR, 'reference-data.json'));
@@ -199,6 +204,41 @@ const typedefs = all.filter(e => e.kind === 'typedef');
 const constants = all.filter(e => (e.kind === 'var' || e.kind === 'field') && !isEnumMember(e) && !e.owner);
 const macros = EXTRAS.macros || [];
 const keywords = EXTRAS.keywords || [];
+
+// --- schema sanity checks — catch SILENT reference-data.json drift ----------
+// A renamed/restructured field usually doesn't crash: JS just reads `undefined`
+// and renders empty sections, so an incomplete docset looks "successful". These
+// checks turn that into a visible warning (or, with --strict, a hard failure).
+// If one fires, reconcile emit-dash.js with the schema in README.md §"the
+// canonical format" after a `git merge main`.
+const warnings = [];
+const warn = (m) => warnings.push(m);
+{
+    const KNOWN_KINDS = new Set(['type', 'enum', 'typedef', 'method', 'func', 'field', 'var']);
+    const kindCount = {};
+    let noName = 0, strDesc = 0, sigNoRet = 0, callable = 0, hasDesc = 0;
+    for (const e of all) {
+        kindCount[e.kind] = (kindCount[e.kind] || 0) + 1;
+        if (!e.name) noName++;
+        if (typeof e.description === 'string') strDesc++;
+        if (e.description && typeof e.description === 'object' && (e.description.en || e.description.ja || e.description.ko)) hasDesc++;
+        if (e.kind === 'method' || e.kind === 'func') {
+            const s = (e.signatures || [])[0];
+            if (s) { callable++; if (!('ret' in s)) sigNoRet++; }
+        }
+    }
+    const unknown = Object.keys(kindCount).filter(k => !KNOWN_KINDS.has(k));
+    const enumMemberCount = [...enumMembers.values()].reduce((n, a) => n + a.length, 0);
+    if (unknown.length) warn(`unknown kind value(s): ${unknown.join(', ')} — these are not rendered; the 'kind' vocabulary may have changed.`);
+    if (types.size === 0) warn(`0 types found — expected classes/structs. 'kind'/'owner' field renamed?`);
+    if (freeFns.length === 0) warn(`0 free functions found (kind:'func').`);
+    if (enums.length > 0 && enumMemberCount === 0) warn(`${enums.length} enum(s) but 0 members grouped — enum-member layout (kind:'var' + ns=enum) may have changed.`);
+    if (noName) warn(`${noName} entr(y/ies) with no 'name' field.`);
+    if (strDesc) warn(`${strDesc} entr(y/ies) have a STRING 'description' (expected {en,ja,ko}) — they will render as undocumented.`);
+    if (all.length > 20 && hasDesc === 0) warn(`no entry has a {en,ja,ko} 'description' — the 'description' field may be renamed; everything will render as undocumented.`);
+    if (callable && sigNoRet === callable) warn(`no signature carries a 'ret' field — signature shape may have changed.`);
+    if (!CATS.length) warn(`categories.json empty/unreadable — free functions won't be grouped by category.`);
+}
 
 const catName = (id, lang) => {
     const c = CAT_BY_ID.get(id);
@@ -468,6 +508,13 @@ async function main() {
     const byType = {};
     for (const r of index) byType[r.type] = (byType[r.type] || 0) + 1;
     console.log('  by type:', Object.entries(byType).map(([k, v]) => `${k}:${v}`).join(' '));
+
+    if (index.length === 0) warn('0 index entries — nothing to search; likely a schema mismatch.');
+    if (warnings.length) {
+        console.warn(`emit-dash: ${warnings.length} schema warning(s) — reference-data.json may have drifted:`);
+        for (const w of warnings) console.warn('  ! ' + w);
+        if (STRICT) { console.error('emit-dash: --strict set → aborting, wrote nothing.'); process.exit(1); }
+    }
 
     if (DRY) { console.log('  --dry: not writing'); return; }
 
