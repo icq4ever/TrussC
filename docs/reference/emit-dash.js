@@ -231,10 +231,16 @@ for (const owner of ownerMembers.keys())
 // free functions grouped by category
 const freeFns = all.filter(e => e.kind === 'func');
 const enums = all.filter(e => e.kind === 'enum');
-const enumMembers = new Map(); // enumName -> [members]
-for (const e of all) if (isEnumMember(e)) {
-    if (!enumMembers.has(e.ns)) enumMembers.set(e.ns, []);
-    enumMembers.get(e.ns).push(e);
+const enumMembers = new Map(); // enumName -> [members], in declared value order
+for (const en of enums) {
+    // Members live in a nested `members` array ([{name, value}]); per-value
+    // descriptions live in the enum's `value_desc` map keyed by member name.
+    const list = (en.members || []).map(m => ({
+        name: m.name,
+        value: m.value,
+        description: (en.value_desc && en.value_desc[m.name]) || {},
+    }));
+    if (list.length) enumMembers.set(en.name, list);
 }
 const typedefs = all.filter(e => e.kind === 'typedef');
 // namespaced constants: kind var/field, not an enum member, not owned by a type
@@ -269,7 +275,7 @@ const warn = (m) => warnings.push(m);
     if (unknown.length) warn(`unknown kind value(s): ${unknown.join(', ')} — these are not rendered; the 'kind' vocabulary may have changed.`);
     if (types.size === 0) warn(`0 types found — expected classes/structs. 'kind'/'owner' field renamed?`);
     if (freeFns.length === 0) warn(`0 free functions found (kind:'func').`);
-    if (enums.length > 0 && enumMemberCount === 0) warn(`${enums.length} enum(s) but 0 members grouped — enum-member layout (kind:'var' + ns=enum) may have changed.`);
+    if (enums.length > 0 && enumMemberCount === 0) warn(`${enums.length} enum(s) but 0 members grouped — enum-member layout (nested 'members' array on each enum) may have changed.`);
     if (noName) warn(`${noName} entr(y/ies) with no 'name' field.`);
     if (strDesc) warn(`${strDesc} entr(y/ies) have a STRING 'description' (expected {en,ja,ko}) — they will render as undocumented.`);
     if (all.length > 20 && hasDesc === 0) warn(`no entry has a {en,ja,ko} 'description' — the 'description' field may be renamed; everything will render as undocumented.`);
@@ -368,7 +374,8 @@ for (const name of typeNames) {
         body += `<a name="${anchor('Enum', en.name)}" class="dashAnchor"></a>`;
         body += `<section><h2>${esc(en.name)}</h2>`;
         body += descBlock(en);
-        const members = (enumMembers.get(en.name) || []).sort(byName);
+        const members = (enumMembers.get(en.name) || []).slice()
+            .sort((a, b) => (a.value ?? 0) - (b.value ?? 0) || byName(a, b));
         if (members.length) {
             body += `<table class="members"><thead><tr><th>Value</th><th>Description</th></tr></thead><tbody>`;
             for (const m of members) {

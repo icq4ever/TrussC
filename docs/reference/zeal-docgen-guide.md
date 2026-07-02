@@ -69,6 +69,18 @@ node emit-dash.js
 
 Output: `docs/reference/build/TrussC.docset` (gitignored).
 
+**Languages.** By default only English descriptions are emitted (the Dash
+convention — one language, no per-language chips). To bundle **all languages**
+(English + 日本語 + 한국어) into a single docset, pass `--lang all`:
+
+```bash
+node emit-dash.js --lang all        # en + ja + ko, each shown as a labelled block
+node emit-dash.js --lang en,ko      # or pick a subset explicitly
+```
+
+`reference-data.json` always carries all three languages, so this is purely a
+render-time choice — no need to regenerate the data to switch languages.
+
 ---
 
 ## 3. Load it in Zeal / Dash
