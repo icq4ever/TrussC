@@ -317,6 +317,39 @@ void Window::setSize(int width, int height) {
     XFlush(dpy);
 }
 
+void Window::setPosition(int x, int y) {
+    auto* st = static_cast<AdapterState*>(native_);
+    if (!st) return;
+    Display* dpy = (Display*)(void*)sapp_x11_get_display();
+    ::Window xwin = (::Window)(uintptr_t)sapp_window_x11_get_window(st->win);
+    if (!dpy || !xwin) return;
+    // Root-window coordinates, unscaled (X11 screen space is device pixels and
+    // spans every display, so a monitor left of the primary one has negative x).
+    // Note this is a request: a reparenting window manager may adjust or ignore
+    // it, and some WMs apply their own placement policy on first map. Call it
+    // after the window is mapped for a predictable result.
+    XMoveWindow(dpy, xwin, x, y);
+    XFlush(dpy);
+}
+
+IVec2 Window::getPosition() const {
+    auto* st = static_cast<AdapterState*>(native_);
+    if (!st) return IVec2(-1, -1);
+    Display* dpy = (Display*)(void*)sapp_x11_get_display();
+    ::Window xwin = (::Window)(uintptr_t)sapp_window_x11_get_window(st->win);
+    if (!dpy || !xwin) return IVec2(-1, -1);
+    // XGetWindowAttributes reports coordinates relative to the parent, which
+    // under a reparenting WM is the frame, not the root. Translate to root
+    // coordinates so the value round-trips with setPosition().
+    ::Window root = DefaultRootWindow(dpy);
+    int rx = 0, ry = 0;
+    ::Window child = 0;
+    if (!XTranslateCoordinates(dpy, xwin, root, 0, 0, &rx, &ry, &child)) {
+        return IVec2(-1, -1);
+    }
+    return IVec2(rx, ry);
+}
+
 void Window::setFullscreen(bool full) {
     auto* st = static_cast<AdapterState*>(native_);
     if (!st) return;
