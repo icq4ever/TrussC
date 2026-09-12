@@ -61,6 +61,18 @@ public:
     bool send(const std::string& message);
     bool send(const std::vector<char>& data);
 
+    // Send a Ping. A connection that carries no traffic is closed by
+    // intermediaries: measured against an nginx-fronted server, a silent
+    // connection died after 60.9s, while pinging every 30s kept it open
+    // indefinitely. A long-lived client should ping on a timer rather than
+    // rely on reconnecting, so pinging is the client's job here.
+    //
+    // The peer answers with a Pong, so this also proves the path still works.
+    // Payload is capped at 125 bytes (RFC 6455 5.5: control frames).
+    // Returns false when not connected, and on Emscripten, where the browser
+    // owns the connection and exposes no ping.
+    bool sendPing(const std::string& payload = "keepalive");
+
     State getState() const { return state_; }
     bool isConnected() const { return state_ == State::Open; }
 
@@ -83,6 +95,9 @@ private:
     void processHandshake(const std::string& header);
     void processFrame();
     void sendPong(const std::vector<char>& payload);
+
+    // One masked control frame (Ping / Pong), sent in a single write.
+    bool sendControl(uint8_t opcode, const char* data, size_t len);
 
     std::unique_ptr<TcpClient> client_;
     EventListener receiveListener_;
